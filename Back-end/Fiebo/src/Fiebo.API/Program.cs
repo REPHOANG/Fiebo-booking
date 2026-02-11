@@ -1,6 +1,21 @@
-var builder = WebApplication.CreateBuilder(args);
+using Fiebo.Domain.Repositories;
+using Fiebo.Infrastructure.Data;
+using Fiebo.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
+var connectionString = configuration.GetConnectionString("MyCnn");
+
+builder.Services.AddDbContext<FieboDbContext>(options =>
+{
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+        b => b.MigrationsAssembly("Fiebo.Infrastructure"));
+});
+
+// Repository layer
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
