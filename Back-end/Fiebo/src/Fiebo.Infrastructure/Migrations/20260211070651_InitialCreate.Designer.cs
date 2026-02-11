@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fiebo.Infrastructure.Migrations
 {
     [DbContext(typeof(FieboDbContext))]
-    [Migration("20260211041607_InitialCreate")]
+    [Migration("20260211070651_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
