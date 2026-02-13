@@ -1,5 +1,6 @@
 ﻿using Fiebo.Domain.Repositories;
 using Fiebo.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,21 +14,15 @@ namespace Fiebo.Infrastructure.Repositories
         private readonly FieboDbContext _context;
 
         // Khai báo field backing
-        private IProductRepository? _productRepository;
+        public IUserRepository Users { get; }
 
-        public UnitOfWork(FieboDbContext context)
+        public UnitOfWork(
+            FieboDbContext context,
+            IUserRepository users
+            )
         {
             _context = context;
-        }
-
-        // Singleton instance cho Repository trong phạm vi request
-        public IProductRepository Products
-        {
-            get
-            {
-                // Nếu chưa có thì new, có rồi thì dùng lại (Lazy Loading pattern)
-                return _productRepository ??= new ProductRepository(_context);
-            }
+            Users = users;
         }
 
         public async Task<int> SaveChangesAsync()
@@ -40,6 +35,5 @@ namespace Fiebo.Infrastructure.Repositories
             _context.Dispose();
         }
 
-     
     }
 }

@@ -15,10 +15,4 @@
     <ProjectReference Include="..\Fiebo.Domain\Fiebo.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Interfaces\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>
