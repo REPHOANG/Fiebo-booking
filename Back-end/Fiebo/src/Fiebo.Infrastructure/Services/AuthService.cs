@@ -26,12 +26,12 @@ namespace Fiebo.Infrastructure.Services
         }
         public async Task<AuthResponse> RegisterAsync(RegistrationRequest request)
         {
-            // 1. Kiểm tra Email
+            // check email
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
             if (existingUser != null)
                 return new AuthResponse { IsSuccess = false, Message = "Email đã được sử dụng!" };
 
-            // 2. Tạo User mới
+            // create new user
             var user = new ApplicationUser
             {
                 Email = request.Email,
@@ -41,7 +41,7 @@ namespace Fiebo.Infrastructure.Services
                 DateOfBirth = request.DateOfBirth,
             };
 
-            // 3. Lưu vào DB bằng Identity (tự động Hash Password)
+            // save into DB using Identity (Hash Password automatically)
             var result = await _userManager.CreateAsync(user, request.Password);
 
             if (!result.Succeeded)
@@ -50,7 +50,6 @@ namespace Fiebo.Infrastructure.Services
                 return new AuthResponse { IsSuccess = false, Message = errors };
             }
 
-            // (Tuỳ chọn) Gán Role mặc định: await _userManager.AddToRoleAsync(user, "User");
 
             return new AuthResponse
             {
@@ -66,7 +65,6 @@ namespace Fiebo.Infrastructure.Services
             if (user == null)
                 return new AuthResponse { IsSuccess = false, Message = "Tài khoản không tồn tại!" };
 
-            // Kiểm tra Password bằng Identity
             var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
             if (!isPasswordValid)
                 return new AuthResponse { IsSuccess = false, Message = "Sai mật khẩu!" };
