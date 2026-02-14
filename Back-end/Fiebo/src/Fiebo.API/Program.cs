@@ -32,6 +32,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 
 // Setup redis
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -42,11 +44,6 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName =
         builder.Configuration["Redis:InstanceName"];
 });
-
-
-
-
-
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

@@ -87,6 +87,23 @@ namespace Fiebo.Application.Services
             };
             _unitOfWork.Users.Add(user);
             await _unitOfWork.SaveChangesAsync();
+
+            const string defaultRoleName = "Customer";
+
+            var role = await _unitOfWork.Roles.GetByRoleNameAsync(defaultRoleName);
+            if (role == null)
+            {
+                throw new Exception($"Role '{defaultRoleName}' not found");
+            }
+
+            var userRole = new UserRole
+            {
+                UserId = user.UserId,
+                RoleId = role.RoleId
+            };
+            _unitOfWork.UserRoles.Add(userRole);
+            await _unitOfWork.SaveChangesAsync();
+
             var subject = "Xác thực tài khoản Fiebo";
             var otp = _otpGenerator.Generate();
             var hashOtp = _passwordHasher.Hash(otp);

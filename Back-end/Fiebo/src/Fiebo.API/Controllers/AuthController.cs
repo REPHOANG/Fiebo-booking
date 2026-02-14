@@ -39,5 +39,16 @@ namespace Fiebo.API.Controllers
                 Message = "Account activated successfully!",
             });
         }
+
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp()
+        {
+
+            return Ok(new ApiResponse<string>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "OTP resent successfully. Please check your email.",
+            });
+        }
     }
 }

@@ -16,13 +16,21 @@ namespace Fiebo.Infrastructure.Repositories
         // Khai báo field backing
         public IUserRepository Users { get; }
 
+        public IRoleRepository Roles { get; }
+
+        public IUserRoleRepository UserRoles { get; }
+
         public UnitOfWork(
             FieboDbContext context,
-            IUserRepository users
+            IUserRepository users,
+            IRoleRepository roles,
+            IUserRoleRepository userRoles
             )
         {
             _context = context;
             Users = users;
+            Roles = roles;
+            UserRoles = userRoles;
         }
 
         public async Task<int> SaveChangesAsync()

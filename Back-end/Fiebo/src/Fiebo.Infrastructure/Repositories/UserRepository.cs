@@ -12,10 +12,8 @@ namespace Fiebo.Infrastructure.Repositories
 {
     public class UserRepository : Repository<User>, IUserRepository
     {
-        private readonly FieboDbContext _context;
         public UserRepository(FieboDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<User?> GetByEmailAsync(string email)
