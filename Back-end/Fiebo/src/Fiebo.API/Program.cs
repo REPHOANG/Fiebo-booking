@@ -1,4 +1,5 @@
 ﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Services;
 using Fiebo.Domain.Repositories;
 using Fiebo.Infrastructure.Data;
 using Fiebo.Infrastructure.Identity;
@@ -29,6 +30,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequiredLength = 6;
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<FieboDbContext>()
 .AddDefaultTokenProviders();
@@ -59,7 +61,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -67,6 +70,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Seed Data
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        await DbInitializer.SeedRolesAsync(services);
+    }
+    catch (Exception ex)
+    {
+        // Log lỗi
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

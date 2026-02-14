@@ -18,20 +18,18 @@ namespace Fiebo.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegistrationRequest request)
+        public async Task<IActionResult> Register([FromBody] RegistrationRequest request)
         {
             var result = await _authService.RegisterAsync(request);
-            if (!result.IsSuccess) return BadRequest(new { Message = result.Message });
-
+            if (!result.IsSuccess) return BadRequest(result);
             return Ok(result);
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(Application.DTOs.Identity.LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] Application.DTOs.Identity.LoginRequest request)
         {
             var result = await _authService.LoginAsync(request);
-            if (!result.IsSuccess) return Unauthorized(new { Message = result.Message });
-
+            if (!result.IsSuccess) return Unauthorized(result);
             return Ok(result);
         }
     }
