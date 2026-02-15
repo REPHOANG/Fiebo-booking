@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Identity;
+﻿using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
@@ -26,7 +26,7 @@ namespace Fiebo.API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] Application.DTOs.Identity.LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] Application.DTOs.Auth.LoginRequest request)
         {
             var result = await _authService.LoginAsync(request);
             if (!result.IsSuccess) return Unauthorized(result);

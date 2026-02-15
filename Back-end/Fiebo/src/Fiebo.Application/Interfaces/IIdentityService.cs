@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fiebo.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace Fiebo.Application.Interfaces
     public interface IIdentityService
     {
         Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(string email, string phone, string password, string fullName, string role);
-        Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email)> AuthenticateAsync(string account, string password);
+        Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, UserStatus Status)> AuthenticateAsync(string account, string password);
         Task<bool> IsEmailUniqueAsync(string email);
         Task<bool> IsPhoneUniqueAsync(string phone);
     }

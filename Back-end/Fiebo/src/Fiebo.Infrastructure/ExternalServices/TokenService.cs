@@ -22,9 +22,13 @@ namespace Fiebo.Infrastructure.Services
 
         public string GenerateAccessToken(string userId, string fullName, string role, string email)
         {
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
+            // Tự động lấy từ .env thông qua IConfiguration
+            var secretKey = _configuration["JwtSettings:SecretKey"];
+            var issuer = _configuration["JwtSettings:Issuer"];
+            var audience = _configuration["JwtSettings:Audience"];
+            var expiryMinutes = double.Parse(_configuration["JwtSettings:ExpiryMinutes"] ?? "60");
 
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
@@ -33,14 +37,12 @@ namespace Fiebo.Infrastructure.Services
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
             var token = new JwtSecurityToken(
-                issuer: jwtSettings["Issuer"],
-                audience: jwtSettings["Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiryMinutes"]!)),
-                signingCredentials: creds
+                expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);

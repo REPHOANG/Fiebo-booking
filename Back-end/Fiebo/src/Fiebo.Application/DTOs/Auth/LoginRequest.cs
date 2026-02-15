@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Application.DTOs.Identity
+namespace Fiebo.Application.DTOs.Auth
 {
     public class LoginRequest
     {

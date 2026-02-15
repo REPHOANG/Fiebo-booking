@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Domain.Entities
+namespace Fiebo.Domain.Enums
 {
-    public class Product
+    public enum UserStatus
     {
+        Active = 1,     
+        Inactive = 0,   
+        Banned = -1     
     }
 }

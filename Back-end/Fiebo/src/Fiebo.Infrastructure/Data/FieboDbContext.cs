@@ -17,11 +17,16 @@ namespace Fiebo.Infrastructure.Data
         }
 
         // Khai báo các bảng (DbSet)
+        public DbSet<Wallet> Wallets { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            modelBuilder.Entity<Wallet>()
+            .HasOne<ApplicationUser>()
+            .WithOne()                
+            .HasForeignKey<Wallet>(w => w.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

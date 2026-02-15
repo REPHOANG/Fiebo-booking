@@ -1,6 +1,9 @@
-﻿using Fiebo.Application.DTOs.Identity;
+﻿using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
+using Fiebo.Domain.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,52 +16,33 @@ namespace Fiebo.Application.Services
     {
         private readonly IIdentityService _identityService;
         private readonly ITokenService _tokenService;
-
-        public AuthService(IIdentityService identityService, ITokenService tokenService)
+        private readonly IUnitOfWork _unitOfWork;
+        public AuthService(IIdentityService identityService, ITokenService tokenService, IUnitOfWork unitOfWork)
         {
             _identityService = identityService;
             _tokenService = tokenService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<AuthResponse> RegisterAsync(RegistrationRequest request)
         {
-            string defaultRole = AppRoles.Customer;
-
             if (!await _identityService.IsEmailUniqueAsync(request.Email))
-                return new AuthResponse { IsSuccess = false, Message = "Email này đã được sử dụng!" };
-
+                return new AuthResponse { IsSuccess = false, Message = "Email đã tồn tại!" };
             if (!await _identityService.IsPhoneUniqueAsync(request.PhoneNumber))
-                return new AuthResponse { IsSuccess = false, Message = "Số điện thoại này đã được sử dụng!" };
+                return new AuthResponse { IsSuccess = false, Message = "SĐT đã tồn tại!" };
 
-            // 3. Tạo User
-            var createResult = await _identityService.CreateUserAsync(
-                request.Email,
-                request.PhoneNumber,
-                request.Password,
-                request.FullName,
-                defaultRole 
-            );
+            var role = AppRoles.Customer;
+            var createResult = await _identityService.CreateUserAsync(request.Email, request.PhoneNumber, request.Password, request.FullName, role);
 
             if (!createResult.IsSuccess)
-            {
                 return new AuthResponse { IsSuccess = false, Message = createResult.ErrorMessage };
-            }
 
-            var token = _tokenService.GenerateAccessToken(
-                createResult.UserId,
-                request.FullName,
-                defaultRole,
-                request.Email
-            );
+            var wallet = new Wallet { UserId = createResult.UserId, Balance = 0 };
+            _unitOfWork.Wallets.Add(wallet);
+            await _unitOfWork.SaveChangesAsync();
 
-            return new AuthResponse
-            {
-                IsSuccess = true,
-                Message = "Đăng ký thành công!",
-                Token = token,
-                FullName = request.FullName,
-                Role = defaultRole
-            };
+            var token = _tokenService.GenerateAccessToken(createResult.UserId, request.FullName, role, request.Email);
+            return new AuthResponse { IsSuccess = true, Token = token, FullName = request.FullName, Role = role, Message = "Đăng ký thành công" };
         }
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -66,25 +50,13 @@ namespace Fiebo.Application.Services
             var authResult = await _identityService.AuthenticateAsync(request.EmailOrPhone, request.Password);
 
             if (!authResult.IsSuccess)
-            {
-                return new AuthResponse { IsSuccess = false, Message = "Tài khoản hoặc mật khẩu không chính xác!" };
-            }
+                return new AuthResponse { IsSuccess = false, Message = "Sai tài khoản hoặc mật khẩu!" };
 
-            var token = _tokenService.GenerateAccessToken(
-                authResult.UserId,
-                authResult.FullName,
-                authResult.Role,
-                authResult.Email
-            );
+            if (authResult.Status == UserStatus.Banned)
+                return new AuthResponse { IsSuccess = false, Message = "Tài khoản của bạn đã bị khóa!" };
 
-            return new AuthResponse
-            {
-                IsSuccess = true,
-                Message = "Đăng nhập thành công!",
-                Token = token,
-                FullName = authResult.FullName,
-                Role = authResult.Role
-            };
+            var token = _tokenService.GenerateAccessToken(authResult.UserId, authResult.FullName, authResult.Role, authResult.Email);
+            return new AuthResponse { IsSuccess = true, Token = token, FullName = authResult.FullName, Role = authResult.Role, Message = "Đăng nhập thành công" };
         }
     }
 }

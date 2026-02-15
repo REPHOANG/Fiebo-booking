@@ -1,4 +1,5 @@
 ﻿using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Enums;
 using Fiebo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -25,51 +26,34 @@ namespace Fiebo.Infrastructure.Services
         {
             var user = new ApplicationUser
             {
-                UserName = email, 
+                UserName = email,
                 Email = email,
                 PhoneNumber = phone,
-                FullName = fullName
+                FullName = fullName,
+                Status = UserStatus.Active // Mặc định Active
             };
 
-            // 1. Tạo User
             var result = await _userManager.CreateAsync(user, password);
             if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                return (false, string.Empty, errors);
-            }
+                return (false, string.Empty, string.Join(", ", result.Errors.Select(e => e.Description)));
 
-            
             if (await _roleManager.RoleExistsAsync(role))
-            {
                 await _userManager.AddToRoleAsync(user, role);
-            }
 
             return (true, user.Id, string.Empty);
         }
 
-        public async Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email)> AuthenticateAsync(string account, string password)
+        public async Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, UserStatus Status)> AuthenticateAsync(string account, string password)
         {
-            ApplicationUser? user = null;
+            ApplicationUser? user = account.Contains("@")
+                ? await _userManager.FindByEmailAsync(account)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
 
-            if (account.Contains("@"))
-            {
-                user = await _userManager.FindByEmailAsync(account);
-            }
-            else
-            {
-                user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
-            }
-
-            if (user == null) return (false, string.Empty, string.Empty, string.Empty, string.Empty);
-
-            if (!await _userManager.CheckPasswordAsync(user, password))
-                return (false, string.Empty, string.Empty, string.Empty, string.Empty);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, password))
+                return (false, string.Empty, string.Empty, string.Empty, string.Empty, UserStatus.Inactive);
 
             var roles = await _userManager.GetRolesAsync(user);
-            var role = roles.FirstOrDefault() ?? "User";
-
-            return (true, user.Id, user.FullName, role, user.Email!);
+            return (true, user.Id, user.FullName, roles.FirstOrDefault() ?? "User", user.Email!, user.Status);
         }
 
         public async Task<bool> IsEmailUniqueAsync(string email)

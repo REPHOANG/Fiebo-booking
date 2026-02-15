@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Fiebo.Domain.Enums;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,6 @@ namespace Fiebo.Infrastructure.Identity
     {
         public string FullName { get; set; } = null!;
         public DateOnly DateOfBirth { get; set; }
+        public UserStatus Status { get; set; } = UserStatus.Active;
     }
 }

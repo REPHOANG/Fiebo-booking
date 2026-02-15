@@ -1,4 +1,5 @@
-﻿using Fiebo.Application.Interfaces;
+﻿using DotNetEnv;
+using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Repositories;
 using Fiebo.Infrastructure.Data;
@@ -12,9 +13,9 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Text;
 
+Env.Load();
 var builder = WebApplication.CreateBuilder(args);
-var configuration = builder.Configuration;
-var connectionString = configuration.GetConnectionString("MyCnn");
+var connectionString = builder.Configuration.GetConnectionString("MyCnn");
 
 builder.Services.AddDbContext<FieboDbContext>(options =>
 {
@@ -36,25 +37,31 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-builder.Services.AddAuthentication(options =>
+var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET");
+var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
+var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+var expiryMinutes = Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES");
+
+if (string.IsNullOrEmpty(secretKey)) throw new Exception("Chưa cấu hình JWT_SECRET trong .env");
+
+builder.Services.AddAuthentication(opts =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    opts.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    .AddJwtBearer(opts =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!))
-    };
-});
+        opts.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
+        };
+    });
 
 // Repository layer
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -81,7 +88,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        // Log lỗi
+        Console.WriteLine($"Database seeding failed: {ex.Message}");
     }
 }
 
