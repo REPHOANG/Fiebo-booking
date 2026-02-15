@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System;
 using System.Text;
 
@@ -37,13 +38,6 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // JWT Authentication
-var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET");
-var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
-var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
-var expiryMinutes = Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES");
-
-if (string.IsNullOrEmpty(secretKey)) throw new Exception("Chưa cấu hình JWT_SECRET trong .env");
-
 builder.Services.AddAuthentication(opts =>
 {
     opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -74,7 +68,32 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Enter 'Bearer {token}'",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = "Bearer"
+        }
+    };
+
+    c.AddSecurityDefinition("Bearer", securityScheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            securityScheme,
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 
