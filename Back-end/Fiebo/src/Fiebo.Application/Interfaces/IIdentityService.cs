@@ -1,4 +1,5 @@
-﻿using Fiebo.Domain.Enums;
+﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,5 +14,12 @@ namespace Fiebo.Application.Interfaces
         Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, UserStatus Status)> AuthenticateAsync(string account, string password);
         Task<bool> IsEmailUniqueAsync(string email);
         Task<bool> IsPhoneUniqueAsync(string phone);
+        Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request);
+        Task<UserProfileResponse> GetUserProfileAsync(string userId);
+        Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);
+        Task<UserProfileResponse> GetUserProfileByEmailOrPhoneAsync(string account);
+        Task<string> GeneratePasswordResetTokenAsync(string account);
+        Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request);
+
     }
 }

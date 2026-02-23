@@ -1,4 +1,5 @@
-﻿using Fiebo.Application.Interfaces;
+﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Enums;
 using Fiebo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -66,5 +67,153 @@ namespace Fiebo.Infrastructure.Services
             return !await _userManager.Users.AnyAsync(u => u.PhoneNumber == phone);
         }
 
+        public async Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = "User not found"
+                };
+            }
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            return new ServiceResponse
+            {
+                IsSuccess = result.Succeeded,
+                Message = result.Succeeded
+        ? "Change password successfully!"
+        : string.Join(", ", result.Errors.Select(e => e.Description))
+            };
+        }
+
+        public async Task<UserProfileResponse> GetUserProfileAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return null!;
+            }
+            return new UserProfileResponse
+            {
+                Id = user!.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                PhoneNumber = user.PhoneNumber,
+                DateOfBirth = user.DateOfBirth,
+                Roles = string.Join(", ", await _userManager.GetRolesAsync(user))
+            };
+        }
+
+        public async Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return null!;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var existedPhone = _userManager.Users
+                    .FirstOrDefault(u =>
+                        u.PhoneNumber == request.PhoneNumber &&
+                        u.Id != user.Id);
+
+                if (existedPhone != null)
+                {
+                    return new ServiceResponse
+                    {
+                        IsSuccess = false,
+                        Message = "Phone number already exists"
+                    };
+                }
+
+                user.PhoneNumber = request.PhoneNumber;
+            }
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+                user.FullName = request.FullName;
+            if (request.DateOfBirth.HasValue)
+            {
+                user.DateOfBirth =
+                    request.DateOfBirth;
+            }
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = string.Join(", ", result.Errors.Select(e => e.Description))
+                };
+            }
+            return new ServiceResponse
+            {
+                IsSuccess = true,
+                Message = "Profile updated successfully"
+            };
+        }
+
+        public async Task<string> GeneratePasswordResetTokenAsync(string account)
+        {
+            var user = account.Contains("@")
+                ? await _userManager.FindByEmailAsync(account)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
+            if (user == null)
+            {
+                return string.Empty;
+            }
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return token;
+        }
+
+        public async Task<UserProfileResponse> GetUserProfileByEmailOrPhoneAsync(string account)
+        {
+            var user = account.Contains("@")
+                ? await _userManager.FindByEmailAsync(account)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
+            if (user == null)
+            {
+                return null!;
+            }
+            return new UserProfileResponse
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                PhoneNumber = user.PhoneNumber,
+                DateOfBirth = user.DateOfBirth,
+                Roles = string.Join(", ", await _userManager.GetRolesAsync(user))
+            };
+        }
+
+        public async Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user == null)
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = "User not found"
+                };
+            }
+            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = string.Join(", ", result.Errors.Select(e => e.Description))
+                };
+            }
+            return new ServiceResponse
+            {
+                IsSuccess = true,
+                Message = "Password reset successfully"
+            };
+        }
     }
 }
+
