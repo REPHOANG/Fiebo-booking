@@ -1,4 +1,4 @@
-using Fiebo.Application.DTOs.Auth;
+﻿using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
@@ -21,19 +21,22 @@ namespace Fiebo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
+        private readonly IGoogleAuthService _googleAuthService;
 
         public AuthService(
             IIdentityService identityService,
             ITokenService tokenService,
             IUnitOfWork unitOfWork,
             IOtpService otpService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IGoogleAuthService googleAuthService)
         {
             _identityService = identityService;
             _tokenService = tokenService;
             _unitOfWork = unitOfWork;
             _otpService = otpService;
             _emailService = emailService;
+            _googleAuthService = googleAuthService;
         }
 
         public async Task<string> RegisterAsync(RegistrationRequest request)
@@ -151,6 +154,27 @@ namespace Fiebo.Application.Services
             var token = _tokenService.GenerateAccessToken(authResult.UserId, authResult.FullName, authResult.Role, authResult.Email);
 
             return token;
+        }
+
+        public async Task<string> GoogleLoginAsync(GoogleLoginRequest request)
+        {
+            var googlePayload = await _googleAuthService.VerifyGoogleTokenAsync(request.IdToken);
+            if (!googlePayload.IsValid)
+                throw new UnauthorizedException(googlePayload.ErrorMessage);
+
+            var userResult = await _identityService.GetOrCreateExternalUserAsync(googlePayload.Email, googlePayload.Name);
+
+            if (userResult.IsNewUser)
+            {
+                try
+                {
+                    _unitOfWork.Wallets.Add(new Wallet { UserId = userResult.UserId });
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                catch { /* Log */ }
+            }
+
+            return _tokenService.GenerateAccessToken(userResult.UserId, userResult.FullName, userResult.Role, userResult.Email);
         }
     }
 }

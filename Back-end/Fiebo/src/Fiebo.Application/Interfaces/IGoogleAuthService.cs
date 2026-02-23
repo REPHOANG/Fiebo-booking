@@ -6,14 +6,8 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Application.Interfaces
 {
-    public interface IOtpGenerator
+    public interface IGoogleAuthService
     {
-        string Generate();
-
-        int GetLength();
-        int GetExpireMinutes();
-
-        TimeSpan GetExpireTime();
+        Task<(bool IsValid, string Email, string Name, string ErrorMessage)> VerifyGoogleTokenAsync(string idToken);
     }
-
 }

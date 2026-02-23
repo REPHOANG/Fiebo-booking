@@ -1,5 +1,7 @@
 ﻿using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
+using Fiebo.Domain.Exceptions;
 using Fiebo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -78,6 +80,45 @@ namespace Fiebo.Infrastructure.Services
 
             var result = await _userManager.UpdateAsync(user);
             return result.Succeeded;
+        }
+        public async Task<(bool IsNewUser, string UserId, string FullName, string Role, string Email)> GetOrCreateExternalUserAsync(string email, string fullName)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            bool isNewUser = false;
+
+            if (user == null)
+            {
+                isNewUser = true;
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = fullName,
+                    Status = Fiebo.Domain.Enums.UserStatus.Active,
+                    EmailConfirmed = true
+                };
+
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                    throw new BadRequestException("Lỗi tạo tài khoản từ Google.");
+
+                await _userManager.AddToRoleAsync(user, AppRoles.Customer);
+            }
+            else
+            {
+                if (user.Status == Fiebo.Domain.Enums.UserStatus.Banned)
+                    throw new UnauthorizedException("Tài khoản của bạn đã bị khóa!");
+
+                if (user.Status == Fiebo.Domain.Enums.UserStatus.Inactive)
+                {
+                    user.Status = Fiebo.Domain.Enums.UserStatus.Active;
+                    user.EmailConfirmed = true;
+                    await _userManager.UpdateAsync(user);
+                }
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return (isNewUser, user.Id, user.FullName, roles.FirstOrDefault() ?? AppRoles.Customer, user.Email!);
         }
     }
 }

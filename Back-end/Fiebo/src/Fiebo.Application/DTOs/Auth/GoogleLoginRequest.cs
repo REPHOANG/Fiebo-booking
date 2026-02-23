@@ -7,11 +7,9 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Application.DTOs.Auth
 {
-    public class VerifyOtpDTO
+    public class GoogleLoginRequest
     {
-        [EmailAddress]
-        public string Email { get; set; } = null!;
-
-        public string Otp { get; set; } = null!;
+        [Required(ErrorMessage = "Google Token is required")]
+        public string IdToken { get; set; } = null!;
     }
 }

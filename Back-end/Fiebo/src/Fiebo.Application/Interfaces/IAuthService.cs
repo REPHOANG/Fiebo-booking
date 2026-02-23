@@ -12,5 +12,6 @@ namespace Fiebo.Application.Interfaces
         Task<string> LoginAsync(LoginRequest request);
         Task<string> RegisterAsync(RegistrationRequest request);
         Task<string> VerifyEmailAsync(VerifyOtpRequest request);
+        Task<string> GoogleLoginAsync(GoogleLoginRequest request);
     }
 }

@@ -54,5 +54,18 @@ namespace Fiebo.API.Controllers
                 Data = token
             });
         }
+
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+        {
+            var token = await _authService.GoogleLoginAsync(request);
+
+            return Ok(new ApiResponse<string>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đăng nhập Google thành công",
+                Data = token 
+            });
+        }
     }
 }
