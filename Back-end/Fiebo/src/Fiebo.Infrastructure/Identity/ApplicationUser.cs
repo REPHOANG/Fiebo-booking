@@ -11,7 +11,7 @@ namespace Fiebo.Infrastructure.Identity
     public class ApplicationUser : IdentityUser
     {
         public string FullName { get; set; } = null!;
-        public DateOnly DateOfBirth { get; set; }
-        public UserStatus Status { get; set; } = UserStatus.Active;
+        public DateOnly? DateOfBirth { get; set; }
+        public UserStatus Status { get; set; } = UserStatus.Inactive;
     }
 }

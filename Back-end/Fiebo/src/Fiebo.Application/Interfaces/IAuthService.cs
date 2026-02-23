@@ -9,7 +9,8 @@ namespace Fiebo.Application.Interfaces
 {
     public interface IAuthService
     {
-        Task<AuthResponse> LoginAsync(LoginRequest request);
-        Task<AuthResponse> RegisterAsync(RegistrationRequest request);
+        Task<string> LoginAsync(LoginRequest request);
+        Task<string> RegisterAsync(RegistrationRequest request);
+        Task<string> VerifyEmailAsync(VerifyOtpRequest request);
     }
 }

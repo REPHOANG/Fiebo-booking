@@ -22,7 +22,8 @@ namespace Fiebo.Infrastructure.Services
             _roleManager = roleManager;
         }
 
-        public async Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(string email, string phone, string password, string fullName, string role)
+        public async Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(
+    string email, string phone, string password, string fullName, string role, DateOnly? dateOfBirth)
         {
             var user = new ApplicationUser
             {
@@ -30,7 +31,8 @@ namespace Fiebo.Infrastructure.Services
                 Email = email,
                 PhoneNumber = phone,
                 FullName = fullName,
-                Status = UserStatus.Active // Mặc định Active
+                Status = Fiebo.Domain.Enums.UserStatus.Inactive,
+                DateOfBirth = dateOfBirth 
             };
 
             var result = await _userManager.CreateAsync(user, password);
@@ -66,5 +68,16 @@ namespace Fiebo.Infrastructure.Services
             return !await _userManager.Users.AnyAsync(u => u.PhoneNumber == phone);
         }
 
+        public async Task<bool> ActivateUserAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return false;
+
+            user.Status = UserStatus.Active;
+            user.EmailConfirmed = true;
+
+            var result = await _userManager.UpdateAsync(user);
+            return result.Succeeded;
+        }
     }
 }
