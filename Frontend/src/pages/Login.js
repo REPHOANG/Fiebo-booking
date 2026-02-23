@@ -76,8 +76,10 @@ const Login = () => {
       
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
-      if (msg.includes('invalid email or password')) {
-        toast.error('Email or password is incorrect');
+      if (msg.includes('invalid') || msg.includes('credentials')) {
+        toast.error('Email/Phone or password is incorrect');
+      } else if (msg.includes('not found')) {
+        toast.error('Account not found. Please register first.');
       } else {
         toast.error(error.message || 'Login failed');
       }

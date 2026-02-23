@@ -53,9 +53,33 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add CORS policy for frontend development
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost:3000",
+            "https://localhost:3000",
+            "http://localhost:5002",
+            "https://localhost:5002",
+            "http://localhost:7078",
+            "https://localhost:7078",
+            "http://localhost",
+            "https://localhost"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Enable CORS
+app.UseCors("AllowFrontend");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -64,7 +88,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Disabled HTTPS redirect for frontend development (to avoid CORS issues with HTTP→HTTPS redirect)
+// app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../store/authSlice';
+import { setRegistrationPending } from '../store/authSlice';
 import { register } from '../services/authService';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -16,6 +16,7 @@ const Register = () => {
   
   // Form state
   const [formData, setFormData] = useState({
+    fullName: '',
     email: '',
     phone: '',
     dateOfBirth: '',
@@ -45,28 +46,42 @@ const Register = () => {
     if (!/[0-9]/.test(password)) {
       return 'Password must contain at least one number';
     }
+    if (!/[\W_]/.test(password)) {
+      return 'Password must contain at least one special character (!@#$%^&* etc)';
+    }
     return null;
   };
   
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('📝 Form submitted', formData);
     
     // Validation
-    if (!formData.email || !formData.phone || !formData.dateOfBirth || !formData.password || !formData.confirmPassword) {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.dateOfBirth || !formData.password || !formData.confirmPassword) {
+      console.warn('❌ Missing fields');
       toast.error('All fields are required');
+      return;
+    }
+    
+    // Full name validation
+    if (formData.fullName.length < 4) {
+      console.warn('❌ Full name too short:', formData.fullName);
+      toast.error('Full name must be at least 4 characters');
       return;
     }
     
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
+      console.warn('❌ Invalid email:', formData.email);
       toast.error('Please enter a valid email address');
       return;
     }
     
     // Phone validation
     if (!/^[0-9]{9,11}$/.test(formData.phone.replace(/\D/g, ''))) {
+      console.warn('❌ Invalid phone:', formData.phone);
       toast.error('Please enter a valid phone number');
       return;
     }
@@ -74,12 +89,14 @@ const Register = () => {
     // Password validation
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
+      console.warn('❌ Password error:', passwordError);
       toast.error(passwordError);
       return;
     }
     
     // Confirm password match
     if (formData.password !== formData.confirmPassword) {
+      console.warn('❌ Passwords do not match');
       toast.error('Passwords do not match');
       return;
     }
@@ -94,30 +111,52 @@ const Register = () => {
     }
     
     if (age < 13) {
+      console.warn('❌ Age too young:', age);
       toast.error('You must be at least 13 years old to register');
       return;
     }
     
+    console.log('✅ All validation passed, sending to backend...');
     setIsLoading(true);
     
     try {
+      // Call backend registration
       const response = await register({
+        fullName: formData.fullName,
         email: formData.email,
-        phone: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
+        phoneNumber: formData.phone,
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        dateOfBirth: formData.dateOfBirth,
       });
       
-      dispatch(setCredentials({
-        user: response.user,
-        token: response.accessToken || response.token
+      console.log('✅ Registration response:', response);
+      
+      // Set pending registration state (waiting for OTP verification)
+      dispatch(setRegistrationPending({
+        email: formData.email,
+        phone: formData.phone,
       }));
       
-      toast.success('Registration successful!');
-      navigate('/home');
+      toast.success('Account created! Please check your email for the OTP code.');
+      
+      // Navigate to OTP verification page
+      navigate('/verify-otp');
       
     } catch (error) {
-      toast.error(error.message || 'Registration failed');
+      console.error('❌ Registration error object:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', error.details);
+      const errorMsg = error.message || error.details || 'Registration failed';
+      
+      // Handle specific error cases
+      if (errorMsg.toLowerCase().includes('already exist')) {
+        toast.error('Email or phone number already registered');
+      } else if (errorMsg.toLowerCase().includes('validation')) {
+        toast.error(errorMsg);
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +179,23 @@ const Register = () => {
         
         <form className="register-form" onSubmit={handleSubmit}>
           <div className="form-group">
+            {/* Full Name Input */}
+            <div className="input-group">
+              <label htmlFor="fullName">Full Name</label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                autoComplete="name"
+                required
+                className="input-field"
+                placeholder="Enter your full name"
+                value={formData.fullName}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
+            
             {/* Email Input */}
             <div className="input-group">
               <label htmlFor="email">Email Address</label>
@@ -153,6 +209,7 @@ const Register = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             
@@ -169,6 +226,7 @@ const Register = () => {
                 placeholder="Enter your phone number"
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             
@@ -183,6 +241,7 @@ const Register = () => {
                 className="input-field"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             
@@ -200,18 +259,20 @@ const Register = () => {
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleChange}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="toggle-password"
                   aria-label="Toggle password visibility"
+                  disabled={isLoading}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
               <p className="password-hint">
-                Min 8 characters, 1 uppercase, 1 lowercase, 1 number
+                Min 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character (!@#$%^&*)
               </p>
             </div>
             
@@ -229,12 +290,14 @@ const Register = () => {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="toggle-password"
                   aria-label="Toggle password visibility"
+                  disabled={isLoading}
                 >
                   <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
                 </button>
@@ -247,6 +310,7 @@ const Register = () => {
               type="checkbox"
               id="terms"
               required
+              disabled={isLoading}
             />
             <label htmlFor="terms">
               I agree to the <Link to="/terms" className="terms-link">Terms of Service</Link> and <Link to="/privacy" className="terms-link">Privacy Policy</Link>
@@ -281,3 +345,6 @@ const Register = () => {
 };
 
 export default Register;
+
+
+  
