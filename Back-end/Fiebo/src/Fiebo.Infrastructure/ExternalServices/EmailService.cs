@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Interfaces;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
