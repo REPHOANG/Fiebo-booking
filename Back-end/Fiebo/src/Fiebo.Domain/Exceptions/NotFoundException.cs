@@ -8,9 +8,6 @@ namespace Fiebo.Domain.Exceptions
 {
     public class NotFoundException : Exception
     {
-        public NotFoundException(string? message = "Tài nguyên không tồn tại")
-           : base(message)
-        {
-        }
+        public NotFoundException(string message) : base(message) { }
     }
 }

@@ -1,7 +1,8 @@
-﻿using Fiebo.Application.DTOs.Auth;
-using Fiebo.Application.DTOs.Common;
+using Fiebo.API.Wrappers;
+using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
@@ -18,25 +19,39 @@ namespace Fiebo.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDTO request)
+        public async Task<IActionResult> Register([FromBody] RegistrationRequest request)
         {
-            await _authService.Register(request);
+            var message = await _authService.RegisterAsync(request);
+
             return Ok(new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Registration successful. Please check your email for the OTP code to verify your account."
-,
+                Message = message
             });
         }
 
-        [HttpPost("activate")]
-        public async Task<IActionResult> Activate(VerifyOtpDTO request)
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
         {
-            await _authService.Activate(request);
+            var message = await _authService.VerifyEmailAsync(request);
+
             return Ok(new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Account activated successfully!",
+                Message = message
+            });
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] Application.DTOs.Auth.LoginRequest request)
+        {
+            var token = await _authService.LoginAsync(request);
+
+            return Ok(new ApiResponse<string>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đăng nhập thành công",
+                Data = token
             });
         }
     }

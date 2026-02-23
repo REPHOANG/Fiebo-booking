@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
@@ -10,15 +11,14 @@ namespace Fiebo.Domain.Entities
     public class Wallet
     {
         [Key]
-        public int WalletId { get; set; }
+        public int Id { get; set; }
 
-        public decimal Balance { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Balance { get; set; } = 0; // Số dư mặc định = 0
 
-        public bool Status { get; set; }
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
-        /* FK */
-        public int UserId { get; set; }
-
-        public User User { get; set; } = null!;
+        [Required]
+        public string UserId { get; set; } = null!;
     }
 }

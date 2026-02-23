@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Common;
+using Fiebo.API.Wrappers;
 using Fiebo.Domain.Exceptions;
 using System.Net;
 
@@ -24,7 +24,7 @@ namespace Fiebo.API.Middlewares
                 await _next(context);
             }
 
-            catch (ResourceConflictException ex)
+            catch (BadRequestException ex)
             {
                 await HandleExceptionAsync(
                     context,
@@ -33,7 +33,7 @@ namespace Fiebo.API.Middlewares
                 );
             }
 
-            catch (BusinessException ex)
+            catch (UnauthorizedException ex)
             {
                 await HandleExceptionAsync(
                     context,
@@ -109,4 +109,3 @@ namespace Fiebo.API.Middlewares
         }
     }
 }
-

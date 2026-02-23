@@ -12,7 +12,6 @@ namespace Fiebo.Infrastructure.Repositories
 {
     public class Repository<T> : IRepository<T> where T : class
     {
-        // Protected để các class con có thể dùng lại _context nếu cần
         protected readonly FieboDbContext _context;
         protected readonly DbSet<T> _dbSet;
 

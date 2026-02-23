@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fiebo.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IUnitOfWork : IDisposable
     {
-        IUserRepository Users { get; }
+        IRepository<Wallet> Wallets { get; }
         Task<int> SaveChangesAsync();
     }
 }

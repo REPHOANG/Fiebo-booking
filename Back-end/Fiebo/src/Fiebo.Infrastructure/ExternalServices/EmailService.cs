@@ -1,10 +1,11 @@
 ﻿using Fiebo.Application.Interfaces;
+using MailKit.Security;
 using Microsoft.Extensions.Configuration;
+using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Mail;
+using MailKit.Net.Smtp;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,35 +20,19 @@ namespace Fiebo.Infrastructure.ExternalServices
             _config = config;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(string to, string subject, string body)
         {
-            var emailSettings = _config.GetSection("EmailSettings");
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress(_config["EmailSettings:SenderName"], _config["EmailSettings:SenderEmail"]));
+            email.To.Add(new MailboxAddress("", to));
+            email.Subject = subject;
+            email.Body = new TextPart("html") { Text = body };
 
-            var smtpClient = new SmtpClient(emailSettings["SmtpServer"])
-            {
-                Port = int.Parse(emailSettings["Port"]!),
-                Credentials = new NetworkCredential(emailSettings["SenderEmail"], emailSettings["Password"]),
-                EnableSsl = true
-            };
-
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(emailSettings["SenderEmail"]!, emailSettings["SenderName"]),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
-            };
-
-            mailMessage.To.Add(toEmail);
-
-            try
-            {
-                await smtpClient.SendMailAsync(mailMessage);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["EmailSettings:SmtpServer"], int.Parse(_config["EmailSettings:Port"]!), SecureSocketOptions.StartTls);
+            await smtp.AuthenticateAsync(_config["EmailSettings:SenderEmail"], _config["EmailSettings:Password"]);
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
         }
     }
 }
