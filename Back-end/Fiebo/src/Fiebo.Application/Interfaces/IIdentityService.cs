@@ -24,7 +24,7 @@ namespace Fiebo.Application.Interfaces
         Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);
         Task<UserProfileResponse> GetUserProfileByEmailOrPhoneAsync(string account);
         Task<string> GeneratePasswordResetTokenAsync(string account);
-        Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request);
+        Task<ServiceResponse> ResetPasswordAsync(string account, string newPassword);
 
     }
 }

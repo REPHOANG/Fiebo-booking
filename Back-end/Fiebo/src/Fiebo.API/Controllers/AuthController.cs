@@ -67,7 +67,7 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Đăng nhập Google thành công",
-                Data = token 
+                Data = token
             });
         }
 
@@ -88,9 +88,17 @@ namespace Fiebo.API.Controllers
             var result = await _authService.ChangePasswordAsync(userId, request);
             if (!result.IsSuccess)
             {
-                return BadRequest(result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = result.Message
+                });
             }
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message,
+            });
         }
         /// <summary>
         /// View the profile of the currently authenticated user.
@@ -104,9 +112,18 @@ namespace Fiebo.API.Controllers
             var result = await _authService.GetUserProfileAsync(userId);
             if (result == null)
             {
-                return NotFound(new { Message = "User profile not found." });
+                return NotFound(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Không tìm thấy thông tin người dùng"
+                });
             }
-            return Ok(result);
+            return Ok(new ApiResponse<UserProfileResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin người dùng thành công",
+                Data = result
+            });
         }
         /// <summary>
         /// Updates the authenticated user's profile with the specified information.
@@ -122,60 +139,106 @@ namespace Fiebo.API.Controllers
             var result = await _authService.UpdateUserProfileAsync(userId, request);
             if (!result.IsSuccess)
             {
-                return BadRequest(result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = result.Message
+                });
             }
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message,
+            });
         }
         /// <summary>
         /// Send email for reset password to the user with the specified email or phone number. The system will generate a password reset token and send it to the user's email or phone number
         /// </summary>
-        /// <param name="account">Email or phone number associated with the user account for which to send the password reset notification. This can be either an email
+        /// <param name="request">Email or phone number associated with the user account for which to send the password reset notification. This can be either an email
         /// address or username. Cannot be null.</param>
         /// <returns>An IActionResult indicating the outcome of the operation. Returns 200 OK with the result if the password
         /// reset notification was sent successfully; otherwise, returns 400 Bad Request with error details.</returns>
         [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] string account)
+        public async Task<IActionResult> ForgotPassword([FromBody] ResetPasswordDTO request)
         {
-            if (string.IsNullOrEmpty(account))
+            if (string.IsNullOrEmpty(request.Account))
             {
-                return BadRequest(new { Message = "Account information is required." });
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "Vui lòng cung cấp email hoặc số điện thoại để gửi yêu cầu đặt lại mật khẩu."
+                });
             }
-            var result = await _authService.SendForgotPasswordAsync(account);
+            var result = await _authService.SendForgotPasswordAsync(request.Account);
             if (!result.IsSuccess)
             {
-                return BadRequest(result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = result.Message
+                });
             }
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message
+            });
         }
+        /// <summary>
+        /// Verifies the one-time password (OTP) provided for password reset and returns a reset token if the OTP is
+        /// valid.
+        /// </summary>
+        /// <param name="request">The request containing the OTP and any additional information required for verification. Cannot be null.</param>
+        /// <returns>An IActionResult containing a success response with a reset token if the OTP is valid; otherwise, a bad
+        /// request response indicating the OTP is invalid or expired.</returns>
+        [HttpPost("verify-reset-otp")]
+        public async Task<IActionResult> VerifyResetOtp([FromBody] VerifyResetOtpRequest request)
+        {
+            var resetToken = await _authService.VerifyResetOtpAsync(request);
+            if (string.IsNullOrEmpty(resetToken))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "Mã OTP không hợp lệ hoặc đã hết hạn"
+                });
+            }
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xác thực OTP thành công",
+                Data = new 
+                {
+                    ResetToken = resetToken
+                }
+            });
+        }
+
         /// <summary>
         /// Resets the user's password using the provided reset password request.
         /// </summary>
-        /// <param name="userId"></param>
-        /// <param name="token"></param>
-        /// <param name="password"></param>
-        /// <returns>An IActionResult indicating the outcome of the password reset operation. Returns a success response if the
-        /// password was reset successfully; otherwise, returns a bad request response with error details.</returns>
+        /// <param name="request">An object containing the information required to reset the user's password, such as the reset token and new
+        /// password. Cannot be null.</param>
+        /// <returns>An IActionResult indicating the result of the password reset operation. Returns a 200 OK response if
+        /// successful; otherwise, returns a 400 Bad Request with an error message.</returns>
         [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(
-            [FromQuery] string userId,
-            [FromQuery] string token,
-            [FromBody] ResetPasswordDTO password)
+        public async Task<IActionResult> ResetPassword([FromBody] Application.DTOs.Auth.ResetPasswordRequest request)
         {
-            token = WebUtility.UrlDecode(token);
 
-            Console.WriteLine($"Decoded token: {token}");
-            var req = new Application.DTOs.Auth.ResetPasswordRequest
-            {
-                UserId = userId,
-                Token = token,
-                NewPassword = password.NewPassword
-            };
-            var result = await _authService.ResetPasswordAsync(req);
+            var result = await _authService.ResetPasswordAsync(request);
             if (!result.IsSuccess)
             {
-                return BadRequest(result);
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = result.Message
+                });
             }
-            return Ok(result);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message
+            });
         }
     }
 }

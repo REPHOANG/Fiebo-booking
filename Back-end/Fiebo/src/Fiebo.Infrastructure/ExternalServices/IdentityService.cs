@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -129,7 +130,7 @@ namespace Fiebo.Infrastructure.Services
                 return new ServiceResponse
                 {
                     IsSuccess = false,
-                    Message = "User not found"
+                    Message = "Không tìm thấy người dùng"
                 };
             }
             var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
@@ -137,7 +138,7 @@ namespace Fiebo.Infrastructure.Services
             {
                 IsSuccess = result.Succeeded,
                 Message = result.Succeeded
-        ? "Change password successfully!"
+        ? "Thay đổi mật khẩu thành công"
         : string.Join(", ", result.Errors.Select(e => e.Description))
             };
         }
@@ -180,7 +181,7 @@ namespace Fiebo.Infrastructure.Services
                     return new ServiceResponse
                     {
                         IsSuccess = false,
-                        Message = "Phone number already exists"
+                        Message = "Số điện thoại này đã được sử dụng"
                     };
                 }
 
@@ -205,7 +206,7 @@ namespace Fiebo.Infrastructure.Services
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Profile updated successfully"
+                Message = "Cập nhật thông tin người dùng thành công"
             };
         }
 
@@ -242,18 +243,26 @@ namespace Fiebo.Infrastructure.Services
             };
         }
 
-        public async Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request)
+        public async Task<ServiceResponse> ResetPasswordAsync(string account, string newPassword)
         {
-            var user = await _userManager.FindByIdAsync(request.UserId);
+            var user = account.Contains("@")
+                ? await _userManager.FindByEmailAsync(account)
+                : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
             if (user == null)
             {
                 return new ServiceResponse
                 {
                     IsSuccess = false,
-                    Message = "User not found"
+                    Message = "Không tìm thấy người dùng"
                 };
             }
-            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(
+                user,
+                token,
+                newPassword
+            );
+
             if (!result.Succeeded)
             {
                 return new ServiceResponse
@@ -265,7 +274,7 @@ namespace Fiebo.Infrastructure.Services
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Password reset successfully"
+                Message = "Đặt lại mật khẩu thành công"
             };
         }
     }

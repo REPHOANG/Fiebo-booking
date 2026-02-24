@@ -9,10 +9,8 @@ namespace Fiebo.Application.DTOs.Auth
 {
     public class ResetPasswordRequest
     {
-        [Required(ErrorMessage = "User ID is required")]
-        public required string UserId { get; set; }
-        [Required(ErrorMessage = "Token is required")]
-        public required string Token { get; set; }
+        [Required(ErrorMessage = "Reset token is required")]
+        public required string ResetToken { get; set; }
         [Required(ErrorMessage = "NewPassword is required")]
         [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
         [RegularExpression(

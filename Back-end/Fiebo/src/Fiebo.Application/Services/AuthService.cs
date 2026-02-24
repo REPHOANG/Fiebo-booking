@@ -20,17 +20,19 @@ namespace Fiebo.Application.Services
         private readonly IOtpService _otpService;
         private readonly IEmailService _emailService;
         private readonly IGoogleAuthService _googleAuthService;
+        private readonly ICacheService _cacheService;
 
         public AuthService(
             IIdentityService identityService,
-           
+
             ITokenService tokenService,
-           
+
             IUnitOfWork unitOfWork,
             ISmsService smsService,
             IOtpService otpService,
             IEmailService emailService,
-            IGoogleAuthService googleAuthService)
+            IGoogleAuthService googleAuthService,
+            ICacheService cacheService)
         {
             _identityService = identityService;
             _tokenService = tokenService;
@@ -39,6 +41,7 @@ namespace Fiebo.Application.Services
             _emailService = emailService;
             _googleAuthService = googleAuthService;
             _smsService = smsService;
+            _cacheService = cacheService;
         }
 
         public async Task<string> RegisterAsync(RegistrationRequest request)
@@ -54,7 +57,7 @@ namespace Fiebo.Application.Services
                     request.Password,
                     request.FullName,
                     AppRoles.Customer,
-                    request.DateOfBirth 
+                    request.DateOfBirth
                 );
             if (!createResult.IsSuccess)
                 throw new BadRequestException(createResult.ErrorMessage);
@@ -205,44 +208,111 @@ namespace Fiebo.Application.Services
                     Message = "Email hoặc SĐT không tồn tại!"
                 };
             }
-            var token = await _identityService.GeneratePasswordResetTokenAsync(account);
-            Console.WriteLine($"Generated token for {account}: {token}");
-            var resetLink = $"https://localhost:5173/reset-password?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-            Console.WriteLine($"Reset link: {resetLink}");
+            var otpResult = await _otpService.GenerateAndStoreResetOtpAsync(account);
+            var vietnamTime = DateTimeOffset.UtcNow.AddHours(7);
+            var expirationTime = vietnamTime.AddMinutes(otpResult.ExpireMinutes);
+            string expiredTimeStr = expirationTime.ToString("HH:mm 'ngày' dd/MM/yyyy");
             if (account.Contains("@"))
             {
                 var subject = "Fiebo - Đặt lại mật khẩu";
-                var body = $"Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu: {resetLink}";
-                //await _identityService.SendEmailAsync(account, "Yêu cầu đặt lại mật khẩu", $"Vui lòng nhấp vào liên kết sau để đặt lại mật khẩu: {resetLink}");
+                var emailBody = $@"
+<div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+
+    <h2 style='color: #2c3e50; text-align: center;'>
+        Đặt lại mật khẩu Fiebo
+    </h2>
+
+    <p>Xin chào,</p>
+
+    <p>
+        Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>Fiebo</strong> của bạn.
+    </p>
+
+    <p>
+        Vui lòng sử dụng mã xác thực bên dưới để tiếp tục quá trình đặt lại mật khẩu:
+    </p>
+
+    <div style='
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        color: #ffffff;
+        background-color: #e67e22;
+        padding: 12px;
+        border-radius: 6px;
+        letter-spacing: 4px;
+        margin: 20px 0;
+    '>
+        {otpResult.OtpCode}
+    </div>
+
+    <p>
+        Mã này có hiệu lực trong <strong>{otpResult.ExpireMinutes} phút</strong>.
+        Vui lòng không chia sẻ với bất kỳ ai.
+    </p>
+
+    <p>
+        Sẽ hết hạn vào lúc:
+        <b style='color: #d9534f;'>{expiredTimeStr}</b>
+    </p>
+
+    <p>
+        Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+        Tài khoản của bạn vẫn an toàn.
+    </p>
+
+    <hr style='margin: 30px 0;' />
+
+    <p style='font-size: 12px; color: #888; text-align: center;'>
+        © {DateTime.Now.Year} Fiebo. All rights reserved.
+    </p>
+
+</div>";
+                await _emailService.SendEmailAsync(account, subject, emailBody);
             }
             else
             {
-                var message = $"Fiebo - Đặt lại mật khẩu: {resetLink}";
-                //var result = await _smsService.SendSmsAsync(account, message);
-                var result = new ServiceResponse { IsSuccess = true }; // Giả lập thành công
+                var message = $"Ma xac thuc Fiebo cua ban la: {otpResult.OtpCode}";
+                var result = await _smsService.SendSmsAsync(account, message);
                 if (!result.IsSuccess)
                 {
                     return new ServiceResponse
                     {
                         IsSuccess = false,
-                        Message = "Không thể gửi SMS. Vui lòng thử lại sau!"
+                        Message = result.Message
                     };
                 }
             }
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Reset password link has been sent!"
+                Message = "Yêu cầu đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra email hoặc SMS của bạn để lấy mã OTP đặt lại mật khẩu."
             };
+        }
+
+        public async Task<string> VerifyResetOtpAsync(VerifyResetOtpRequest request)
+        {
+            var resetToken = await _otpService.ValidateResetOtpAsync(request.Account, request.OtpCode);
+            return resetToken;
         }
 
         public async Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request)
         {
-            var result = await _identityService.ResetPasswordAsync(request);
+            var account = await _cacheService.GetAsync($"reset_token:{request.ResetToken}");
+            if (string.IsNullOrEmpty(account))
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = "Token không hợp lệ hoặc đã hết hạn!"
+                };
+            }
+            var result = await _identityService.ResetPasswordAsync(account, request.NewPassword);
+            await _cacheService.RemoveAsync($"reset_token:{request.ResetToken}");
             return new ServiceResponse
             {
                 IsSuccess = result.IsSuccess,
-                Message = result.IsSuccess ? "Password reset successfully!" : result.Message
+                Message = result.Message
             };
         }
     }

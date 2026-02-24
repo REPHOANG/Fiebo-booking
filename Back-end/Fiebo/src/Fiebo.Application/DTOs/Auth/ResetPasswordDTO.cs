@@ -9,7 +9,8 @@ namespace Fiebo.Application.DTOs.Auth
 {
     public class ResetPasswordDTO
     {
-        [Required(ErrorMessage = "New password is required")]
-        public required string NewPassword { get; set; }
+
+        [Required(ErrorMessage = "Account is required")]
+        public required string Account { get; set; }
     }
 }
