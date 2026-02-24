@@ -117,7 +117,7 @@ namespace Fiebo.API.Controllers
         /// </summary>
         /// <param name="userId"></param>
         /// <param name="token"></param>
-        /// <param name="newPassword"></param>
+        /// <param name="password"></param>
         /// <returns>An IActionResult indicating the outcome of the password reset operation. Returns a success response if the
         /// password was reset successfully; otherwise, returns a bad request response with error details.</returns>
         [HttpPost("reset-password")]
