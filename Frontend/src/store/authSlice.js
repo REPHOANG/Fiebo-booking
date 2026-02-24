@@ -5,10 +5,18 @@ const initialState = {
   token: null,
   isAuthenticated: false,
   
+  // User Profile State
+  profile: null,
+  profileLoading: false,
+  
   // OTP Registration State
   registrationPending: false,
   registrationEmail: null,
   registrationPhone: null,
+  
+  // Password Reset State
+  resetEmail: null,
+  resetPending: false,
   
   // Loading states
   isLoading: false,
@@ -74,6 +82,35 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+
+    // Set profile
+    setProfile: (state, action) => {
+      state.profile = action.payload;
+      state.profileLoading = false;
+    },
+
+    // Set profile loading
+    setProfileLoading: (state, action) => {
+      state.profileLoading = action.payload;
+    },
+
+    // Update profile
+    updateProfile: (state, action) => {
+      state.profile = { ...state.profile, ...action.payload };
+      state.user = { ...state.user, ...action.payload };
+    },
+
+    // Set reset email (for forgot password)
+    setResetEmail: (state, action) => {
+      state.resetEmail = action.payload;
+      state.resetPending = true;
+    },
+
+    // Clear reset state
+    clearResetState: (state) => {
+      state.resetEmail = null;
+      state.resetPending = false;
+    },
   },
 });
 
@@ -85,6 +122,11 @@ export const {
   setLoading,
   setError,
   clearError,
+  setProfile,
+  setProfileLoading,
+  updateProfile,
+  setResetEmail,
+  clearResetState,
 } = authSlice.actions;
 
 export default authSlice.reducer;

@@ -5,7 +5,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import {
+  requestPasswordReset,
+  verifyResetOTP,
+  resetPassword,
+} from '../services/authService';
 import '../pages/ForgotPassword.css';
+import AnimatedBallBackground from '../components/AnimatedBallBackground';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -21,6 +27,8 @@ const ForgotPassword = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  
+  const [resetToken, setResetToken] = useState(null);
   
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -43,12 +51,15 @@ const ForgotPassword = () => {
     
     setIsLoading(true);
     try {
-      // Simulate API call
-      console.log('Requesting password reset for:', formData.email);
+      console.log('📤 Requesting password reset for:', formData.email);
+      await requestPasswordReset(formData.email);
+      console.log('✅ Reset email sent successfully');
       toast.success('Verification code sent to your email!');
       setStep(2);
     } catch (error) {
-      toast.error('Failed to send reset link');
+      console.error('❌ Reset request error:', error);
+      const errorMsg = error.message || 'Failed to send verification code. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -70,12 +81,20 @@ const ForgotPassword = () => {
     
     setIsLoading(true);
     try {
-      // Simulate API call
-      console.log('Verifying OTP:', formData.otp);
+      console.log('📤 Verifying OTP for:', formData.email);
+      const response = await verifyResetOTP(formData.email, formData.otp);
+      console.log('✅ OTP verified successfully');
+      setResetToken(response.resetToken);
       toast.success('Code verified successfully!');
       setStep(3);
     } catch (error) {
-      toast.error('Invalid verification code');
+      console.error('❌ OTP verification error:', error);
+      const errorMsg = error.message || 'Invalid or expired verification code. Please try again.';
+      if (error.status === 401 || error.status === 400) {
+        toast.error('Invalid or expired verification code');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -109,6 +128,11 @@ const ForgotPassword = () => {
       toast.error('Password must contain at least one number');
       return;
     }
+
+    if (!/[\W_]/.test(formData.newPassword)) {
+      toast.error('Password must contain at least one special character (!@#$%^&*)');
+      return;
+    }
     
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error('Passwords do not match');
@@ -117,12 +141,20 @@ const ForgotPassword = () => {
     
     setIsLoading(true);
     try {
-      // Simulate API call
-      console.log('Resetting password for:', formData.email);
+      console.log('📤 Resetting password for:', formData.email);
+      await resetPassword({
+        email: formData.email,
+        resetToken: resetToken,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      });
+      console.log('✅ Password reset successfully');
       toast.success('Password reset successfully!');
       navigate('/login');
     } catch (error) {
-      toast.error('Failed to reset password');
+      console.error('❌ Password reset error:', error);
+      const errorMsg = error.message || 'Failed to reset password';
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -139,9 +171,12 @@ const ForgotPassword = () => {
   const handleResendCode = async () => {
     setIsLoading(true);
     try {
-      console.log('Resending code to:', formData.email);
+      console.log('📤 Resending code to:', formData.email);
+      await requestPasswordReset(formData.email);
+      console.log('✅ Code resent successfully');
       toast.success('Code resent! Check your email');
     } catch (error) {
+      console.error('❌ Resend error:', error);
       toast.error('Failed to resend code');
     } finally {
       setIsLoading(false);
@@ -150,6 +185,11 @@ const ForgotPassword = () => {
   
   return (
     <div className="forgot-password-page">
+      <AnimatedBallBackground />
+      <div class="bg-element football"></div>
+      <div class="bg-element basketball"></div>
+      <div class="bg-element tennis"></div>
+      <div class="bg-element shuttlecock"></div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

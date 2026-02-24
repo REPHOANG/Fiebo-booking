@@ -9,71 +9,77 @@ import { login, loginWithGoogle } from '../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import fieboLogo from '../assets/images/Logo với chữ.png';
+import AnimatedBallBackground from '../components/AnimatedBallBackground';
 import '../pages/Login.css';
+
 
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // Form state
-  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
   const [formData, setFormData] = useState({
-    email: '',
-    phone: '',
+    identifier: '', // Can be email or phone
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
+  // Detect if input is email or phone
+  const detectIdentifierType = (input) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[0-9]{9,11}$/;
+
+    if (emailRegex.test(input)) return 'email';
+    if (phoneRegex.test(input.replace(/\D/g, ''))) return 'phone';
+    return 'unknown';
+  };
+
   // Handle input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation based on login method
-    if (loginMethod === 'email') {
-      if (!formData.email || !formData.password) {
-        toast.error('Email and password are required');
-        return;
-      }
-    } else {
-      if (!formData.phone || !formData.password) {
-        toast.error('Phone number and password are required');
-        return;
-      }
-      if (!/^[0-9]{9,11}$/.test(formData.phone.replace(/\D/g, ''))) {
-        toast.error('Please enter a valid phone number');
-        return;
-      }
+
+    if (!formData.identifier || !formData.password) {
+      toast.error('Email/Phone and password are required');
+      return;
     }
-    
+
+    const idType = detectIdentifierType(formData.identifier);
+
+    if (idType === 'unknown') {
+      toast.error('Please enter a valid email or phone number');
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      const loginPayload = loginMethod === 'email' 
-        ? { email: formData.email, password: formData.password }
-        : { phone: formData.phone, password: formData.password };
-      
+      const loginPayload = idType === 'email'
+        ? { email: formData.identifier, password: formData.password }
+        : { phone: formData.identifier, password: formData.password };
+
       const response = await login(loginPayload);
-      
+
       // Ensure we use accessToken consistently
       dispatch(setCredentials({
         user: response.user,
         token: response.accessToken || response.token
       }));
-      
+
       toast.success('Login successful!');
-      
+
       if ((response.user?.role || '').toLowerCase() === 'admin') {
         navigate('/admin'); // Admin users to admin overview
       } else {
         navigate('/home'); // Regular users
       }
-      
+
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
       if (msg.includes('invalid') || msg.includes('credentials')) {
@@ -116,71 +122,41 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      <motion.div 
+      <AnimatedBallBackground />
+      <div class="bg-element football"></div>
+      <div class="bg-element basketball"></div>
+      <div class="bg-element tennis"></div>
+      <div class="bg-element shuttlecock"></div>
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="login-card"
       >
         <div className="login-header">
-          <h2 className="login-title">
-            <div className="logo-placeholder">Fiebo</div>
-          </h2>
-          <p className="login-subtitle">Welcome back to your account</p>
+          <img src={fieboLogo} alt="Fiebo Logo" className="login-logo" />
+          {/* <p className="login-subtitle">Welcome back to your account</p> */}
         </div>
-        
-        <form className="login-form" onSubmit={handleSubmit}>
-          {/* Login Method Tabs */}
-          <div className="login-method-tabs">
-            <button
-              type="button"
-              className={`method-tab ${loginMethod === 'email' ? 'active' : ''}`}
-              onClick={() => setLoginMethod('email')}
-            >
-              Email
-            </button>
-            <button
-              type="button"
-              className={`method-tab ${loginMethod === 'phone' ? 'active' : ''}`}
-              onClick={() => setLoginMethod('phone')}
-            >
-              Phone
-            </button>
-          </div>
 
+        <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            {loginMethod === 'email' ? (
-              <div className="input-group">
-                <label htmlFor="email">Email Address</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="input-field"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-            ) : (
-              <div className="input-group">
-                <label htmlFor="phone">Phone Number</label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  className="input-field"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </div>
-            )}
-            
+            <div className="input-group">
+              <label htmlFor="identifier">Email or Phone Number</label>
+              <input
+                id="identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
+                required
+                className="input-field"
+                placeholder="Enter your email or phone number"
+                value={formData.identifier}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              {/* <p className="hint-text">You can log in with either email (user@example.com) or phone (0123456789)</p> */}
+            </div>
+
             {/* Password Input */}
             <div className="input-group">
               <label htmlFor="password">Password</label>
@@ -195,12 +171,14 @@ const Login = () => {
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="toggle-password"
                   aria-label="Toggle password visibility"
+                  disabled={isLoading}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>

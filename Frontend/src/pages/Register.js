@@ -8,6 +8,8 @@ import { setRegistrationPending } from '../store/authSlice';
 import { register } from '../services/authService';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import fieboLogo from '../assets/images/Logo với chữ.png';
+import AnimatedBallBackground from '../components/AnimatedBallBackground';
 import '../pages/Register.css';
 
 const Register = () => {
@@ -164,6 +166,7 @@ const Register = () => {
 
   return (
     <div className="register-page">
+      <AnimatedBallBackground />
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -171,10 +174,8 @@ const Register = () => {
         className="register-card"
       >
         <div className="register-header">
-          <h2 className="register-title">
-            <div className="logo-placeholder">Fiebo</div>
-          </h2>
-          <p className="register-subtitle">Create your account and get started</p>
+          <img src={fieboLogo} alt="Fiebo Logo" className="register-logo" />
+          {/* <p className="register-subtitle">Create your account and get started</p> */}
         </div>
         
         <form className="register-form" onSubmit={handleSubmit}>

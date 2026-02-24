@@ -1,344 +1,477 @@
-// src/pages/Profile.jsx
-import React, { useState } from 'react';
+// src/pages/Profile.jsx - Integrated with Backend API
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../store/authSlice';
+import { logout, setProfile, updateProfile } from '../store/authSlice';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faEye, faEyeSlash, faCog, faSignOutAlt, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import {
+  faEdit,
+  faEye,
+  faEyeSlash,
+  faCog,
+  faSignOutAlt,
+  faArrowLeft,
+  faCheck,
+  faTimes,
+} from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import {
+  getProfile,
+  updateProfile as updateProfileAPI,
+  changePassword as changePasswordAPI,
+} from '../services/authService';
 import '../pages/Profile.css';
+import AnimatedBallBackground from '../components/AnimatedBallBackground';
 
 const Profile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  
-  const [activeTab, setActiveTab] = useState('profile'); // profile, bookings, settings
-  const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const { user, token, profile } = useSelector((state) => state.auth);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user || !token) {
+      navigate('/login');
+      return;
+    }
+
+    // Load profile data on mount
+    loadProfile();
+  }, [user, token, navigate]);
+
+  const [activeTab, setActiveTab] = useState('profile'); // profile, settings
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    email: user?.email || '',
-    phone: user?.phone || '',
-    dateOfBirth: user?.dateOfBirth || '',
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
+
+  const [profileData, setProfileData] = useState({
+    fullName: profile?.fullName || user?.name || '',
+    email: profile?.email || user?.email || '',
+    phoneNumber: profile?.phoneNumber || user?.phone || '',
+    dateOfBirth: profile?.dateOfBirth || '',
+  });
+
+  const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
-  
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  // Load profile from backend
+  const loadProfile = async () => {
+    try {
+      const profileInfo = await getProfile(token);
+      console.log('✅ Profile loaded:', profileInfo);
+      dispatch(setProfile(profileInfo));
+      setProfileData({
+        fullName: profileInfo.fullName || '',
+        email: profileInfo.email || '',
+        phoneNumber: profileInfo.phoneNumber || '',
+        dateOfBirth: profileInfo.dateOfBirth || '',
+      });
+    } catch (error) {
+      console.error('❌ Failed to load profile:', error);
+      // Don't show error toast as it might just mean profile endpoint not implemented yet
+    }
   };
-  
+
+  const handleProfileChange = (e) => {
+    setProfileData({ ...profileData, [e.target.name]: e.target.value });
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
+
+  // Update profile
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (!profileData.fullName || !profileData.email) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // API call to update profile
+      console.log('📤 Updating profile...');
+      await updateProfileAPI(token, profileData);
+      console.log('✅ Profile updated successfully');
+      dispatch(updateProfile(profileData));
       toast.success('Profile updated successfully!');
-      setIsEditing(false);
+      setIsEditingProfile(false);
     } catch (error) {
-      toast.error('Failed to update profile');
+      console.error('❌ Profile update error:', error);
+      toast.error(error.message || 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleLogout = () => {
-    dispatch(logout());
-    toast.success('Logged out successfully');
-    navigate('/login');
-  };
-  
-  // Mock bookings data
-  const mockBookings = [
-    {
-      id: 1,
-      courtName: 'Sân Bóng Đá Milan',
-      date: '2026-02-15',
-      time: '10:00 - 11:00',
-      price: '500,000đ',
-      status: 'confirmed'
-    },
-    {
-      id: 2,
-      courtName: 'Sân Tennis Premier Club',
-      date: '2026-02-20',
-      time: '14:00 - 15:30',
-      price: '350,000đ',
-      status: 'pending'
+
+  // Change password
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
+      toast.error('Please fill in all password fields');
+      return;
     }
-  ];
-  
-//   if (!user) {
-//     return (
-//       <div className="profile-page">
-//         <div className="container">
-//           <div className="not-logged-in">
-//             <h2>Please log in to view your profile</h2>
-//             <button onClick={() => navigate('/login')} className="btn-primary">
-//               Go to Login
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   }
-  
+
+    if (passwordData.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (!/[A-Z]/.test(passwordData.newPassword)) {
+      toast.error('Password must contain at least one uppercase letter');
+      return;
+    }
+
+    if (!/[a-z]/.test(passwordData.newPassword)) {
+      toast.error('Password must contain at least one lowercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(passwordData.newPassword)) {
+      toast.error('Password must contain at least one number');
+      return;
+    }
+
+    if (!/[\W_]/.test(passwordData.newPassword)) {
+      toast.error('Password must contain at least one special character (!@#$%^&*)');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('📤 Changing password...');
+      await changePasswordAPI(token, passwordData);
+      console.log('✅ Password changed successfully');
+      toast.success('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setIsEditingPassword(false);
+    } catch (error) {
+      console.error('❌ Password change error:', error);
+      if (error.message.toLowerCase().includes('incorrect')) {
+        toast.error('Current password is incorrect');
+      } else {
+        toast.error(error.message || 'Failed to change password');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Logout
+  const handleLogout = async () => {
+    try {
+      console.log('📤 Logging out...');
+      dispatch(logout());
+      toast.success('Logged out successfully!');
+      navigate('/login');
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+    }
+  };
+
   return (
     <div className="profile-page">
+    <AnimatedBallBackground />
+      <div class="bg-element football"></div>
+      <div class="bg-element basketball"></div>
+      <div class="bg-element tennis"></div>
+      <div class="bg-element shuttlecock"></div>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         className="profile-container"
       >
         {/* Header */}
         <div className="profile-header">
-          <button onClick={() => navigate(-1)} className="btn-back">
+          <button className="back-btn" onClick={() => navigate('/')}>
             <FontAwesomeIcon icon={faArrowLeft} /> Back
           </button>
-          <h1>My Profile</h1>
-          <div></div>
+          <h1>My Account</h1>
+          <button className="logout-btn" onClick={handleLogout}>
+            <FontAwesomeIcon icon={faSignOutAlt} /> Logout
+          </button>
         </div>
-        
-        {/* Profile Card */}
-        <div className="profile-content">
-          <div className="profile-sidebar">
-            <div className="profile-card">
-              <div className="avatar-section">
-                <div className="avatar">
-                  {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+
+        {/* Tabs */}
+        <div className="profile-tabs">
+          <button
+            className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <FontAwesomeIcon icon={faEdit} /> Profile
+          </button>
+          <button
+            className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <FontAwesomeIcon icon={faCog} /> Settings
+          </button>
+        </div>
+
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="profile-content"
+          >
+            {!isEditingProfile ? (
+              <>
+                <div className="profile-info">
+                  <div className="info-section">
+                    <h3>Name</h3>
+                    <p>{profileData.fullName || 'Not set'}</p>
+                  </div>
+
+                  <div className="info-section">
+                    <h3>Email</h3>
+                    <p>{profileData.email}</p>
+                  </div>
+
+                  <div className="info-section">
+                    <h3>Phone Number</h3>
+                    <p>{profileData.phoneNumber || 'Not set'}</p>
+                  </div>
+
+                  <div className="info-section">
+                    <h3>Date of Birth</h3>
+                    <p>{profileData.dateOfBirth || 'Not set'}</p>
+                  </div>
                 </div>
-                <h2>{user?.firstName || user?.email?.split('@')[0]}</h2>
-                <p className="email">{user?.email}</p>
-              </div>
-              
-              <div className="profile-nav">
+
                 <button
-                  className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('profile')}
+                  className="edit-btn"
+                  onClick={() => setIsEditingProfile(true)}
+                  disabled={isLoading}
                 >
-                  <FontAwesomeIcon icon={faEdit} /> Profile Info
+                  <FontAwesomeIcon icon={faEdit} /> Edit Profile
                 </button>
-                <button
-                  className={`nav-item ${activeTab === 'bookings' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('bookings')}
-                >
-                  📅 My Bookings
-                </button>
-                <button
-                  className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('settings')}
-                >
-                  <FontAwesomeIcon icon={faCog} /> Settings
-                </button>
-              </div>
-              
-              <button onClick={handleLogout} className="btn-logout">
-                <FontAwesomeIcon icon={faSignOutAlt} /> Logout
-              </button>
-            </div>
-          </div>
-          
-          <div className="profile-main">
-            {/* Profile Info Tab */}
-            {activeTab === 'profile' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="tab-content"
-              >
-                <div className="section-header">
-                  <h3>Personal Information</h3>
+              </>
+            ) : (
+              <form onSubmit={handleUpdateProfile} className="profile-form">
+                <div className="form-group">
+                  <label htmlFor="fullName">Full Name</label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={profileData.fullName}
+                    onChange={handleProfileChange}
+                    disabled={isLoading}
+                    className="input-field"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="email">Email</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={handleProfileChange}
+                    disabled={isLoading}
+                    className="input-field"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="phoneNumber">Phone Number</label>
+                  <input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    value={profileData.phoneNumber}
+                    onChange={handleProfileChange}
+                    disabled={isLoading}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="dateOfBirth">Date of Birth</label>
+                  <input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    value={profileData.dateOfBirth}
+                    onChange={handleProfileChange}
+                    disabled={isLoading}
+                    className="input-field"
+                  />
+                </div>
+
+                <div className="form-actions">
                   <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className={`btn-edit ${isEditing ? 'cancel' : ''}`}
+                    type="submit"
+                    disabled={isLoading}
+                    className="save-btn"
                   >
-                    {isEditing ? 'Cancel' : <><FontAwesomeIcon icon={faEdit} /> Edit</>}
+                    <FontAwesomeIcon icon={faCheck} /> Save Changes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    disabled={isLoading}
+                    className="cancel-btn"
+                  >
+                    <FontAwesomeIcon icon={faTimes} /> Cancel
                   </button>
                 </div>
-                
-                {isEditing ? (
-                  <form onSubmit={handleUpdateProfile} className="edit-form">
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>First Name</label>
-                        <input
-                          type="text"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleChange}
-                          className="input-field"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Last Name</label>
-                        <input
-                          type="text"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleChange}
-                          className="input-field"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Phone Number</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Date of Birth</label>
-                      <input
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleChange}
-                        className="input-field"
-                      />
-                    </div>
-                    
-                    <button type="submit" disabled={isLoading} className="btn-save">
-                      {isLoading ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </form>
-                ) : (
-                  <div className="info-display">
-                    <div className="info-item">
-                      <span className="label">First Name</span>
-                      <span className="value">{user?.firstName || 'Not set'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Last Name</span>
-                      <span className="value">{user?.lastName || 'Not set'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Email</span>
-                      <span className="value">{user?.email}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Phone</span>
-                      <span className="value">{user?.phone || 'Not set'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Date of Birth</span>
-                      <span className="value">{user?.dateOfBirth || 'Not set'}</span>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
+              </form>
             )}
-            
-            {/* Bookings Tab */}
-            {activeTab === 'bookings' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="tab-content"
+          </motion.div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="settings-content"
+          >
+            <h2>Security Settings</h2>
+
+            {!isEditingPassword ? (
+              <button
+                className="change-password-btn"
+                onClick={() => setIsEditingPassword(true)}
+                disabled={isLoading}
               >
-                <h3>My Bookings</h3>
-                {mockBookings.length > 0 ? (
-                  <div className="bookings-list">
-                    {mockBookings.map(booking => (
-                      <div key={booking.id} className="booking-card">
-                        <div className="booking-info">
-                          <h4>{booking.courtName}</h4>
-                          <p>📅 {booking.date}</p>
-                          <p>🕐 {booking.time}</p>
-                        </div>
-                        <div className="booking-details">
-                          <span className={`status ${booking.status}`}>
-                            {booking.status === 'confirmed' ? '✓ Confirmed' : '⏳ Pending'}
-                          </span>
-                          <p className="price">{booking.price}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p>No bookings yet</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-            
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="tab-content"
-              >
-                <h3>Change Password</h3>
-                <form className="settings-form">
-                  <div className="form-group">
-                    <label>Current Password</label>
+                <FontAwesomeIcon icon={faCog} /> Change Password
+              </button>
+            ) : (
+              <form onSubmit={handleChangePassword} className="password-form">
+                <div className="form-group">
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <div className="password-wrapper">
                     <input
-                      type="password"
+                      id="currentPassword"
                       name="currentPassword"
-                      value={formData.currentPassword}
-                      onChange={handleChange}
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      disabled={isLoading}
                       className="input-field"
-                      placeholder="Enter current password"
+                      required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="toggle-password"
+                      disabled={isLoading}
+                    >
+                      <FontAwesomeIcon icon={showCurrentPassword ? faEyeSlash : faEye} />
+                    </button>
                   </div>
-                  
-                  <div className="form-group">
-                    <label>New Password</label>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="newPassword">New Password</label>
+                  <div className="password-wrapper">
                     <input
-                      type="password"
+                      id="newPassword"
                       name="newPassword"
-                      value={formData.newPassword}
-                      onChange={handleChange}
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      disabled={isLoading}
                       className="input-field"
-                      placeholder="Enter new password"
+                      required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="toggle-password"
+                      disabled={isLoading}
+                    >
+                      <FontAwesomeIcon icon={showNewPassword ? faEyeSlash : faEye} />
+                    </button>
                   </div>
-                  
-                  <div className="form-group">
-                    <label>Confirm Password</label>
+                  <p className="hint-text">
+                    Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
+                  </p>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm New Password</label>
+                  <div className="password-wrapper">
                     <input
-                      type="password"
+                      id="confirmPassword"
                       name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      disabled={isLoading}
                       className="input-field"
-                      placeholder="Confirm new password"
+                      required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="toggle-password"
+                      disabled={isLoading}
+                    >
+                      <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                    </button>
                   </div>
-                  
-                  <button type="submit" className="btn-save">
-                    Update Password
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="save-btn"
+                  >
+                    <FontAwesomeIcon icon={faCheck} /> Change Password
                   </button>
-                </form>
-              </motion.div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPassword(false);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
+                      });
+                    }}
+                    disabled={isLoading}
+                    className="cancel-btn"
+                  >
+                    <FontAwesomeIcon icon={faTimes} /> Cancel
+                  </button>
+                </div>
+              </form>
             )}
-          </div>
-        </div>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

@@ -8,10 +8,12 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyOTP from './pages/VerifyOTP';
+import AnimatedBallBackground from './components/AnimatedBallBackground';
 
 const App = () => {
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
+      <AnimatedBallBackground />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
