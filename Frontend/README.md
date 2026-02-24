@@ -68,3 +68,194 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+📁 Root
+🔹 node_modules/
+
+Chứa toàn bộ thư viện cài bằng npm
+
+Không chỉnh sửa
+
+Không push lên Git
+
+🔹 public/
+
+Chứa file tĩnh (static files)
+
+Ví dụ:
+
+index.html
+
+favicon
+
+ảnh không cần import
+
+React sẽ render vào <div id="root"></div> trong file này.
+
+📁 src/ (quan trọng nhất)
+
+Toàn bộ code chính nằm ở đây.
+
+🔹 assets/
+
+Chứa tài nguyên:
+
+images
+
+icons
+
+fonts
+
+svg
+
+Ví dụ:
+
+assets/
+  logo.png
+  background.jpg
+
+🔹 components/
+
+Chứa các component tái sử dụng.
+
+common/
+
+Component dùng chung:
+
+Button
+
+Input
+
+Modal
+
+Spinner
+
+layout/
+
+Component bố cục:
+
+Header
+
+Footer
+
+Sidebar
+
+MainLayout
+
+🔹 config/
+
+Chứa cấu hình:
+
+API URL
+
+ENV config
+
+axios config
+
+app settings
+
+Ví dụ:
+
+export const API_BASE_URL = "http://localhost:5000";
+
+🔹 constants/
+
+Chứa hằng số:
+
+Role
+
+Status
+
+Route name
+
+Message
+
+Ví dụ:
+
+export const ROLE_ADMIN = "ADMIN";
+
+🔹 hooks/
+
+Custom React Hooks.
+
+Ví dụ:
+
+useAuth.js
+useDebounce.js
+useFetch.js
+
+
+Giúp tái sử dụng logic.
+
+🔹 lib/
+
+Chứa helper function hoặc thư viện tự viết.
+
+Ví dụ:
+
+formatDate.js
+validateEmail.js
+
+🔹 pages/
+
+Mỗi file đại diện cho 1 trang.
+
+Ví dụ:
+
+HomePage.jsx
+LoginPage.jsx
+ProductPage.jsx
+
+
+👉 Router sẽ trỏ vào đây.
+
+🔹 routers/
+
+Cấu hình React Router.
+
+Ví dụ:
+
+AppRouter.jsx
+ProtectedRoute.jsx
+
+🔹 services/
+
+Gọi API backend.
+
+Ví dụ:
+
+authService.js
+userService.js
+productService.js
+
+
+Thường dùng axios.
+
+🔹 theme/
+
+Chứa cấu hình giao diện:
+
+Màu sắc
+
+Typography
+
+Material UI theme
+
+Dark/Light mode config
+
+📄 File chính
+🔹 App.js
+
+Component gốc.
+Thường chứa:
+
+Router
+
+Layout chính
+
+🔹 index.js
+
+Entry point.
+Render React vào DOM:
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

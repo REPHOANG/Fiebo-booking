@@ -1,13 +1,15 @@
-﻿using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Domain.Repositories
+namespace Fiebo.Domain.Enums
 {
-    public interface IProductRepository : IRepository<Product>
+    public enum UserStatus
     {
+        Active = 1,     
+        Inactive = 0,   
+        Banned = -1     
     }
 }
