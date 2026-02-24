@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Application.DTOs.Auth;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +9,10 @@ namespace Fiebo.Application.Interfaces
 {
     public interface IAuthService
     {
-        Task<AuthResponse> LoginAsync(LoginRequest request);
-        Task<AuthResponse> RegisterAsync(RegistrationRequest request);
+        Task<string> LoginAsync(LoginRequest request);
+        Task<string> RegisterAsync(RegistrationRequest request);
+        Task<string> VerifyEmailAsync(VerifyOtpRequest request);
+        Task<string> GoogleLoginAsync(GoogleLoginRequest request);
         Task<ServiceResponse> ChangePasswordAsync(string email, ChangePasswordRequest request);
         Task<UserProfileResponse> GetUserProfileAsync(string userId);
         Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);

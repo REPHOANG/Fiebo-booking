@@ -10,10 +10,15 @@ namespace Fiebo.Application.Interfaces
 {
     public interface IIdentityService
     {
-        Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(string email, string phone, string password, string fullName, string role);
-        Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, UserStatus Status)> AuthenticateAsync(string account, string password);
+        Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(
+            string email, string phone, string password, string fullName, string role, DateOnly? dateOfBirth);
+
+        Task<bool> ActivateUserAsync(string email);
         Task<bool> IsEmailUniqueAsync(string email);
         Task<bool> IsPhoneUniqueAsync(string phone);
+        Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, Fiebo.Domain.Enums.UserStatus Status)> AuthenticateAsync(string account, string password);
+
+        Task<(bool IsNewUser, string UserId, string FullName, string Role, string Email)> GetOrCreateExternalUserAsync(string email, string fullName);
         Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request);
         Task<UserProfileResponse> GetUserProfileAsync(string userId);
         Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);

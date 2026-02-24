@@ -12,6 +12,6 @@ namespace Fiebo.Infrastructure.Identity
     {
         public string FullName { get; set; } = null!;
         public DateOnly? DateOfBirth { get; set; }
-        public UserStatus Status { get; set; } = UserStatus.Active;
+        public UserStatus Status { get; set; } = UserStatus.Inactive;
     }
 }
