@@ -22,11 +22,16 @@ namespace Fiebo.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<Wallet>()
-            .HasOne<ApplicationUser>()
-            .WithOne()                
-            .HasForeignKey<Wallet>(w => w.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+                .HasOne<ApplicationUser>()
+                .WithOne()
+                .HasForeignKey<Wallet>(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .Property(u => u.DateOfBirth)
+                .IsRequired(false);
         }
     }
 }
