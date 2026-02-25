@@ -139,7 +139,7 @@ const Login = () => {
           onClick={() => navigate('/home')}
           aria-label="Back to Home"
         >
-          Back to Home
+          Quay lại trang chủ
         </button>
         <a
           className="owner-toggle-btn"
@@ -158,7 +158,7 @@ const Login = () => {
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <div className="input-group">
-              <label htmlFor="identifier">Email or Phone Number</label>
+              <label htmlFor="identifier">Email hoặc số điện thoại</label>
               <input
                 id="identifier"
                 name="identifier"
@@ -176,7 +176,7 @@ const Login = () => {
 
             {/* Password Input */}
             <div className="input-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Mật khẩu</label>
               <div className="password-wrapper">
                 <input
                   id="password"
@@ -206,10 +206,10 @@ const Login = () => {
           <div className="remember-forgot">
             <label className="remember-me">
               <input type="checkbox" />
-              <span>Remember me</span>
+              <span>Nhớ tài khoản</span>
             </label>
             <Link to="/forgot-password" className="forgot-link">
-              Forgot password?
+              Quên mật khẩu?
             </Link>
           </div>
 
@@ -237,9 +237,9 @@ const Login = () => {
           </div>
 
           <div className="signup-prompt">
-            <span>Don't have an account? </span>
+            <span>Chưa có tài khoản? </span>
             <Link to="/register" className="signup-link">
-              Sign up here
+              Đăng ký tại đây
             </Link>
           </div>
         </form>
