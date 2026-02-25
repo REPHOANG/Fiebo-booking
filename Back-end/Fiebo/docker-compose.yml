@@ -6,7 +6,7 @@
       MYSQL_ROOT_PASSWORD: hieulun123
       MYSQL_DATABASE: FieboDb4
     ports:
-      - "3307:3306"
+      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
