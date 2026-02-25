@@ -1,0 +1,33 @@
+﻿services:
+  fiebo-mysql:
+    image: mysql:8.0
+    container_name: fiebo_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: hieulun123
+      MYSQL_DATABASE: FieboDb4
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  fiebo-redis:
+    image: redis:alpine
+    container_name: fiebo_redis
+    ports:
+      - "6379:6379"
+
+  fiebo-api:
+    build: 
+      context: . 
+      dockerfile: Dockerfile
+    container_name: fiebo_api
+    ports:
+      - "8080:8080" 
+    env_file:
+      - ./src/Fiebo.API/.env 
+    depends_on:
+      - fiebo-mysql
+      - fiebo-redis
+
+volumes:
+  mysql_data:

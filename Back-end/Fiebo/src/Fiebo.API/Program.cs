@@ -19,6 +19,17 @@ using System.Text;
 
 Env.Load();
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
 
 builder.Services.AddDbContext<FieboDbContext>(options =>
@@ -126,26 +137,48 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+app.UseCors("AllowFrontend");
+app.UseMiddleware<Fiebo.API.Middlewares.ExceptionHandlingMiddleware>();
+
 // Seed Data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        await DbInitializer.SeedRolesAsync(services);
+        var context = services.GetRequiredService<Fiebo.Infrastructure.Data.FieboDbContext>();
+
+        // BƯỚC 1: BẮT BUỘC PHẢI CHẠY MIGRATION ĐỂ TẠO BẢNG TRƯỚC
+        context.Database.Migrate();
+
+        // BƯỚC 2: SAU KHI CÓ BẢNG, MỚI GỌI HÀM SEED DỮ LIỆU
+        // (Tùy thuộc vào việc bạn đang viết hàm Seed tên là gì, có thể trông giống như sau:)
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        // await DataSeeder.SeedRolesAsync(roleManager); 
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database seeding failed: {ex.Message}");
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Database seeding failed");
     }
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+//// Configure the HTTP request pipeline.
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
+
+// Luôn bật Swagger (Cho cả môi trường Dev và Docker)
+// sau này lên Server thật (Production) thì có thể khóa lại sau.
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    // Đặt giao diện Swagger ngay tại thư mục gốc (http://localhost:8080/)
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fiebo API V1");
+    c.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 

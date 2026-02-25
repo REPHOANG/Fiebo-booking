@@ -60,7 +60,7 @@ namespace Fiebo.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("longtext");
 
-                    b.Property<DateOnly>("DateOfBirth")
+                    b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
 
                     b.Property<string>("Email")
