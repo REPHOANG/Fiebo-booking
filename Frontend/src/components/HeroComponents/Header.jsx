@@ -7,6 +7,7 @@ import {
   MenuIcon,
   XIcon,
 } from "lucide-react";
+import Logohomepage from "../../assets/images/Logo Fiebo.png";
 import "./Header.css";
 
 const Header = () => {
@@ -18,7 +19,8 @@ const Header = () => {
         {/* Logo + menu desktop */}
         <div className="header-left">
           <Link to="/" className="logo">
-            Fiebo
+            <img src={Logohomepage} alt="Fiebo Logo" className="logo-img" />
+            <span className="logo-text">Fiebo</span>
           </Link>
           <nav className="menu-desktop">
             <Link to="/">Home</Link>

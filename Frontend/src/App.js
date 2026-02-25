@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/layout/Layout';
 import Home from './components/HeroComponents/Home';
 import Login from './pages/Login';
+import OwnerLogin from './pages/OwnerLogin';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
@@ -17,6 +18,7 @@ const App = () => {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/owner/login" element={<OwnerLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/profile" element={<Profile />} />

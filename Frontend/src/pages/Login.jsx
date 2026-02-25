@@ -133,6 +133,23 @@ const Login = () => {
         transition={{ duration: 0.5 }}
         className="login-card"
       >
+        <button
+          type="button"
+          className="back-home-btn"
+          onClick={() => navigate('/home')}
+          aria-label="Back to Home"
+        >
+          Back to Home
+        </button>
+        <a
+          className="owner-toggle-btn"
+          href="/owner/login"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open owner login in new tab"
+        >
+          Chủ sân
+        </a>
         <div className="login-header">
           <img src={fieboLogo} alt="Fiebo Logo" className="login-logo" />
           {/* <p className="login-subtitle">Welcome back to your account</p> */}

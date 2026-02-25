@@ -1,6 +1,7 @@
 import Layout from "../component/Layout/Layout";
 import Admin from "../Pages/Admin/index";
 import Login from '../pages/Login.js';
+import OwnerLogin from '../pages/OwnerLogin.jsx';
 import Register from '../pages/Register.jsx';
 import Home from "../component/heroComponent/Home.jsx";
 import Banner from "../component/heroComponent/Banner.jsx";
@@ -19,6 +20,7 @@ export const publicRoutes = [
     children: [{ path: "", element: <Home /> }],
   },
   { path: "/login", element: <Login /> },
+  { path: "/owner/login", element: <OwnerLogin /> },
   { path: "/register", element: <Register /> },
   { path: '/forgot-password',element: <ForgotPassword />},
   { path: '/reset-password',element: <ResetPassword />},

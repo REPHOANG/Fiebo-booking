@@ -23,10 +23,35 @@
 
 /* Logo */
 .logo {
-  font-size: 22px;
-  font-weight: bold;
-  color: #f47920;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
+}
+
+.logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  font-style: oblique;
+  animation: colorChange 3s linear infinite;
+}
+
+@keyframes colorChange {
+  0% {
+    color: #2baa4d; /* xanh lá */
+  }
+  50% {
+    color: #1e90ff; /* xanh dương */
+  }
+  100% {
+    color: #2baa4d; /* quay lại xanh lá */
+  }
 }
 
 /* Menu desktop */

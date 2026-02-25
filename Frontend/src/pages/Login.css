@@ -28,6 +28,55 @@
   backdrop-filter: blur(10px);
 }
 
+/* Back to Home button inside card */
+.back-home-btn {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  background: transparent;
+  border: none;
+  color: #667eea;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s, transform 0.12s;
+}
+
+.back-home-btn:hover {
+  background: rgba(102,126,234,0.08);
+  transform: translateY(-1px);
+}
+
+/* Owner toggle button */
+.owner-toggle-btn {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  background: transparent;
+  border: 2px solid transparent;
+  color: #139a44;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s, transform 0.12s, border-color 0.12s;
+}
+
+.owner-toggle-btn:hover {
+  background: rgba(19,154,68,0.06);
+  transform: translateY(-1px);
+  border-color: rgba(19,154,68,0.12);
+}
+
+.mode-indicator {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+  text-align: center;
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 35px;
