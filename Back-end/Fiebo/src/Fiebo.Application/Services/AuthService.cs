@@ -5,8 +5,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
-
-
+using Microsoft.Extensions.Logging;
 using static System.Net.WebRequestMethods;
 
 namespace Fiebo.Application.Services
@@ -21,6 +20,7 @@ namespace Fiebo.Application.Services
         private readonly IEmailService _emailService;
         private readonly IGoogleAuthService _googleAuthService;
         private readonly ICacheService _cacheService;
+        private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IIdentityService identityService,
@@ -32,7 +32,9 @@ namespace Fiebo.Application.Services
             IOtpService otpService,
             IEmailService emailService,
             IGoogleAuthService googleAuthService,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ILogger<AuthService> logger
+            )
         {
             _identityService = identityService;
             _tokenService = tokenService;
@@ -42,6 +44,7 @@ namespace Fiebo.Application.Services
             _googleAuthService = googleAuthService;
             _smsService = smsService;
             _cacheService = cacheService;
+            _logger = logger;
         }
 
         public async Task<string> RegisterAsync(RegistrationRequest request)
@@ -202,6 +205,8 @@ namespace Fiebo.Application.Services
             var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(account);
             if (user == null)
             {
+                _logger.LogWarning("Forgot password failed - account not found: {Account}",
+            account);
                 return new ServiceResponse
                 {
                     IsSuccess = false,
@@ -269,6 +274,7 @@ namespace Fiebo.Application.Services
 
 </div>";
                 await _emailService.SendEmailAsync(account, subject, emailBody);
+                _logger.LogInformation("Reset OTP sent via Email: {Account}", account);
             }
             else
             {
@@ -276,12 +282,16 @@ namespace Fiebo.Application.Services
                 var result = await _smsService.SendSmsAsync(account, message);
                 if (!result.IsSuccess)
                 {
+                    _logger.LogError("Send SMS failed: {Account} - {Reason}",
+            account,
+            result.Message);
                     return new ServiceResponse
                     {
                         IsSuccess = false,
                         Message = result.Message
                     };
                 }
+                _logger.LogInformation("Reset OTP sent via SMS: {Account}", account);
             }
             return new ServiceResponse
             {
@@ -292,15 +302,21 @@ namespace Fiebo.Application.Services
 
         public async Task<string> VerifyResetOtpAsync(VerifyResetOtpRequest request)
         {
+            _logger.LogInformation("Verify reset OTP: {Account}",
+        request.Account);
             var resetToken = await _otpService.ValidateResetOtpAsync(request.Account, request.OtpCode);
+            _logger.LogInformation("Verify reset OTP success: {Account}",
+        request.Account);
             return resetToken;
         }
 
         public async Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request)
         {
+            _logger.LogInformation("Reset password requested");
             var account = await _cacheService.GetAsync($"reset_token:{request.ResetToken}");
             if (string.IsNullOrEmpty(account))
             {
+                _logger.LogWarning("Reset password failed - invalid token");
                 return new ServiceResponse
                 {
                     IsSuccess = false,
@@ -308,7 +324,16 @@ namespace Fiebo.Application.Services
                 };
             }
             var result = await _identityService.ResetPasswordAsync(account, request.NewPassword);
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Reset password failed: {Account} - {Reason}",
+                    account,
+                    result.Message);
+
+                return result;
+            }
             await _cacheService.RemoveAsync($"reset_token:{request.ResetToken}");
+            _logger.LogInformation("Password reset successful: {Account}", account);
             return new ServiceResponse
             {
                 IsSuccess = result.IsSuccess,
