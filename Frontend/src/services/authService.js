@@ -1,5 +1,5 @@
 // Frontend Authentication Service - Connected to Backend API
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:7078';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8080';
 const API_TIMEOUT = process.env.REACT_APP_API_TIMEOUT || 10000;
 
 // Helper function to make API requests
