@@ -6,6 +6,7 @@ using Fiebo.Domain.Exceptions;
 using Fiebo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,11 +20,15 @@ namespace Fiebo.Infrastructure.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ILogger<IdentityService> _logger;
 
-        public IdentityService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public IdentityService(UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ILogger<IdentityService> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _logger = logger;
         }
 
         public async Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(
@@ -36,7 +41,7 @@ namespace Fiebo.Infrastructure.Services
                 PhoneNumber = phone,
                 FullName = fullName,
                 Status = Fiebo.Domain.Enums.UserStatus.Inactive,
-                DateOfBirth = dateOfBirth 
+                DateOfBirth = dateOfBirth
             };
 
             var result = await _userManager.CreateAsync(user, password);
@@ -124,6 +129,7 @@ namespace Fiebo.Infrastructure.Services
         }
         public async Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request)
         {
+            _logger.LogInformation("Change password requested: {UserId}", userId);
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
@@ -134,12 +140,21 @@ namespace Fiebo.Infrastructure.Services
                 };
             }
             var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Change password failed: {UserId} - {Reason}",
+            userId,
+            string.Join(", ", result.Errors.Select(e => e.Description)));
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = string.Join(", ", result.Errors.Select(e => e.Description))
+                };
+            }
             return new ServiceResponse
             {
-                IsSuccess = result.Succeeded,
-                Message = result.Succeeded
-        ? "Thay đổi mật khẩu thành công"
-        : string.Join(", ", result.Errors.Select(e => e.Description))
+                IsSuccess = true,
+                Message = "Thay đổi mật khẩu thành công"
             };
         }
 
@@ -163,6 +178,7 @@ namespace Fiebo.Infrastructure.Services
 
         public async Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
         {
+            _logger.LogInformation("Update profile requested: {UserId}", userId);
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
@@ -197,12 +213,16 @@ namespace Fiebo.Infrastructure.Services
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
             {
+                _logger.LogWarning("Update profile failed: {UserId} - {Reason}",
+            userId,
+            string.Join(", ", result.Errors.Select(e => e.Description)));
                 return new ServiceResponse
                 {
                     IsSuccess = false,
                     Message = string.Join(", ", result.Errors.Select(e => e.Description))
                 };
             }
+            _logger.LogInformation("Update profile success: {UserId}", userId);
             return new ServiceResponse
             {
                 IsSuccess = true,

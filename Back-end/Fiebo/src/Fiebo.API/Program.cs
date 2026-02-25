@@ -1,4 +1,5 @@
 ﻿using DotNetEnv;
+using Fiebo.API.Middlewares;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Reflection;
 using System.Text;
 
@@ -97,6 +99,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+// swagger configuration
+#region
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -134,9 +138,23 @@ builder.Services.AddSwaggerGen(c =>
 
     c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
+#endregion
+
+// Serilog configuration
+#region
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration) // đọc từ appsettings.json
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+#endregion
 
 var app = builder.Build();
-
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
 // Seed Data
 using (var scope = app.Services.CreateScope())
 {

@@ -37,3 +37,13 @@ pnpm-debug.log*
 # Optional: publish output
 # =========================
 **/publish/
+
+# =========================
+# Logs
+# =========================
+**/Logs/
+**/logs/
+*.log
+*.txt
+*.json.log
+*.log.*
