@@ -1,49 +1,181 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, NavLink } from "react-router-dom";
 import {
   SearchIcon,
-  UserIcon,
   ShoppingCartIcon,
   MenuIcon,
   XIcon,
+  BellIcon,
+  UserIcon,
+  LogOutIcon,
+  ChevronDownIcon, // thêm dòng này
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Logohomepage from "../../assets/images/Logo Fiebo.png";
 import "./Header.css";
 
 const Header = () => {
+  const isLoggedIn = true;
+  const user = { name: "Hoàng" };
+  const notificationCount = 3; // sau này lấy từ API
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 40);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="header">
+    <header className={`header ${scrolled ? "scrolled" : ""}`}>
       <div className="header-container">
-        {/* Logo + menu desktop */}
+        {/* LEFT */}
         <div className="header-left">
           <Link to="/" className="logo">
             <img src={Logohomepage} alt="Fiebo Logo" className="logo-img" />
             <span className="logo-text">Fiebo</span>
           </Link>
+
           <nav className="menu-desktop">
-            <Link to="/">Home</Link>
-            <Link to="/events">Field</Link>
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
+            <NavLink to="/" end>Trang chủ</NavLink>
+
+            {/* Mega Menu */}
+            <div className="mega-wrapper">
+              <NavLink to="/venues">Sân</NavLink>
+
+              <div className="mega-menu">
+                <div className="mega-column">
+                  <h4>Loại sân</h4>
+                  <Link to="/venues/football">Sân bóng đá</Link>
+                  <Link to="/venues/badminton">Sân cầu lông</Link>
+                  <Link to="/venues/tennis">Sân tennis</Link>
+                </div>
+
+                <div className="mega-column">
+                  <h4>Khu vực</h4>
+                  <Link to="/venues/hanoi">Hà Nội</Link>
+                  <Link to="/venues/hcm">TP HCM</Link>
+                  <Link to="/venues/danang">Đà Nẵng</Link>
+                </div>
+              </div>
+            </div>
+
+            <NavLink to="/map">Bản đồ</NavLink>
+            <NavLink to="/discover">Khám phá</NavLink>
+            <NavLink to="/featured">Nổi bật</NavLink>
+            <NavLink to="/about">About</NavLink>
+            <NavLink to="/contact">Contact</NavLink>
           </nav>
         </div>
 
-        {/* Actions desktop */}
+        {/* RIGHT */}
         <div className="header-actions">
-          <button className="icon-btn">
+          {/* <button className="icon-btn">
             <SearchIcon size={20} />
           </button>
+
           <Link to="/cart" className="icon-btn">
             <ShoppingCartIcon size={20} />
-          </Link>
-          <Link to="/login" className="login-btn">
-            <UserIcon size={18} className="icon" /> Login
-          </Link>
+          </Link> */}
+
+          {isLoggedIn ? (
+            <div className="user-area">
+              {/* Greeting */}
+              <div
+                className="greeting-wrapper"
+                onClick={() => {
+                  setUserMenuOpen(!userMenuOpen);
+                  setNotificationOpen(false);
+                }}
+              >
+                <span className="greeting-text">
+                  Xin chào, <strong>{user.name}</strong>
+                </span>
+
+                <motion.span
+                  animate={{ rotate: userMenuOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDownIcon size={16} />
+                </motion.span>
+              </div>
+
+              {/* USER DROPDOWN */}
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    className="dropdown user-dropdown"
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Link to="/profile">Hồ sơ</Link>
+                    <Link to="/bookings">Sân đã đặt</Link>
+
+                    <div className="dropdown-divider" />
+
+                    <button className="logout-item">Đăng xuất</button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* 🔔 Notification */}
+              <div className="icon-wrapper">
+                <button
+                  className="icon-btn premium-icon"
+                  onClick={() => {
+                    setNotificationOpen(!notificationOpen);
+                    setUserMenuOpen(false);
+                  }}
+                >
+                  <BellIcon size={20} />
+                  {notificationCount > 0 && (
+                    <span className="notification-badge">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {notificationOpen && (
+                    <motion.div
+                      className="dropdown notification-dropdown"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <p className="dropdown-title">Thông báo</p>
+                      <div className="notification-item">
+                        Bạn có lịch đặt sân lúc 18:00 hôm nay
+                      </div>
+                      <div className="notification-item">
+                        Sân ABC xác nhận đặt sân
+                      </div>
+                      <Link to="/notifications" className="view-all">
+                        Xem tất cả
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          ) : (
+            <Link to="/login" className="login-btn">
+              Đăng nhập
+            </Link>
+          )}
         </div>
 
-        {/* Toggle button mobile */}
+        {/* Mobile Toggle */}
         <div className="menu-toggle">
           <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <XIcon size={24} /> : <MenuIcon size={24} />}
@@ -51,22 +183,13 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Menu mobile */}
+      {/* Mobile Menu */}
       {isMenuOpen && (
         <nav className="menu-mobile">
-          <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
-          <Link to="/events" onClick={() => setIsMenuOpen(false)}>Events</Link>
+          <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
+          <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
           <Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link>
           <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-
-          <div className="menu-mobile-bottom">
-            <Link to="/cart" className="icon-btn">
-              <ShoppingCartIcon size={20} />
-            </Link>
-            <Link to="/login" className="login-btn">
-              <UserIcon size={18} className="icon" /> Login
-            </Link>
-          </div>
         </nav>
       )}
     </header>

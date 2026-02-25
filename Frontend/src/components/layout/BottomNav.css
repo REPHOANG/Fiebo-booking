@@ -1,0 +1,136 @@
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  background: #ffffff;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 60;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.bottom-nav .nav-item svg {
+  margin-bottom: 4px;
+}
+
+.bottom-nav .nav-item.active {
+  color: #16a34a;
+}
+
+/* Subtle transitions and hover/active visuals */
+.bottom-nav .nav-item {
+  position: relative;
+  transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+.bottom-nav .nav-item:hover {
+  transform: translateY(-4px);
+  background-color: rgba(22, 163, 74, 0.06);
+  color: #16a34a;
+}
+
+.bottom-nav .nav-item.active {
+  background: linear-gradient(90deg, rgba(22,163,74,0.14), rgba(22,163,74,0.06));
+  box-shadow: 0 8px 20px rgba(22,163,74,0.08);
+  transform: translateY(-6px);
+}
+
+/* make svg icons inherit text color */
+.bottom-nav .nav-item svg {
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Mobile expanded overlay */
+.mobile-expand-overlay {
+  display: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.mobile-expand-overlay.open {
+  display: block;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 64px; /* sit above bottom nav */
+  top: 0;
+  background: rgba(0,0,0,0.2);
+  z-index: 70;
+  opacity: 1;
+}
+
+.mobile-expand {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 80px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-around;
+  transform: translateY(18px);
+  opacity: 0;
+  transition: transform 260ms cubic-bezier(.2,.9,.3,1), opacity 220ms ease;
+  will-change: transform, opacity;
+}
+
+/* when overlay open, slide panel up */
+.mobile-expand-overlay.open .mobile-expand {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Hide desktop 'more-desktop' chunk on mobile */
+.more-desktop {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  /* show only primary (first 4) + more button on mobile */
+  .bottom-nav .nav-item {
+    flex: 1 1 auto;
+    max-width: 80px;
+  }
+
+  .more-desktop { display: none; }
+}
+
+@media (min-width: 900px) {
+  /* On desktop, hide the mobile bottom/left nav since header shows horizontal menu */
+  .bottom-nav {
+    display: none;
+  }
+
+  /* restore main content padding to default on desktop */
+  .layout .main {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* hide mobile 'more' button on desktop */
+  .bottom-nav .more-btn { display: none; }
+  .mobile-expand-overlay { display: none !important; }
+  .mobile-expand { display: none !important; }
+  .more-desktop { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+}

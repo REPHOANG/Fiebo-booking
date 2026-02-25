@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import OwnerLogin from './pages/OwnerLogin';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import Venues from './pages/Venues';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyOTP from './pages/VerifyOTP';
 import AnimatedBallBackground from './components/AnimatedBallBackground';
@@ -26,6 +27,7 @@ const App = () => {
           
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/venues" element={<Venues />} />
             <Route path="/home" element={<div>Home Page</div>} />
             <Route path="/admin" element={<div>Admin Page</div>} />
           </Route>
