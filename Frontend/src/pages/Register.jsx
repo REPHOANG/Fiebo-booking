@@ -37,19 +37,19 @@ const Register = () => {
   // Validate password strength
   const validatePassword = (password) => {
     if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+      return 'mật khẩu phải có ít nhất 8 ký tự';
     }
     if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
+      return 'mật khẩu phải có ít nhất một ký tự viết hoa';
     }
     if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
+      return 'mật khẩu phải có ít nhất một ký tự viết thường';
     }
     if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
+      return 'mật khẩu phải có ít nhất một số';
     }
     if (!/[\W_]/.test(password)) {
-      return 'Password must contain at least one special character (!@#$%^&* etc)';
+      return 'mật khẩu phải có ít nhất một ký tự đặc biệt (!@#$%^&* etc)';
     }
     return null;
   };
@@ -69,7 +69,7 @@ const Register = () => {
     // Full name validation
     if (formData.fullName.length < 4) {
       console.warn('❌ Full name too short:', formData.fullName);
-      toast.error('Full name must be at least 4 characters');
+      toast.error('họ và tên phải có ít nhất 4 ký tự');
       return;
     }
     
@@ -77,14 +77,14 @@ const Register = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       console.warn('❌ Invalid email:', formData.email);
-      toast.error('Please enter a valid email address');
+      toast.error('Vui lòng nhập địa chỉ email hợp lệ');
       return;
     }
     
     // Phone validation
     if (!/^[0-9]{9,11}$/.test(formData.phone.replace(/\D/g, ''))) {
       console.warn('❌ Invalid phone:', formData.phone);
-      toast.error('Please enter a valid phone number');
+      toast.error('Vui lòng nhập số điện thoại hợp lệ');
       return;
     }
     
@@ -99,7 +99,7 @@ const Register = () => {
     // Confirm password match
     if (formData.password !== formData.confirmPassword) {
       console.warn('❌ Passwords do not match');
-      toast.error('Passwords do not match');
+      toast.error('mật khẩu xác nhận không khớp');
       return;
     }
     
@@ -114,7 +114,7 @@ const Register = () => {
     
     if (age < 13) {
       console.warn('❌ Age too young:', age);
-      toast.error('You must be at least 13 years old to register');
+      toast.error('bạn phải ít nhất 13 tuổi để đăng ký');
       return;
     }
     
@@ -153,7 +153,7 @@ const Register = () => {
       
       // Handle specific error cases
       if (errorMsg.toLowerCase().includes('already exist')) {
-        toast.error('Email or phone number already registered');
+        toast.error('Email hoặc số điện thoại đã được đăng ký');
       } else if (errorMsg.toLowerCase().includes('validation')) {
         toast.error(errorMsg);
       } else {
@@ -182,7 +182,7 @@ const Register = () => {
           <div className="form-group">
             {/* Full Name Input */}
             <div className="input-group">
-              <label htmlFor="fullName">Full Name</label>
+              <label htmlFor="fullName">Họ và tên</label>
               <input
                 id="fullName"
                 name="fullName"
@@ -190,7 +190,7 @@ const Register = () => {
                 autoComplete="name"
                 required
                 className="input-field"
-                placeholder="Enter your full name"
+                placeholder="Nhập họ và tên của bạn"
                 value={formData.fullName}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -199,7 +199,7 @@ const Register = () => {
             
             {/* Email Input */}
             <div className="input-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">Email</label>
               <input
                 id="email"
                 name="email"
@@ -207,7 +207,7 @@ const Register = () => {
                 autoComplete="email"
                 required
                 className="input-field"
-                placeholder="Enter your email"
+                placeholder="Nhập email của bạn"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -216,7 +216,7 @@ const Register = () => {
             
             {/* Phone Input */}
             <div className="input-group">
-              <label htmlFor="phone">Phone Number</label>
+              <label htmlFor="phone">Số điện thoại</label>
               <input
                 id="phone"
                 name="phone"
@@ -224,7 +224,7 @@ const Register = () => {
                 autoComplete="tel"
                 required
                 className="input-field"
-                placeholder="Enter your phone number"
+                placeholder="Nhập số điện thoại của bạn"
                 value={formData.phone}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -233,7 +233,7 @@ const Register = () => {
             
             {/* Date of Birth Input */}
             <div className="input-group">
-              <label htmlFor="dateOfBirth">Date of Birth</label>
+              <label htmlFor="dateOfBirth">Ngày sinh</label>
               <input
                 id="dateOfBirth"
                 name="dateOfBirth"
@@ -248,7 +248,7 @@ const Register = () => {
             
             {/* Password Input */}
             <div className="input-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">Mật khẩu</label>
               <div className="password-wrapper">
                 <input
                   id="password"
@@ -257,7 +257,7 @@ const Register = () => {
                   autoComplete="new-password"
                   required
                   className="input-field"
-                  placeholder="Create a password"
+                  placeholder="Nhập mật khẩu của bạn"
                   value={formData.password}
                   onChange={handleChange}
                   disabled={isLoading}
@@ -279,7 +279,7 @@ const Register = () => {
             
             {/* Confirm Password Input */}
             <div className="input-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="confirmPassword">Xác nhận mật khẩu</label>
               <div className="password-wrapper">
                 <input
                   id="confirmPassword"
@@ -288,7 +288,7 @@ const Register = () => {
                   autoComplete="new-password"
                   required
                   className="input-field"
-                  placeholder="Confirm your password"
+                  placeholder="Xác nhận mật khẩu của bạn"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   disabled={isLoading}
@@ -326,10 +326,10 @@ const Register = () => {
             {isLoading ? (
               <>
                 <div className="spinner"></div>
-                <span>Creating Account...</span>
+                <span>Đang tạo tài khoản...</span>
               </>
             ) : (
-              "Create Account"
+              "Tạo tài khoản"
             )}
           </button>
 

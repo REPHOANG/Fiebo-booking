@@ -1,6 +1,6 @@
 // Frontend Authentication Service - Connected to Backend API
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8080';
-const API_TIMEOUT = process.env.REACT_APP_API_TIMEOUT || 10000;
+const API_TIMEOUT = Number(process.env.REACT_APP_API_TIMEOUT) || 10000;
 
 // Helper function to make API requests
 const fetchAPI = async (endpoint, options = {}) => {
@@ -8,20 +8,27 @@ const fetchAPI = async (endpoint, options = {}) => {
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    // Build fetch options safely so headers are merged instead of overwritten
+    const customOptions = { ...options };
+    delete customOptions.headers;
+    const fetchOptions = {
+      signal: controller.signal,
+      ...customOptions,
+      method: customOptions.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers || {}),
       },
-      signal: controller.signal,
-      ...options,
-    });
+    };
+
+    console.log('➡️ Fetching:', `${API_BASE_URL}${endpoint}`, fetchOptions.method);
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
 
     clearTimeout(timeoutId);
 
     const contentType = response.headers.get('content-type');
     let data = null;
-    
     if (contentType?.includes('application/json')) {
       data = await response.json();
     } else {
@@ -45,6 +52,16 @@ const fetchAPI = async (endpoint, options = {}) => {
         message: `Request timeout (${API_TIMEOUT}ms)`,
       };
     }
+
+    // Normalize network/fetch errors (e.g. connection refused / CORS / DNS)
+    if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
+      throw {
+        status: 0,
+        message: 'Cannot reach backend. Please check the server or network.',
+        details: error.message,
+      };
+    }
+
     throw error;
   }
 };
