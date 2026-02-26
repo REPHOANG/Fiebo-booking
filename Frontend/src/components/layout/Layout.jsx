@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../HeroComponents/Header";
 import BottomNav from "./BottomNav";
+import Footer from "../HeroComponents/Footer";
 
 const Layout = () => {
   return (
@@ -11,6 +12,7 @@ const Layout = () => {
         <Outlet />
       </main>
       <BottomNav />
+      <Footer />
     </div>
   );
 };
