@@ -52,6 +52,22 @@ namespace Fiebo.Infrastructure.ExternalServices
             return (otpCode, expireMinutes);
         }
 
+        public async Task<(string OtpCode, int ExpireMinutes)> GenerateAndStoreLoginOtpAsync(string account)
+        {
+            var otpCode = new Random().Next(100000, 999999).ToString();
+
+            var cacheKey = $"otp_login:{account}";
+
+            if (!int.TryParse(_configuration["OtpSettings:ExpiryMinutes"], out int expireMinutes))
+            {
+                expireMinutes = 5;
+            }
+
+            await _cacheService.SetAsync(cacheKey, otpCode, TimeSpan.FromMinutes(expireMinutes));
+
+            return (otpCode, expireMinutes);
+        }
+
         public async Task<bool> ValidateOtpAsync(string email, string otpCode)
         {
             var cacheKey = $"otp_register:{email}";

@@ -72,6 +72,50 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
+        /// Authenticates a user by verifying a one-time password (OTP) sent to their phone number.
+        /// </summary>
+        /// <param name="request">The OTP login request containing the phone number. Cannot be null.</param>
+        /// <returns>An HTTP 200 response containing a message indicating that the OTP has been sent to the user's phone number.</returns>
+        [HttpPost("otp-login")]
+        public async Task<IActionResult> PhoneWithOtpLogin([FromBody] OtpLoginRequest request)
+        {
+            var token = await _authService.OtpLoginAsync(request);
+            return Ok(new ApiResponse<string>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Mã OTP đã được gửi đến số điện thoại của bạn. Vui lòng kiểm tra SMS để lấy mã OTP và đăng nhập.",
+            });
+        }
+
+        /// <summary>
+        /// Login with phone number and OTP code that is sent to the phone number
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("verify-login-otp")]
+        public async Task<IActionResult> VerifyLoginOtp([FromBody] VerifyLoginOtpRequest request)
+        {
+            var result = await _authService.VerifyLoginOtpAsync(request);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = result.Message
+                });
+            }
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đăng nhập thành công",
+                Data = new
+                {
+                    AccessToken = result.AccessToken
+                }
+            });
+        }
+
+        /// <summary>
         /// Changes the password for the currently authenticated user.
         /// </summary>
         /// <remarks>This endpoint requires authentication. The user is identified by their email claim.
@@ -207,7 +251,7 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Xác thực OTP thành công",
-                Data = new 
+                Data = new
                 {
                     ResetToken = resetToken
                 }

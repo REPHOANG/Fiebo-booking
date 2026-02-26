@@ -47,3 +47,12 @@ pnpm-debug.log*
 *.txt
 *.json.log
 *.log.*
+
+# =========================
+# Tests
+# =========================
+TestResults/
+coverage/
+coverage-report/
+*.trx
+*.coverage

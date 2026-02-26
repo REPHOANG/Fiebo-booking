@@ -6,6 +6,7 @@ using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using System.Security.Principal;
 using static System.Net.WebRequestMethods;
 
 namespace Fiebo.Application.Services
@@ -338,6 +339,80 @@ namespace Fiebo.Application.Services
             {
                 IsSuccess = result.IsSuccess,
                 Message = result.Message
+            };
+        }
+
+        public async Task<ServiceResponse> OtpLoginAsync(OtpLoginRequest request)
+        {
+            var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(request.PhoneNumber);
+            if (user == null)
+            {
+                _logger.LogWarning("OTP login failed - phone number not found: {PhoneNumber}", request.PhoneNumber);
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = "Số điện thoại không tồn tại!"
+                };
+            }
+            var otpResult = await _otpService.GenerateAndStoreLoginOtpAsync(request.PhoneNumber);
+            var vietnamTime = DateTimeOffset.UtcNow.AddHours(7);
+            var expirationTime = vietnamTime.AddMinutes(otpResult.ExpireMinutes);
+            string expiredTimeStr = expirationTime.ToString("HH:mm 'ngày' dd/MM/yyyy");
+            var message = $"Ma xac thuc Fiebo cua ban la: {otpResult.OtpCode}";
+            var result = await _smsService.SendSmsAsync(request.PhoneNumber, message);
+            if (!result.IsSuccess)
+            {
+                _logger.LogError("Send SMS failed: {Account} - {Reason}",
+        request.PhoneNumber,
+        result.Message);
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = result.Message
+                };
+            }
+            _logger.LogInformation("Login OTP sent via SMS: {Account}", request.PhoneNumber);
+            return new ServiceResponse
+            {
+                IsSuccess = true,
+                Message = "Mã OTP đã được gửi đến số điện thoại của bạn. Vui lòng kiểm tra SMS để lấy mã OTP và đăng nhập."
+            };
+        }
+
+        public async Task<LoginOtpResponse> VerifyLoginOtpAsync(VerifyLoginOtpRequest request)
+        {
+            var otpCode = await _cacheService.GetAsync($"otp_login:{request.PhoneNumber}");
+            if (otpCode == null)
+            {
+                return new LoginOtpResponse
+                {
+                    IsSuccess = false,
+                    Message = "Mã OTP không chính xác hoặc đã hết hạn!"
+                };
+            }
+            if (request.OtpCode != otpCode)
+            {
+                return new LoginOtpResponse
+                {
+                    IsSuccess = false,
+                    Message = "Mã OTP không chính xác hoặc đã hết hạn!"
+                };
+            }
+            var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(request.PhoneNumber);
+            if (user == null)
+            {
+                return new LoginOtpResponse
+                {
+                    IsSuccess = false,
+                    Message = "Số điện thoại không tồn tại!"
+                };
+            }
+            var token = _tokenService.GenerateAccessToken(user.Id, user.FullName!, user.Roles!, string.Empty);
+            return new LoginOtpResponse
+            {
+                IsSuccess = true,
+                Message = "Đăng nhập thành công!",
+                AccessToken = token
             };
         }
     }
