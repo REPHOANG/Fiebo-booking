@@ -38,7 +38,7 @@ const App = () => {
   }, [dispatch]);
 
   return (
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
       <SplashScreen isVisible={isInitialLoading} />
       <AnimatedBallBackground />
       <Router>

@@ -1,7 +1,7 @@
 // Frontend Authentication Service - Connected to Backend API
 // Default fallback for local development (use env var when available)
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
-const API_TIMEOUT = Number(process.env.REACT_APP_API_TIMEOUT) || 10000;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
 // Helper function to make API requests
 const fetchAPI = async (endpoint, options = {}) => {

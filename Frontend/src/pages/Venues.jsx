@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Star } from "lucide-react";
 import "../components/HeroComponents/Home.css";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "https://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://localhost:8080";
 
 const Venues = () => {
   const [venues, setVenues] = useState([]);
