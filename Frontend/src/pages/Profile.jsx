@@ -28,8 +28,7 @@ import {
   updateProfile as updateProfileAPI,
   changePassword as changePasswordAPI,
 } from '../services/authService';
-import '../pages/Profile.css';
-import AnimatedBallBackground from '../components/AnimatedBallBackground';
+import './Profile.css';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -140,7 +139,6 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
-      <AnimatedBallBackground />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}

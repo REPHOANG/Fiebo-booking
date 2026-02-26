@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
 /* Global Styles */
 
 * {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Be Vietnam Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -21,4 +23,29 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* ── Shared form utilities ───────────────────────────────────────────── */
+.field-error {
+  font-size: 12px;
+  color: #e53e3e;
+  margin: 3px 0 0;
+  font-weight: 500;
+}
+
+.input-error {
+  border-color: #e53e3e !important;
+  background: #fff5f5 !important;
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 4px rgba(229, 62, 62, 0.1) !important;
+}
+
+.optional-label {
+  font-size: 11px;
+  color: #999;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
 }

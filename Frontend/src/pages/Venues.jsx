@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Star } from "lucide-react";
-import "../components/HeroComponents/Home.css";
+import "../components/landing/Home.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://localhost:8080";
 

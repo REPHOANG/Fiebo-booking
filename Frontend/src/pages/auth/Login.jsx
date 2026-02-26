@@ -1,33 +1,53 @@
 // src/pages/Login.jsx
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../store/authSlice';
-import { login, loginWithGoogle } from '../services/authService';
+import { setCredentials } from '../../store/authSlice';
+import { login, loginWithGoogle } from '../../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import fieboLogo from '../assets/images/Logo với chữ.png';
-import AnimatedBallBackground from '../components/AnimatedBallBackground';
-import '../pages/Login.css';
+import fieboLogo from '../../assets/images/Logo với chữ.png';
+import './Login.css';
+
+// ── Yup schema ──────────────────────────────────────────────────────────────
+const schema = yup.object({
+  identifier: yup
+    .string()
+    .required('Vui lòng nhập email hoặc số điện thoại')
+    .test('email-or-phone', 'Email hoặc số điện thoại không hợp lệ', (val) => {
+      if (!val) return false;
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      const phoneOk = /^[0-9]{9,11}$/.test(val.replace(/\D/g, ''));
+      return emailOk || phoneOk;
+    }),
+  password: yup
+    .string()
+    .required('Vui lòng nhập mật khẩu'),
+});
 
 
 const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // Form state
-  const [formData, setFormData] = useState({
-    identifier: '', // Can be email or phone
-    password: '',
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showEmailInfo, setShowEmailInfo] = useState(false);
-  const [showPasswordInfo, setShowPasswordInfo] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+
+  const {
+    register: field,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: 'onTouched',
+  });
 
   // Load saved credentials on mount
   useEffect(() => {
@@ -35,128 +55,60 @@ const Login = () => {
       const saved = localStorage.getItem('rememberedCredentials');
       if (saved) {
         const { identifier, password } = JSON.parse(saved);
-        setFormData(prev => ({ ...prev, identifier: identifier || '', password: password || '' }));
+        setValue('identifier', identifier || '');
+        setValue('password', password || '');
         setRememberMe(true);
       }
     } catch (_) {}
-  }, []);
+  }, [setValue]);
 
   // Detect if input is email or phone
   const detectIdentifierType = (input) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[0-9]{9,11}$/;
-
-    if (emailRegex.test(input)) return 'email';
-    if (phoneRegex.test(input.replace(/\D/g, ''))) return 'phone';
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) return 'email';
+    if (/^[0-9]{9,11}$/.test(input.replace(/\D/g, ''))) return 'phone';
     return 'unknown';
   };
 
-  // Handle input changes
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.identifier || !formData.password) {
-      toast.error('⚠️ Vui lòng nhập email/số điện thoại và mật khẩu', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    const idType = detectIdentifierType(formData.identifier);
-
-    if (idType === 'unknown') {
-      toast.error('❌ Email hoặc số điện thoại không hợp lệ', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-      return;
-    }
+  const onSubmit = async (data) => {
+    const idType = detectIdentifierType(data.identifier);
+    const loginPayload = idType === 'email'
+      ? { email: data.identifier, password: data.password }
+      : { phone: data.identifier, password: data.password };
 
     setIsLoading(true);
-
     try {
-      const loginPayload = idType === 'email'
-        ? { email: formData.identifier, password: formData.password }
-        : { phone: formData.identifier, password: formData.password };
-
-      console.log('📤 Sending login:', loginPayload);
       const response = await login(loginPayload);
+      dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
 
-      console.log('📥 Backend response:', response);
-      console.log('🔑 Token from response:', response.accessToken || response.token);
-      console.log('👤 User from response:', response.user);
-      
-      // Dispatch credentials to Redux
-      console.log('💾 Dispatching setCredentials...');
-      dispatch(setCredentials({
-        user: response.user,
-        token: response.accessToken || response.token
-      }));
-
-      // Save or clear remembered credentials
       if (rememberMe) {
         localStorage.setItem('rememberedCredentials', JSON.stringify({
-          identifier: formData.identifier,
-          password: formData.password,
+          identifier: data.identifier, password: data.password,
         }));
       } else {
         localStorage.removeItem('rememberedCredentials');
       }
 
-      // Also save to localStorage immediately (backup)
-      const authData = {
+      localStorage.setItem('authState', JSON.stringify({
         user: response.user,
         token: response.accessToken || response.token,
-        isAuthenticated: true
-      };
-      localStorage.setItem('authState', JSON.stringify(authData));
-      console.log('✅ Saved to localStorage:', authData);
+        isAuthenticated: true,
+      }));
 
-      console.log('✅ User logged in:', response.user);
-      
       toast.success('✅ Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
-        position: 'top-right',
-        autoClose: 3000,
+        position: 'top-right', autoClose: 3000,
       });
 
-      // Navigate immediately
       const userRole = (response.user?.role || '').toLowerCase();
-      console.log('🔍 User role:', userRole);
-      console.log('📍 Current path:', window.location.pathname);
-      
-      if (userRole === 'admin') {
-        console.log('➡️ Navigating to /admin');
-        navigate('/admin', { replace: true });
-      } else {
-        console.log('➡️ Navigating to /home');
-        navigate('/home', { replace: true });
-      }
-      
-      console.log('📍 After navigate:', window.location.pathname);
+      navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
 
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
       if (msg.includes('invalid') || msg.includes('credentials')) {
-        toast.error('❌ Email/Số điện thoại hoặc mật khẩu không chính xác', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        toast.error('❌ Email/Số điện thoại hoặc mật khẩu không chính xác', { position: 'top-right', autoClose: 3000 });
       } else if (msg.includes('not found')) {
-        toast.error('❌ Tài khoản không tìm thấy. Vui lòng đăng ký', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        toast.error('❌ Tài khoản không tìm thấy. Vui lòng đăng ký', { position: 'top-right', autoClose: 3000 });
       } else {
-        toast.error('❌ ' + (error.message || 'Đăng nhập thất bại'), {
-          position: 'top-right',
-          autoClose: 3000,
-        });
+        toast.error('❌ ' + (error.message || 'Đăng nhập thất bại'), { position: 'top-right', autoClose: 3000 });
       }
     } finally {
       setIsLoading(false);
@@ -203,11 +155,10 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      <AnimatedBallBackground />
-      <div class="bg-element football"></div>
-      <div class="bg-element basketball"></div>
-      <div class="bg-element tennis"></div>
-      <div class="bg-element shuttlecock"></div>
+      <div className="bg-element football"></div>
+      <div className="bg-element basketball"></div>
+      <div className="bg-element tennis"></div>
+      <div className="bg-element shuttlecock"></div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -236,23 +187,20 @@ const Login = () => {
           {/* <p className="login-subtitle">Welcome back to your account</p> */}
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="form-group">
             <div className="input-group">
               <label htmlFor="identifier">Email hoặc số điện thoại</label>
               <input
                 id="identifier"
-                name="identifier"
                 type="text"
                 autoComplete="username"
-                required
-                className="input-field"
-                placeholder="Enter your email or phone number"
-                value={formData.identifier}
-                onChange={handleChange}
+                className={`input-field${errors.identifier ? ' input-error' : ''}`}
+                placeholder="Nhập email hoặc số điện thoại"
                 disabled={isLoading}
+                {...field('identifier')}
               />
-              {/* <p className="hint-text">You can log in with either email (user@example.com) or phone (0123456789)</p> */}
+              {errors.identifier && <p className="field-error">{errors.identifier.message}</p>}
             </div>
 
             {/* Password Input */}
@@ -261,26 +209,24 @@ const Login = () => {
               <div className="password-wrapper">
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  required
-                  className="input-field"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  className={`input-field${errors.password ? ' input-error' : ''}`}
+                  placeholder="Nhập mật khẩu của bạn"
                   disabled={isLoading}
+                  {...field('password')}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   className="toggle-password"
-                  aria-label="Toggle password visibility"
+                  aria-label="Hiện/ẩn mật khẩu"
                   disabled={isLoading}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
+              {errors.password && <p className="field-error">{errors.password.message}</p>}
             </div>
           </div>
 
@@ -306,15 +252,15 @@ const Login = () => {
             {isLoading ? (
               <>
                 <div className="spinner"></div>
-                <span>Logging in...</span>
+                <span>Đang đăng nhập...</span>
               </>
             ) : (
-              "Login"
+              "Đăng nhập"
             )}
           </button>
 
           <div className="divider">
-            <span>or</span>
+            <span>hoặc</span>
           </div>
 
           <div className="google-login">

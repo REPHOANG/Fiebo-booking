@@ -1,9 +1,5 @@
 /* ============ MODERN REGISTER PAGE ============ */
 
-* {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
 .register-page {
   min-height: 100vh;
   display: flex;
@@ -160,6 +156,7 @@
   margin: 0;
   font-weight: 400;
 }
+
 
 /* Terms Agreement */
 .terms-agreement {

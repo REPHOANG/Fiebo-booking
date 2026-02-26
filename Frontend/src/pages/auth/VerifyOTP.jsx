@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials, clearRegistrationPending } from '../store/authSlice';
-import { verifyOTP } from '../services/authService';
+import { setCredentials, clearRegistrationPending } from '../../store/authSlice';
+import { verifyOTP } from '../../services/authService';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import './VerifyOTP.css';

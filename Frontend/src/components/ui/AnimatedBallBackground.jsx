@@ -2,10 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import './AnimatedBallBackground.css';
 
-import ballFootball from '../assets/images/Bóng đá.png';
-import ballBasketball from '../assets/images/Bóng rổ.png';
-import ballVolleyball from '../assets/images/Bóng chuyền.png';
-import ballTennis from '../assets/images/Bóng tenis.png';
+import ballFootball from '../../assets/images/Bóng đá.png';
+import ballBasketball from '../../assets/images/Bóng rổ.png';
+import ballVolleyball from '../../assets/images/Bóng chuyền.png';
+import ballTennis from '../../assets/images/Bóng tenis.png';
 
 // Tạo ngẫu nhiên một lần khi file được import
 const createBalls = () => {

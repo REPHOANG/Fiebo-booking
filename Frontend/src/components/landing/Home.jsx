@@ -7,7 +7,7 @@ import {
   Search,
 } from "lucide-react";
 import "./Home.css";
-import FadeInSection from "../../components/FadeInSection";
+import FadeInSection from "../ui/FadeInSection";
 
 const Home = () => {
   const [searchData, setSearchData] = useState({

@@ -1,9 +1,5 @@
 /* ============ MODERN LOGIN PAGE ============ */
 
-* {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
 .login-page {
   min-height: 100vh;
   display: flex;

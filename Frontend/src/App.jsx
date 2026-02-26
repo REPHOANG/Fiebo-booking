@@ -6,18 +6,17 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { restoreAuthFromStorage } from './store/authSlice';
 import Layout from './components/layout/Layout';
-import Home from './components/HeroComponents/Home';
+import Home from './components/landing/Home';
 import CustomerHome from './pages/Customer/CustomerHome';
-import Login from './pages/Login';
-import OwnerLogin from './pages/OwnerLogin';
-import Register from './pages/Register';
+import Login from './pages/auth/Login';
+import OwnerLogin from './pages/auth/OwnerLogin';
+import Register from './pages/auth/Register';
 import Profile from './pages/Profile';
 import Venues from './pages/Venues';
-import ForgotPassword from './pages/ForgotPassword';
-import VerifyOTP from './pages/VerifyOTP';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import VerifyOTP from './pages/auth/VerifyOTP';
 import ProtectedRoute from './routers/ProtectedRoute';
-import AnimatedBallBackground from './components/AnimatedBallBackground';
-import SplashScreen from './components/SplashScreen/SplashScreen';
+import SplashScreen from './components/ui/SplashScreen/SplashScreen';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -40,7 +39,6 @@ const App = () => {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
       <SplashScreen isVisible={isInitialLoading} />
-      <AnimatedBallBackground />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />

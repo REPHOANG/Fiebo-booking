@@ -1,8 +1,8 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Header from "../HeroComponents/Header";
+import Header from "../landing/Header";
 import BottomNav from "./BottomNav";
-import Footer from "../HeroComponents/Footer";
+import Footer from "../landing/Footer";
 
 const Layout = () => {
   return (

@@ -11,9 +11,9 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 import "./CustomerHome.css";
-import FadeInSection from "../../components/FadeInSection";
-import Header from "../../components/HeroComponents/Header";
-import Footer from "../../components/HeroComponents/Footer";
+import FadeInSection from "../../components/ui/FadeInSection";
+import Header from "../../components/landing/Header";
+import Footer from "../../components/landing/Footer";
 
 const CustomerHome = () => {
   const navigate = useNavigate();

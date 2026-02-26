@@ -1,6 +1,6 @@
 import React from 'react';
 import './SplashScreen.css';
-import fieboLogo from '../../assets/images/Logo với chữ.png';
+import fieboLogo from '../../../assets/images/Logo với chữ.png';
 
 const SplashScreen = ({ isVisible }) => {
   if (!isVisible) return null;

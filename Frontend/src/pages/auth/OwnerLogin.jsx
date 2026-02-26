@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../store/authSlice';
-import { login } from '../services/authService';
+import { setCredentials } from '../../store/authSlice';
+import { login } from '../../services/authService';
 import { toast } from 'react-toastify';
-import AnimatedBallBackground from '../components/AnimatedBallBackground';
-import fieboLogo from '../assets/images/Logo với chữ.png';
+import fieboLogo from '../../assets/images/Logo với chữ.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import '../pages/Login.css';
+import './Login.css';
 
 const OwnerLogin = () => {
   const navigate = useNavigate();
@@ -48,7 +47,6 @@ const OwnerLogin = () => {
 
   return (
     <div className="login-page">
-      <AnimatedBallBackground />
       <div className="login-card">
         <button type="button" className="back-home-btn" onClick={() => navigate('/home')}>Quay về Home</button>
         <div className="login-header">

@@ -1,37 +1,33 @@
-import Layout from "../component/Layout/Layout";
-import Admin from "../Pages/Admin/index";
-import Login from '../pages/Login.js';
-import OwnerLogin from '../pages/OwnerLogin.jsx';
-import Register from '../pages/Register.jsx';
-import Home from "../component/heroComponent/Home.jsx";
-import CustomerHome from '../pages/Customer/CustomerHome.jsx';
-import Banner from "../component/heroComponent/Banner.jsx";
-import Query from "../component/QueryTicket/App.jsx";
-import BuyProduct from "../component/buyProduct/App.jsx";
-import Firm from "../component/confirm/Firm.jsx";
-import { ForgotPassword } from '../pages/ForgotPassword.jsx';
-import { ResetPassword } from '../pages/ResetPassword.jsx';
-import Profile from '../pages/Profile/Profile.jsx';
-import TransactionHistory from '../pages/Profile/TransactionHistory.jsx';
+// Router configuration
+// NOTE: Routing is currently handled directly in App.jsx.
+// This file is kept for reference / future migration to createBrowserRouter.
+
+import Layout from '../components/layout/Layout';
+import Home from '../components/landing/Home';
+import CustomerHome from '../pages/Customer/CustomerHome';
+import Login from '../pages/auth/Login';
+import OwnerLogin from '../pages/auth/OwnerLogin';
+import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import VerifyOTP from '../pages/auth/VerifyOTP';
+import Profile from '../pages/Profile';
+import Venues from '../pages/Venues';
 import ProtectedRoute from './ProtectedRoute';
 
 export const publicRoutes = [
   {
-    path: "/",
+    path: '/',
     element: <Layout />,
-    children: [{ path: "", element: <Home /> }],
+    children: [
+      { path: '', element: <Home /> },
+      { path: 'venues', element: <Venues /> },
+    ],
   },
-  { path: "/home", element: <ProtectedRoute element={<CustomerHome />} /> },
-  { path: "/login", element: <Login /> },
-  { path: "/owner/login", element: <OwnerLogin /> },
-  { path: "/register", element: <Register /> },
-  { path: '/forgot-password',element: <ForgotPassword />},
-  { path: '/reset-password',element: <ResetPassword />},
-  { path: '/profile',element: <Profile />},
-  { path: '/transactions',element: <TransactionHistory />},
-  { path: "/admin", element: <Admin /> },
-  { path: "/banner", element: <Banner /> },
-  { path: "/query", element: <Query /> },
-  { path: "/checkout", element: <BuyProduct /> },
-  { path: "/confirm", element: <Firm /> },
+  { path: '/login', element: <Login /> },
+  { path: '/owner/login', element: <OwnerLogin /> },
+  { path: '/register', element: <Register /> },
+  { path: '/verify-otp', element: <VerifyOTP /> },
+  { path: '/forgot-password', element: <ForgotPassword /> },
+  { path: '/profile', element: <Profile /> },
+  { path: '/home', element: <ProtectedRoute element={<CustomerHome />} /> },
 ];
