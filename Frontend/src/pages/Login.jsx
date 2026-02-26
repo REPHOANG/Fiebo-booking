@@ -25,6 +25,8 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailInfo, setShowEmailInfo] = useState(false);
+  const [showPasswordInfo, setShowPasswordInfo] = useState(false);
 
   // Detect if input is email or phone
   const detectIdentifierType = (input) => {
@@ -46,14 +48,20 @@ const Login = () => {
     e.preventDefault();
 
     if (!formData.identifier || !formData.password) {
-      toast.error('Email/Phone and password are required');
+      toast.error('⚠️ Vui lòng nhập email/số điện thoại và mật khẩu', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
 
     const idType = detectIdentifierType(formData.identifier);
 
     if (idType === 'unknown') {
-      toast.error('Please enter a valid email or phone number');
+      toast.error('❌ Email hoặc số điện thoại không hợp lệ', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
 
@@ -64,30 +72,68 @@ const Login = () => {
         ? { email: formData.identifier, password: formData.password }
         : { phone: formData.identifier, password: formData.password };
 
+      console.log('📤 Sending login:', loginPayload);
       const response = await login(loginPayload);
 
-      // Ensure we use accessToken consistently
+      console.log('📥 Backend response:', response);
+      console.log('🔑 Token from response:', response.accessToken || response.token);
+      console.log('👤 User from response:', response.user);
+      
+      // Dispatch credentials to Redux
+      console.log('💾 Dispatching setCredentials...');
       dispatch(setCredentials({
         user: response.user,
         token: response.accessToken || response.token
       }));
 
-      toast.success('Login successful!');
+      // Also save to localStorage immediately (backup)
+      const authData = {
+        user: response.user,
+        token: response.accessToken || response.token,
+        isAuthenticated: true
+      };
+      localStorage.setItem('authState', JSON.stringify(authData));
+      console.log('✅ Saved to localStorage:', authData);
 
-      if ((response.user?.role || '').toLowerCase() === 'admin') {
-        navigate('/admin'); // Admin users to admin overview
+      console.log('✅ User logged in:', response.user);
+      
+      toast.success('✅ Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+
+      // Navigate immediately
+      const userRole = (response.user?.role || '').toLowerCase();
+      console.log('🔍 User role:', userRole);
+      console.log('📍 Current path:', window.location.pathname);
+      
+      if (userRole === 'admin') {
+        console.log('➡️ Navigating to /admin');
+        navigate('/admin', { replace: true });
       } else {
-        navigate('/home'); // Regular users
+        console.log('➡️ Navigating to /home');
+        navigate('/home', { replace: true });
       }
+      
+      console.log('📍 After navigate:', window.location.pathname);
 
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
       if (msg.includes('invalid') || msg.includes('credentials')) {
-        toast.error('Email/Phone or password is incorrect');
+        toast.error('❌ Email/Số điện thoại hoặc mật khẩu không chính xác', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else if (msg.includes('not found')) {
-        toast.error('Account not found. Please register first.');
+        toast.error('❌ Tài khoản không tìm thấy. Vui lòng đăng ký', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else {
-        toast.error(error.message || 'Login failed');
+        toast.error('❌ ' + (error.message || 'Đăng nhập thất bại'), {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
     } finally {
       setIsLoading(false);
@@ -98,7 +144,10 @@ const Login = () => {
     try {
       const credential = credentialResponse?.credential;
       if (!credential) {
-        toast.error('Google credential missing');
+        toast.error('❌ Google credential bị thiếu', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
         return;
       }
       setIsLoading(true);
@@ -107,17 +156,26 @@ const Login = () => {
         user: response.user,
         token: response.accessToken || response.token
       }));
-      toast.success('Login with Google successful!');
+      toast.success('✅ Đăng nhập Google thành công!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       navigate('/');
     } catch (error) {
-      toast.error(error.message || 'Google login failed');
+      toast.error('❌ ' + (error.message || 'Đăng nhập Google thất bại'), {
+        position: 'top-right',
+        autoClose: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    toast.error('Google login was cancelled or failed');
+    toast.error('❌ Đăng nhập Google bị hủy hoặc thất bại', {
+      position: 'top-right',
+      autoClose: 3000,
+    });
   };
 
   return (

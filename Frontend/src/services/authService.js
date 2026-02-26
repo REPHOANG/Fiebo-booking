@@ -145,6 +145,22 @@ export const verifyOTP = async (email, otp) => {
   }
 };
 
+// Helper function to decode JWT token
+const decodeJWT = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
+};
+
 // Login with email or phone
 export const login = async (credentials) => {
   try {
@@ -154,24 +170,43 @@ export const login = async (credentials) => {
       password: credentials.password,
     };
 
+    console.log('🔗 Calling /api/auth/login with:', payload);
     const response = await fetchAPI('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
 
-    return {
+    console.log('📦 Raw response from backend:', response);
+
+    // Backend returns token in 'data' field, also check other common locations
+    const token = response.data || response.accessToken || response.token || response.jwtToken;
+    if (!token) {
+      console.error('❌ No token found in response:', response);
+      throw { message: 'No token in response' };
+    }
+
+    console.log('✅ Token extracted:', token.substring(0, 20) + '...');
+
+    // Decode JWT to extract user info
+    const decodedToken = decodeJWT(token);
+    console.log('🔐 Decoded token:', decodedToken);
+
+    const result = {
       user: {
-        id: response.user?.userId || response.userId,
-        email: response.user?.email || credentials.email,
-        phone: response.user?.phoneNumber || credentials.phone,
-        name: response.user?.name || response.name,
-        role: response.user?.role || 'user',
-        status: response.user?.status || 'active',
+        id: decodedToken?.sub || decodedToken?.userId || decodedToken?.id || 'unknown',
+        email: decodedToken?.email || credentials.email || 'user@example.com',
+        phone: decodedToken?.phone || decodedToken?.phoneNumber || credentials.phone || '',
+        name: decodedToken?.name || decodedToken?.fullName || decodedToken?.username || credentials.email?.split('@')[0] || 'User',
+        role: decodedToken?.role || 'customer',
+        status: decodedToken?.status || 'active',
       },
-      accessToken: response.accessToken || response.token,
-      token: response.accessToken || response.token,
+      accessToken: token,
+      token: token,
       expiresIn: response.expiresIn,
     };
+    
+    console.log('✅ Processed login result:', result);
+    return result;
   } catch (error) {
     const errorMsg = error.data?.message || error.message || 'Login failed';
     

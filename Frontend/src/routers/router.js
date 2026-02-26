@@ -4,6 +4,7 @@ import Login from '../pages/Login.js';
 import OwnerLogin from '../pages/OwnerLogin.jsx';
 import Register from '../pages/Register.jsx';
 import Home from "../component/heroComponent/Home.jsx";
+import CustomerHome from '../pages/Customer/CustomerHome.jsx';
 import Banner from "../component/heroComponent/Banner.jsx";
 import Query from "../component/QueryTicket/App.jsx";
 import BuyProduct from "../component/buyProduct/App.jsx";
@@ -12,6 +13,7 @@ import { ForgotPassword } from '../pages/ForgotPassword.jsx';
 import { ResetPassword } from '../pages/ResetPassword.jsx';
 import Profile from '../pages/Profile/Profile.jsx';
 import TransactionHistory from '../pages/Profile/TransactionHistory.jsx';
+import ProtectedRoute from './ProtectedRoute';
 
 export const publicRoutes = [
   {
@@ -19,6 +21,7 @@ export const publicRoutes = [
     element: <Layout />,
     children: [{ path: "", element: <Home /> }],
   },
+  { path: "/home", element: <ProtectedRoute element={<CustomerHome />} /> },
   { path: "/login", element: <Login /> },
   { path: "/owner/login", element: <OwnerLogin /> },
   { path: "/register", element: <Register /> },

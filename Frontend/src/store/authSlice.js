@@ -1,27 +1,41 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  
-  // User Profile State
-  profile: null,
-  profileLoading: false,
-  
-  // OTP Registration State
-  registrationPending: false,
-  registrationEmail: null,
-  registrationPhone: null,
-  
-  // Password Reset State
-  resetEmail: null,
-  resetPending: false,
-  
-  // Loading states
-  isLoading: false,
-  error: null,
+// Restore auth state from localStorage
+const getInitialState = () => {
+  try {
+    const savedAuth = localStorage.getItem('authState');
+    if (savedAuth) {
+      return JSON.parse(savedAuth);
+    }
+  } catch (error) {
+    console.error('Failed to restore auth state:', error);
+  }
+
+  return {
+    user: null,
+    token: null,
+    isAuthenticated: false,
+    
+    // User Profile State
+    profile: null,
+    profileLoading: false,
+    
+    // OTP Registration State
+    registrationPending: false,
+    registrationEmail: null,
+    registrationPhone: null,
+    
+    // Password Reset State
+    resetEmail: null,
+    resetPending: false,
+    
+    // Loading states
+    isLoading: false,
+    error: null,
+  };
 };
+
+const initialState = getInitialState();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -111,6 +125,29 @@ const authSlice = createSlice({
       state.resetEmail = null;
       state.resetPending = false;
     },
+
+    // Restore auth from localStorage (for hydration)
+    restoreAuthFromStorage: (state) => {
+      try {
+        const savedAuth = localStorage.getItem('authState');
+        if (savedAuth) {
+          const parsed = JSON.parse(savedAuth);
+          if (parsed.user && parsed.token) {
+            state.user = parsed.user;
+            state.token = parsed.token;
+            state.isAuthenticated = true;
+            console.log('✅ Auth restored from localStorage:', parsed.user.email);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore auth from localStorage:', error);
+      }
+      // Reset if restore fails
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+    },
   },
 });
 
@@ -127,6 +164,7 @@ export const {
   updateProfile,
   setResetEmail,
   clearResetState,
+  restoreAuthFromStorage,
 } = authSlice.actions;
 
 export default authSlice.reducer;

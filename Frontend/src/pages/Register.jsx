@@ -1,7 +1,7 @@
 // src/pages/Register.jsx
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setRegistrationPending } from '../store/authSlice';
@@ -28,6 +28,11 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showNameInfo, setShowNameInfo] = useState(false);
+  const [showEmailInfo, setShowEmailInfo] = useState(false);
+  const [showPhoneInfo, setShowPhoneInfo] = useState(false);
+  const [showDobInfo, setShowDobInfo] = useState(false);
+  const [showPasswordInfo, setShowPasswordInfo] = useState(false);
   
   // Handle input changes
   const handleChange = (e) => {
@@ -62,14 +67,20 @@ const Register = () => {
     // Validation
     if (!formData.fullName || !formData.email || !formData.phone || !formData.dateOfBirth || !formData.password || !formData.confirmPassword) {
       console.warn('❌ Missing fields');
-      toast.error('All fields are required');
+      toast.error('⚠️ Vui lòng điền đầy đủ tất cả các trường', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
     // Full name validation
     if (formData.fullName.length < 4) {
       console.warn('❌ Full name too short:', formData.fullName);
-      toast.error('họ và tên phải có ít nhất 4 ký tự');
+      toast.error('❌ Họ và tên phải có ít nhất 4 ký tự', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
@@ -77,14 +88,20 @@ const Register = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       console.warn('❌ Invalid email:', formData.email);
-      toast.error('Vui lòng nhập địa chỉ email hợp lệ');
+      toast.error('❌ Vui lòng nhập địa chỉ email hợp lệ', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
     // Phone validation
     if (!/^[0-9]{9,11}$/.test(formData.phone.replace(/\D/g, ''))) {
       console.warn('❌ Invalid phone:', formData.phone);
-      toast.error('Vui lòng nhập số điện thoại hợp lệ');
+      toast.error('❌ Vui lòng nhập số điện thoại hợp lệ (9-11 chữ số)', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
@@ -92,14 +109,20 @@ const Register = () => {
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       console.warn('❌ Password error:', passwordError);
-      toast.error(passwordError);
+      toast.error('❌ ' + passwordError, {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
     // Confirm password match
     if (formData.password !== formData.confirmPassword) {
       console.warn('❌ Passwords do not match');
-      toast.error('mật khẩu xác nhận không khớp');
+      toast.error('❌ Mật khẩu xác nhận không khớp', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
@@ -114,7 +137,10 @@ const Register = () => {
     
     if (age < 13) {
       console.warn('❌ Age too young:', age);
-      toast.error('bạn phải ít nhất 13 tuổi để đăng ký');
+      toast.error('❌ Bạn phải ít nhất 13 tuổi để đăng ký', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
       return;
     }
     
@@ -140,7 +166,10 @@ const Register = () => {
         phone: formData.phone,
       }));
       
-      toast.success('Account created! Please check your email for the OTP code.');
+      toast.success('✅ Tài khoản đã tạo! Vui lòng kiểm tra email để lấy mã OTP', {
+        position: 'top-right',
+        autoClose: 4000,
+      });
       
       // Navigate to OTP verification page
       navigate('/verify-otp');
@@ -153,11 +182,20 @@ const Register = () => {
       
       // Handle specific error cases
       if (errorMsg.toLowerCase().includes('already exist')) {
-        toast.error('Email hoặc số điện thoại đã được đăng ký');
+        toast.error('❌ Email hoặc số điện thoại đã được đăng ký', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else if (errorMsg.toLowerCase().includes('validation')) {
-        toast.error(errorMsg);
+        toast.error('❌ ' + errorMsg, {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else {
-        toast.error(errorMsg);
+        toast.error('❌ ' + errorMsg, {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
     } finally {
       setIsLoading(false);

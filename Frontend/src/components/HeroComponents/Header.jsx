@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../../store/authSlice";
 import {
   SearchIcon,
   ShoppingCartIcon,
@@ -8,21 +10,25 @@ import {
   BellIcon,
   UserIcon,
   LogOutIcon,
-  ChevronDownIcon, // thêm dòng này
+  ChevronDownIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logohomepage from "../../assets/images/Logo Fiebo.png";
 import "./Header.css";
 
 const Header = () => {
-  const isLoggedIn = true;
-  const user = { name: "Hoàng" };
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get user from Redux
+  const user = useSelector((state) => state.auth.user);
+  const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
+  
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,6 +38,15 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    localStorage.removeItem('token');
+    localStorage.removeItem('authState');
+    sessionStorage.removeItem('token');
+    setUserMenuOpen(false);
+    navigate("/login");
+  };
 
   return (
     <header className={`header ${scrolled ? "scrolled" : ""}`}>
@@ -96,7 +111,7 @@ const Header = () => {
                 }}
               >
                 <span className="greeting-text">
-                  Xin chào, <strong>{user.name}</strong>
+                  Xin chào, <strong>{user?.name || user?.email || "Người dùng"}</strong>
                 </span>
 
                 <motion.span
@@ -122,7 +137,9 @@ const Header = () => {
 
                     <div className="dropdown-divider" />
 
-                    <button className="logout-item">Đăng xuất</button>
+                    <button className="logout-item" onClick={handleLogout}>
+                      Đăng xuất
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
