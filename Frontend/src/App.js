@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Layout from './components/layout/Layout';
@@ -11,10 +11,23 @@ import Venues from './pages/Venues';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyOTP from './pages/VerifyOTP';
 import AnimatedBallBackground from './components/AnimatedBallBackground';
+import SplashScreen from './components/SplashScreen/SplashScreen';
 
 const App = () => {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // Show splash screen only on initial page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 3000); // 3 seconds (2s show + 1s fade out)
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
+      <SplashScreen isVisible={isInitialLoading} />
       <AnimatedBallBackground />
       <Router>
         <Routes>

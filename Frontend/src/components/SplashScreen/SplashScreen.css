@@ -1,0 +1,154 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(-45deg, #1e3a5f, #2d5a3d, #14324a, #1f4d3a);
+  background-size: 400% 400%;
+  animation: gradientMove 8s ease infinite, fadeOutOverlay 1s ease-out 2s forwards;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+.splash-screen::before {
+  content: "";
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation: floatLight 6s ease-in-out infinite alternate;
+}
+
+@keyframes floatLight {
+  from { transform: translate(0,0); }
+  to { transform: translate(80px,60px); }
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes fadeOutOverlay {
+  from {
+    opacity: 1;
+    visibility: visible;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.splash-content {
+  text-align: center;
+  animation: fadeInContent 0.8s ease-out;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.splash-logo {
+  width: 150px;
+  height: auto;
+  margin-bottom: 30px;
+  animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.splash-title {
+  font-size: 52px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 6px;
+  margin-bottom: 10px;
+  text-shadow: 
+    0 0 10px rgba(255,255,255,0.4),
+    0 0 20px rgba(255,255,255,0.3);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.splash-subtitle {
+  font-size: 18px;
+  color: #d0d0d0;
+  margin: 0 0 40px 0;
+  font-weight: 300;
+  letter-spacing: 1px;
+  animation: slideUp 0.6s ease-out 0.4s both;
+}
+
+.splash-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 30px;
+  animation: slideUp 0.6s ease-out 0.6s both;
+}
+
+.loader-line {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+  animation: lineScan 1.5s ease-in-out infinite;
+}
+
+@keyframes lineScan {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  50% {
+    width: 80px;
+    opacity: 1;
+  }
+  100% {
+    width: 0;
+    opacity: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .splash-title {
+    font-size: 36px;
+    letter-spacing: 4px;
+  }
+
+  .splash-subtitle {
+    font-size: 14px;
+  }
+
+  .splash-logo {
+    width: 110px;
+  }
+}

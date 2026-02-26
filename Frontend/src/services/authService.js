@@ -1,5 +1,6 @@
 // Frontend Authentication Service - Connected to Backend API
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8080';
+// Default fallback for local development (use env var when available)
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(process.env.REACT_APP_API_TIMEOUT) || 10000;
 
 // Helper function to make API requests
@@ -122,11 +123,11 @@ export const register = async (data) => {
 // Verify OTP and activate account
 export const verifyOTP = async (email, otp) => {
   try {
-    const response = await fetchAPI('/api/auth/activate', {
+    const response = await fetchAPI('/api/Auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({
         email: email,
-        otp: otp,
+        otpCode: otp,
       }),
     });
 
@@ -147,9 +148,11 @@ export const verifyOTP = async (email, otp) => {
 // Login with email or phone
 export const login = async (credentials) => {
   try {
-    const payload = credentials.email
-      ? { email: credentials.email, password: credentials.password }
-      : { phoneNumber: credentials.phone, password: credentials.password };
+    const emailOrPhone = credentials.email || credentials.phone;
+    const payload = {
+      emailOrPhone: emailOrPhone,
+      password: credentials.password,
+    };
 
     const response = await fetchAPI('/api/auth/login', {
       method: 'POST',

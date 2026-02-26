@@ -1,5 +1,5 @@
 import PropTypes from "prop-types"
-import cn from "../../../lib/classnames";
+import cn from "classnames";
 import styles from "./styles.module.scss"
 
 export default function LoadingOverlay({
@@ -7,6 +7,11 @@ export default function LoadingOverlay({
   isLoadingTable,
   sizeSmall,
 }) {
+  // Don't render if not loading
+  if (!isOverlay && !isLoadingTable) {
+    return null;
+  }
+
   return (
     <div
       className={cn(styles.appChangeRouterProgress, {
