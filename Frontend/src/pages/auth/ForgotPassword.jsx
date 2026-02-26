@@ -1,5 +1,5 @@
 // src/pages/ForgotPassword.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -16,8 +16,16 @@ import {
 import './ForgotPassword.css';
 
 // ── Yup schemas ───────────────────────────────────────────────────────────
-const emailSchema = yup.object({
-  email: yup.string().email('Địa chỉ email không hợp lệ').required('Vui lòng nhập email của bạn'),
+const accountSchema = yup.object({
+  account: yup
+    .string()
+    .required('Vui lòng nhập email hoặc số điện thoại')
+    .test('email-or-phone', 'Email hoặc số điện thoại không hợp lệ', (val) => {
+      if (!val) return false;
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      const phoneOk = /^[0-9]{9,11}$/.test(val.replace(/\D/g, ''));
+      return emailOk || phoneOk;
+    }),
 });
 
 const resetSchema = yup.object({
@@ -41,7 +49,7 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [account, setAccount] = useState('');
   const [resetToken, setResetToken] = useState(null);
 
   // OTP boxes state
@@ -49,12 +57,32 @@ const ForgotPassword = () => {
   const [otpValue, setOtpValue] = useState('');
   const otpRefs = useRef([]);
 
-  // ── Step 1 form (email) ──
+  // 60s resend cooldown
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownRef = useRef(null);
+
+  const startCooldown = useCallback(() => {
+    setCooldown(60);
+    clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => clearInterval(cooldownRef.current);
+  }, []);
+
+  // ── Step 1 form (account: email or phone) ──
   const {
-    register: emailField,
-    handleSubmit: handleEmailSubmit,
-    formState: { errors: emailErrors },
-  } = useForm({ resolver: yupResolver(emailSchema), mode: 'onTouched' });
+    register: accountField,
+    handleSubmit: handleAccountSubmit,
+    formState: { errors: accountErrors },
+  } = useForm({ resolver: yupResolver(accountSchema), mode: 'onTouched' });
 
   // ── Step 3 form (reset password) ──
   const {
@@ -91,13 +119,18 @@ const ForgotPassword = () => {
     otpRefs.current[nextEmpty]?.focus();
   };
 
+  // ── Helper: detect if input is email ──
+  const isEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
   // ── Step 1: Request reset ──
-  const onEmailSubmit = async (data) => {
+  const onAccountSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await requestPasswordReset(data.email);
-      setEmail(data.email);
-      toast.success('Mã xác minh đã được gửi đến email của bạn!');
+      await requestPasswordReset(data.account);
+      setAccount(data.account);
+      startCooldown();
+      const destination = isEmail(data.account) ? data.account : 'email liên kết với SĐT của bạn';
+      toast.success(`Mã xác minh đã được gửi đến ${destination}!`);
       setStep(2);
     } catch (error) {
       toast.error(error.message || 'Không thể gửi mã xác minh. Vui lòng thử lại.');
@@ -115,7 +148,7 @@ const ForgotPassword = () => {
     }
     setIsLoading(true);
     try {
-      const response = await verifyResetOTP(email, otpValue);
+      const response = await verifyResetOTP(account, otpValue);
       setResetToken(response.resetToken);
       toast.success('Xác minh mã thành công!');
       setStep(3);
@@ -132,7 +165,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       await resetPassword({
-        email,
+        account,
         resetToken,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
@@ -152,9 +185,11 @@ const ForgotPassword = () => {
   };
 
   const handleResendCode = async () => {
+    if (cooldown > 0) return;
     setIsLoading(true);
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(account);
+      startCooldown();
       toast.success('Đã gửi lại mã! Kiểm tra email của bạn');
     } catch (error) {
       toast.error('Không thể gửi lại mã. Vui lòng thử lại');
@@ -200,30 +235,30 @@ const ForgotPassword = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            onSubmit={handleEmailSubmit(onEmailSubmit)}
+            onSubmit={handleAccountSubmit(onAccountSubmit)}
             className="forgot-form"
             noValidate
           >
             <div className="step-info">
-              <h3>Nhập Email Của Bạn</h3>
-              <p>Chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu của bạn</p>
+              <h3>Nhập Email hoặc Số Điện Thoại</h3>
+              <p>Chúng tôi sẽ gửi mã xác minh (OTP) đến email liên kết với tài khoản của bạn</p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="account">Email hoặc Số điện thoại</label>
               <input
-                id="email"
-                type="email"
-                className={`input-field${emailErrors.email ? ' input-error' : ''}`}
-                placeholder="Nhập email của bạn"
+                id="account"
+                type="text"
+                className={`input-field${accountErrors.account ? ' input-error' : ''}`}
+                placeholder="Nhập email hoặc số điện thoại"
                 disabled={isLoading}
-                {...emailField('email')}
+                {...accountField('account')}
               />
-              {emailErrors.email && <p className="field-error">{emailErrors.email.message}</p>}
+              {accountErrors.account && <p className="field-error">{accountErrors.account.message}</p>}
             </div>
             
             <button type="submit" disabled={isLoading} className={`btn-submit ${isLoading ? 'loading' : ''}`}>
-              {isLoading ? 'Đang gửi...' : 'Tiếp tục'}
+              {isLoading ? 'Đang gửi...' : 'Gửi mã xác minh'}
             </button>
             
             <div className="form-footer">
@@ -245,7 +280,7 @@ const ForgotPassword = () => {
           >
             <div className="step-info">
               <h3>Xác Minh Mã Của Bạn</h3>
-              <p>Nhập mã 6 chữ số chúng tôi đã gửi đến<br /><strong>{email}</strong></p>
+              <p>Nhập mã 6 chữ số chúng tôi đã gửi đến email của<br /><strong>{account}</strong></p>
             </div>
             
             <div className="form-group">
@@ -283,10 +318,10 @@ const ForgotPassword = () => {
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={isLoading}
+                disabled={isLoading || cooldown > 0}
                 className="btn-resend"
               >
-                Gửi lại mã
+                {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : 'Gửi lại mã'}
               </button>
             </div>
           </motion.form>
