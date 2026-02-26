@@ -1,5 +1,5 @@
 // src/pages/ForgotPassword.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
@@ -29,7 +29,40 @@ const ForgotPassword = () => {
   });
   
   const [resetToken, setResetToken] = useState(null);
-  
+
+  // OTP boxes state
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const otpRefs = useRef([]);
+
+  const handleOtpDigitChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const newDigits = [...otpDigits];
+    newDigits[index] = value.slice(-1); // keep only last char
+    setOtpDigits(newDigits);
+    setFormData(prev => ({ ...prev, otp: newDigits.join('') }));
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const newDigits = ['', '', '', '', '', ''];
+    pasted.split('').forEach((ch, i) => { newDigits[i] = ch; });
+    setOtpDigits(newDigits);
+    setFormData(prev => ({ ...prev, otp: newDigits.join('') }));
+    const nextEmpty = pasted.length < 6 ? pasted.length : 5;
+    otpRefs.current[nextEmpty]?.focus();
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -199,9 +232,9 @@ const ForgotPassword = () => {
         {/* Header */}
         <div className="forgot-header">
           <button onClick={handleBackClick} className="btn-back-fp">
-            <FontAwesomeIcon icon={faArrowLeft} /> Back
+            <FontAwesomeIcon icon={faArrowLeft} /> Quay Lại
           </button>
-          <h2>Reset Password</h2>
+          <h2>Quên Mật Khẩu</h2>
           <div></div>
         </div>
         
@@ -225,18 +258,18 @@ const ForgotPassword = () => {
             className="forgot-form"
           >
             <div className="step-info">
-              <h3>Enter Your Email</h3>
-              <p>We'll send you a verification code to reset your password</p>
+              <h3>Nhập Email Của Bạn</h3>
+              <p>Chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu của bạn</p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">Email</label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 className="input-field"
-                placeholder="Enter your email"
+                placeholder="Nhập email của bạn"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -248,12 +281,12 @@ const ForgotPassword = () => {
               disabled={isLoading}
               className={`btn-submit ${isLoading ? 'loading' : ''}`}
             >
-              {isLoading ? 'Sending...' : 'Continue'}
+              {isLoading ? 'Đang gửi...' : 'Tiếp tục'}
             </button>
             
             <div className="form-footer">
-              <span>Remember your password? </span>
-              <Link to="/login" className="link">Sign in</Link>
+              <span>Nhớ mật khẩu của bạn? </span>
+              <Link to="/login" className="link">Đăng nhập</Link>
             </div>
           </motion.form>
         )}
@@ -269,28 +302,30 @@ const ForgotPassword = () => {
             className="forgot-form"
           >
             <div className="step-info">
-              <h3>Verify Your Code</h3>
-              <p>Enter the 6-digit code we sent to<br /><strong>{formData.email}</strong></p>
+              <h3>Xác Minh Mã Của Bạn</h3>
+              <p>Nhập mã 6 chữ số chúng tôi đã gửi đến<br /><strong>{formData.email}</strong></p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="otp">Verification Code</label>
-              <input
-                id="otp"
-                name="otp"
-                type="text"
-                className="input-field otp-input"
-                placeholder="000000"
-                value={formData.otp}
-                onChange={(e) => {
-                  if (e.target.value.length <= 6 && /^\d*$/.test(e.target.value)) {
-                    handleChange(e);
-                  }
-                }}
-                maxLength="6"
-                required
-              />
-              <p className="hint">Enter the code from your email</p>
+              <label>Mã Xác Minh</label>
+              <div className="otp-input-group">
+                {otpDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={el => otpRefs.current[index] = el}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength="1"
+                    className="otp-box"
+                    value={digit}
+                    onChange={e => handleOtpDigitChange(index, e.target.value)}
+                    onKeyDown={e => handleOtpKeyDown(index, e)}
+                    onPaste={index === 0 ? handleOtpPaste : undefined}
+                    autoFocus={index === 0}
+                  />
+                ))}
+              </div>
+              <p className="hint">Nhập mã từ email của bạn</p>
             </div>
             
             <button
@@ -298,18 +333,18 @@ const ForgotPassword = () => {
               disabled={isLoading}
               className={`btn-submit ${isLoading ? 'loading' : ''}`}
             >
-              {isLoading ? 'Verifying...' : 'Verify'}
+              {isLoading ? 'Đang xác minh...' : 'Xác minh'}
             </button>
             
             <div className="resend-section">
-              <p>Didn't receive the code?</p>
+              <p>Không nhận được mã?</p>
               <button
                 type="button"
                 onClick={handleResendCode}
                 disabled={isLoading}
                 className="btn-resend"
               >
-                Resend Code
+                Gửi lại mã
               </button>
             </div>
           </motion.form>
@@ -326,19 +361,19 @@ const ForgotPassword = () => {
             className="forgot-form"
           >
             <div className="step-info">
-              <h3>Create New Password</h3>
-              <p>Enter a strong password to secure your account</p>
+              <h3>Tạo Mật Khẩu Mới</h3>
+              <p>Nhập mật khẩu mạnh để bảo vệ tài khoản của bạn</p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="newPassword">New Password</label>
+              <label htmlFor="newPassword">Mật Khẩu Mới</label>
               <div className="password-wrapper">
                 <input
                   id="newPassword"
                   name="newPassword"
                   type={showPassword ? 'text' : 'password'}
                   className="input-field"
-                  placeholder="Create a password"
+                  placeholder="Nhập mật khẩu mới"
                   value={formData.newPassword}
                   onChange={handleChange}
                   required
@@ -351,18 +386,18 @@ const ForgotPassword = () => {
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
-              <p className="hint">Min 8 characters, 1 uppercase, 1 lowercase, 1 number</p>
+              <p className="hint">Tối thiểu 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số</p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="confirmPassword">Xác Nhận Mật Khẩu</label>
               <div className="password-wrapper">
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   className="input-field"
-                  placeholder="Confirm your password"
+                  placeholder="Xác nhận mật khẩu"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
@@ -382,7 +417,7 @@ const ForgotPassword = () => {
               disabled={isLoading}
               className={`btn-submit ${isLoading ? 'loading' : ''}`}
             >
-              {isLoading ? 'Resetting...' : 'Reset Password'}
+              {isLoading ? 'Đang đặt lại...' : 'Đặt lại mật khẩu'}
             </button>
           </motion.form>
         )}

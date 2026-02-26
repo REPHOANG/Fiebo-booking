@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
@@ -27,6 +27,19 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailInfo, setShowEmailInfo] = useState(false);
   const [showPasswordInfo, setShowPasswordInfo] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('rememberedCredentials');
+      if (saved) {
+        const { identifier, password } = JSON.parse(saved);
+        setFormData(prev => ({ ...prev, identifier: identifier || '', password: password || '' }));
+        setRememberMe(true);
+      }
+    } catch (_) {}
+  }, []);
 
   // Detect if input is email or phone
   const detectIdentifierType = (input) => {
@@ -85,6 +98,16 @@ const Login = () => {
         user: response.user,
         token: response.accessToken || response.token
       }));
+
+      // Save or clear remembered credentials
+      if (rememberMe) {
+        localStorage.setItem('rememberedCredentials', JSON.stringify({
+          identifier: formData.identifier,
+          password: formData.password,
+        }));
+      } else {
+        localStorage.removeItem('rememberedCredentials');
+      }
 
       // Also save to localStorage immediately (backup)
       const authData = {
@@ -263,7 +286,11 @@ const Login = () => {
 
           <div className="remember-forgot">
             <label className="remember-me">
-              <input type="checkbox" />
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+              />
               <span>Nhớ tài khoản</span>
             </label>
             <Link to="/forgot-password" className="forgot-link">

@@ -292,14 +292,14 @@ export const getProfile = async (token) => {
       },
     });
 
+    const data = response.data || response.user || response;
     return {
-      id: response.user?.userId || response.userId,
-      email: response.user?.email,
-      phoneNumber: response.user?.phoneNumber,
-      fullName: response.user?.fullName,
-      dateOfBirth: response.user?.dateOfBirth,
-      role: response.user?.role,
-      status: response.user?.status,
+      id: data.id || data.userId,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      fullName: data.fullName,
+      dateOfBirth: data.dateOfBirth,
+      role: data.roles || data.role,
     };
   } catch (error) {
     throw {
@@ -368,7 +368,7 @@ export const requestPasswordReset = async (email) => {
   try {
     const response = await fetchAPI('/api/auth/forgot-password', {
       method: 'POST',
-      body: JSON.stringify({ email: email }),
+      body: JSON.stringify({ account: email }),
     });
 
     return {
@@ -389,8 +389,8 @@ export const verifyResetOTP = async (email, otp) => {
     const response = await fetchAPI('/api/auth/verify-reset-otp', {
       method: 'POST',
       body: JSON.stringify({
-        email: email,
-        otp: otp,
+        account: email,
+        otpCode: otp,
       }),
     });
 
