@@ -5,7 +5,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Background handled by AnimatedBallBackground component */
   padding: 20px;
   position: relative;
   overflow: hidden;
