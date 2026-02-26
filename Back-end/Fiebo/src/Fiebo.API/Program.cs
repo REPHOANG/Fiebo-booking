@@ -1,4 +1,5 @@
 ﻿using DotNetEnv;
+using Fiebo.API.Middlewares;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
@@ -14,11 +15,23 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Reflection;
 using System.Text;
 
 Env.Load();
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
 
 builder.Services.AddDbContext<FieboDbContext>(options =>
@@ -97,6 +110,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+// swagger configuration
+#region
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -134,29 +149,66 @@ builder.Services.AddSwaggerGen(c =>
 
     c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
+#endregion
+
+// Serilog configuration
+#region
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration) // đọc từ appsettings.json
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+#endregion
 
 var app = builder.Build();
 
+app.UseCors("AllowFrontend");
+app.UseMiddleware<Fiebo.API.Middlewares.ExceptionHandlingMiddleware>();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseSerilogRequestLogging();
 // Seed Data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        await DbInitializer.SeedRolesAsync(services);
+        var context = services.GetRequiredService<Fiebo.Infrastructure.Data.FieboDbContext>();
+
+        // BƯỚC 1: BẮT BUỘC PHẢI CHẠY MIGRATION ĐỂ TẠO BẢNG TRƯỚC
+        context.Database.Migrate();
+
+        // BƯỚC 2: SAU KHI CÓ BẢNG, MỚI GỌI HÀM SEED DỮ LIỆU
+        // (Tùy thuộc vào việc bạn đang viết hàm Seed tên là gì, có thể trông giống như sau:)
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        // await DataSeeder.SeedRolesAsync(roleManager); 
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database seeding failed: {ex.Message}");
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Database seeding failed");
     }
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+//// Configure the HTTP request pipeline.
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
+
+// Luôn bật Swagger (Cho cả môi trường Dev và Docker)
+// sau này lên Server thật (Production) thì có thể khóa lại sau.
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    // Đặt giao diện Swagger ngay tại thư mục gốc (http://localhost:8080/)
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Fiebo API V1");
+    c.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 
