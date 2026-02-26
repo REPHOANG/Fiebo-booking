@@ -1,69 +1,101 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import {
-  FacebookIcon,
-  InstagramIcon,
-  TwitterIcon,
-  MailIcon,
-  PhoneIcon,
-  MapPinIcon,
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+  Mail,
+  Phone,
+  MapPin,
+  ChevronRight,
+  Heart,
+  Send,
 } from 'lucide-react'
 import './Footer.css'
 
 const Footer = () => {
   return (
-    <footer className="footer">
-      <div className="footer-container">
-        {/* Cột 1 */}
-        <div className="footer-column">
-          <h2 className="footer-logo">Fiebo</h2>
-          <p className="footer-text">
-            The ultimate platform for booking fields and sports
+    <footer className="ft">
+      {/* Gradient top border */}
+      <div className="ft-top-line" />
+
+      <div className="ft-main">
+        {/* ── Brand ── */}
+        <div className="ft-col ft-brand">
+          <div className="ft-logo-row">
+            <span className="ft-logo-icon">⚽</span>
+            <h2 className="ft-logo">Fiebo</h2>
+          </div>
+          <p className="ft-desc">
+            Nền tảng đặt sân thể thao trực tuyến hàng đầu Việt Nam. Tìm sân, đặt lịch và chơi ngay chỉ với vài thao tác.
           </p>
-          <div className="footer-socials">
-            <a href="#"><FacebookIcon size={20} /></a>
-            <a href="#"><InstagramIcon size={20} /></a>
-            <a href="#"><TwitterIcon size={20} /></a>
+          <div className="ft-socials">
+            <a href="#" aria-label="Facebook" className="ft-social fb"><Facebook size={16} /></a>
+            <a href="#" aria-label="Instagram" className="ft-social ig"><Instagram size={16} /></a>
+            <a href="#" aria-label="Twitter" className="ft-social tw"><Twitter size={16} /></a>
+            <a href="#" aria-label="Youtube" className="ft-social yt"><Youtube size={16} /></a>
           </div>
         </div>
 
-        {/* Cột 2 */}
-        <div className="footer-column">
-          <h3 className="footer-heading">Quick Links</h3>
-          <ul>
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/about">About Us</Link></li>
-            <li><Link to="/faq">FAQ</Link></li>
+        {/* ── Quick Links ── */}
+        <div className="ft-col">
+          <h3 className="ft-heading">Khám phá</h3>
+          <ul className="ft-links">
+            <li><Link to="/"><ChevronRight size={14} /> Trang chủ</Link></li>
+            <li><Link to="/venues"><ChevronRight size={14} /> Danh sách sân</Link></li>
+            <li><Link to="/about"><ChevronRight size={14} /> Về chúng tôi</Link></li>
+            <li><Link to="/faq"><ChevronRight size={14} /> Câu hỏi thường gặp</Link></li>
           </ul>
         </div>
 
-        {/* Cột 3 */}
-        <div className="footer-column">
-          <h3 className="footer-heading">Categories</h3>
-          <ul>
-            <li><Link to="/category/academic">pickerball</Link></li>
-            <li><Link to="/category/music">football</Link></li>
-            <li><Link to="/category/workshop">tenis</Link></li>
-            <li><Link to="/category/club">basketball</Link></li>
-            <li><Link to="/category/sports">volleyball</Link></li>
-            <li><Link to="/category/sports"></Link></li>
-            <li><Link to="/category/sports"></Link></li>
+        {/* ── Sports ── */}
+        <div className="ft-col">
+          <h3 className="ft-heading">Môn thể thao</h3>
+          <ul className="ft-links ft-sports">
+            <li><span className="ft-sport-dot" style={{background:'#22c55e'}} /> Bóng đá</li>
+            <li><span className="ft-sport-dot" style={{background:'#f59e0b'}} /> Cầu lông</li>
+            <li><span className="ft-sport-dot" style={{background:'#3b82f6'}} /> Pickleball</li>
+            <li><span className="ft-sport-dot" style={{background:'#ef4444'}} /> Bóng rổ</li>
+            <li><span className="ft-sport-dot" style={{background:'#a855f7'}} /> Tennis</li>
           </ul>
         </div>
 
-        {/* Cột 4 */}
-        <div className="footer-column">
-          <h3 className="footer-heading">Contact Us</h3>
-          <ul className="footer-contact">
-            <li><MapPinIcon size={16} /> <span>FPT University, Hoa Lac Hi-Tech Park, Hanoi</span></li>
-            <li><PhoneIcon size={16} /> <span>+84 123 456 789</span></li>
-            <li><MailIcon size={16} /> <span>supportfiebo@gmail.com</span></li>
+        {/* ── Contact ── */}
+        <div className="ft-col">
+          <h3 className="ft-heading">Liên hệ</h3>
+          <ul className="ft-contact">
+            <li>
+              <div className="ft-icon-circle"><MapPin size={14} /></div>
+              <span>Đại học FPT, Khu CNC Hòa Lạc, Hà Nội</span>
+            </li>
+            <li>
+              <div className="ft-icon-circle"><Phone size={14} /></div>
+              <span>+84 123 456 789</span>
+            </li>
+            <li>
+              <div className="ft-icon-circle"><Mail size={14} /></div>
+              <span>supportfiebo@gmail.com</span>
+            </li>
           </ul>
+
+          {/* Mini newsletter */}
+          <div className="ft-newsletter">
+            <p className="ft-nl-label">Nhận tin mới nhất</p>
+            <div className="ft-nl-input">
+              <input type="email" placeholder="Email của bạn" />
+              <button aria-label="Subscribe"><Send size={14} /></button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} Fiebo. All rights reserved.</p>
+      {/* Bottom */}
+      <div className="ft-bottom">
+        <p>
+          © {new Date().getFullYear()} Fiebo. Tất cả quyền được bảo lưu. Made with{' '}
+          <Heart size={12} className="ft-heart" />{' '} in Vietnam.
+        </p>
       </div>
     </footer>
   )
