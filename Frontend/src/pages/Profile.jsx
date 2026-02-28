@@ -64,7 +64,7 @@ const Profile = () => {
   const loadProfile = async () => {
     try {
       const profileInfo = await getProfile(token);
-      console.log('✅ Profile loaded from API:', profileInfo);
+      console.log('Profile loaded from API:', profileInfo);
       dispatch(setProfile(profileInfo));
       setProfileData({
         fullName: profileInfo.fullName || user?.name || '',

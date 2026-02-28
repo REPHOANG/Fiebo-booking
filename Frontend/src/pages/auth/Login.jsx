@@ -94,7 +94,7 @@ const Login = () => {
         isAuthenticated: true,
       }));
 
-      toast.success('✅ Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
+      toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
         position: 'top-right', autoClose: 3000,
       });
 
@@ -104,11 +104,11 @@ const Login = () => {
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
       if (msg.includes('invalid') || msg.includes('credentials')) {
-        toast.error('❌ Email/Số điện thoại hoặc mật khẩu không chính xác', { position: 'top-right', autoClose: 3000 });
+        toast.error('Email/Số điện thoại hoặc mật khẩu không chính xác', { position: 'top-right', autoClose: 3000 });
       } else if (msg.includes('not found')) {
-        toast.error('❌ Tài khoản không tìm thấy. Vui lòng đăng ký', { position: 'top-right', autoClose: 3000 });
+        toast.error('Tài khoản không tìm thấy. Vui lòng đăng ký', { position: 'top-right', autoClose: 3000 });
       } else {
-        toast.error('❌ ' + (error.message || 'Đăng nhập thất bại'), { position: 'top-right', autoClose: 3000 });
+        toast.error((error.message || 'Đăng nhập thất bại'), { position: 'top-right', autoClose: 3000 });
       }
     } finally {
       setIsLoading(false);
@@ -119,7 +119,7 @@ const Login = () => {
     try {
       const credential = credentialResponse?.credential;
       if (!credential) {
-        toast.error('❌ Google credential bị thiếu', {
+        toast.error('Google credential bị thiếu', {
           position: 'top-right',
           autoClose: 3000,
         });
@@ -131,13 +131,13 @@ const Login = () => {
         user: response.user,
         token: response.accessToken || response.token
       }));
-      toast.success('✅ Đăng nhập Google thành công!', {
+      toast.success('Đăng nhập Google thành công!', {
         position: 'top-right',
         autoClose: 3000,
       });
       navigate('/');
     } catch (error) {
-      toast.error('❌ ' + (error.message || 'Đăng nhập Google thất bại'), {
+      toast.error((error.message || 'Đăng nhập Google thất bại'), {
         position: 'top-right',
         autoClose: 3000,
       });
@@ -147,7 +147,7 @@ const Login = () => {
   };
 
   const handleGoogleError = () => {
-    toast.error('❌ Đăng nhập Google bị hủy hoặc thất bại', {
+    toast.error('Đăng nhập Google bị hủy hoặc thất bại', {
       position: 'top-right',
       autoClose: 3000,
     });

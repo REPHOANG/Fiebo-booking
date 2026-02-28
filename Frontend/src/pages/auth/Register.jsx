@@ -108,9 +108,9 @@ const Register = () => {
     } catch (error) {
       const errorMsg = error.message || error.details || 'Đăng ký thất bại';
       if (errorMsg.toLowerCase().includes('already exist')) {
-        toast.error('❌ Email hoặc số điện thoại đã được đăng ký', { position: 'top-right', autoClose: 3000 });
+        toast.error('Email hoặc số điện thoại đã được đăng ký', { position: 'top-right', autoClose: 3000 });
       } else {
-        toast.error('❌ ' + errorMsg, { position: 'top-right', autoClose: 3000 });
+        toast.error(errorMsg, { position: 'top-right', autoClose: 3000 });
       }
     } finally {
       setIsLoading(false);
