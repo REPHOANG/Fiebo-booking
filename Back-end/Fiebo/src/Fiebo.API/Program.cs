@@ -178,13 +178,11 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<Fiebo.Infrastructure.Data.FieboDbContext>();
 
-        // BƯỚC 1: BẮT BUỘC PHẢI CHẠY MIGRATION ĐỂ TẠO BẢNG TRƯỚC
-        context.Database.Migrate();
+        // 1. Chạy lệnh tạo bảng (Migration)
+        await context.Database.MigrateAsync();
 
-        // BƯỚC 2: SAU KHI CÓ BẢNG, MỚI GỌI HÀM SEED DỮ LIỆU
-        // (Tùy thuộc vào việc bạn đang viết hàm Seed tên là gì, có thể trông giống như sau:)
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        // await DataSeeder.SeedRolesAsync(roleManager); 
+        // 2. Gọi class DbInitializer của bạn và truyền 'services' vào
+        await DbInitializer.SeedRolesAsync(services);
     }
     catch (Exception ex)
     {
