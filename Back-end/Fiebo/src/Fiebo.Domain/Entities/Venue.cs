@@ -9,6 +9,7 @@ namespace Fiebo.Domain.Entities
 {
     public class Venue : BaseEntity
     {
+        public required string Name { get; set; }
         public TimeSpan OpenTime { get; set; }
 
         public TimeSpan CloseTime { get; set; }
@@ -35,7 +36,7 @@ namespace Fiebo.Domain.Entities
 
         public Ward? Ward { get; set; }
 
-
-        public ICollection<Field>? Fields { get; set; }
+        public ICollection<Review> Reviews { get; set; } = [];
+        public ICollection<Field> Fields { get; set; } = [];
     }
 }

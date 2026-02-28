@@ -102,6 +102,41 @@ namespace Fiebo.Infrastructure.Migrations
                     b.ToTable("Provinces");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<float>("Rating")
+                        .HasColumnType("float");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("UserID");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int")
+                        .HasColumnName("VenueID");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("Reviews", (string)null);
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.SportType", b =>
                 {
                     b.Property<int>("Id")
@@ -149,6 +184,10 @@ namespace Fiebo.Infrastructure.Migrations
                     b.Property<decimal>("Longitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<TimeSpan>("OpenTime")
                         .HasColumnType("time(6)");
@@ -467,6 +506,23 @@ namespace Fiebo.Infrastructure.Migrations
                     b.Navigation("Field");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>
+                {
+                    b.HasOne("Fiebo.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany("Reviews")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Venue", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.Province", "Province")
@@ -577,6 +633,8 @@ namespace Fiebo.Infrastructure.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.Venue", b =>
                 {
                     b.Navigation("Fields");
+
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Ward", b =>

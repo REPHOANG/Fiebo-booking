@@ -145,6 +145,38 @@ namespace Fiebo.Infrastructure.Data
                       .WithMany(x => x.Wards)
                       .HasForeignKey(x => x.ProvinceId);
             });
+
+            // Review
+            modelBuilder.Entity<Review>(entity =>
+            {
+                entity.ToTable("Reviews");
+
+                entity.HasKey(r => r.Id);
+
+                entity.Property(r => r.Comment)
+                      .HasColumnType("text");
+
+                entity.Property(r => r.Rating)
+                      .IsRequired();
+
+                entity.Property(r => r.UserId)
+                      .HasColumnName("UserID")
+                      .IsRequired();
+
+                entity.Property(r => r.VenueId)
+                      .HasColumnName("VenueID")
+                      .IsRequired();
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(r => r.Venue)
+                      .WithMany(v => v.Reviews)
+                      .HasForeignKey(r => r.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

@@ -10,6 +10,9 @@ namespace Fiebo.Domain.Repositories
     public interface IUnitOfWork : IDisposable
     {
         IRepository<Wallet> Wallets { get; }
+
+        IVenueRepository Venues { get; }
+
         Task<int> SaveChangesAsync();
     }
 }

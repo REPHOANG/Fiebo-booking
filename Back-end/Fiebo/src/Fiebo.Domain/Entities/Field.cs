@@ -25,6 +25,6 @@ namespace Fiebo.Domain.Entities
 
         public Venue? Venue { get; set; }
 
-        public ICollection<FieldImage>? Images { get; set; }
+        public ICollection<FieldImage> Images { get; set; } = [];
     }
 }

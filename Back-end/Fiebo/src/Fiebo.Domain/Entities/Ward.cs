@@ -16,7 +16,7 @@ namespace Fiebo.Domain.Entities
 
 
         // Navigation
-        public Province? Province { get; set; }
+        public Province Province { get; set; } = null!;
 
         public ICollection<Venue>? Venues { get; set; }
     }
