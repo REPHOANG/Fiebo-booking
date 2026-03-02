@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Fiebo.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class FixReview : Migration
+    public partial class AddFieldAndRelatedTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -70,6 +70,28 @@ namespace Fiebo.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Bookings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BookingDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    UserId = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    StaffId = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TotalPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Bookings", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -318,6 +340,29 @@ namespace Fiebo.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "BookingsDetail",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    BookingId = table.Column<int>(type: "int", nullable: false),
+                    FieldId = table.Column<int>(type: "int", nullable: false),
+                    SlotId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(12,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BookingsDetail", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BookingsDetail_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Fields",
                 columns: table => new
                 {
@@ -330,12 +375,18 @@ namespace Fiebo.Infrastructure.Migrations
                     SportTypeId = table.Column<int>(type: "int", nullable: false),
                     VenueId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
+                    BookingDetailId = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Fields", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Fields_BookingsDetail_BookingDetailId",
+                        column: x => x.BookingDetailId,
+                        principalTable: "BookingsDetail",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Fields_SportTypes_SportTypeId",
                         column: x => x.SportTypeId,
@@ -360,26 +411,32 @@ namespace Fiebo.Infrastructure.Migrations
                     Comment = table.Column<string>(type: "text", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Rating = table.Column<float>(type: "float", nullable: false),
-                    UserID = table.Column<string>(type: "varchar(255)", nullable: false)
+                    UserId = table.Column<string>(type: "varchar(255)", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    VenueID = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    BookingDetailId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    VenueId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reviews", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Reviews_AspNetUsers_UserID",
-                        column: x => x.UserID,
+                        name: "FK_Reviews_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Reviews_Venues_VenueID",
-                        column: x => x.VenueID,
-                        principalTable: "Venues",
+                        name: "FK_Reviews_BookingsDetail_BookingDetailId",
+                        column: x => x.BookingDetailId,
+                        principalTable: "BookingsDetail",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Venues_VenueId",
+                        column: x => x.VenueId,
+                        principalTable: "Venues",
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -398,6 +455,30 @@ namespace Fiebo.Infrastructure.Migrations
                     table.PrimaryKey("PK_FieldImages", x => x.Id);
                     table.ForeignKey(
                         name: "FK_FieldImages_Fields_FieldId",
+                        column: x => x.FieldId,
+                        principalTable: "Fields",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "TimeSlots",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    FieldId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(12,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TimeSlots", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TimeSlots_Fields_FieldId",
                         column: x => x.FieldId,
                         principalTable: "Fields",
                         principalColumn: "Id",
@@ -443,9 +524,29 @@ namespace Fiebo.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_BookingsDetail_BookingId",
+                table: "BookingsDetail",
+                column: "BookingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BookingsDetail_FieldId",
+                table: "BookingsDetail",
+                column: "FieldId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BookingsDetail_SlotId",
+                table: "BookingsDetail",
+                column: "SlotId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FieldImages_FieldId",
                 table: "FieldImages",
                 column: "FieldId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Fields_BookingDetailId",
+                table: "Fields",
+                column: "BookingDetailId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Fields_SportTypeId",
@@ -458,14 +559,24 @@ namespace Fiebo.Infrastructure.Migrations
                 column: "VenueId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reviews_UserID",
+                name: "IX_Reviews_BookingDetailId",
                 table: "Reviews",
-                column: "UserID");
+                column: "BookingDetailId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reviews_VenueID",
+                name: "IX_Reviews_UserId",
                 table: "Reviews",
-                column: "VenueID");
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reviews_VenueId",
+                table: "Reviews",
+                column: "VenueId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TimeSlots_FieldId_DayOfWeek",
+                table: "TimeSlots",
+                columns: new[] { "FieldId", "DayOfWeek" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Venues_ProvinceId",
@@ -487,11 +598,39 @@ namespace Fiebo.Infrastructure.Migrations
                 name: "IX_Wards_ProvinceId",
                 table: "Wards",
                 column: "ProvinceId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BookingsDetail_Fields_FieldId",
+                table: "BookingsDetail",
+                column: "FieldId",
+                principalTable: "Fields",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BookingsDetail_TimeSlots_SlotId",
+                table: "BookingsDetail",
+                column: "SlotId",
+                principalTable: "TimeSlots",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_BookingsDetail_Bookings_BookingId",
+                table: "BookingsDetail");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_BookingsDetail_Fields_FieldId",
+                table: "BookingsDetail");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_TimeSlots_Fields_FieldId",
+                table: "TimeSlots");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -520,16 +659,25 @@ namespace Fiebo.Infrastructure.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Bookings");
+
+            migrationBuilder.DropTable(
                 name: "Fields");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "BookingsDetail");
 
             migrationBuilder.DropTable(
                 name: "SportTypes");
 
             migrationBuilder.DropTable(
                 name: "Venues");
+
+            migrationBuilder.DropTable(
+                name: "TimeSlots");
 
             migrationBuilder.DropTable(
                 name: "Wards");

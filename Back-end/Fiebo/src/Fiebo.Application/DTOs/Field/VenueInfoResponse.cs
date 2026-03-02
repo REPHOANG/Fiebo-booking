@@ -1,7 +1,12 @@
-﻿
-namespace Fiebo.Domain.DTO.Field
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Fiebo.Application.DTOs.Field
 {
-    public class NearbyFieldResponse
+    public class VenueInfoResponse
     {
         public int VenueId { get; set; }
 
@@ -20,5 +25,6 @@ namespace Fiebo.Domain.DTO.Field
         public string? ThumbnailUrl { get; set; }
 
         public double DistanceKm { get; set; }
+        public int BookingCount { get; set; }
     }
 }

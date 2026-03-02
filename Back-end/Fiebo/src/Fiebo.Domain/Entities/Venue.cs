@@ -24,19 +24,16 @@ namespace Fiebo.Domain.Entities
 
         public required string OwnerId { get; set; }
 
-        public decimal Longitude { get; set; }
+        public double Longitude { get; set; }
 
-        public decimal Latitude { get; set; }
+        public double Latitude { get; set; }
 
         public VenueStatus Status { get; set; }
 
 
         // Navigation
         public Province? Province { get; set; }
-
         public Ward? Ward { get; set; }
-
-        public ICollection<Review> Reviews { get; set; } = [];
         public ICollection<Field> Fields { get; set; } = [];
     }
 }

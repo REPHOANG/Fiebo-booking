@@ -1,5 +1,5 @@
 ﻿using Fiebo.Application.Interfaces;
-using Fiebo.Domain.DTO.Field;
+using Fiebo.Domain.DTOs.Field;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -45,7 +45,7 @@ namespace Fiebo.Infrastructure.ExternalServices
 
             foreach (var f in fields)
             {
-                locations.Add([f.Lng, f.Lat]);
+                locations.Add([f.Longitude, f.Latitude]);
             }
 
             var body = new

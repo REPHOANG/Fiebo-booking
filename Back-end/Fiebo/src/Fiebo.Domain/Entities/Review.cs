@@ -16,13 +16,13 @@ namespace Fiebo.Domain.Entities
 
         public string UserId { get; set; } = string.Empty;
 
-        public int VenueId { get; set; }
+        public int BookingDetailId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
         // Navigation
 
-        public Venue Venue { get; set; } = null!;
+        public BookingDetail BookingDetail { get; set; } = null!;
     }
 }

@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Domain.DTO.Field
+namespace Fiebo.Domain.DTOs.Field
 {
     public class VenueLocationDto
     {
         public int VenueId { get; set; }
 
-        public double Lat { get; set; }
+        public double Latitude { get; set; }
 
-        public double Lng { get; set; }
+        public double Longitude { get; set; }
     }
 }

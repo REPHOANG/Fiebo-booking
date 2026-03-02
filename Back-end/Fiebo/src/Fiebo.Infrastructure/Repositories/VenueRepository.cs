@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.DTO.Field;
+﻿using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
@@ -19,69 +19,109 @@ namespace Fiebo.Infrastructure.Repositories
         {
         }
 
-        public async Task<List<VenueLocationDto>> GetNearestVenueIdsByAirAsync(
-            double userLat,
-            double userLng,
-            int? sportTypeId,
-            int limit = 5)
+        public async Task<List<VenueInfoStat>> GetNearestVenuesAsync(
+    double userLat,
+    double userLng,
+    int? sportTypeId,
+    int limit,
+    double radiusKm)
         {
-            var query = _context.Fields
-                .Where(f => f.Status == FieldStatus.Active);
+            double latRange = radiusKm / 111.0;
+            double lngRange = radiusKm / (111.0 * Math.Cos(userLat * Math.PI / 180));
+
+            var query = _context.Venues
+                .Where(v =>
+                    v.Status == VenueStatus.Active &&
+                    v.Latitude >= userLat - latRange &&
+                    v.Latitude <= userLat + latRange &&
+                    v.Longitude >= userLng - lngRange &&
+                    v.Longitude <= userLng + lngRange
+                );
 
             if (sportTypeId.HasValue)
             {
-                query = query.Where(f => f.SportTypeId == sportTypeId.Value);
+                query = query.Where(v =>
+                    v.Fields.Any(f => f.SportTypeId == sportTypeId));
             }
 
-            var venues = await query
-                .Where(f => f.Venue != null)
-                .GroupBy(f => f.VenueId)
-                .Select(g => new
+            var result = query
+                .Select(v => new VenueInfoStat
                 {
-                    VenueId = g.Key,
+                    VenueId = v.Id,
+                    VenueName = v.Name,
 
-                    Lat = (double)g.First().Venue!.Latitude,
-                    Lng = (double)g.First().Venue!.Longitude
+                    Province = v.Province!.Name,
+                    Ward = v.Ward!.Name,
+                    AddressDetail = v.AddressDetail,
+                    OpenTime = v.OpenTime,
+                    CloseTime = v.CloseTime,
+
+                    BookingCount = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .Count(bd => bd.Booking.Status == BookingStatus.Completed),
+
+                    AvgRating = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .SelectMany(b => b.Reviews)
+                        .Select(r => (double?)r.Rating)
+                        .Average() ?? 0,
+
+                    ThumbnailUrl = v.Fields
+                        .SelectMany(f => f.Images)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault(),
+
+                    Lat = v.Latitude,
+                    Lng = v.Longitude
                 })
-                .ToListAsync();
-
-
-            var result = venues
+                .AsEnumerable()
                 .Select(v => new
                 {
-                    v.VenueId,
-                    v.Lat,
-                    v.Lng,
-
+                    Data = v,
                     Distance = GeoHelper.Distance(
                         userLat, userLng,
                         v.Lat, v.Lng)
                 })
+                .Where(x => x.Distance <= radiusKm)
                 .OrderBy(x => x.Distance)
                 .Take(limit)
-                .Select(x => new VenueLocationDto
-                {
-                    VenueId = x.VenueId,
-                    Lat = x.Lat,
-                    Lng = x.Lng
-                })
+                .Select(x => x.Data)
                 .ToList();
 
             return result;
         }
 
-        public async Task<List<Venue>> GetNearbyVenuesInfoAsync(List<int> venueIds)
+        public async Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top)
         {
             return await _context.Venues
-                .Where(v => venueIds.Contains(v.Id))
-                .Include(v => v.Ward)
-                    .ThenInclude(w => w!.Province)
-                .Include(v => v.Fields)
-                    .ThenInclude(f => f.Images)
-                .Include(f => f.Reviews)
+                .Where(v => v.Status == VenueStatus.Active)
+                .Select(v => new VenueInfoStat
+                {
+                    VenueId = v.Id,
+                    VenueName = v.Name,
+                    Province = v.Ward!.Province!.Name,
+                    Ward = v.Ward!.Name,
+                    AddressDetail = v.AddressDetail,
+                    OpenTime = v.OpenTime,
+                    CloseTime = v.CloseTime,
+                    BookingCount = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .Count(bd => bd.Booking.Status == BookingStatus.Completed),
+                    AvgRating = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .SelectMany(b => b.Reviews)
+                        .Select(r => (double?)r.Rating)
+                        .Average() ?? 0,
+                    ThumbnailUrl = v.Fields
+                        .SelectMany(f => f.Images)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault(),
+                    Lat = (double)v.Latitude,
+                    Lng = (double)v.Longitude
+                })
+                .OrderByDescending(x => x.BookingCount)
+                .Take(top)
                 .ToListAsync();
         }
-
-
     }
 }

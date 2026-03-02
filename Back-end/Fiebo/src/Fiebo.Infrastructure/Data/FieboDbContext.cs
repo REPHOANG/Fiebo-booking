@@ -24,6 +24,10 @@ namespace Fiebo.Infrastructure.Data
         public DbSet<SportType> SportTypes { get; set; }
         public DbSet<Province> Provinces { get; set; }
         public DbSet<Ward> Wards { get; set; }
+        public DbSet<Review> Reviews { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
+        public DbSet<BookingDetail> BookingsDetail { get; set; }
+        public DbSet<TimeSlot> TimeSlots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -32,6 +36,8 @@ namespace Fiebo.Infrastructure.Data
             modelBuilder.Entity<Wallet>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.Balance)
                       .HasPrecision(18, 2)
@@ -62,6 +68,8 @@ namespace Fiebo.Infrastructure.Data
             modelBuilder.Entity<Field>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.Name)
                       .HasMaxLength(100)
@@ -80,6 +88,8 @@ namespace Fiebo.Infrastructure.Data
             modelBuilder.Entity<FieldImage>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.ImageUrl)
                       .HasMaxLength(255);
@@ -93,16 +103,18 @@ namespace Fiebo.Infrastructure.Data
             modelBuilder.Entity<Venue>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.AddressDetail)
                       .HasMaxLength(255)
                       .IsRequired();
 
-                entity.Property(x => x.Longitude)
-                      .HasPrecision(9, 6);
-
                 entity.Property(x => x.Latitude)
-                      .HasPrecision(9, 6);
+                      .HasColumnType("double");
+
+                entity.Property(x => x.Longitude)
+                      .HasColumnType("double");
 
                 entity.HasOne(x => x.Province)
                       .WithMany(x => x.Venues)
@@ -112,11 +124,13 @@ namespace Fiebo.Infrastructure.Data
                       .WithMany(x => x.Venues)
                       .HasForeignKey(x => x.WardId);
             });
-            
+
             // SportType
             modelBuilder.Entity<SportType>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.Name)
                       .HasMaxLength(50)
@@ -149,9 +163,9 @@ namespace Fiebo.Infrastructure.Data
             // Review
             modelBuilder.Entity<Review>(entity =>
             {
-                entity.ToTable("Reviews");
-
                 entity.HasKey(r => r.Id);
+                entity.Property(b => b.Id)
+                      .ValueGeneratedOnAdd();
 
                 entity.Property(r => r.Comment)
                       .HasColumnType("text");
@@ -160,11 +174,9 @@ namespace Fiebo.Infrastructure.Data
                       .IsRequired();
 
                 entity.Property(r => r.UserId)
-                      .HasColumnName("UserID")
                       .IsRequired();
 
-                entity.Property(r => r.VenueId)
-                      .HasColumnName("VenueID")
+                entity.Property(r => r.BookingDetailId)
                       .IsRequired();
 
                 entity.HasOne<ApplicationUser>()
@@ -172,10 +184,102 @@ namespace Fiebo.Infrastructure.Data
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(r => r.Venue)
+                entity.HasOne(r => r.BookingDetail)
                       .WithMany(v => v.Reviews)
-                      .HasForeignKey(r => r.VenueId)
+                      .HasForeignKey(r => r.BookingDetailId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Booking
+            modelBuilder.Entity<Booking>(entity =>
+            {
+                entity.HasKey(b => b.Id);
+                entity.Property(b => b.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(b => b.UserId)
+                      .IsRequired()
+                      .HasMaxLength(50);
+
+                entity.Property(b => b.StaffId)
+                      .HasMaxLength(50);
+
+                entity.Property(b => b.TotalPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(b => b.BookingDate)
+                      .IsRequired();
+            });
+
+            // BookingDetail
+            modelBuilder.Entity<BookingDetail>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.BookingId)
+                      .IsRequired();
+
+                entity.Property(e => e.FieldId)
+                      .IsRequired();
+
+                entity.Property(e => e.SlotId)
+                      .IsRequired();
+
+                entity.Property(e => e.Price)
+                      .HasColumnType("decimal(12,2)")
+                      .IsRequired();
+
+                entity.HasOne(e => e.Booking)
+                      .WithMany(b => b.BookingDetails)
+                      .HasForeignKey(e => e.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Field)
+                      .WithMany(f => f.BookingDetails)
+                      .HasForeignKey(e => e.FieldId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.TimeSlot)
+                      .WithMany(ts => ts.BookingDetails)
+                      .HasForeignKey(e => e.SlotId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // TimeSlot
+            modelBuilder.Entity<TimeSlot>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.StartTime)
+                      .IsRequired()
+                      .HasColumnType("time");
+
+                entity.Property(e => e.EndTime)
+                      .IsRequired()
+                      .HasColumnType("time");
+
+                entity.Property(e => e.DayOfWeek)
+                      .IsRequired()
+                      .HasConversion<int>();
+
+                entity.Property(e => e.FieldId)
+                      .IsRequired();
+
+                entity.Property(e => e.Price)
+                      .HasColumnType("decimal(12,2)")
+                      .IsRequired();
+
+                entity.HasOne(e => e.Field)
+                      .WithMany(f => f.TimeSlots)
+                      .HasForeignKey(e => e.FieldId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Index
+                entity.HasIndex(e => new { e.FieldId, e.DayOfWeek });
             });
         }
     }
