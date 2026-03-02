@@ -18,6 +18,16 @@ namespace Fiebo.API.Controllers
         {
             _venueService = venueService;
         }
+
+        /// <summary>
+        /// Get nearby fields by user location, default location (HaNoi) if user does not allow to location
+        /// </summary>
+        /// <param name="sportTypeId"></param>
+        /// <param name="radiusKm"></param>
+        /// <param name="limit"></param>
+        /// <param name="userLat"></param>
+        /// <param name="userLng"></param>
+        /// <returns></returns>
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
@@ -35,6 +45,13 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Get top booking fields
+        /// </summary>
+        /// <param name="limit"></param>
+        /// <param name="userLat"></param>
+        /// <param name="userLng"></param>
+        /// <returns></returns>
         [HttpGet("top-booking")]
         public async Task<IActionResult> GetTopBookingVenues(
             [FromQuery] int limit = 5,
