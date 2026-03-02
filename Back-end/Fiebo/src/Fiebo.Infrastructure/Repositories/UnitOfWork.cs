@@ -12,15 +12,20 @@ namespace Fiebo.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly FieboDbContext _context;
-        //private IProductRepository? _productRepository;
-        private IRepository<Wallet>? _walletRepository;
 
-        public UnitOfWork(FieboDbContext context)
+        public IRepository<Wallet> Wallets { get; }
+        public IVenueRepository Venues { get; }
+
+        public UnitOfWork(FieboDbContext context,
+            IRepository<Wallet> walletRepository,
+            IVenueRepository venueRepository
+            )
         {
             _context = context;
+            Wallets = walletRepository;
+            Venues = venueRepository;
         }
-        //public IProductRepository Products => _productRepository ??= new ProductRepository(_context);
-        public IRepository<Wallet> Wallets => _walletRepository ??= new Repository<Wallet>(_context);
+
 
         public async Task<int> SaveChangesAsync()
         {
@@ -32,6 +37,6 @@ namespace Fiebo.Infrastructure.Repositories
             _context.Dispose();
         }
 
-     
+
     }
 }

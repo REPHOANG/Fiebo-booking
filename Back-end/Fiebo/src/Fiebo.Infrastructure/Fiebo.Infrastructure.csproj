@@ -25,7 +25,9 @@
     </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.16.0" />
     <PackageReference Include="MimeKit" Version="4.15.0" />
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql.NetTopologySuite" Version="8.0.3" />
     <PackageReference Include="StackExchange.Redis" Version="2.11.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
   </ItemGroup>

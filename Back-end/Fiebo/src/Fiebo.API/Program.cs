@@ -75,6 +75,8 @@ builder.Services.AddAuthentication(opts =>
 
 // Repository layer
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -85,6 +87,10 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<ISmsService, SpeedSmsService>();
+builder.Services.AddScoped<IVenueService, VenueService>();
+builder.Services.AddScoped<IMapService, OpenRouteService>();
+
+builder.Services.AddHttpClient();
 
 builder.Services.AddControllers();
 
@@ -117,7 +123,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.AddServer(new OpenApiServer
     {
-        Url = "http://localhost:8080",
+        Url = "https://localhost:7078",
         Description = "Local"
     });
     var securityScheme = new OpenApiSecurityScheme
