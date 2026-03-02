@@ -24,24 +24,30 @@ namespace Fiebo.Infrastructure.Repositories
     double userLng,
     int? sportTypeId,
     int limit,
-    double radiusKm)
+    double? radiusKm
+)
         {
-            double latRange = radiusKm / 111.0;
-            double lngRange = radiusKm / (111.0 * Math.Cos(userLat * Math.PI / 180));
-
             var query = _context.Venues
-                .Where(v =>
-                    v.Status == VenueStatus.Active &&
+                .Where(v => v.Status == VenueStatus.Active);
+
+            if (sportTypeId.HasValue)
+            {
+                query = query.Where(v =>
+                    v.Fields.Any(f => f.SportTypeId == sportTypeId.Value));
+            }
+
+            if (radiusKm.HasValue)
+            {
+                double latRange = radiusKm.Value / 111.0;
+                double lngRange = radiusKm.Value /
+                    (111.0 * Math.Cos(userLat * Math.PI / 180));
+
+                query = query.Where(v =>
                     v.Latitude >= userLat - latRange &&
                     v.Latitude <= userLat + latRange &&
                     v.Longitude >= userLng - lngRange &&
                     v.Longitude <= userLng + lngRange
                 );
-
-            if (sportTypeId.HasValue)
-            {
-                query = query.Where(v =>
-                    v.Fields.Any(f => f.SportTypeId == sportTypeId));
             }
 
             var result = query
@@ -74,7 +80,7 @@ namespace Fiebo.Infrastructure.Repositories
                     Lat = v.Latitude,
                     Lng = v.Longitude
                 })
-                .AsEnumerable()
+                .AsEnumerable() // chuyển sang C#
                 .Select(v => new
                 {
                     Data = v,
@@ -82,7 +88,7 @@ namespace Fiebo.Infrastructure.Repositories
                         userLat, userLng,
                         v.Lat, v.Lng)
                 })
-                .Where(x => x.Distance <= radiusKm)
+                .Where(x => !radiusKm.HasValue || x.Distance <= radiusKm.Value)
                 .OrderBy(x => x.Distance)
                 .Take(limit)
                 .Select(x => x.Data)

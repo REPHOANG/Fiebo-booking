@@ -29,7 +29,7 @@ namespace Fiebo.Application.Services
             double userLat,
             double userLng,
             int limit,
-            double radiusKm)
+            double? radiusKm)
         {
             var nearestVenues =
                 await _unitOfWork.Venues

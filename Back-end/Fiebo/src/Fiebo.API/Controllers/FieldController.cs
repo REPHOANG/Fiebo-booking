@@ -21,10 +21,10 @@ namespace Fiebo.API.Controllers
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
+            [FromQuery] double? radiusKm,
             [FromQuery] int limit = 5,
             [FromQuery] double userLat = 21.027381,
-            [FromQuery] double userLng = 105.833529,
-            [FromQuery] double radiusKm = 50)
+            [FromQuery] double userLng = 105.833529)
         {
             var result = await _venueService.GetNearbyVenues(sportTypeId, userLat, userLng, limit, radiusKm);
             return Ok(new ApiResponse<List<VenueInfoResponse>>
@@ -38,8 +38,8 @@ namespace Fiebo.API.Controllers
         [HttpGet("top-booking")]
         public async Task<IActionResult> GetTopBookingVenues(
             [FromQuery] int limit = 5,
-            [FromQuery]  double userLat = 21.027381,
-            [FromQuery]  double userLng = 105.833529)
+            [FromQuery] double userLat = 21.027381,
+            [FromQuery] double userLng = 105.833529)
         {
             var result = await _venueService.GetTopBookingVenuesAsync(limit, userLat, userLng);
             return Ok(new ApiResponse<List<VenueInfoResponse>>

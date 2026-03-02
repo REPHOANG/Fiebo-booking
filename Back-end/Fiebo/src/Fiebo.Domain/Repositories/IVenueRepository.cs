@@ -15,7 +15,7 @@ namespace Fiebo.Domain.Repositories
     double userLng,
     int? sportTypeId,
     int limit,
-    double radiusKm);
+    double? radiusKm);
 
         Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top);
     }
