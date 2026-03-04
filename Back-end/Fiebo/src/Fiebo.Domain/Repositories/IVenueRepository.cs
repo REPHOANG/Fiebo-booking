@@ -1,29 +1,27 @@
 ﻿using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Domain.Repositories
 {
     public interface IVenueRepository : IRepository<Venue>
     {
         Task<List<VenueInfoStat>> GetNearestVenuesAsync(
-    double userLat,
-    double userLng,
-    int? sportTypeId,
-    int limit,
-    double? radiusKm);
-        Task<List<VenueInfoStat>> SearchVenuesByFieldAsync(
+            double userLat,
+            double userLng,
+            int? sportTypeId,
+            int limit,
+            double? radiusKm);
+
+        Task<PagedResult<VenueInfoStat>> SearchVenuesByFieldAsync(
             string? locationKeyword,
             DateOnly? bookingDate,
             TimeSpan? bookingTime,
             int? sportTypeId,
             double userLat,
             double userLng,
-            int limit,
+            int page,
+            int pageSize,
             double? radiusKm);
 
         Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top);

@@ -1,11 +1,5 @@
 ﻿using Fiebo.Application.DTOs.Field;
-using Fiebo.Domain.DTOs.Field;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Interfaces
 {
@@ -17,18 +11,21 @@ namespace Fiebo.Application.Interfaces
             double userLng,
             int limit,
             double? radiusKm);
+
         Task<List<VenueInfoResponse>> GetTopBookingVenuesAsync(
             int top,
             double userLat,
             double userLng);
-        Task<List<VenueInfoResponse>> SearchVenuesByFieldAsync(
+
+        Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
             string? location,
             DateOnly? date,
             TimeSpan? time,
             int? sportTypeId,
             double userLat,
             double userLng,
-            int limit,
+            int page,
+            int pageSize,
             double? radiusKm);
     }
 }

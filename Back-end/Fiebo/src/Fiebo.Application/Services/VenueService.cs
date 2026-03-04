@@ -2,11 +2,7 @@
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Services
 {
@@ -124,17 +120,19 @@ namespace Fiebo.Application.Services
                 .OrderByDescending(x => x.BookingCount)];
         }
 
-        public async Task<List<VenueInfoResponse>> SearchVenuesByFieldAsync(
+        public async Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
             string? location,
             DateOnly? date,
             TimeSpan? time,
             int? sportTypeId,
             double userLat,
             double userLng,
-            int limit,
+            int page,
+            int pageSize,
             double? radiusKm)
         {
-            if (limit <= 0) limit = 10;
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
 
             var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
                 location,
@@ -143,13 +141,22 @@ namespace Fiebo.Application.Services
                 sportTypeId,
                 userLat,
                 userLng,
-                limit,
+                page,
+                pageSize,
                 radiusKm);
 
-            if (!venues.Any())
-                return [];
+            if (!venues.Items.Any())
+            {
+                return new PagedResult<VenueInfoResponse>
+                {
+                    Page = venues.Page,
+                    PageSize = venues.PageSize,
+                    TotalItems = venues.TotalItems,
+                    Items = []
+                };
+            }
 
-            var locationList = venues
+            var locationList = venues.Items
                 .Select(v => new VenueLocationDto
                 {
                     VenueId = v.VenueId,
@@ -161,7 +168,7 @@ namespace Fiebo.Application.Services
             var distances = await _mapService
                 .GetDistancesAsync(userLat, userLng, locationList);
 
-            return [.. venues
+            var items = venues.Items
                 .Select(v =>
                 {
                     distances.TryGetValue(v.VenueId, out var distanceKm);
@@ -181,7 +188,15 @@ namespace Fiebo.Application.Services
                         DistanceKm = Math.Round(distanceKm, 2)
                     };
                 })
-                .OrderBy(x => x.DistanceKm)];
+                .ToList();
+
+            return new PagedResult<VenueInfoResponse>
+            {
+                Page = venues.Page,
+                PageSize = venues.PageSize,
+                TotalItems = venues.TotalItems,
+                Items = items
+            };
         }
 
     }

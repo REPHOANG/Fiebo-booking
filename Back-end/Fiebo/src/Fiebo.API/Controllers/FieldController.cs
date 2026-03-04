@@ -1,6 +1,7 @@
 ﻿using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,14 +19,8 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Get nearby fields by user location, default location (HaNoi) if user does not allow to location
+        /// Get nearby fields by user location, default location (HaNoi) if user does not allow location.
         /// </summary>
-        /// <param name="sportTypeId"></param>
-        /// <param name="radiusKm"></param>
-        /// <param name="limit"></param>
-        /// <param name="userLat"></param>
-        /// <param name="userLng"></param>
-        /// <returns></returns>
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
@@ -38,19 +33,14 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<List<VenueInfoResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh sách sân gần nhất thành công",
+                Message = "Get nearby venues successfully",
                 Data = [.. result]
             });
         }
 
-
         /// <summary>
-        /// Get top booking fields
+        /// Get top booking fields.
         /// </summary>
-        /// <param name="limit"></param>
-        /// <param name="userLat"></param>
-        /// <param name="userLng"></param>
-        /// <returns></returns>
         [HttpGet("top-booking")]
         public async Task<IActionResult> GetTopBookingVenues(
             [FromQuery] int limit = 5,
@@ -61,41 +51,41 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<List<VenueInfoResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh sách sân nhiều lượt đặt nhất thành công",
+                Message = "Get top booking venues successfully",
                 Data = [.. result]
             });
         }
 
         /// <summary>
-        /// Search fields by location, date, time and sport type
-        /// but return matched venues.
+        /// Search fields by location, date, time and sport type, but return matched venues.
         /// </summary>
-        /// <param name="location">Keyword for venue/province/ward/address.</param>
-        /// <param name="date">Booking date (yyyy-MM-dd).</param>
-        /// <param name="time">Booking time (HH:mm:ss), optional if date is provided.</param>
-        /// <param name="sportTypeId"></param>
-        /// <param name="limit"></param>
-        /// <param name="radiusKm"></param>
-        /// <param name="userLat"></param>
-        /// <param name="userLng"></param>
-        /// <returns></returns>
         [HttpGet("search")]
         public async Task<IActionResult> SearchFields(
             [FromQuery] string? location,
             [FromQuery] DateOnly? date,
             [FromQuery] TimeSpan? time,
             [FromQuery] int? sportTypeId,
-            [FromQuery] int limit = 10,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
             [FromQuery] double? radiusKm = null,
             [FromQuery] double userLat = 21.027381,
             [FromQuery] double userLng = 105.833529)
         {
-            if (limit <= 0)
+            if (page <= 0)
             {
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "limit phải lớn hơn 0"
+                    Message = "page must be greater than 0"
+                });
+            }
+
+            if (pageSize <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "pageSize must be greater than 0"
                 });
             }
 
@@ -104,7 +94,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Không thể chỉ truyền time, hãy truyền kèm date"
+                    Message = "time cannot be provided without date"
                 });
             }
 
@@ -115,14 +105,15 @@ namespace Fiebo.API.Controllers
                 sportTypeId,
                 userLat,
                 userLng,
-                limit,
+                page,
+                pageSize,
                 radiusKm);
 
-            return Ok(new ApiResponse<List<VenueInfoResponse>>
+            return Ok(new ApiResponse<PagedResult<VenueInfoResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Tìm kiếm sân theo điều kiện thành công",
-                Data = [.. result]
+                Message = "Search venues successfully",
+                Data = result
             });
         }
     }

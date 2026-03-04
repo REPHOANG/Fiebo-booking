@@ -2,14 +2,10 @@
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Fiebo.Infrastructure.Data;
 using Fiebo.Infrastructure.Helper;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Infrastructure.Repositories
 {
@@ -20,12 +16,11 @@ namespace Fiebo.Infrastructure.Repositories
         }
 
         public async Task<List<VenueInfoStat>> GetNearestVenuesAsync(
-    double userLat,
-    double userLng,
-    int? sportTypeId,
-    int limit,
-    double? radiusKm
-)
+            double userLat,
+            double userLng,
+            int? sportTypeId,
+            int limit,
+            double? radiusKm)
         {
             var query = _context.Venues
                 .Where(v => v.Status == VenueStatus.Active);
@@ -80,7 +75,7 @@ namespace Fiebo.Infrastructure.Repositories
                     Lat = v.Latitude,
                     Lng = v.Longitude
                 })
-                .AsEnumerable() // chuyển sang C#
+                .AsEnumerable()
                 .Select(v => new
                 {
                     Data = v,
@@ -97,16 +92,20 @@ namespace Fiebo.Infrastructure.Repositories
             return result;
         }
 
-        public async Task<List<VenueInfoStat>> SearchVenuesByFieldAsync(
+        public async Task<PagedResult<VenueInfoStat>> SearchVenuesByFieldAsync(
             string? locationKeyword,
             DateOnly? bookingDate,
             TimeSpan? bookingTime,
             int? sportTypeId,
             double userLat,
             double userLng,
-            int limit,
+            int page,
+            int pageSize,
             double? radiusKm)
         {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
+
             var query = _context.Venues
                 .Where(v => v.Status == VenueStatus.Active);
 
@@ -177,8 +176,7 @@ namespace Fiebo.Infrastructure.Repositories
                     v.Latitude >= userLat - latRange &&
                     v.Latitude <= userLat + latRange &&
                     v.Longitude >= userLng - lngRange &&
-                    v.Longitude <= userLng + lngRange
-                );
+                    v.Longitude <= userLng + lngRange);
             }
 
             var venueStats = await query
@@ -208,7 +206,7 @@ namespace Fiebo.Infrastructure.Repositories
                 })
                 .ToListAsync();
 
-            return venueStats
+            var orderedByDistance = venueStats
                 .Select(v => new
                 {
                     Data = v,
@@ -216,9 +214,22 @@ namespace Fiebo.Infrastructure.Repositories
                 })
                 .Where(x => !radiusKm.HasValue || x.Distance <= radiusKm.Value)
                 .OrderBy(x => x.Distance)
-                .Take(limit)
+                .ToList();
+
+            var totalItems = orderedByDistance.Count;
+            var items = orderedByDistance
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => x.Data)
                 .ToList();
+
+            return new PagedResult<VenueInfoStat>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
         }
 
         public async Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top)
