@@ -97,6 +97,130 @@ namespace Fiebo.Infrastructure.Repositories
             return result;
         }
 
+        public async Task<List<VenueInfoStat>> SearchVenuesByFieldAsync(
+            string? locationKeyword,
+            DateOnly? bookingDate,
+            TimeSpan? bookingTime,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int limit,
+            double? radiusKm)
+        {
+            var query = _context.Venues
+                .Where(v => v.Status == VenueStatus.Active);
+
+            if (!string.IsNullOrWhiteSpace(locationKeyword))
+            {
+                var keyword = $"%{locationKeyword.Trim()}%";
+                query = query.Where(v =>
+                    EF.Functions.Like(v.Name, keyword) ||
+                    EF.Functions.Like(v.AddressDetail!, keyword) ||
+                    EF.Functions.Like(v.Ward!.Name, keyword) ||
+                    EF.Functions.Like(v.Ward!.Province!.Name, keyword));
+            }
+
+            if (sportTypeId.HasValue)
+            {
+                query = query.Where(v =>
+                    v.Fields.Any(f =>
+                        f.Status == FieldStatus.Active &&
+                        f.SportTypeId == sportTypeId.Value));
+            }
+
+            if (bookingDate.HasValue)
+            {
+                var date = bookingDate.Value;
+                var dayOfWeek = date.DayOfWeek;
+
+                if (bookingTime.HasValue)
+                {
+                    var time = bookingTime.Value;
+
+                    query = query.Where(v =>
+                        v.Fields.Any(f =>
+                            f.Status == FieldStatus.Active &&
+                            (!sportTypeId.HasValue || f.SportTypeId == sportTypeId.Value) &&
+                            f.TimeSlots.Any(ts =>
+                                ts.DayOfWeek == dayOfWeek &&
+                                ts.StartTime <= time &&
+                                ts.EndTime > time &&
+                                !ts.BookingDetails.Any(bd =>
+                                    bd.Booking.BookingDate == date &&
+                                    (bd.Booking.Status == BookingStatus.Pending ||
+                                     bd.Booking.Status == BookingStatus.Booked ||
+                                     bd.Booking.Status == BookingStatus.Completed)))));
+                }
+                else
+                {
+                    query = query.Where(v =>
+                        v.Fields.Any(f =>
+                            f.Status == FieldStatus.Active &&
+                            (!sportTypeId.HasValue || f.SportTypeId == sportTypeId.Value) &&
+                            f.TimeSlots.Any(ts =>
+                                ts.DayOfWeek == dayOfWeek &&
+                                !ts.BookingDetails.Any(bd =>
+                                    bd.Booking.BookingDate == date &&
+                                    (bd.Booking.Status == BookingStatus.Pending ||
+                                     bd.Booking.Status == BookingStatus.Booked ||
+                                     bd.Booking.Status == BookingStatus.Completed)))));
+                }
+            }
+
+            if (radiusKm.HasValue)
+            {
+                double latRange = radiusKm.Value / 111.0;
+                double lngRange = radiusKm.Value /
+                    (111.0 * Math.Cos(userLat * Math.PI / 180));
+
+                query = query.Where(v =>
+                    v.Latitude >= userLat - latRange &&
+                    v.Latitude <= userLat + latRange &&
+                    v.Longitude >= userLng - lngRange &&
+                    v.Longitude <= userLng + lngRange
+                );
+            }
+
+            var venueStats = await query
+                .Select(v => new VenueInfoStat
+                {
+                    VenueId = v.Id,
+                    VenueName = v.Name,
+                    Province = v.Ward!.Province!.Name,
+                    Ward = v.Ward!.Name,
+                    AddressDetail = v.AddressDetail,
+                    OpenTime = v.OpenTime,
+                    CloseTime = v.CloseTime,
+                    BookingCount = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .Count(bd => bd.Booking.Status == BookingStatus.Completed),
+                    AvgRating = v.Fields
+                        .SelectMany(f => f.BookingDetails)
+                        .SelectMany(b => b.Reviews)
+                        .Select(r => (double?)r.Rating)
+                        .Average() ?? 0,
+                    ThumbnailUrl = v.Fields
+                        .SelectMany(f => f.Images)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault(),
+                    Lat = v.Latitude,
+                    Lng = v.Longitude
+                })
+                .ToListAsync();
+
+            return venueStats
+                .Select(v => new
+                {
+                    Data = v,
+                    Distance = GeoHelper.Distance(userLat, userLng, v.Lat, v.Lng)
+                })
+                .Where(x => !radiusKm.HasValue || x.Distance <= radiusKm.Value)
+                .OrderBy(x => x.Distance)
+                .Take(limit)
+                .Select(x => x.Data)
+                .ToList();
+        }
+
         public async Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top)
         {
             return await _context.Venues

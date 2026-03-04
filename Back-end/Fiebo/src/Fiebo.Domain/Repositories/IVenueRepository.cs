@@ -16,6 +16,15 @@ namespace Fiebo.Domain.Repositories
     int? sportTypeId,
     int limit,
     double? radiusKm);
+        Task<List<VenueInfoStat>> SearchVenuesByFieldAsync(
+            string? locationKeyword,
+            DateOnly? bookingDate,
+            TimeSpan? bookingTime,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int limit,
+            double? radiusKm);
 
         Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top);
     }

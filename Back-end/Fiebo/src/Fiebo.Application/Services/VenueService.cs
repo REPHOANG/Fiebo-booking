@@ -124,5 +124,65 @@ namespace Fiebo.Application.Services
                 .OrderByDescending(x => x.BookingCount)];
         }
 
+        public async Task<List<VenueInfoResponse>> SearchVenuesByFieldAsync(
+            string? location,
+            DateOnly? date,
+            TimeSpan? time,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int limit,
+            double? radiusKm)
+        {
+            if (limit <= 0) limit = 10;
+
+            var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
+                location,
+                date,
+                time,
+                sportTypeId,
+                userLat,
+                userLng,
+                limit,
+                radiusKm);
+
+            if (!venues.Any())
+                return [];
+
+            var locationList = venues
+                .Select(v => new VenueLocationDto
+                {
+                    VenueId = v.VenueId,
+                    Latitude = v.Lat,
+                    Longitude = v.Lng
+                })
+                .ToList();
+
+            var distances = await _mapService
+                .GetDistancesAsync(userLat, userLng, locationList);
+
+            return [.. venues
+                .Select(v =>
+                {
+                    distances.TryGetValue(v.VenueId, out var distanceKm);
+
+                    return new VenueInfoResponse
+                    {
+                        VenueId = v.VenueId,
+                        VenueName = v.VenueName,
+                        Province = v.Province,
+                        Ward = v.Ward,
+                        AddressDetail = v.AddressDetail,
+                        OpenTime = v.OpenTime,
+                        CloseTime = v.CloseTime,
+                        BookingCount = v.BookingCount,
+                        Rating = Math.Round(v.AvgRating, 1),
+                        ThumbnailUrl = v.ThumbnailUrl,
+                        DistanceKm = Math.Round(distanceKm, 2)
+                    };
+                })
+                .OrderBy(x => x.DistanceKm)];
+        }
+
     }
 }

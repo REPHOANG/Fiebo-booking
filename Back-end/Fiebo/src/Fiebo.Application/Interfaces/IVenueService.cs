@@ -21,5 +21,14 @@ namespace Fiebo.Application.Interfaces
             int top,
             double userLat,
             double userLng);
+        Task<List<VenueInfoResponse>> SearchVenuesByFieldAsync(
+            string? location,
+            DateOnly? date,
+            TimeSpan? time,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int limit,
+            double? radiusKm);
     }
 }

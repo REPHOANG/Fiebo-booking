@@ -1,9 +1,7 @@
 ﻿using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.DTOs.Field;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
@@ -45,6 +43,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
+
         /// <summary>
         /// Get top booking fields
         /// </summary>
@@ -63,6 +62,66 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy danh sách sân nhiều lượt đặt nhất thành công",
+                Data = [.. result]
+            });
+        }
+
+        /// <summary>
+        /// Search fields by location, date, time and sport type
+        /// but return matched venues.
+        /// </summary>
+        /// <param name="location">Keyword for venue/province/ward/address.</param>
+        /// <param name="date">Booking date (yyyy-MM-dd).</param>
+        /// <param name="time">Booking time (HH:mm:ss), optional if date is provided.</param>
+        /// <param name="sportTypeId"></param>
+        /// <param name="limit"></param>
+        /// <param name="radiusKm"></param>
+        /// <param name="userLat"></param>
+        /// <param name="userLng"></param>
+        /// <returns></returns>
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchFields(
+            [FromQuery] string? location,
+            [FromQuery] DateOnly? date,
+            [FromQuery] TimeSpan? time,
+            [FromQuery] int? sportTypeId,
+            [FromQuery] int limit = 10,
+            [FromQuery] double? radiusKm = null,
+            [FromQuery] double userLat = 21.027381,
+            [FromQuery] double userLng = 105.833529)
+        {
+            if (limit <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "limit phải lớn hơn 0"
+                });
+            }
+
+            if (!date.HasValue && time.HasValue)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "Không thể chỉ truyền time, hãy truyền kèm date"
+                });
+            }
+
+            var result = await _venueService.SearchVenuesByFieldAsync(
+                location,
+                date,
+                time,
+                sportTypeId,
+                userLat,
+                userLng,
+                limit,
+                radiusKm);
+
+            return Ok(new ApiResponse<List<VenueInfoResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tìm kiếm sân theo điều kiện thành công",
                 Data = [.. result]
             });
         }
