@@ -1,4 +1,5 @@
 ﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Domain.Shared;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Shared;
@@ -23,6 +24,17 @@ namespace Fiebo.Application.Interfaces
             int top,
             double userLat,
             double userLng);
+
+        Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
+            string? location,
+            DateOnly? date,
+            TimeSpan? time,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int page,
+            int pageSize,
+            double? radiusKm);
 
         Task<VenueDetailResponse?> GetVenueDetail(int venueId);
         Task<PagedResult<ReviewDTO>> GetReviewsByVenue(

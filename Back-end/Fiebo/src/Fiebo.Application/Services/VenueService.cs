@@ -209,5 +209,84 @@ namespace Fiebo.Application.Services
                 TotalItems = result.TotalItems
             };
         }
+
+        public async Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
+            string? location,
+            DateOnly? date,
+            TimeSpan? time,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int page,
+            int pageSize,
+            double? radiusKm)
+        {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 10;
+
+            var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
+                location,
+                date,
+                time,
+                sportTypeId,
+                userLat,
+                userLng,
+                page,
+                pageSize,
+                radiusKm);
+
+            if (!venues.Items.Any())
+            {
+                return new PagedResult<VenueInfoResponse>
+                {
+                    Page = venues.Page,
+                    PageSize = venues.PageSize,
+                    TotalItems = venues.TotalItems,
+                    Items = []
+                };
+            }
+
+            var locationList = venues.Items
+                .Select(v => new VenueLocationDto
+                {
+                    VenueId = v.VenueId,
+                    Latitude = v.Lat,
+                    Longitude = v.Lng
+                })
+                .ToList();
+
+            var distances = await _mapService
+                .GetDistancesAsync(userLat, userLng, locationList);
+
+            var items = venues.Items
+                .Select(v =>
+                {
+                    distances.TryGetValue(v.VenueId, out var distanceKm);
+
+                    return new VenueInfoResponse
+                    {
+                        VenueId = v.VenueId,
+                        VenueName = v.VenueName,
+                        Province = v.Province,
+                        Ward = v.Ward,
+                        AddressDetail = v.AddressDetail,
+                        OpenTime = v.OpenTime,
+                        CloseTime = v.CloseTime,
+                        BookingCount = v.BookingCount,
+                        Rating = Math.Round(v.AvgRating, 1),
+                        ThumbnailUrl = v.ThumbnailUrl,
+                        DistanceKm = Math.Round(distanceKm, 2)
+                    };
+                })
+                .ToList();
+
+            return new PagedResult<VenueInfoResponse>
+            {
+                Page = venues.Page,
+                PageSize = venues.PageSize,
+                TotalItems = venues.TotalItems,
+                Items = items
+            };
+        }
     }
 }
