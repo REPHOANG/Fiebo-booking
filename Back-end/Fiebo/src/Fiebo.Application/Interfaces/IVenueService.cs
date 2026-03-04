@@ -21,5 +21,7 @@ namespace Fiebo.Application.Interfaces
             int top,
             double userLat,
             double userLng);
+
+        Task<VenueDetailResponse?> GetVenueDetail(int venueId);
     }
 }

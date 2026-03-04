@@ -15,15 +15,18 @@ namespace Fiebo.Infrastructure.Repositories
 
         public IRepository<Wallet> Wallets { get; }
         public IVenueRepository Venues { get; }
+        public IFieldRepository Fields { get; }
 
         public UnitOfWork(FieboDbContext context,
             IRepository<Wallet> walletRepository,
-            IVenueRepository venueRepository
+            IVenueRepository venueRepository,
+            IFieldRepository fieldRepository
             )
         {
             _context = context;
             Wallets = walletRepository;
             Venues = venueRepository;
+            Fields = fieldRepository;
         }
 
 

@@ -13,6 +13,8 @@ namespace Fiebo.Domain.Repositories
 
         IVenueRepository Venues { get; }
 
+        IFieldRepository Fields { get; }
+
         Task<int> SaveChangesAsync();
     }
 }

@@ -33,7 +33,7 @@ namespace Fiebo.Infrastructure.Repositories
             if (sportTypeId.HasValue)
             {
                 query = query.Where(v =>
-                    v.Fields.Any(f => f.SportTypeId == sportTypeId.Value));
+                    v.Fields.Any(f => f.SportTypeId == sportTypeId.Value && f.Status == FieldStatus.Active));
             }
 
             if (radiusKm.HasValue)
@@ -80,7 +80,7 @@ namespace Fiebo.Infrastructure.Repositories
                     Lat = v.Latitude,
                     Lng = v.Longitude
                 })
-                .AsEnumerable() // chuyển sang C#
+                .AsEnumerable()
                 .Select(v => new
                 {
                     Data = v,
@@ -116,8 +116,7 @@ namespace Fiebo.Infrastructure.Repositories
                     AvgRating = v.Fields
                         .SelectMany(f => f.BookingDetails)
                         .SelectMany(b => b.Reviews)
-                        .Select(r => (double?)r.Rating)
-                        .Average() ?? 0,
+                        .Average(r => (double?)r.Rating) ?? 0,
                     ThumbnailUrl = v.Fields
                         .SelectMany(f => f.Images)
                         .Select(i => i.ImageUrl)
@@ -128,6 +127,29 @@ namespace Fiebo.Infrastructure.Repositories
                 .OrderByDescending(x => x.BookingCount)
                 .Take(top)
                 .ToListAsync();
+        }
+
+        public async Task<VenueDetailDTO?> GetVenueDetailById(int venueId)
+        {
+            var result = await _context.Venues
+                        .Where(v => v.Id == venueId && v.Status == VenueStatus.Active)
+                        .Select(v => new VenueDetailDTO
+                        {
+                            Name = v.Name,
+                            OpenTime = v.OpenTime,
+                            CloseTime = v.CloseTime,
+                            AverageRating = v.Fields
+                                            .SelectMany(f => f.BookingDetails)
+                                            .SelectMany(b => b.Reviews)
+                                            .Average(r => (double?)r.Rating) ?? 0,
+                            Description = v.Description,
+                            Province = v.Province!.Name,
+                            Ward = v.Ward!.Name,
+                            AddressDetail = v.AddressDetail,
+                            Latitude = v.Latitude,
+                            Longitude = v.Longitude,
+                        }).FirstOrDefaultAsync();
+            return result;
         }
     }
 }

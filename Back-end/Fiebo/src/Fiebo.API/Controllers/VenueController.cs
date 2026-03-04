@@ -10,11 +10,11 @@ namespace Fiebo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class FieldController : ControllerBase
+    public class VenueController : ControllerBase
     {
         private readonly IVenueService _venueService;
 
-        public FieldController(IVenueService venueService)
+        public VenueController(IVenueService venueService)
         {
             _venueService = venueService;
         }
@@ -64,6 +64,18 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy danh sách sân nhiều lượt đặt nhất thành công",
                 Data = [.. result]
+            });
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetVenueDetail([FromRoute] int id)
+        {
+            var result = await _venueService.GetVenueDetail(id);
+            return Ok(new ApiResponse<VenueDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin sân thành công",
+                Data = result
             });
         }
     }

@@ -18,5 +18,7 @@ namespace Fiebo.Domain.Repositories
     double? radiusKm);
 
         Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top);
+
+        Task<VenueDetailDTO?> GetVenueDetailById(int venueId);
     }
 }

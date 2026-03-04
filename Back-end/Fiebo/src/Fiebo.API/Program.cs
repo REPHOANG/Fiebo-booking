@@ -77,6 +77,7 @@ builder.Services.AddAuthentication(opts =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+builder.Services.AddScoped<IFieldRepository, FieldRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();

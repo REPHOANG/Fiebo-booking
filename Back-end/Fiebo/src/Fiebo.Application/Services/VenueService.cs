@@ -124,5 +124,19 @@ namespace Fiebo.Application.Services
                 .OrderByDescending(x => x.BookingCount)];
         }
 
+        public async Task<VenueDetailResponse?> GetVenueDetail(int venueId)
+        {
+            var venue = await _unitOfWork.Venues.GetVenueDetailById(venueId);
+            if(venue != null)
+            {
+                return new VenueDetailResponse
+                {
+                    Venue = venue,
+                    Fields = await _unitOfWork.Fields.GetFieldsByVenue(venueId)
+                };
+            }
+
+            return null;
+        }
     }
 }
