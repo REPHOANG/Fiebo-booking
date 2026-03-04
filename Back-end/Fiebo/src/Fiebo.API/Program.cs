@@ -78,6 +78,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IFieldRepository, FieldRepository>();
+builder.Services.AddScoped<IBookingDetailRepository, BookingDetailRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepositoy>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -90,6 +92,7 @@ builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<ISmsService, SpeedSmsService>();
 builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<IMapService, OpenRouteService>();
+builder.Services.AddScoped<IFieldService, FieldService>();
 
 builder.Services.AddHttpClient();
 

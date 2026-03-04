@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Domain.DTOs.Field
+namespace Fiebo.Application.DTOs.Field
 {
     public class VenueLocationDto
     {

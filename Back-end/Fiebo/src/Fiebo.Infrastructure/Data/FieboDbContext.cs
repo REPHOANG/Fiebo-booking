@@ -26,7 +26,7 @@ namespace Fiebo.Infrastructure.Data
         public DbSet<Ward> Wards { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Booking> Bookings { get; set; }
-        public DbSet<BookingDetail> BookingsDetail { get; set; }
+        public DbSet<BookingDetail> BookingDetails { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

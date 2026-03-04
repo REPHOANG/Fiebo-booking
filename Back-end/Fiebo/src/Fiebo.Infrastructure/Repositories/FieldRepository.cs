@@ -2,8 +2,10 @@
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Fiebo.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Index.HPRtree;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,28 +21,28 @@ namespace Fiebo.Infrastructure.Repositories
 
         }
 
-        public async Task<List<FieldsDetailDTO>> GetFieldsByVenue(int venueId)
+        public async Task<PagedResult<Field>> GetFieldsByVenue(int venueId, int page, int pageSize)
         {
-            return await _context.Fields
-                .Where(f => f.VenueId == venueId && f.Status == FieldStatus.Active)
-                .Select(f => new FieldsDetailDTO
-                {
-                    Name = f.Name,
-                    AverageRating = f.BookingDetails
-                                     .SelectMany(b => b.Reviews)
-                                     .Average(r => (double?)r.Rating) ?? 0,
-                    Description = f.Description,
-                    SportType = f.SportType!.Name,
-                    Images = f.Images.Select(i => i.ImageUrl).ToList(),
-                    Reviews = f.BookingDetails.SelectMany(b => b.Reviews)
-                                              .Join(_context.Users,
-                                              r => r.UserId, u => u.Id, (r, u) => new ReviewDTO
-                                              {
-                                                  Name = u.FullName,
-                                                  Rating = r.Rating,
-                                                  Comment = r.Comment
-                                              }).ToList(),
-                }).ToListAsync();
+            var baseQuery = _context.Fields
+                .AsNoTracking()
+                .Where(f =>
+                    f.VenueId == venueId &&
+                    f.Status == FieldStatus.Active);
+                
+            var totalItems = await baseQuery.CountAsync();
+            var fields = await baseQuery
+                .Include(f => f.SportType)
+                .Include(f => f.Images)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return new PagedResult<Field>
+            {
+                Items = fields,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems
+            };
         }
     }
 }

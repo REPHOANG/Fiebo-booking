@@ -297,6 +297,17 @@ namespace Fiebo.Infrastructure.Services
                 Message = "Đặt lại mật khẩu thành công"
             };
         }
+
+        public async Task<Dictionary<string, string>> GetUserFullNameAsync(List<string> userIds)
+        {
+            return await _userManager.Users
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(
+                    u => u.Id,
+                    u => u.FullName
+                );
+        }
     }
 }
 

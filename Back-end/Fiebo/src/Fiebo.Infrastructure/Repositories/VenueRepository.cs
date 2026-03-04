@@ -19,137 +19,92 @@ namespace Fiebo.Infrastructure.Repositories
         {
         }
 
-        public async Task<List<VenueInfoStat>> GetNearestVenuesAsync(
-    double userLat,
-    double userLng,
-    int? sportTypeId,
-    int limit,
-    double? radiusKm
-)
+        public async Task<List<Venue>> GetNearestVenuesAsync(
+     double userLat,
+     double userLng,
+     int? sportTypeId,
+     int limit,
+     double radiusKm)
         {
-            var query = _context.Venues
-                .Where(v => v.Status == VenueStatus.Active);
+            double latRange = radiusKm / 111.0;
+            double lngRange = radiusKm /
+                (111.0 * Math.Cos(userLat * Math.PI / 180));
 
-            if (sportTypeId.HasValue)
-            {
-                query = query.Where(v =>
-                    v.Fields.Any(f => f.SportTypeId == sportTypeId.Value && f.Status == FieldStatus.Active));
-            }
+            const double R = 6371;
 
-            if (radiusKm.HasValue)
-            {
-                double latRange = radiusKm.Value / 111.0;
-                double lngRange = radiusKm.Value /
-                    (111.0 * Math.Cos(userLat * Math.PI / 180));
-
-                query = query.Where(v =>
+            var baseQuery = _context.Venues
+                .AsNoTracking()
+                .Where(v =>
+                    v.Status == VenueStatus.Active &&
                     v.Latitude >= userLat - latRange &&
                     v.Latitude <= userLat + latRange &&
                     v.Longitude >= userLng - lngRange &&
                     v.Longitude <= userLng + lngRange
                 );
+
+            if (sportTypeId.HasValue)
+            {
+                baseQuery = baseQuery.Where(v =>
+                    v.Fields.Any(f =>
+                        f.SportTypeId == sportTypeId.Value &&
+                        f.Status == FieldStatus.Active));
             }
 
-            var result = query
-                .Select(v => new VenueInfoStat
-                {
-                    VenueId = v.Id,
-                    VenueName = v.Name,
-
-                    Province = v.Province!.Name,
-                    Ward = v.Ward!.Name,
-                    AddressDetail = v.AddressDetail,
-                    OpenTime = v.OpenTime,
-                    CloseTime = v.CloseTime,
-
-                    BookingCount = v.Fields
-                        .SelectMany(f => f.BookingDetails)
-                        .Count(bd => bd.Booking.Status == BookingStatus.Completed),
-
-                    AvgRating = v.Fields
-                        .SelectMany(f => f.BookingDetails)
-                        .SelectMany(b => b.Reviews)
-                        .Select(r => (double?)r.Rating)
-                        .Average() ?? 0,
-
-                    ThumbnailUrl = v.Fields
-                        .SelectMany(f => f.Images)
-                        .Select(i => i.ImageUrl)
-                        .FirstOrDefault(),
-
-                    Lat = v.Latitude,
-                    Lng = v.Longitude
-                })
-                .AsEnumerable()
+            var query = baseQuery
                 .Select(v => new
                 {
-                    Data = v,
-                    Distance = GeoHelper.Distance(
-                        userLat, userLng,
-                        v.Lat, v.Lng)
+                    Venue = v,
+
+                    Distance =
+                        R * Math.Acos(
+                            Math.Cos(userLat * Math.PI / 180) *
+                            Math.Cos(v.Latitude * Math.PI / 180) *
+                            Math.Cos((v.Longitude - userLng) * Math.PI / 180) +
+                            Math.Sin(userLat * Math.PI / 180) *
+                            Math.Sin(v.Latitude * Math.PI / 180)
+                        )
                 })
-                .Where(x => !radiusKm.HasValue || x.Distance <= radiusKm.Value)
+                .Where(x => x.Distance <= radiusKm)
                 .OrderBy(x => x.Distance)
-                .Take(limit)
-                .Select(x => x.Data)
-                .ToList();
+                .Take(limit);
 
-            return result;
+            var venueIds = await query
+                .Select(x => x.Venue.Id)
+                .ToListAsync();
+
+            return await _context.Venues
+                .Where(v => venueIds.Contains(v.Id))
+                .Include(v => v.Fields)
+                    .ThenInclude(f => f.Images)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .ToListAsync();
         }
-
-        public async Task<List<VenueInfoStat>> GetTopBookingVenueStatsAsync(int top)
+        public async Task<List<Venue>> GetTopBookingVenuesAsync(int top)
         {
             return await _context.Venues
+                .AsNoTracking()
                 .Where(v => v.Status == VenueStatus.Active)
-                .Select(v => new VenueInfoStat
-                {
-                    VenueId = v.Id,
-                    VenueName = v.Name,
-                    Province = v.Ward!.Province!.Name,
-                    Ward = v.Ward!.Name,
-                    AddressDetail = v.AddressDetail,
-                    OpenTime = v.OpenTime,
-                    CloseTime = v.CloseTime,
-                    BookingCount = v.Fields
+                .OrderByDescending(v =>
+                    v.Fields
                         .SelectMany(f => f.BookingDetails)
-                        .Count(bd => bd.Booking.Status == BookingStatus.Completed),
-                    AvgRating = v.Fields
-                        .SelectMany(f => f.BookingDetails)
-                        .SelectMany(b => b.Reviews)
-                        .Average(r => (double?)r.Rating) ?? 0,
-                    ThumbnailUrl = v.Fields
-                        .SelectMany(f => f.Images)
-                        .Select(i => i.ImageUrl)
-                        .FirstOrDefault(),
-                    Lat = (double)v.Latitude,
-                    Lng = (double)v.Longitude
-                })
-                .OrderByDescending(x => x.BookingCount)
-                .Take(top)
+                        .Count(bd => bd.Booking.Status == BookingStatus.Completed)
+                ).Take(top)
+                .Include(v => v.Fields)
+                    .ThenInclude(f => f.Images)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
                 .ToListAsync();
         }
 
-        public async Task<VenueDetailDTO?> GetVenueDetailById(int venueId)
+        public async Task<Venue?> GetVenueDetailById(int venueId)
         {
-            var result = await _context.Venues
+            return await _context.Venues
+                        .AsNoTracking()
                         .Where(v => v.Id == venueId && v.Status == VenueStatus.Active)
-                        .Select(v => new VenueDetailDTO
-                        {
-                            Name = v.Name,
-                            OpenTime = v.OpenTime,
-                            CloseTime = v.CloseTime,
-                            AverageRating = v.Fields
-                                            .SelectMany(f => f.BookingDetails)
-                                            .SelectMany(b => b.Reviews)
-                                            .Average(r => (double?)r.Rating) ?? 0,
-                            Description = v.Description,
-                            Province = v.Province!.Name,
-                            Ward = v.Ward!.Name,
-                            AddressDetail = v.AddressDetail,
-                            Latitude = v.Latitude,
-                            Longitude = v.Longitude,
-                        }).FirstOrDefaultAsync();
-            return result;
+                        .Include(v => v.Province)
+                        .Include(v => v.Ward)
+                        .FirstOrDefaultAsync();
         }
     }
 }

@@ -16,17 +16,23 @@ namespace Fiebo.Infrastructure.Repositories
         public IRepository<Wallet> Wallets { get; }
         public IVenueRepository Venues { get; }
         public IFieldRepository Fields { get; }
+        public IReviewRepository Reviews { get; }
+        public IBookingDetailRepository BookingDetails { get; }
 
         public UnitOfWork(FieboDbContext context,
             IRepository<Wallet> walletRepository,
             IVenueRepository venueRepository,
-            IFieldRepository fieldRepository
+            IFieldRepository fieldRepository,
+            IReviewRepository reviewRepository,
+            IBookingDetailRepository bookingDetailRepository
             )
         {
             _context = context;
             Wallets = walletRepository;
             Venues = venueRepository;
             Fields = fieldRepository;
+            Reviews = reviewRepository;
+            BookingDetails = bookingDetailRepository;
         }
 
 

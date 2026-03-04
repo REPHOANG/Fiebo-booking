@@ -1,5 +1,5 @@
-﻿using Fiebo.Domain.DTOs.Field;
-using Fiebo.Domain.Entities;
+﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +10,6 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IFieldRepository : IRepository<Field>
     {
-        Task<List<FieldsDetailDTO>> GetFieldsByVenue(int venueId);
+        Task<PagedResult<Field>> GetFieldsByVenue(int venueId, int page, int pageSize);
     }
 }
