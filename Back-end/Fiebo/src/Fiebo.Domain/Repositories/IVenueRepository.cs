@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Shared;
 
 namespace Fiebo.Domain.Repositories
@@ -16,7 +16,7 @@ namespace Fiebo.Domain.Repositories
 
         Task<Venue?> GetVenueDetailById(int venueId);
 
-        Task<PagedResult<VenueInfoStat>> SearchVenuesByFieldAsync(
+        Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
             string? locationKeyword,
             DateOnly? bookingDate,
             TimeSpan? bookingTime,

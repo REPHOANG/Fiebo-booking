@@ -1,14 +1,8 @@
 ﻿using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Application.Services
 {
@@ -211,29 +205,21 @@ namespace Fiebo.Application.Services
         }
 
         public async Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
-            string? location,
-            DateOnly? date,
-            TimeSpan? time,
-            int? sportTypeId,
-            double userLat,
-            double userLng,
-            int page,
-            int pageSize,
-            double? radiusKm)
+            SearchFieldsRequest request)
         {
-            if (page <= 0) page = 1;
-            if (pageSize <= 0) pageSize = 10;
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
 
             var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
-                location,
-                date,
-                time,
-                sportTypeId,
-                userLat,
-                userLng,
+                request.Location,
+                request.Date,
+                request.Time,
+                request.SportTypeId,
+                request.UserLat,
+                request.UserLng,
                 page,
                 pageSize,
-                radiusKm);
+                request.RadiusKm);
 
             if (!venues.Items.Any())
             {
@@ -246,35 +232,41 @@ namespace Fiebo.Application.Services
                 };
             }
 
+            var venueIds = venues.Items.Select(v => v.Id).ToList();
+            var bookingMap = await _unitOfWork.BookingDetails.CountCompletedBookingsByVenueAsync(venueIds);
+            var ratingMap = await _unitOfWork.Reviews.GetAveragesByVenueAsync(venueIds);
+
             var locationList = venues.Items
                 .Select(v => new VenueLocationDto
                 {
-                    VenueId = v.VenueId,
-                    Latitude = v.Lat,
-                    Longitude = v.Lng
+                    VenueId = v.Id,
+                    Latitude = v.Latitude,
+                    Longitude = v.Longitude
                 })
                 .ToList();
 
-            var distances = await _mapService
-                .GetDistancesAsync(userLat, userLng, locationList);
+            var distances = await _mapService.GetDistancesAsync(request.UserLat, request.UserLng, locationList);
 
             var items = venues.Items
                 .Select(v =>
                 {
-                    distances.TryGetValue(v.VenueId, out var distanceKm);
+                    distances.TryGetValue(v.Id, out var distanceKm);
 
                     return new VenueInfoResponse
                     {
-                        VenueId = v.VenueId,
-                        VenueName = v.VenueName,
-                        Province = v.Province,
-                        Ward = v.Ward,
+                        VenueId = v.Id,
+                        VenueName = v.Name,
+                        Province = v.Ward?.Province?.Name ?? v.Province?.Name,
+                        Ward = v.Ward?.Name,
                         AddressDetail = v.AddressDetail,
                         OpenTime = v.OpenTime,
                         CloseTime = v.CloseTime,
-                        BookingCount = v.BookingCount,
-                        Rating = Math.Round(v.AvgRating, 1),
-                        ThumbnailUrl = v.ThumbnailUrl,
+                        BookingCount = bookingMap.GetValueOrDefault(v.Id, 0),
+                        Rating = Math.Round(ratingMap.GetValueOrDefault(v.Id, 0), 1),
+                        ThumbnailUrl = v.Fields
+                            .SelectMany(f => f.Images)
+                            .Select(i => i.ImageUrl)
+                            .FirstOrDefault(),
                         DistanceKm = Math.Round(distanceKm, 2)
                     };
                 })

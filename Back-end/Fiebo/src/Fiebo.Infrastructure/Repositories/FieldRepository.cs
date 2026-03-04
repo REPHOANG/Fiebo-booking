@@ -1,16 +1,9 @@
-﻿using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using NetTopologySuite.Index.HPRtree;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Infrastructure.Repositories
 {
@@ -18,7 +11,6 @@ namespace Fiebo.Infrastructure.Repositories
     {
         public FieldRepository(FieboDbContext context) : base(context)
         {
-
         }
 
         public async Task<PagedResult<Field>> GetFieldsByVenue(int venueId, int page, int pageSize)
@@ -28,7 +20,7 @@ namespace Fiebo.Infrastructure.Repositories
                 .Where(f =>
                     f.VenueId == venueId &&
                     f.Status == FieldStatus.Active);
-                
+
             var totalItems = await baseQuery.CountAsync();
             var fields = await baseQuery
                 .Include(f => f.SportType)
