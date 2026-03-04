@@ -88,7 +88,7 @@ namespace Fiebo.Infrastructure.Migrations
 
                     b.HasIndex("SlotId");
 
-                    b.ToTable("BookingsDetail");
+                    b.ToTable("BookingDetails");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
@@ -188,8 +188,8 @@ namespace Fiebo.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<float>("Rating")
-                        .HasColumnType("float");
+                    b.Property<double>("Rating")
+                        .HasColumnType("double");
 
                     b.Property<string>("UserId")
                         .IsRequired()

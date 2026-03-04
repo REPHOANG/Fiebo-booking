@@ -12,7 +12,7 @@ namespace Fiebo.Domain.Entities
 
         public string? Comment { get; set; }
 
-        public float Rating { get; set; }
+        public double Rating { get; set; }
 
         public string UserId { get; set; } = string.Empty;
 
@@ -22,7 +22,6 @@ namespace Fiebo.Domain.Entities
 
 
         // Navigation
-
         public BookingDetail BookingDetail { get; set; } = null!;
     }
 }

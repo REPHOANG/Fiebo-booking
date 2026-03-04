@@ -1,7 +1,9 @@
 ﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,14 +16,17 @@ namespace Fiebo.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapService _mapService;
+        private readonly IIdentityService _identityService;
 
         public VenueService(
             IUnitOfWork unitOfWork,
-            IMapService mapService
+            IMapService mapService,
+            IIdentityService identityService
             )
         {
             _unitOfWork = unitOfWork;
             _mapService = mapService;
+            _identityService = identityService;
         }
 
         public async Task<List<VenueInfoResponse>> GetNearbyVenues(
@@ -29,44 +34,58 @@ namespace Fiebo.Application.Services
             double userLat,
             double userLng,
             int limit,
-            double? radiusKm)
+            double radiusKm)
         {
-            var nearestVenues =
-                await _unitOfWork.Venues
-                    .GetNearestVenuesAsync(userLat, userLng, sportTypeId, limit, radiusKm);
+            var venues = await _unitOfWork.Venues
+        .GetNearestVenuesAsync(userLat, userLng, sportTypeId, limit, radiusKm);
 
-            if (!nearestVenues.Any())
+            if (venues.Count == 0)
                 return [];
 
-            var locationList = nearestVenues
-                                .Select(n => new VenueLocationDto
-                                {
-                                    VenueId = n.VenueId,
-                                    Latitude = n.Lat,
-                                    Longitude = n.Lng
-                                })
-                                .ToList();
+            var venueIds = venues.Select(v => v.Id).ToList();
+
+            var bookingMap = await _unitOfWork.BookingDetails
+                .CountCompletedBookingsByVenueAsync(venueIds);
+
+            var ratingMap = await _unitOfWork.Reviews
+                .GetAveragesByVenueAsync(venueIds);
+
+            // Distance
+            var locationList = venues.Select(v => new VenueLocationDto
+            {
+                VenueId = v.Id,
+                Latitude = v.Latitude,
+                Longitude = v.Longitude
+            }).ToList();
 
             var distances = await _mapService
-                    .GetDistancesAsync(userLat, userLng, locationList);
+                .GetDistancesAsync(userLat, userLng, locationList);
 
-            var result = nearestVenues
+            var result = venues
                 .Select(v =>
                 {
-                    distances.TryGetValue(v.VenueId, out var distanceKm);
+                    distances.TryGetValue(v.Id, out var distanceKm);
 
                     return new VenueInfoResponse
                     {
-                        VenueId = v.VenueId,
-                        VenueName = v.VenueName,
-                        Province = v.Province,
-                        Ward = v.Ward,
+                        VenueId = v.Id,
+                        VenueName = v.Name,
+
+                        Province = v.Province?.Name,
+                        Ward = v.Ward?.Name,
                         AddressDetail = v.AddressDetail,
+
                         OpenTime = v.OpenTime,
                         CloseTime = v.CloseTime,
-                        BookingCount = v.BookingCount,
-                        Rating = Math.Round(v.AvgRating, 1),
-                        ThumbnailUrl = v.ThumbnailUrl,
+
+                        BookingCount = bookingMap.GetValueOrDefault(v.Id, 0),
+                        Rating = ratingMap.GetValueOrDefault(v.Id, 0),
+
+                        ThumbnailUrl = v.Fields
+                            .SelectMany(f => f.Images)
+                            .Select(i => i.ImageUrl)
+                            .FirstOrDefault(),
+
                         DistanceKm = Math.Round(distanceKm, 2)
                     };
                 })
@@ -77,52 +96,118 @@ namespace Fiebo.Application.Services
         }
 
         public async Task<List<VenueInfoResponse>> GetTopBookingVenuesAsync(
-            int top,
-            double userLat,
-            double userLng)
+         int top,
+         double userLat,
+         double userLng)
         {
             if (top <= 0) top = 10;
 
-            var stats = await _unitOfWork.Venues
-                .GetTopBookingVenueStatsAsync(top);
+            var venues = await _unitOfWork.Venues
+                .GetTopBookingVenuesAsync(top);
 
-            var locationList = stats.Select(n => new VenueLocationDto
+            if (venues.Count == 0)
+                return [];
+
+            // Lấy list ID
+            var venueIds = venues.Select(v => v.Id).ToList();
+
+            // Lấy location
+            var locationList = venues.Select(v => new VenueLocationDto
             {
-                VenueId = n.VenueId,
-                Latitude = n.Lat,
-                Longitude = n.Lng
+                VenueId = v.Id,
+                Latitude = v.Latitude,
+                Longitude = v.Longitude
             }).ToList();
 
             var distances = await _mapService
-                    .GetDistancesAsync(userLat, userLng, locationList);
+                .GetDistancesAsync(userLat, userLng, locationList);
 
-            return [.. stats
-                .Select(v =>
+            var ratingDict = await _unitOfWork.Reviews
+                .GetAveragesByVenueAsync(venueIds);
+
+            var bookingDict = await _unitOfWork.BookingDetails
+                .CountCompletedBookingsByVenueAsync(venueIds);
+
+            var result = venues.Select(v =>
+            {
+                ratingDict.TryGetValue(v.Id, out var rating);
+                bookingDict.TryGetValue(v.Id, out var bookingCount);
+                distances.TryGetValue(v.Id, out var distanceKm);
+
+                return new VenueInfoResponse
                 {
-                    distances.TryGetValue(v.VenueId, out var distanceKm);
-                    return new VenueInfoResponse
-                    {
-                        VenueId = v.VenueId,
-                        VenueName = v.VenueName,
+                    VenueId = v.Id,
+                    VenueName = v.Name,
 
-                        Province = v.Province,
-                        Ward = v.Ward,
-                        AddressDetail = v.AddressDetail,
+                    Province = v.Province?.Name,
+                    Ward = v.Ward?.Name,
+                    AddressDetail = v.AddressDetail,
 
-                        OpenTime = v.OpenTime,
-                        CloseTime = v.CloseTime,
+                    OpenTime = v.OpenTime,
+                    CloseTime = v.CloseTime,
 
-                        Rating = Math.Round(v.AvgRating, 1),
+                    Rating = rating,
+                    BookingCount = bookingCount,
 
-                        ThumbnailUrl = v.ThumbnailUrl,
+                    ThumbnailUrl = v.Fields
+                        .SelectMany(f => f.Images)
+                        .Select(i => i.ImageUrl)
+                        .FirstOrDefault(),
 
-                        DistanceKm = Math.Round(distanceKm, 2),
+                    DistanceKm = Math.Round(distanceKm, 2)
+                };
+            })
+            .OrderByDescending(x => x.BookingCount)
+            .ToList();
 
-                        BookingCount = v.BookingCount
-                    };
-                })
-                .OrderByDescending(x => x.BookingCount)];
+            return result;
         }
 
+        public async Task<VenueDetailResponse?> GetVenueDetail(int venueId)
+        {
+            var venue = await _unitOfWork.Venues.GetVenueDetailById(venueId);
+            if (venue == null)
+            {
+                return null;
+            }
+            return new VenueDetailResponse
+            {
+                Name = venue.Name,
+                OpenTime = venue.OpenTime,
+                CloseTime = venue.CloseTime,
+                Description = venue.Description,
+                AverageRating = await _unitOfWork.Reviews.GetAverageByVenueAsync(venueId),
+                RatingCount = await _unitOfWork.Reviews.CountByVenueAsync(venueId),
+                BookingCount = await _unitOfWork.BookingDetails.CountCompletedBookingByVenueAsync(venueId),
+                Province = venue.Province?.Name,
+                Ward = venue.Ward?.Name,
+                AddressDetail = venue.AddressDetail,
+                Latitude = venue.Latitude,
+                Longitude = venue.Longitude
+            };
+        }
+
+        public async Task<PagedResult<ReviewDTO>> GetReviewsByVenue(int venueId, int page, int pageSize, string? sort)
+        {
+            var result = await _unitOfWork.Reviews
+                .GetByVenueAsync(venueId, page, pageSize, sort);
+            var userIds = result.Items.Select(r => r.UserId).ToList();
+            var userMap = await _identityService.GetUserFullNameAsync(userIds);
+            var dtoItems = result.Items.Select(r => new ReviewDTO
+            {
+                Name = userMap.GetValueOrDefault(r.UserId, "Unknown"),
+                Rating = r.Rating,
+                Comment = r.Comment,
+                CreatedAt = r.CreatedAt,
+            }).ToList();
+
+            return new PagedResult<ReviewDTO>
+            {
+                Items = dtoItems,
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems
+            };
+        }
     }
 }
