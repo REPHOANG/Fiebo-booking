@@ -72,7 +72,7 @@ export const getNearbyFields = async ({
   if (radiusKm != null) params.append('radiusKm', radiusKm);
   if (sportTypeId != null) params.append('sportTypeId', sportTypeId);
 
-  const response = await fetchAPI(`/api/Field/nearby?${params.toString()}`);
+  const response = await fetchAPI(`/api/Venue/nearby?${params.toString()}`);
   return response.data; // ApiResponse<List<VenueInfoResponse>> → .data
 };
 
@@ -94,6 +94,6 @@ export const getTopBookingFields = async ({
   params.append('userLng', userLng);
   params.append('limit', limit);
 
-  const response = await fetchAPI(`/api/Field/top-booking?${params.toString()}`);
+  const response = await fetchAPI(`/api/Venue/top-booking?${params.toString()}`);
   return response.data;
 };

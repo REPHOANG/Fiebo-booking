@@ -253,8 +253,9 @@ export const loginWithGoogle = async (credential) => {
       token: token,
     };
   } catch (error) {
+    console.error('❌ Google login error:', error.data || error);
     throw {
-      message: error.message || 'Google login failed',
+      message: error.data?.message || error.message || 'Google login failed',
     };
   }
 };
