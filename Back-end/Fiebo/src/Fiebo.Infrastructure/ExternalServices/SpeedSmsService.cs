@@ -1,8 +1,10 @@
 ﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Application.DTOs.Sms;
 using Fiebo.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 
 namespace Fiebo.Infrastructure.ExternalServices
 {
@@ -133,11 +135,37 @@ namespace Fiebo.Infrastructure.ExternalServices
         public async Task<ServiceResponse> SendSmsAsync(string phoneNumber, string message)
         {
             var result = await SendSMS(
-                    [phoneNumber],
-                    message,
-                    TYPE_GATEWAY,
-                    _config["SpeedSms:Sender"]!
-                );
+                [phoneNumber],
+                message,
+                TYPE_GATEWAY,
+                _config["SpeedSms:Sender"]!
+            );
+
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = "SMS API returned empty response"
+                };
+            }
+
+            var resultJson = JsonSerializer.Deserialize<SmsResponse>(
+                result,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            if (resultJson == null || resultJson.Status.ToLower() != "success")
+            {
+                return new ServiceResponse
+                {
+                    IsSuccess = false,
+                    Message = $"Gửi mã OTP thất bại"
+                };
+            }
+
             return new ServiceResponse
             {
                 IsSuccess = true,
