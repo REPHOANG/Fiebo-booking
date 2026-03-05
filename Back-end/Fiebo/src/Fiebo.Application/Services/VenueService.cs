@@ -1,5 +1,6 @@
 ﻿using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
+using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Repositories;
@@ -208,6 +209,58 @@ namespace Fiebo.Application.Services
                 PageSize = result.PageSize,
                 TotalItems = result.TotalItems
             };
+        }
+
+        public async Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date)
+        {
+            var sportTypes = await _unitOfWork.Fields.GetSportTypesByVenueAsync(venueId);
+
+            var slots = await _unitOfWork.TimeSlots
+                .GetTimeSlotsByVenueAndDateAsync(venueId, date);
+
+            var fields = await _unitOfWork.Fields.GetFieldsWithBookingsAsync(venueId, date);
+
+
+            var result = new VenueSlotsResponse
+            {
+                VenueId = venueId,
+                Date = date,
+                SportTypes = []
+            };
+
+            foreach (var sportType in sportTypes)
+            {
+                var sportSlots = slots
+                    .Where(s => s.SportTypeId == sportType.Id)
+                    .Select(s => new SlotResponse
+                    {
+                        SlotId = s.Id,
+                        StartTime = s.StartTime,
+                        EndTime = s.EndTime,
+                        Price = s.Price
+                    })
+                    .ToList();
+
+                result.SportTypes.Add(new SportTypeSlotResponse
+                {
+                    SportTypeId = sportType.Id,
+                    SportTypeName = sportType.Name,
+                    Slots = sportSlots,
+                    Fields = [.. fields.Select(field => new FieldSlotResponse
+                    {
+                        FieldId = field.Id,
+                        FieldName = field.Name,
+                        UnavailableSlots = [.. field.BookingDetails
+                        .Select(bd => new UnavailableSlotResponse
+                        {
+                            SlotId = bd.SlotId,
+                            Status = bd.Booking.Status.ToString()
+                        })]
+                    })]
+                });
+            }
+
+            return result;
         }
     }
 }

@@ -10,19 +10,23 @@ namespace Fiebo.Domain.Entities
     {
         public int Id { get; set; }
 
-        public TimeSpan StartTime { get; set; }
+        public TimeOnly StartTime { get; set; }
 
-        public TimeSpan EndTime { get; set; }
+        public TimeOnly EndTime { get; set; }
 
         public DayOfWeek DayOfWeek { get; set; }
 
-        public int FieldId { get; set; }
+        public int VenueId { get; set; }
+
+        public int SportTypeId { get; set; }
 
         public decimal Price { get; set; }
 
         // Navigation
-        public Field Field { get; set; } = null!;
+        public Venue Venue { get; set; } = null!;
 
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
+
+        public SportType? SportType { get; set; }
     }
 }

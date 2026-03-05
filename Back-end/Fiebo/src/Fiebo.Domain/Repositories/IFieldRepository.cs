@@ -11,5 +11,7 @@ namespace Fiebo.Domain.Repositories
     public interface IFieldRepository : IRepository<Field>
     {
         Task<PagedResult<Field>> GetFieldsByVenue(int venueId, int page, int pageSize);
+        Task<List<SportType>> GetSportTypesByVenueAsync(int venueId);
+        Task<List<Field>> GetFieldsWithBookingsAsync(int venueId, DateOnly date);
     }
 }

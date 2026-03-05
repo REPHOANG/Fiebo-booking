@@ -30,5 +30,6 @@ namespace Fiebo.Application.Interfaces
             int page,
             int pageSize,
             string? sort);
+        Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date);
     }
 }

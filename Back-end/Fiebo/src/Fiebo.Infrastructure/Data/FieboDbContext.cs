@@ -129,6 +129,7 @@ namespace Fiebo.Infrastructure.Data
             modelBuilder.Entity<SportType>(entity =>
             {
                 entity.HasKey(x => x.Id);
+
                 entity.Property(x => x.Id)
                       .ValueGeneratedOnAdd();
 
@@ -250,36 +251,50 @@ namespace Fiebo.Infrastructure.Data
             // TimeSlot
             modelBuilder.Entity<TimeSlot>(entity =>
             {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id)
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
                       .ValueGeneratedOnAdd();
 
-                entity.Property(e => e.StartTime)
-                      .IsRequired()
-                      .HasColumnType("time");
-
-                entity.Property(e => e.EndTime)
-                      .IsRequired()
-                      .HasColumnType("time");
-
-                entity.Property(e => e.DayOfWeek)
-                      .IsRequired()
-                      .HasConversion<int>();
-
-                entity.Property(e => e.FieldId)
+                entity.Property(x => x.StartTime)
                       .IsRequired();
 
-                entity.Property(e => e.Price)
-                      .HasColumnType("decimal(12,2)")
+                entity.Property(x => x.EndTime)
                       .IsRequired();
 
-                entity.HasOne(e => e.Field)
-                      .WithMany(f => f.TimeSlots)
-                      .HasForeignKey(e => e.FieldId)
+                entity.Property(x => x.DayOfWeek)
+                      .HasConversion<string>()
+                      .HasMaxLength(20)
+                      .IsRequired();
+
+                entity.Property(x => x.Price)
+                      .HasPrecision(12, 2)
+                      .IsRequired();
+
+                entity.Property(x => x.VenueId)
+                      .IsRequired();
+
+                entity.Property(x => x.SportTypeId)
+                      .IsRequired();
+
+                entity.HasOne(x => x.Venue)
+                      .WithMany(v => v.TimeSlots)
+                      .HasForeignKey(x => x.VenueId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Index
-                entity.HasIndex(e => new { e.FieldId, e.DayOfWeek });
+                entity.HasOne(x => x.SportType)
+                      .WithMany(s => s.TimeSlots)
+                      .HasForeignKey(x => x.SportTypeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new
+                {
+                    x.VenueId,
+                    x.SportTypeId,
+                    x.DayOfWeek,
+                    x.StartTime
+                })
+                .IsUnique();
             });
         }
     }

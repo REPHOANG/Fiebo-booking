@@ -19,6 +19,10 @@ namespace Fiebo.Domain.Repositories
 
         IBookingDetailRepository BookingDetails { get; }
 
+        ISportTypeRepository SportTypes { get; }
+
+        ITimeSlotRepository TimeSlots { get; }
+
         Task<int> SaveChangesAsync();
     }
 }

@@ -1,6 +1,8 @@
 ﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.SportType;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.DTOs.Field;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using System;
@@ -36,13 +38,23 @@ namespace Fiebo.Application.Services
                 TotalItems = fields.TotalItems,
                 Items = [.. fields.Items.Select(f => new FieldsDetailDTO
                 {
-                    
+
                     Name = f.Name,
                     Description = f.Description,
                     SportType = f.SportType!.Name,
                     Images = f.Images.Select(i => i.ImageUrl).ToList()
                 })]
             };
+        }
+
+        public async Task<List<SportTypeResponse>> GetAllSportTypes()
+        {
+            var result = await _unitOfWork.SportTypes.GetAllAsync();
+            return [.. result.Select(st => new SportTypeResponse
+            {
+                Id = st.Id,
+                Name = st.Name
+            })];
         }
     }
 }
