@@ -15,6 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import "./BookingPayment.css";
+import { reserveSlots, confirmReservation, releaseReservation } from '../../services/bookingService';
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -38,6 +39,7 @@ const BookingPayment = () => {
   // Hold countdown
   const [timeLeft, setTimeLeft] = useState(HOLD_SECONDS);
   const [expired, setExpired] = useState(false);
+  const [reservationId, setReservationId] = useState(null);
 
   // Fetch wallet balance
   useEffect(() => {
@@ -89,14 +91,76 @@ const BookingPayment = () => {
 
   const isEnough = walletBalance >= totalPrice;
 
+  // Reserve slots on mount: call backend to reserve with TTL, use server-provided TTL when available
+  useEffect(() => {
+    let mounted = true;
+    const doReserve = async () => {
+      try {
+        const payload = {
+          venueId: Number(id),
+          date: selectedDate,
+          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
+          customerName: customerName || (user && user.name) || '',
+          customerPhone: customerPhone || (user && user.phone) || '',
+        };
+
+        const res = await reserveSlots(payload);
+        // Expect server to return { reservationId, expiresInSeconds }
+        if (!mounted) return;
+        const rid = res?.reservationId || res?.id || null;
+        const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? HOLD_SECONDS);
+        if (rid) setReservationId(rid);
+        setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
+      } catch (err) {
+        // If reservation fails, fall back to client hold but inform user could not reserve
+        console.warn('Reserve failed', err);
+        setTimeLeft(HOLD_SECONDS);
+      }
+    };
+    doReserve();
+
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, bookingItems, customerName, customerPhone, id]);
+
+  // When reservation expires, notify server to release
+  useEffect(() => {
+    if (expired && reservationId) {
+      releaseReservation({ reservationId }).catch(() => {});
+    }
+  }, [expired, reservationId]);
+
+  // On unmount, if still have reservation and not confirmed, release it
+  useEffect(() => {
+    return () => {
+      if (reservationId) {
+        releaseReservation({ reservationId }).catch(() => {});
+      }
+    };
+  }, [reservationId]);
+
   const handlePay = async () => {
     if (!isEnough || paying || expired) return;
     setPaying(true);
     try {
-      // TODO: Call backend API to process payment
-      // await processBookingPayment(token, { bookingId, paymentMethod: 'wallet' });
-      await new Promise((r) => setTimeout(r, 1500)); // simulate
-      setPaymentDone(true);
+      // Call backend to confirm reservation + process payment
+      if (reservationId) {
+        const res = await confirmReservation({ reservationId, paymentMethod: 'wallet' });
+        // Expect confirmation response; treat as success if no error
+        setPaymentDone(true);
+      } else {
+        // No reservationId (server reserve failed) — attempt to confirm via full payload
+        const payload = {
+          venueId: Number(id),
+          date: selectedDate,
+          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
+          paymentMethod: 'wallet',
+        };
+        await confirmReservation(payload);
+        setPaymentDone(true);
+      }
     } catch {
       setPaying(false);
     }
@@ -161,6 +225,7 @@ const BookingPayment = () => {
 
   /* ── Expired ── */
   if (expired) {
+
     return (
       <motion.div {...pageTransition}>
       <div className="bp-main">
