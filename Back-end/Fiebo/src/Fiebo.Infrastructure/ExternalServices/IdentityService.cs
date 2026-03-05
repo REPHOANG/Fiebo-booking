@@ -7,6 +7,7 @@ using Fiebo.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -307,6 +308,34 @@ namespace Fiebo.Infrastructure.Services
                     u => u.Id,
                     u => u.FullName
                 );
+        }
+
+        public async Task<UserProfileResponse> CreateActiveUserWithoutPasswordAsync(string fullname, string phoneNumber)
+        {
+            var user = new ApplicationUser
+            {
+                UserName = phoneNumber,
+                PhoneNumber = phoneNumber,
+                Email = $"{phoneNumber}@fiebo.local",
+                FullName = fullname,
+                Status = UserStatus.Active,
+            };
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                _logger.LogError("Failed to create user without password: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new BadRequestException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+            if (await _roleManager.RoleExistsAsync(AppRoles.Customer))
+                await _userManager.AddToRoleAsync(user, AppRoles.Customer);
+
+            return new UserProfileResponse
+            {
+                FullName = fullname,
+                Id = user.Id,
+                PhoneNumber = phoneNumber,
+            };
         }
     }
 }

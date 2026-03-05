@@ -10,6 +10,7 @@ namespace Fiebo.Domain.Entities
     {
         public int Id { get; set; }
         public int BookingId { get; set; }
+        public DateOnly BookingDate { get; set; }
         public int FieldId { get; set; }
         public int SlotId { get; set; }
         public decimal Price { get; set; }

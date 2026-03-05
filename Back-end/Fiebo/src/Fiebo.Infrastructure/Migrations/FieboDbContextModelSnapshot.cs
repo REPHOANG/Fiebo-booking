@@ -30,11 +30,19 @@ namespace Fiebo.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateOnly>("BookingDate")
-                        .HasColumnType("date");
+                    b.Property<string>("BookingNote")
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Fullname")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("StaffId")
                         .HasMaxLength(50)
@@ -68,6 +76,9 @@ namespace Fiebo.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateOnly>("BookingDate")
+                        .HasColumnType("date");
+
                     b.Property<int>("BookingId")
                         .HasColumnType("int");
 
@@ -84,9 +95,10 @@ namespace Fiebo.Infrastructure.Migrations
 
                     b.HasIndex("BookingId");
 
-                    b.HasIndex("FieldId");
-
                     b.HasIndex("SlotId");
+
+                    b.HasIndex("FieldId", "SlotId", "BookingDate")
+                        .IsUnique();
 
                     b.ToTable("BookingDetails");
                 });

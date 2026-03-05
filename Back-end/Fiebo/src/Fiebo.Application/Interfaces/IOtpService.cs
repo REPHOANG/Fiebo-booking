@@ -13,5 +13,8 @@ namespace Fiebo.Application.Interfaces
         Task<bool> ValidateOtpAsync(string email, string otpCode);
         Task<(string OtpCode, int ExpireMinutes)> GenerateAndStoreResetOtpAsync(string account);
         Task<string> ValidateResetOtpAsync(string account, string otpCode);
+        Task<(string OtpCode, int ExpireMinutes)> GenerateAndStoreBookingOtpAsync(string phoneNumber);
+        Task<bool> ValidateBookingOtpAsync(string phoneNumber, string otpCode);
+
     }
 }

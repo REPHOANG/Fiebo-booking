@@ -10,7 +10,7 @@ namespace Fiebo.Domain.Repositories
     public interface IUnitOfWork : IDisposable
     {
         IRepository<Wallet> Wallets { get; }
-        IRepository<Booking> Bookings { get; }
+        IBookingRepository Bookings { get; }
 
         IVenueRepository Venues { get; }
 

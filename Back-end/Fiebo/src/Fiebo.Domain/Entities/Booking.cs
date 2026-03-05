@@ -9,8 +9,10 @@ namespace Fiebo.Domain.Entities
 {
     public class Booking : BaseEntity
     {
-        public DateOnly BookingDate {  get; set; }
         public required string UserId { get; set; }
+        public required string Fullname { get; set; }
+        public required string PhoneNumber { get; set; }
+        public string? BookingNote { get; set; }
         public string? StaffId { get; set; }
         public decimal TotalPrice { get; set; }
         public BookingStatus Status { get; set; }

@@ -41,5 +41,84 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Sends a booking verification OTP to the phone number specified in the request.
+        /// </summary>
+        /// <param name="request">The booking OTP request containing the phone number to which the OTP will be sent. Cannot be null.</param>
+        /// <returns>An IActionResult containing the result of the OTP send operation. Returns a 200 OK response if successful;
+        /// otherwise, returns a 400 Bad Request response with an error message.</returns>
+        [HttpPost("send-otp")]
+        public async Task<IActionResult> SendBookingOtp([FromBody] BookingOtpRequest request)
+        {
+            var result = await _bookingService.SendBookingVerifyOtp(request.PhoneNumber);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "Gửi mã OTP thất bại."
+                });
+            }
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message
+            });
+        }
+
+        /// <summary>
+        /// Verifies the OTP code for a booking request and returns an access token if the verification is successful.
+        /// </summary>
+        /// <remarks>This method is typically used during the booking process to confirm user identity via
+        /// OTP. The access token returned can be used for subsequent authenticated requests. If the OTP verification
+        /// fails, an error response is returned.</remarks>
+        /// <param name="request">The booking OTP verification request containing the user's full name, phone number, and OTP code. Cannot be
+        /// null.</param>
+        /// <returns>An HTTP 200 OK response containing an access token if the OTP verification succeeds.</returns>
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyBookingOtp([FromBody] VerifyBookingOtpRequest request)
+        {
+            var result = await _bookingService.VerifyBookingOtp(request.Fullname, request.PhoneNumber, request.OtpCode);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xác thực OTP thành công.",
+                Data = new
+                {
+                    AccessToken = result
+                }
+            });
+        }
+
+        /// <summary>
+        /// Creates a new booking for the authenticated customer.
+        /// </summary>
+        /// <remarks>This action requires the caller to be authenticated as a customer. The booking is
+        /// associated with the current user's identity.</remarks>
+        /// <param name="request">The booking details to be created. Must contain valid information required for booking.</param>
+        /// <returns>An IActionResult indicating the result of the booking operation. Returns a success response if the booking
+        /// is created; otherwise, returns a bad request response.</returns>
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpPost]
+        public async Task<IActionResult> CreateBooking(CreateBookingRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var result = await _bookingService.CreateBookingAsync(request, userId);
+            if(!result)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "Đặt sân thất bại."
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đặt sân thành công"
+            });
+        }
     }
 }
