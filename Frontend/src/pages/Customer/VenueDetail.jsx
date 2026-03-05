@@ -451,6 +451,25 @@ const VenueDetail = () => {
         </div>
       </main>
 
+      {/* Sticky booking button */}
+      <div className="vd-booking-bar">
+        <div className="vd-booking-bar-inner">
+          <div className="vd-booking-bar-info">
+            <span className="vd-booking-bar-name">{venue.name}</span>
+            <span className="vd-booking-bar-time">
+              <Clock size={14} /> {formatTime(venue.openTime)} – {formatTime(venue.closeTime)}
+            </span>
+          </div>
+          <button
+            className="vd-booking-btn"
+            onClick={() => navigate(`/venue/${id}/booking`)}
+          >
+            <Calendar size={18} />
+            Đặt sân
+          </button>
+        </div>
+      </div>
+
       <Footer />
     </div>
   );

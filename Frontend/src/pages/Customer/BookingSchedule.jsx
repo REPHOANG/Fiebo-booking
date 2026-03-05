@@ -439,13 +439,16 @@ const BookingSchedule = () => {
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
           onClick={() => {
-            const bookingData = selectedSlots.map((s) => ({
-              fieldName: fields[s.fieldIdx]?.name,
-              fieldIdx: s.fieldIdx,
-              time: slots[s.slotIdx]?.label,
-              slotIdx: s.slotIdx,
-            }));
-            console.log("Booking data:", { venueId: id, date: selectedDate, slots: bookingData });
+            navigate(`/venue/${id}/booking/confirm`, {
+              state: {
+                venue,
+                fields,
+                selectedDate,
+                selectedSlots,
+                slots,
+                slotSummary,
+              },
+            });
           }}
         >
           TIẾP THEO

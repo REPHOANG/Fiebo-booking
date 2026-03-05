@@ -10,6 +10,8 @@ import Home from './components/landing/Home';
 import CustomerHome from './pages/Customer/CustomerHome';
 import VenueDetail from './pages/Customer/VenueDetail';
 import BookingSchedule from './pages/Customer/BookingSchedule';
+import BookingConfirmation from './pages/Customer/BookingConfirmation';
+import BookingPayment from './pages/Customer/BookingPayment';
 import Login from './pages/auth/Login';
 import OwnerLogin from './pages/auth/OwnerLogin';
 import Register from './pages/auth/Register';
@@ -60,6 +62,8 @@ const App = () => {
 
           {/* Booking - no header/footer */}
           <Route path="/venue/:id/booking" element={<BookingSchedule />} />
+          <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
+          <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
           
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
