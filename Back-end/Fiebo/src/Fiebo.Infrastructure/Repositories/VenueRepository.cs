@@ -105,7 +105,7 @@ namespace Fiebo.Infrastructure.Repositories
         public async Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
             string? locationKeyword,
             DateOnly? bookingDate,
-            TimeSpan? bookingTime,
+            TimeOnly? bookingTime,
             int? sportTypeId,
             double userLat,
             double userLng,
@@ -219,7 +219,7 @@ namespace Fiebo.Infrastructure.Repositories
         private static IQueryable<Venue> ApplyAvailabilityFilter(
             IQueryable<Venue> query,
             DateOnly? bookingDate,
-            TimeSpan? bookingTime,
+            TimeOnly? bookingTime,
             int? sportTypeId)
         {
             if (!bookingDate.HasValue)
@@ -237,7 +237,7 @@ namespace Fiebo.Infrastructure.Repositories
                     v.Fields.Any(f =>
                         f.Status == FieldStatus.Active &&
                         (!sportTypeId.HasValue || f.SportTypeId == sportTypeId.Value) &&
-                        f.TimeSlots.Any(ts =>
+                        f.Venue!.TimeSlots.Any(ts =>
                             ts.DayOfWeek == dayOfWeek &&
                             ts.StartTime <= time &&
                             ts.EndTime > time &&
@@ -252,7 +252,7 @@ namespace Fiebo.Infrastructure.Repositories
                 v.Fields.Any(f =>
                     f.Status == FieldStatus.Active &&
                     (!sportTypeId.HasValue || f.SportTypeId == sportTypeId.Value) &&
-                    f.TimeSlots.Any(ts =>
+                    f.Venue!.TimeSlots.Any(ts =>
                         ts.DayOfWeek == dayOfWeek &&
                         !ts.BookingDetails.Any(bd =>
                             bd.Booking.BookingDate == date &&

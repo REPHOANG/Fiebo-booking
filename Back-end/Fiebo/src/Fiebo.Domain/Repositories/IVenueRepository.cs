@@ -19,7 +19,7 @@ namespace Fiebo.Domain.Repositories
         Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
             string? locationKeyword,
             DateOnly? bookingDate,
-            TimeSpan? bookingTime,
+            TimeOnly? bookingTime,
             int? sportTypeId,
             double userLat,
             double userLng,

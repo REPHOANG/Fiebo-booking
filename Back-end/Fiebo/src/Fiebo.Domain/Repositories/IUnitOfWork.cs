@@ -10,6 +10,7 @@ namespace Fiebo.Domain.Repositories
     public interface IUnitOfWork : IDisposable
     {
         IRepository<Wallet> Wallets { get; }
+        IRepository<Booking> Bookings { get; }
 
         IVenueRepository Venues { get; }
 
@@ -18,6 +19,10 @@ namespace Fiebo.Domain.Repositories
         IReviewRepository Reviews { get; }
 
         IBookingDetailRepository BookingDetails { get; }
+
+        ISportTypeRepository SportTypes { get; }
+
+        ITimeSlotRepository TimeSlots { get; }
 
         Task<int> SaveChangesAsync();
     }

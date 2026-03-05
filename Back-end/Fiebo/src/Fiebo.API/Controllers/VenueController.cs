@@ -65,6 +65,12 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Retrieves detailed information about a specific venue by its id.
+        /// </summary>
+        /// <param name="id">The unique identifier of the venue to retrieve details for. Must be a valid venue ID.</param>
+        /// <returns>An IActionResult containing the venue details if found; otherwise, a response indicating the venue was not
+        /// found.</returns>
         [HttpGet("{id}/details")]
         public async Task<IActionResult> GetVenueDetail([FromRoute] int id)
         {
@@ -77,6 +83,13 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of field details for the specified venue.
+        /// </summary>
+        /// <param name="id">The id of the venue for which to retrieve field details.</param>
+        /// <param name="page">The page number of results to return. Must be greater than zero.</param>
+        /// <param name="pageSize">The number of field records to include per page. Must be greater than zero.</param>
+        /// <returns>An IActionResult containing an ApiResponse with a paged result of field details for the specified venue.</returns>
         [HttpGet("{id}/fields")]
         public async Task<IActionResult> GetFieldsByVenue(
             [FromRoute] int id,
@@ -92,6 +105,16 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of reviews for the specified venue.
+        /// </summary>
+        /// <remarks>The returned result includes status information and a message indicating the success
+        /// of the operation. Pagination parameters allow efficient retrieval of large review sets.</remarks>
+        /// <param name="id">The id of the venue for which to retrieve reviews.</param>
+        /// <param name="page">The page number of results to return. Must be greater than zero. Defaults to 1.</param>
+        /// <param name="pageSize">The number of reviews to include per page. Must be greater than zero. Defaults to 10.</param>
+        /// <param name="sort">An optional sort expression to order the reviews. If null, the default sorting is applied.</param>
+        /// <returns>An IActionResult containing an ApiResponse with a paged result of review data for the specified venue.</returns>
         [HttpGet("{id}/reviews")]
         public async Task<IActionResult> GetReviewsByVenue(
             [FromRoute] int id,
@@ -106,7 +129,20 @@ namespace Fiebo.API.Controllers
                 Message = "Lấy danh sách đánh giá thành công",
                 Data = result
             });
+        }
 
+        [HttpGet("{id}/schedule")]
+        public async Task<IActionResult> GetVenueSchedule(
+            [FromRoute] int id,
+            [FromQuery] DateOnly date)
+        {
+            var result = await _venueService.GetVenueSchedule(id, date);
+            return Ok(new ApiResponse<VenueSlotsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
+                Data = result
+            });
         }
 
         /// <summary>

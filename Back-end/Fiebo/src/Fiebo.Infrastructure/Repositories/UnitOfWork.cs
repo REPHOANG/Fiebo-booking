@@ -14,25 +14,34 @@ namespace Fiebo.Infrastructure.Repositories
         private readonly FieboDbContext _context;
 
         public IRepository<Wallet> Wallets { get; }
+        public IRepository<Booking> Bookings { get; }
         public IVenueRepository Venues { get; }
         public IFieldRepository Fields { get; }
         public IReviewRepository Reviews { get; }
         public IBookingDetailRepository BookingDetails { get; }
+        public ISportTypeRepository SportTypes { get; }
+        public ITimeSlotRepository TimeSlots { get; }
 
         public UnitOfWork(FieboDbContext context,
             IRepository<Wallet> walletRepository,
+            IRepository<Booking> bookingRepository,
             IVenueRepository venueRepository,
             IFieldRepository fieldRepository,
             IReviewRepository reviewRepository,
-            IBookingDetailRepository bookingDetailRepository
+            IBookingDetailRepository bookingDetailRepository,
+            ISportTypeRepository sportTypeRepository,
+            ITimeSlotRepository timeSlotRepository
             )
         {
             _context = context;
             Wallets = walletRepository;
+            Bookings = bookingRepository;
             Venues = venueRepository;
             Fields = fieldRepository;
             Reviews = reviewRepository;
             BookingDetails = bookingDetailRepository;
+            SportTypes = sportTypeRepository;
+            TimeSlots = timeSlotRepository;
         }
 
 

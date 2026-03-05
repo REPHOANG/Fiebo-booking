@@ -27,7 +27,6 @@ namespace Fiebo.Domain.Entities
 
         public ICollection<FieldImage> Images { get; set; } = [];
 
-        public ICollection<TimeSlot> TimeSlots { get; set; } = [];
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
     }
 }

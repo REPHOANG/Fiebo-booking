@@ -233,21 +233,28 @@ namespace Fiebo.Infrastructure.Migrations
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time");
-
-                    b.Property<int>("FieldId")
-                        .HasColumnType("int");
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time(6)");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time");
+                    b.Property<int>("SportTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time(6)");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FieldId", "DayOfWeek");
+                    b.HasIndex("SportTypeId");
+
+                    b.HasIndex("VenueId", "SportTypeId", "DayOfWeek", "StartTime")
+                        .IsUnique();
 
                     b.ToTable("TimeSlots");
                 });
@@ -647,13 +654,21 @@ namespace Fiebo.Infrastructure.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TimeSlot", b =>
                 {
-                    b.HasOne("Fiebo.Domain.Entities.Field", "Field")
+                    b.HasOne("Fiebo.Domain.Entities.SportType", "SportType")
                         .WithMany("TimeSlots")
-                        .HasForeignKey("FieldId")
+                        .HasForeignKey("SportTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany("TimeSlots")
+                        .HasForeignKey("VenueId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Field");
+                    b.Navigation("SportType");
+
+                    b.Navigation("Venue");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Venue", b =>
@@ -761,8 +776,6 @@ namespace Fiebo.Infrastructure.Migrations
                     b.Navigation("BookingDetails");
 
                     b.Navigation("Images");
-
-                    b.Navigation("TimeSlots");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Province", b =>
@@ -775,6 +788,8 @@ namespace Fiebo.Infrastructure.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.SportType", b =>
                 {
                     b.Navigation("Fields");
+
+                    b.Navigation("TimeSlots");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TimeSlot", b =>
@@ -785,6 +800,8 @@ namespace Fiebo.Infrastructure.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.Venue", b =>
                 {
                     b.Navigation("Fields");
+
+                    b.Navigation("TimeSlots");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Ward", b =>
