@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import localforage from 'localforage';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -25,6 +28,53 @@ import CreateVenue from './pages/Owner/CreateVenue';
 
 const App = () => {
   const dispatch = useDispatch();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        cacheTime: 1000 * 60 * 30, // 30 minutes
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        retry: 1,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
+  });
+
+  // Persist react-query cache to IndexedDB via localforage
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const persister = {
+      persistClient: async (client) => {
+        try {
+          await localforage.setItem('react_query_offline_cache', client);
+        } catch (e) {
+          console.warn('Failed to persist react-query cache', e);
+        }
+      },
+      restoreClient: async () => {
+        try {
+          const data = await localforage.getItem('react_query_offline_cache');
+          return data || undefined;
+        } catch (e) {
+          console.warn('Failed to restore react-query cache', e);
+          return undefined;
+        }
+      },
+      removeClient: async () => {
+        try {
+          await localforage.removeItem('react_query_offline_cache');
+        } catch (e) {
+          console.warn('Failed to remove react-query cache', e);
+        }
+      },
+    };
+
+    persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
+  }, [queryClient]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Initialize app - restore auth from localStorage
@@ -43,9 +93,10 @@ const App = () => {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
-      <SplashScreen isVisible={isInitialLoading} />
-      <Router>
-        <Routes>
+      <QueryClientProvider client={queryClient}>
+        <SplashScreen isVisible={isInitialLoading} />
+        <Router>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/owner/login" element={<OwnerLogin />} />
           <Route path="/register" element={<Register />} />
@@ -71,8 +122,8 @@ const App = () => {
             <Route path="/admin" element={<div>Admin Page</div>} />
           </Route>
         </Routes>
-      </Router>
-      <ToastContainer
+          </Router>
+          <ToastContainer
         position="top-right"
         autoClose={4000}
         hideProgressBar={false}
@@ -84,6 +135,7 @@ const App = () => {
         pauseOnHover={true}
         theme="light"
       />
+        </QueryClientProvider>
     </GoogleOAuthProvider>
   );
 };

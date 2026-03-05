@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   ArrowLeft,
@@ -241,6 +241,9 @@ const FieldCard = ({ field, venueId, index }) => {
 const VenueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefillDate = searchParams.get('date') || '';
+  const prefillTime = searchParams.get('time') || '';
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [venue, setVenue] = useState(null);
@@ -453,7 +456,7 @@ const VenueDetail = () => {
           </div>
           <button
             className="vd-booking-btn"
-            onClick={() => navigate(`/venue/${id}/booking`)}
+            onClick={() => navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`)}
           >
             <Calendar size={18} />
             Đặt sân

@@ -296,16 +296,20 @@ const Venues = () => {
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [activeSport, setActiveSport] = useState(null); // null = all
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingTime, setBookingTime] = useState("");
   const [totalItems, setTotalItems] = useState(0);
   // ...existing code...
 
   const observer = useRef();
 
-  const loadPage = useCallback(async (pageToLoad, location, sportTypeId, reset = false) => {
+  const loadPage = useCallback(async (pageToLoad, location, sportTypeId, date, time, reset = false) => {
     setLoading(true);
     try {
       const data = await searchVenues({
         location: location || undefined,
+        date: date || undefined,
+        time: time ? `${time}:00` : undefined,
         sportTypeId: sportTypeId || undefined,
         page: pageToLoad,
         pageSize: PAGE_SIZE,
@@ -331,14 +335,14 @@ const Venues = () => {
   // Initial load + reload on filter change
   useEffect(() => {
     setPage(1);
-    loadPage(1, searchTerm, activeSport, true);
-  }, [searchTerm, activeSport, loadPage]);
+    loadPage(1, searchTerm, activeSport, bookingDate, bookingTime, true);
+  }, [searchTerm, activeSport, bookingDate, bookingTime, loadPage]);
 
   // Infinite scroll — load more
   useEffect(() => {
     if (page <= 1) return;
-    loadPage(page, searchTerm, activeSport, false);
-  }, [page, loadPage, searchTerm, activeSport]);
+    loadPage(page, searchTerm, activeSport, bookingDate, bookingTime, false);
+  }, [page, loadPage, searchTerm, activeSport, bookingDate, bookingTime]);
 
   const lastVenueRef = useCallback(
     (node) => {
@@ -410,6 +414,24 @@ const Venues = () => {
           />
         </div>
 
+        <div className="venues-datetime">
+          <label className="vd-label">Ngày:</label>
+          <input
+            type="date"
+            value={bookingDate}
+            onChange={(e) => setBookingDate(e.target.value)}
+          />
+          <label className="vd-label">Giờ:</label>
+          <input
+            type="time"
+            value={bookingTime}
+            onChange={(e) => setBookingTime(e.target.value)}
+          />
+          <button className="vd-clear-dt" onClick={() => { setBookingDate(''); setBookingTime(''); }}>
+            <X size={14} />
+          </button>
+        </div>
+
         {SPORTS.map((s) => (
           <button
             key={s.label}
@@ -436,7 +458,7 @@ const Venues = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.15 }}
-                onClick={() => navigate(`/venue/${venue.venueId}`)}
+                onClick={() => navigate(`/venue/${venue.venueId}${bookingDate || bookingTime ? `?date=${bookingDate || ''}&time=${bookingTime || ''}` : ''}`)}
                 style={{ cursor: "pointer" }}
               >
                 <div className="venue-image">
@@ -462,7 +484,7 @@ const Venues = () => {
                       <MapPin size={13} /> {venue.distanceKm.toFixed(1)} km
                     </p>
                   )}
-                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); navigate(`/venue/${venue.venueId}`); }}>
+                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); navigate(`/venue/${venue.venueId}${bookingDate || bookingTime ? `?date=${bookingDate || ''}&time=${bookingTime || ''}` : ''}`); }}>
                     Xem chi tiết
                   </button>
                 </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
@@ -74,6 +74,10 @@ const BookingSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const gridRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const prefillDate = searchParams.get('date') || '';
+  const prefillTimeRaw = searchParams.get('time') || '';
+  const prefillTime = prefillTimeRaw ? prefillTimeRaw.slice(0,5) : '';
 
   const [venue, setVenue] = useState(null);
   const [fields, setFields] = useState([]);
@@ -116,6 +120,11 @@ const BookingSchedule = () => {
     fetchData();
   }, [id]);
 
+  // If page was opened with date/time params, prefill selectedDate and scroll to time
+  useEffect(() => {
+    if (prefillDate) setSelectedDate(prefillDate);
+  }, [prefillDate]);
+
   // Reset selection on date change
   useEffect(() => {
     setSelectedSlots([]);
@@ -153,6 +162,17 @@ const BookingSchedule = () => {
     const nowMin = now.getHours() * 60 + now.getMinutes();
     return slots.findIndex((s) => s.h * 60 + s.m >= nowMin) - 1;
   }, [selectedDate, slots]);
+
+  // Scroll to prefill time column when available
+  useEffect(() => {
+    if (!prefillTime || !slots.length || !gridRef.current) return;
+    const idx = slots.findIndex((s) => s.label === prefillTime);
+    if (idx >= 0) {
+      // approximate scroll: slot index * zoomLevel
+      const colWidth = Math.max(50, zoomLevel);
+      gridRef.current.scrollLeft = Math.max(0, idx * colWidth - 100);
+    }
+  }, [prefillTime, slots, zoomLevel]);
 
   const isLocked = useCallback(
     (slotIdx) => {

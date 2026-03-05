@@ -77,6 +77,43 @@
   color: rgba(255,255,255,0.55);
 }
 
+.venues-datetime {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.venues-datetime input[type="date"],
+.venues-datetime input[type="time"] {
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.vd-label {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
+  margin-right: 4px;
+}
+
+.vd-clear-dt {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;
