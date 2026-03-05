@@ -14,7 +14,7 @@ namespace Fiebo.Infrastructure.Repositories
         private readonly FieboDbContext _context;
 
         public IRepository<Wallet> Wallets { get; }
-        public IRepository<Booking> Bookings { get; }
+        public IBookingRepository Bookings { get; }
         public IVenueRepository Venues { get; }
         public IFieldRepository Fields { get; }
         public IReviewRepository Reviews { get; }
@@ -22,9 +22,10 @@ namespace Fiebo.Infrastructure.Repositories
         public ISportTypeRepository SportTypes { get; }
         public ITimeSlotRepository TimeSlots { get; }
 
+
         public UnitOfWork(FieboDbContext context,
             IRepository<Wallet> walletRepository,
-            IRepository<Booking> bookingRepository,
+            IBookingRepository bookingRepository,
             IVenueRepository venueRepository,
             IFieldRepository fieldRepository,
             IReviewRepository reviewRepository,

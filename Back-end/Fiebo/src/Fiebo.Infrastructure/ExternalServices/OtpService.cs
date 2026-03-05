@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -87,6 +88,37 @@ namespace Fiebo.Infrastructure.ExternalServices
             );
 
             return resetToken;
+        }
+
+        public async Task<(string OtpCode, int ExpireMinutes)> GenerateAndStoreBookingOtpAsync(string phoneNumber)
+        {
+            var otpCode = new Random().Next(100000, 999999).ToString();
+
+            var cacheKey = $"otp_booking:{phoneNumber}";
+
+            if (!int.TryParse(_configuration["OtpSettings:ExpiryMinutes"], out int expireMinutes))
+            {
+                expireMinutes = 5;
+            }
+
+            await _cacheService.SetAsync(cacheKey, otpCode, TimeSpan.FromMinutes(expireMinutes));
+
+            return (otpCode, expireMinutes);
+        }
+
+        public async Task<bool> ValidateBookingOtpAsync(string phoneNumber, string otpCode)
+        {
+            var cacheKey = $"otp_booking:{phoneNumber}";
+            var cachedOtp = await _cacheService.GetAsync(cacheKey);
+
+            if (string.IsNullOrEmpty(cachedOtp) || cachedOtp != otpCode)
+            {
+                return false;
+            }
+
+            await _cacheService.RemoveAsync(cacheKey);
+
+            return true;
         }
     }
 }

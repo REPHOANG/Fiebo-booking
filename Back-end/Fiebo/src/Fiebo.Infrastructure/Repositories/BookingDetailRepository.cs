@@ -56,5 +56,20 @@ namespace Fiebo.Infrastructure.Repositories
                 })
                 .ToDictionaryAsync(x => x.VenueId, x => x.Count);
         }
+
+        public async Task<bool> IsSlotAvailable(int slotId, int fieldId, DateOnly bookingDate)
+        {
+            return !await _context.BookingDetails
+                .AnyAsync(bd =>
+                    bd.SlotId == slotId &&
+                    bd.FieldId == fieldId &&
+                    bd.BookingDate == bookingDate &&
+                    (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked));
+        }
+
+        public async Task AddBookingDetailsAsync(IEnumerable<BookingDetail> details)
+        {
+            await _context.BookingDetails.AddRangeAsync(details);
+        }
     }
 }
