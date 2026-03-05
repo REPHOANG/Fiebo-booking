@@ -19,6 +19,8 @@ namespace Fiebo.Infrastructure.Repositories
         public IFieldRepository Fields { get; }
         public IReviewRepository Reviews { get; }
         public IBookingDetailRepository BookingDetails { get; }
+        public ISportTypeRepository SportTypes { get; }
+        public ITimeSlotRepository TimeSlots { get; }
 
         public UnitOfWork(FieboDbContext context,
             IRepository<Wallet> walletRepository,
@@ -26,7 +28,9 @@ namespace Fiebo.Infrastructure.Repositories
             IVenueRepository venueRepository,
             IFieldRepository fieldRepository,
             IReviewRepository reviewRepository,
-            IBookingDetailRepository bookingDetailRepository
+            IBookingDetailRepository bookingDetailRepository,
+            ISportTypeRepository sportTypeRepository,
+            ITimeSlotRepository timeSlotRepository
             )
         {
             _context = context;
@@ -36,6 +40,8 @@ namespace Fiebo.Infrastructure.Repositories
             Fields = fieldRepository;
             Reviews = reviewRepository;
             BookingDetails = bookingDetailRepository;
+            SportTypes = sportTypeRepository;
+            TimeSlots = timeSlotRepository;
         }
 
 

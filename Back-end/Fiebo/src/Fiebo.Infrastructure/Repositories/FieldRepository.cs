@@ -36,5 +36,36 @@ namespace Fiebo.Infrastructure.Repositories
                 TotalItems = totalItems
             };
         }
+
+        public async Task<List<SportType>> GetSportTypesByVenueAsync(int venueId)
+        {
+            return await _context.Fields
+                .AsNoTracking()
+                .Where(f => f.VenueId == venueId)
+                .GroupBy(f => new
+                {
+                    f.SportTypeId,
+                    f.SportType!.Name
+                })
+                .Select(g => new SportType
+                {
+                    Id = g.Key.SportTypeId,
+                    Name = g.Key.Name
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<Field>> GetFieldsWithBookingsAsync(int venueId, DateOnly date)
+        {
+            return await _context.Fields
+                .AsNoTracking()
+                .Where(f => f.VenueId == venueId)
+                .Include(f => f.BookingDetails
+                    .Where(bd =>
+                        bd.Booking.BookingDate == date &&
+                        bd.Booking.Status != BookingStatus.Cancelled))
+                .ThenInclude(bd => bd.Booking)
+                .ToListAsync();
+        }
     }
 }

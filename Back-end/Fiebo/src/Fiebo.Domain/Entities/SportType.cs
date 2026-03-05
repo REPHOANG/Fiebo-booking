@@ -12,8 +12,8 @@ namespace Fiebo.Domain.Entities
 
         public required string Name { get; set; }
 
-
         // Navigation
         public ICollection<Field>? Fields { get; set; }
+        public ICollection<TimeSlot> TimeSlots { get; set; } = [];
     }
 }

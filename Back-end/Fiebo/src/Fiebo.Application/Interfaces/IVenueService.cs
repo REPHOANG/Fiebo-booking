@@ -26,5 +26,6 @@ namespace Fiebo.Application.Interfaces
 
         Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
     SearchFieldsRequest request);
+        Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date);
     }
 }
