@@ -85,6 +85,8 @@ const BookingSchedule = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [tooltipField, setTooltipField] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [calYear, setCalYear] = useState(() => {
     const d = new Date(); return d.getFullYear();
   });
@@ -425,6 +427,9 @@ const BookingSchedule = () => {
           <div className="bs-legend-item">
             <span className="bs-legend-box locked" /> Khoá
           </div>
+          <div className="bs-legend-item">
+            <span className="bs-legend-box event" /> Sự kiện
+          </div>
         </div>
 
         {/* Time Range Slider */}
@@ -504,8 +509,20 @@ const BookingSchedule = () => {
                       <div
                         className="bs-field-label"
                         style={{ background: sportTypeColors[gi % sportTypeColors.length] }}
+                        onMouseEnter={(e) => {
+                          if (field.images && field.images.length > 0) {
+                            setTooltipField(field);
+                            setTooltipPos({ x: e.clientX + 12, y: e.clientY - 60 });
+                          }
+                        }}
+                        onMouseMove={(e) => {
+                          if (tooltipField) {
+                            setTooltipPos({ x: e.clientX + 12, y: e.clientY - 60 });
+                          }
+                        }}
+                        onMouseLeave={() => setTooltipField(null)}
                       >
-                        {field.name}
+                        <span className="bs-field-name">{field.name}</span>
                       </div>
                       {slots.map((_, si) => (
                         <div
@@ -578,6 +595,17 @@ const BookingSchedule = () => {
           TIẾP THEO
         </button>
       </div>
+
+      {/* Field image tooltip */}
+      {tooltipField && tooltipField.images && tooltipField.images.length > 0 && (
+        <div
+          className="bs-field-tooltip"
+          style={{ display: 'block', left: tooltipPos.x, top: tooltipPos.y }}
+        >
+          <img src={tooltipField.images[0]} alt={tooltipField.name} />
+          <span className="bs-field-tooltip-name">{tooltipField.name}</span>
+        </div>
+      )}
     </motion.div>
   );
 };
