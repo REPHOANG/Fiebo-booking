@@ -8,6 +8,7 @@ import { restoreAuthFromStorage } from './store/authSlice';
 import Layout from './components/layout/Layout';
 import Home from './components/landing/Home';
 import CustomerHome from './pages/Customer/CustomerHome';
+import VenueDetail from './pages/Customer/VenueDetail';
 import Login from './pages/auth/Login';
 import OwnerLogin from './pages/auth/OwnerLogin';
 import Register from './pages/auth/Register';
@@ -17,6 +18,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import VerifyOTP from './pages/auth/VerifyOTP';
 import ProtectedRoute from './routers/ProtectedRoute';
 import SplashScreen from './components/ui/SplashScreen/SplashScreen';
+import CreateVenue from './pages/Owner/CreateVenue';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -45,11 +47,15 @@ const App = () => {
           <Route path="/owner/login" element={<OwnerLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
-          {/* Customer Home - Protected Route */}
-          <Route path="/home" element={<ProtectedRoute element={<CustomerHome />} />} />
+          {/* Customer Home - Public (no login required) */}
+          <Route path="/home" element={<CustomerHome />} />
+          <Route path="/venue/:id" element={<VenueDetail />} />
+
+          {/* Owner routes */}
+          <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
           
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />

@@ -53,13 +53,13 @@ const Header = () => {
       <div className="header-container">
         {/* LEFT */}
         <div className="header-left">
-          <Link to="/" className="logo">
+          <Link to="/home" className="logo">
             <img src={Logohomepage} alt="Fiebo Logo" className="logo-img" />
             <span className="logo-text">Fiebo</span>
           </Link>
 
           <nav className="menu-desktop">
-            <NavLink to="/" end>Trang chủ</NavLink>
+            <NavLink to="/home" end>Trang chủ</NavLink>
 
             {/* Mega Menu */}
             <div className="mega-wrapper">
@@ -111,7 +111,7 @@ const Header = () => {
                 }}
               >
                 <span className="greeting-text">
-                  Xin chào, <strong>{user?.name || user?.email || "Người dùng"}</strong>
+                  Xin chào, <strong>{user?.name || user?.fullName || "Người dùng"}</strong>
                 </span>
 
                 <motion.span
@@ -205,8 +205,8 @@ const Header = () => {
         <nav className="menu-mobile">
           <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
           <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
-          <Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link>
-          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
+          <Link to="/about" onClick={() => setIsMenuOpen(false)}>Về chúng tôi</Link>
+          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link>
         </nav>
       )}
     </header>
