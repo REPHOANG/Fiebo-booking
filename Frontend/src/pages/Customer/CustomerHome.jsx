@@ -221,7 +221,9 @@ const CustomerHome = () => {
       <div className={`ch-search-section ${scrolled ? "ch-search-scrolled" : ""}`}>
         <div className="ch-search-bar">
           <div className="ch-search-icon-left">
-            <Search size={18} />
+            <button type="button" className="ch-search-icon-btn" onClick={handleSearch} aria-label="Tìm kiếm">
+              <Search size={18} />
+            </button>
           </div>
           <input
             type="text"

@@ -12,10 +12,10 @@ import "./Venues.css";
 const SPORTS = [
   { label: "Tất cả", id: null },
   { label: "Bóng đá", id: 1 },
-  { label: "Cầu lông", id: 2 },
-  { label: "Pickleball", id: 3 },
-  { label: "Bóng rổ", id: 4 },
-  { label: "Tennis", id: 5 },
+  { label: "Bóng rổ", id: 2 },
+  { label: "Tennis", id: 3 },
+  { label: "Pickleball", id: 4 },
+  // { label: "Cầu lông", id: 5 },
 ];
 
 const PAGE_SIZE = 8;
@@ -295,6 +295,7 @@ const Venues = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [inputValue, setInputValue] = useState(initialSearch);
   const [activeSport, setActiveSport] = useState(null); // null = all
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -362,8 +363,26 @@ const Venues = () => {
   const searchTimer = useRef(null);
   const handleSearchChange = (e) => {
     const val = e.target.value;
-    setSearchTerm(val);
+    setInputValue(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSearchTerm(val);
+      setPage(1);
+    }, 400);
   };
+
+  // Keep input and searchTerm in sync when URL initialSearch changes
+  useEffect(() => {
+    setInputValue(initialSearch);
+    setSearchTerm(initialSearch);
+  }, [initialSearch]);
+
+  // cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, []);
 
   const handleSportClick = (sportId) => {
     setActiveSport(sportId);
@@ -409,7 +428,7 @@ const Venues = () => {
           <input
             type="text"
             placeholder="Tìm theo tên sân hoặc địa điểm..."
-            value={searchTerm}
+            value={inputValue}
             onChange={handleSearchChange}
           />
         </div>
