@@ -210,6 +210,7 @@ namespace Fiebo.Application.Services
             }
             catch (Exception)
             {
+                _logger.LogError("Fail to create booking: duplicate index");
                 return false;
             }
 
