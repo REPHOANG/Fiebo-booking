@@ -242,7 +242,7 @@ namespace Fiebo.Infrastructure.Repositories
                             ts.StartTime <= time &&
                             ts.EndTime > time &&
                             !ts.BookingDetails.Any(bd =>
-                                bd.Booking.BookingDate == date &&
+                                bd.BookingDate == date &&
                                 (bd.Booking.Status == BookingStatus.Pending ||
                                  bd.Booking.Status == BookingStatus.Booked ||
                                  bd.Booking.Status == BookingStatus.Completed)))));
@@ -255,7 +255,7 @@ namespace Fiebo.Infrastructure.Repositories
                     f.Venue!.TimeSlots.Any(ts =>
                         ts.DayOfWeek == dayOfWeek &&
                         !ts.BookingDetails.Any(bd =>
-                            bd.Booking.BookingDate == date &&
+                            bd.BookingDate == date &&
                             (bd.Booking.Status == BookingStatus.Pending ||
                              bd.Booking.Status == BookingStatus.Booked ||
                              bd.Booking.Status == BookingStatus.Completed)))));

@@ -278,7 +278,7 @@ namespace Fiebo.Application.Services
             }
             else
             {
-                var message = $"Ma xac thuc Fiebo cua ban la: {otpResult.OtpCode}";
+                var message = $"Ma OTP Fiebo: {otpResult.OtpCode}. Hieu luc 5 phut.";
                 var result = await _smsService.SendSmsAsync(account, message);
                 if (!result.IsSuccess)
                 {

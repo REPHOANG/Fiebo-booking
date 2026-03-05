@@ -207,9 +207,6 @@ namespace Fiebo.Infrastructure.Data
 
                 entity.Property(b => b.TotalPrice)
                       .HasPrecision(18, 2);
-
-                entity.Property(b => b.BookingDate)
-                      .IsRequired();
             });
 
             // BookingDetail
@@ -222,6 +219,9 @@ namespace Fiebo.Infrastructure.Data
                 entity.Property(e => e.BookingId)
                       .IsRequired();
 
+                entity.Property(e => e.BookingDate)
+                      .IsRequired();
+
                 entity.Property(e => e.FieldId)
                       .IsRequired();
 
@@ -231,6 +231,8 @@ namespace Fiebo.Infrastructure.Data
                 entity.Property(e => e.Price)
                       .HasColumnType("decimal(12,2)")
                       .IsRequired();
+
+                entity.HasIndex(e => new { e.FieldId, e.SlotId, e.BookingDate }).IsUnique();
 
                 entity.HasOne(e => e.Booking)
                       .WithMany(b => b.BookingDetails)
