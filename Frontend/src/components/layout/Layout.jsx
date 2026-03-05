@@ -7,6 +7,8 @@ import Footer from "../landing/Footer";
 const Layout = () => {
   const location = useLocation();
   const isBookingPage = location.pathname.includes("/booking");
+  const isVenuesPage = location.pathname === "/venues";
+  const isVenueDetailPage = /^\/venue\/[0-9]+$/.test(location.pathname);
 
   return (
     <div className="layout">
@@ -15,7 +17,7 @@ const Layout = () => {
         <Outlet />
       </main>
       <BottomNav />
-      {!isBookingPage && <Footer />}
+      {!isBookingPage && !isVenuesPage && !isVenueDetailPage && <Footer />}
     </div>
   );
 };

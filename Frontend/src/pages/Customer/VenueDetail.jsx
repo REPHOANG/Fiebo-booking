@@ -300,7 +300,7 @@ const VenueDetail = () => {
           <Loader2 size={32} className="vd-spinner" />
           <p>Đang tải thông tin sân...</p>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     );
   }
@@ -317,7 +317,7 @@ const VenueDetail = () => {
             ← Quay lại trang chủ
           </button>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     );
   }
@@ -339,115 +339,106 @@ const VenueDetail = () => {
 
         {/* ── Venue Info ── */}
         <div className="vd-content">
-          <div className="vd-info-section">
-            <h1 className="vd-name">{venue.name}</h1>
-
-            <div className="vd-meta">
-              <span className="vd-rating">
+          <div className="vd-col-left">
+            <div className="vd-info-section">
+              <h1 className="vd-name">{venue.name}</h1>
+              <div className="vd-meta">
                 <Star size={14} fill="#f59e0b" stroke="#f59e0b" /> {venue.averageRating?.toFixed(1) || "0.0"}
                 <span className="vd-reviews-count">({venue.ratingCount || 0} đánh giá)</span>
-              </span>
-              <span className="vd-booking-count">{venue.bookingCount || 0} lượt đặt</span>
-            </div>
-
-            {/* Quick info */}
-            <div className="vd-quick-info">
-              {address && (
+                <span className="vd-booking-count">{venue.bookingCount || 0} lượt đặt</span>
+              </div>
+              <div className="vd-quick-info">
+                {address && (
+                  <div className="vd-info-item">
+                    <MapPin size={16} />
+                    <span>{address}</span>
+                  </div>
+                )}
                 <div className="vd-info-item">
-                  <MapPin size={16} />
-                  <span>{address}</span>
+                  <Clock size={16} />
+                  <span>{formatTime(venue.openTime)} – {formatTime(venue.closeTime)}</span>
+                </div>
+              </div>
+              {venue.description && (
+                <div className="vd-description">
+                  <h3>Giới thiệu</h3>
+                  <p>{venue.description}</p>
                 </div>
               )}
-              <div className="vd-info-item">
-                <Clock size={16} />
-                <span>{formatTime(venue.openTime)} – {formatTime(venue.closeTime)}</span>
-              </div>
             </div>
-
-            {/* Description */}
-            {venue.description && (
-              <div className="vd-description">
-                <h3>Giới thiệu</h3>
-                <p>{venue.description}</p>
+            {mapSrc && (
+              <div className="vd-map-section">
+                <h3><MapPinned size={18} /> Vị trí trên bản đồ</h3>
+                <div className="vd-map-wrapper">
+                  <iframe
+                    title="Venue location"
+                    src={mapSrc}
+                    className="vd-map-iframe"
+                    loading="lazy"
+                  />
+                </div>
+                <a
+                  className="vd-map-link"
+                  href={`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPin size={14} /> Mở trong Google Maps
+                </a>
+              </div>
+            )}
+            {fields.length > 0 && (
+              <div className="vd-fields-section">
+                <h3>
+                  <Calendar size={18} /> Danh sách sân ({fields.length})
+                </h3>
+                <div className="vd-fields-list-v2">
+                  {fields.map((field, i) => (
+                    <FieldCard key={field.name + i} field={field} venueId={id} index={i} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
-
-          {/* ── Map ── */}
-          {mapSrc && (
-            <div className="vd-map-section">
-              <h3><MapPinned size={18} /> Vị trí trên bản đồ</h3>
-              <div className="vd-map-wrapper">
-                <iframe
-                  title="Venue location"
-                  src={mapSrc}
-                  className="vd-map-iframe"
-                  loading="lazy"
-                />
-              </div>
-              <a
-                className="vd-map-link"
-                href={`https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MapPin size={14} /> Mở trong Google Maps
-              </a>
-            </div>
-          )}
-
-          {/* ── Fields list ── */}
-          {fields.length > 0 && (
-            <div className="vd-fields-section">
-              <h3>
-                <Calendar size={18} /> Danh sách sân ({fields.length})
-              </h3>
-              <div className="vd-fields-list-v2">
-                {fields.map((field, i) => (
-                  <FieldCard key={field.name + i} field={field} venueId={id} index={i} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Venue reviews ── */}
-          {reviews.length > 0 && (
-            <div className="vd-reviews-section">
-              <h3>
-                <MessageSquare size={18} /> Đánh giá ({reviewTotal})
-              </h3>
-              <div className="vd-field-reviews-list">
-                {reviews.map((r, i) => (
-                  <motion.div
-                    key={i}
-                    className="vd-review-item"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                  >
-                    <div className="vd-review-header">
-                      <div className="vd-review-avatar">
-                        <User size={16} />
+          <div className="vd-col-right">
+            {reviews.length > 0 && (
+              <div className="vd-reviews-section">
+                <h3>
+                  <MessageSquare size={18} /> Đánh giá ({reviewTotal})
+                </h3>
+                <div className="vd-field-reviews-list">
+                  {reviews.map((r, i) => (
+                    <motion.div
+                      key={i}
+                      className="vd-review-item"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <div className="vd-review-header">
+                        <div className="vd-review-avatar">
+                          <User size={16} />
+                        </div>
+                        <div className="vd-review-meta">
+                          <span className="vd-review-name">{r.name || "Ẩn danh"}</span>
+                          <span className="vd-review-time">{formatRelativeTime(r.createdAt)}</span>
+                        </div>
+                        <div className="vd-review-rating">
+                          {renderStars(r.rating)}
+                        </div>
                       </div>
-                      <div className="vd-review-meta">
-                        <span className="vd-review-name">{r.name || "Ẩn danh"}</span>
-                        <span className="vd-review-time">{formatRelativeTime(r.createdAt)}</span>
-                      </div>
-                      <div className="vd-review-rating">
-                        {renderStars(r.rating)}
-                      </div>
-                    </div>
-                    {r.comment && <p className="vd-review-comment">{r.comment}</p>}
-                  </motion.div>
-                ))}
+                      {r.comment && <p className="vd-review-comment">{r.comment}</p>}
+                    </motion.div>
+                  ))}
+                </div>
+                {reviewPage < reviewTotalPages && (
+                  <button className="vd-reviews-toggle" onClick={loadMoreReviews}>
+                    Xem thêm đánh giá
+                  </button>
+                )}
               </div>
-              {reviewPage < reviewTotalPages && (
-                <button className="vd-reviews-toggle" onClick={loadMoreReviews}>
-                  Xem thêm đánh giá
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
 
@@ -470,7 +461,7 @@ const VenueDetail = () => {
         </div>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };

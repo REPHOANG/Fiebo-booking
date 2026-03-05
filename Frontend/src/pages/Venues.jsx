@@ -297,7 +297,7 @@ const Venues = () => {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [activeSport, setActiveSport] = useState(null); // null = all
   const [totalItems, setTotalItems] = useState(0);
-  const [selectedVenueId, setSelectedVenueId] = useState(null);
+  // ...existing code...
 
   const observer = useRef();
 
@@ -436,7 +436,7 @@ const Venues = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.15 }}
-                onClick={() => setSelectedVenueId(venue.venueId)}
+                onClick={() => navigate(`/venue/${venue.venueId}`)}
                 style={{ cursor: "pointer" }}
               >
                 <div className="venue-image">
@@ -462,7 +462,7 @@ const Venues = () => {
                       <MapPin size={13} /> {venue.distanceKm.toFixed(1)} km
                     </p>
                   )}
-                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); setSelectedVenueId(venue.venueId); }}>
+                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); navigate(`/venue/${venue.venueId}`); }}>
                     Xem chi tiết
                   </button>
                 </div>
@@ -491,15 +491,7 @@ const Venues = () => {
         <p className="venues-end">Bạn đã xem hết tất cả sân.</p>
       )}
 
-      {/* Venue Detail Popup */}
-      <AnimatePresence>
-        {selectedVenueId && (
-          <VenuePopup
-            venueId={selectedVenueId}
-            onClose={() => setSelectedVenueId(null)}
-          />
-        )}
-      </AnimatePresence>
+      {/* ...existing code... */}
     </div>
   );
 };

@@ -38,9 +38,9 @@
 
 /* Main container */
 .vd-main {
-  max-width: 900px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 16px 80px;
+  padding: 24px 32px 80px;
 }
 
 /* ── Hero thumbnail ── */
@@ -98,8 +98,54 @@
 /* ── Content layout ── */
 .vd-content {
   display: flex;
+  flex-direction: row;
+  gap: 24px;
+  height: calc(100vh - 180px);
+}
+
+.vd-col-left {
+  flex: 3;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
   flex-direction: column;
   gap: 24px;
+}
+.vd-col-left::-webkit-scrollbar {
+  width: 4px;
+}
+.vd-col-left::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.vd-col-right {
+  flex: 2;
+  min-width: 320px;
+  overflow-y: auto;
+  padding-left: 8px;
+}
+.vd-col-right::-webkit-scrollbar {
+  width: 4px;
+}
+.vd-col-right::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+  .vd-content {
+    flex-direction: column;
+    height: auto;
+  }
+  .vd-col-left,
+  .vd-col-right {
+    width: 100%;
+    overflow-y: visible;
+    padding: 0;
+    height: auto;
+  }
 }
 
 /* ── Info section ── */
@@ -274,8 +320,8 @@
   background: #f8fafc;
 }
 .vd-fc-thumb {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
@@ -538,7 +584,7 @@
 }
 
 .vd-booking-bar-inner {
-  max-width: 960px;
+  max-width: 1280px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -687,7 +733,7 @@
 
 /* ── Venue reviews section ── */
 .vd-reviews-section {
-  margin-top: 32px;
+  margin-top: 0;
 }
 .vd-reviews-section h3 {
   display: flex;

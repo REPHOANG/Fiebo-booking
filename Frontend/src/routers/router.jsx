@@ -16,10 +16,10 @@ import ProtectedRoute from './ProtectedRoute';
 
 export const publicRoutes = [
   {
-    path: '/',
+    path: '/home',
     element: <Layout />,
     children: [
-      { path: '', element: <Home /> },
+      { path: 'home', element: <CustomerHome /> },
       { path: 'venues', element: <Venues /> },
     ],
   },
