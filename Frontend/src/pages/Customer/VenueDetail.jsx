@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   ArrowLeft,
   Heart,
@@ -22,6 +22,7 @@ import Header from "../../components/landing/Header";
 import Footer from "../../components/landing/Footer";
 import { getVenueDetail, getVenueFields, getVenueReviews } from "../../services/fieldService";
 import "./VenueDetail.css";
+import { clearDraft } from '../../store/bookingDraftSlice';
 
 /* ================================================================
    Helper – format TimeSpan from API ("HH:MM:SS") to "HH:MM"
@@ -241,6 +242,7 @@ const FieldCard = ({ field, venueId, index }) => {
 const VenueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
   const prefillTime = searchParams.get('time') || '';
@@ -456,7 +458,10 @@ const VenueDetail = () => {
           </div>
           <button
             className="vd-booking-btn"
-            onClick={() => navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`)}
+            onClick={() => {
+              try { dispatch(clearDraft(id)); } catch (e) {}
+              navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`, { state: { forceReload: true } });
+            }}
           >
             <Calendar size={18} />
             Đặt sân

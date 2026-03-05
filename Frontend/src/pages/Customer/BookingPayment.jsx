@@ -15,7 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import "./BookingPayment.css";
-import { reserveSlots, confirmReservation, releaseReservation } from '../../services/bookingService';
+import { reserveSlots, confirmReservation, releaseReservation, payBooking } from '../../services/bookingService';
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -93,6 +93,14 @@ const BookingPayment = () => {
 
   // Reserve slots on mount: call backend to reserve with TTL, use server-provided TTL when available
   useEffect(() => {
+    // If we already have a reservationId passed from previous step, use it and TTL
+    if (paymentState?.reservationId) {
+      setReservationId(paymentState.reservationId);
+      const ttl = Number(paymentState.reservationTtl ?? HOLD_SECONDS);
+      setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
+      return;
+    }
+
     let mounted = true;
     const doReserve = async () => {
       try {
@@ -123,7 +131,7 @@ const BookingPayment = () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, bookingItems, customerName, customerPhone, id]);
+  }, [selectedDate, bookingItems, customerName, customerPhone, id, paymentState]);
 
   // When reservation expires, notify server to release
   useEffect(() => {
@@ -142,14 +150,21 @@ const BookingPayment = () => {
   }, [reservationId]);
 
   const handlePay = async () => {
-    if (!isEnough || paying || expired) return;
+    if (!token) {
+      // Redirect to login if not authenticated
+      navigate('/auth/login', { state: { returnTo: location.pathname, returnState: paymentState } });
+      return;
+    }
+    if (!isEnough || paying || expired) {
+      if (!isEnough) alert('Số dư không đủ. Vui lòng nạp thêm vào ví hoặc chọn phương thức khác.');
+      return;
+    }
     setPaying(true);
     try {
       // Call backend to confirm reservation + process payment
+      let confirmRes = null;
       if (reservationId) {
-        const res = await confirmReservation({ reservationId, paymentMethod: 'wallet' });
-        // Expect confirmation response; treat as success if no error
-        setPaymentDone(true);
+        confirmRes = await confirmReservation({ reservationId, paymentMethod: 'wallet' });
       } else {
         // No reservationId (server reserve failed) — attempt to confirm via full payload
         const payload = {
@@ -158,7 +173,23 @@ const BookingPayment = () => {
           items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
           paymentMethod: 'wallet',
         };
-        await confirmReservation(payload);
+        confirmRes = await confirmReservation(payload);
+      }
+
+      // If backend returns a bookingId, call the payment endpoint explicitly
+      const bookingId = confirmRes?.bookingId || confirmRes?.id || confirmRes?.data?.bookingId || confirmRes?.data?.id;
+      if (bookingId) {
+        try {
+          await payBooking(bookingId, { paymentMethod: 'wallet' });
+          setPaymentDone(true);
+        } catch (payErr) {
+          console.error('Payment failed', payErr);
+          // If payment failed, we may want to navigate to an error screen or show message
+          alert('Thanh toán không thành công. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
+          setPaying(false);
+        }
+      } else {
+        // If no bookingId returned, assume confirmReservation handled payment already
         setPaymentDone(true);
       }
     } catch {
@@ -314,13 +345,24 @@ const BookingPayment = () => {
               onClick={handlePay}
               disabled={paying}
             >
-              {paying ? (
-                <span className="bp-pay-loading" />
-              ) : (
-                <>THANH TOÁN {formatPrice(totalPrice)}</>
-              )}
+                  {paying ? (
+                    <span className="bp-pay-loading" />
+                  ) : !token ? (
+                    <>Đăng nhập để thanh toán</>
+                  ) : !isEnough ? (
+                    <>Số dư không đủ</>
+                  ) : (
+                    <>THANH TOÁN {formatPrice(totalPrice)}</>
+                  )}
             </button>
-          )}
+              )}
+
+              {/* If user is not logged in, show separate login button as CTA */}
+              {!token && (
+                <button className="bp-login-btn" onClick={() => navigate('/auth/login', { state: { returnTo: location.pathname, returnState: paymentState } })}>
+                  Đăng nhập
+                </button>
+              )}
         </div>
 
         {/* Right: Booking summary */}

@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
+import { setDraft } from '../../store/bookingDraftSlice';
+import { getVenueSchedule } from '../../services/fieldService';
+import { addBookedSlots } from '../../store/bookedSlotsSlice';
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -85,6 +89,9 @@ const BookingSchedule = () => {
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [selectedSlots, setSelectedSlots] = useState([]); // [{fieldIdx, slotIdx}]
+  const initialMount = useRef(true);
+  const dispatch = useDispatch();
+  const draft = useSelector((s) => s.bookingDrafts?.[id]);
   const [zoomLevel, setZoomLevel] = useState(50); // 50px to 100px column width
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
@@ -127,8 +134,31 @@ const BookingSchedule = () => {
 
   // Reset selection on date change
   useEffect(() => {
+    if (initialMount.current) {
+      // skip clearing on initial mount so persisted selection can be restored
+      initialMount.current = false;
+      return;
+    }
     setSelectedSlots([]);
   }, [selectedDate]);
+
+  // Load persisted draft (from Redux) on mount
+  useEffect(() => {
+    if (draft) {
+      if (draft.selectedDate) setSelectedDate(draft.selectedDate);
+      if (Array.isArray(draft.selectedSlots) && draft.selectedSlots.length) setSelectedSlots(draft.selectedSlots);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
+
+  // Persist draft to Redux (which is persisted to localStorage)
+  useEffect(() => {
+    try {
+      dispatch(setDraft({ venueId: id, draft: { selectedDate, selectedSlots } }));
+    } catch (e) {
+      // ignore
+    }
+  }, [selectedDate, selectedSlots, dispatch, id]);
 
   // Close calendar on outside click
   useEffect(() => {
@@ -146,6 +176,52 @@ const BookingSchedule = () => {
     () => (venue ? generateSlots(venue.openTime, venue.closeTime) : []),
     [venue]
   );
+
+  // Fetch server schedule (booked/unavailable slots) when venue or date changes
+  useEffect(() => {
+    if (!venue || !selectedDate) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await getVenueSchedule(id, selectedDate);
+        // res.SportTypes -> each has Slots (SlotId, StartTime) and Fields -> each has UnavailableSlots (SlotId)
+        // Build mapping from slot start time to our slot index
+        const serverSlots = [];
+        (res?.sportTypes || []).forEach((st) => {
+          (st.slots || []).forEach((s) => {
+            serverSlots.push(s);
+          });
+        });
+
+        const startToIdx = {};
+        serverSlots.forEach((s) => {
+          const hhmm = (s.startTime || '').slice(0,5);
+          const idx = slots.findIndex((sl) => sl.label === hhmm);
+          if (idx >= 0) startToIdx[s.slotId] = idx;
+        });
+
+        const booked = [];
+        (res?.sportTypes || []).forEach((st) => {
+          (st.fields || []).forEach((f) => {
+            const fieldId = f.fieldId;
+            const fieldIdx = fields.findIndex((ff) => Number(ff.id || ff.fieldId || ff.fieldId) === Number(fieldId));
+            if (fieldIdx < 0) return;
+            (f.unavailableSlots || []).forEach((us) => {
+              const slotIdx = startToIdx[us.slotId];
+              if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
+            });
+          });
+        });
+
+        if (mounted && booked.length) {
+          try { dispatch(addBookedSlots({ venueId: String(id), date: selectedDate, slots: booked })); } catch (e) {}
+        }
+      } catch (e) {
+        // ignore fetch errors
+      }
+    })();
+    return () => { mounted = false; };
+  }, [venue, selectedDate, id, slots, fields, dispatch]);
 
   // Labels = slots + closing time (N+1 labels for N columns)
   const timeLabels = useMemo(() => {
@@ -183,7 +259,21 @@ const BookingSchedule = () => {
   );
 
   // TODO: When backend API exists, fetch booked slots
-  const isBooked = useCallback(() => false, []);
+  const bookedForDate = useSelector((s) => {
+    try {
+      const venueMap = s.bookedSlots && s.bookedSlots[id] ? s.bookedSlots[id] : {};
+      const arr = venueMap[selectedDate] || [];
+      const now = Date.now();
+      return arr.filter((e) => !e.expiresAt || e.expiresAt > now);
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const isBooked = useCallback(
+    (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
+    [bookedForDate]
+  );
 
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>

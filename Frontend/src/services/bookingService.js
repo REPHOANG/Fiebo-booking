@@ -116,10 +116,12 @@ export const sendBookingOtp = async (phoneNumber) => {
  * @param {string} phoneNumber
  * @param {string} otpCode
  */
-export const verifyBookingOtp = async (phoneNumber, otpCode) => {
+export const verifyBookingOtp = async (phoneNumber, otpCode, fullName) => {
+  const body = { phoneNumber, otpCode };
+  if (fullName) body.fullname = fullName;
   const response = await fetchAPI('/api/Booking/verify-otp', {
     method: 'POST',
-    body: JSON.stringify({ phoneNumber, otpCode }),
+    body: JSON.stringify(body),
   });
   return response.data ?? response;
 };

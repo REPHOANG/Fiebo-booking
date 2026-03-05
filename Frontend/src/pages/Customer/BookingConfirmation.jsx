@@ -3,24 +3,23 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight, Send, CheckCircle, AlertTriangle } from "lucide-react";
-import { sendBookingOtp, verifyBookingOtp } from "../../services/bookingService";
+import { sendBookingOtp, verifyBookingOtp, reserveSlots } from "../../services/bookingService";
+import { clearDraft } from '../../store/bookingDraftSlice';
+import { addBookedSlots } from '../../store/bookedSlotsSlice';
 import { setCredentials } from "../../store/authSlice";
 import "./BookingConfirmation.css";
-
-const formatPrice = (price) =>
-  price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "--";
-
 const BookingConfirmation = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, token, isAuthenticated } = useSelector((state) => state.auth || {});
 
-  // Guest booking form state
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [phoneStatus, setPhoneStatus] = useState("idle"); // idle | checking | exists | sending | otp-sent | verifying | verified
+  const [phoneStatus, setPhoneStatus] = useState("idle");
   const [otpCode, setOtpCode] = useState("");
+
+  const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [countdown, setCountdown] = useState(0);
 
@@ -71,7 +70,7 @@ const BookingConfirmation = () => {
     setPhoneError("");
     setPhoneStatus("verifying");
     try {
-      const result = await verifyBookingOtp(guestPhone, otpCode);
+      const result = await verifyBookingOtp(guestPhone, otpCode, guestName);
       // If backend returned an access token, persist it so subsequent booking/payment calls can use it
       const token = result?.accessToken || result?.token || result?.data || null;
       const userFromRes = result?.user || result?.data?.user || null;
@@ -139,18 +138,66 @@ const BookingConfirmation = () => {
   const totalMinutes = slotSummary?.totalMinutes || 0;
 
   const handleConfirmBooking = () => {
-    navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-      state: {
-        venue,
-        selectedDate,
-        selectedSlots,
-        slotSummary,
-        bookingItems,
-        customerName: displayName,
-        customerPhone: displayPhone,
-        totalPrice,
-      },
-    });
+    (async () => {
+      // Reserve slots on server for TTL before navigating to payment
+      try {
+        const payload = {
+          venueId: Number(venue?.id),
+          date: selectedDate,
+          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
+          customerName: displayName || guestName,
+          customerPhone: displayPhone || guestPhone,
+        };
+
+        const res = await reserveSlots(payload);
+        // Expect { reservationId, expiresInSeconds }
+        const reservationId = res?.reservationId || res?.id || null;
+        const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
+        try {
+          dispatch(clearDraft(venue?.id));
+          // Mark slots as booked in local store so UI reflects booking immediately (respect server TTL when provided)
+          try {
+            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+          } catch (e) {}
+        } catch (e) {}
+        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
+          state: {
+            venue,
+            selectedDate,
+            selectedSlots,
+            slotSummary,
+            bookingItems,
+            customerName: displayName,
+            customerPhone: displayPhone,
+            totalPrice,
+            reservationId,
+            reservationTtl: ttl,
+          },
+        });
+      } catch (err) {
+        // If reservation failed, still navigate but without reservationId
+        console.warn('Reserve failed, proceeding without server reservation', err);
+        try {
+          dispatch(clearDraft(venue?.id));
+          // Mark slots as booked in local store so UI reflects booking immediately
+          try {
+            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots }));
+          } catch (e) {}
+        } catch (e) {}
+        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
+          state: {
+            venue,
+            selectedDate,
+            selectedSlots,
+            slotSummary,
+            bookingItems,
+            customerName: displayName,
+            customerPhone: displayPhone,
+            totalPrice,
+          },
+        });
+      }
+    })();
   };
 
   return (

@@ -141,6 +141,18 @@ export const getVenueFields = async (venueId, page = 1, pageSize = 20) => {
 };
 
 /**
+ * Get venue schedule (slots + unavailable bookings) for a specific date
+ */
+export const getVenueSchedule = async (venueId, date) => {
+  const q = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
+  const response = await fetchAPI(`/api/Venue/${venueId}/schedule?date=${q}`);
+  return response.data;
+};
+
+// Backwards-compatible alias
+export const getVenueScheduleForDate = getVenueSchedule;
+
+/**
  * Get reviews for a venue (paginated)
  * @param {number} venueId
  * @param {Object} [options]
