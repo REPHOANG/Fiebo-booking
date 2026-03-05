@@ -7,7 +7,15 @@ const fetchAPI = async (endpoint, options = {}) => {
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const token = localStorage.getItem('token');
+    const rawToken = localStorage.getItem('token');
+    const token = rawToken || (() => {
+      try {
+        const a = JSON.parse(localStorage.getItem('authState'));
+        return a?.token || a?.accessToken || null;
+      } catch (e) {
+        return null;
+      }
+    })();
     const fetchOptions = {
       signal: controller.signal,
       ...options,

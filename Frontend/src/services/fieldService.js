@@ -2,16 +2,33 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
 
-const fetchAPI = async (endpoint) => {
+const fetchAPI = async (endpoint, options = {}) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const rawToken = localStorage.getItem('token');
+    const token = rawToken || (() => {
+      try {
+        const a = JSON.parse(localStorage.getItem('authState'));
+        return a?.token || a?.accessToken || null;
+      } catch (e) {
+        return null;
+      }
+    })();
+
+    const fetchOpts = {
       signal: controller.signal,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+      ...(options.body ? { body: options.body } : {}),
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOpts);
 
     clearTimeout(timeoutId);
 
