@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
 import "./BookingSchedule.css";
 
@@ -53,6 +53,22 @@ const formatDateVN = (dateStr) => {
   return `${d}/${mo} (${dayName})`;
 };
 
+const WEEKDAYS_VN = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+const getCalendarDays = (year, month) => {
+  const firstDay = new Date(year, month, 1);
+  let startDay = firstDay.getDay() - 1; // Monday = 0
+  if (startDay < 0) startDay = 6;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = [];
+  for (let i = 0; i < startDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+  return days;
+};
+
+const isSameDay = (y1, m1, d1, y2, m2, d2) =>
+  y1 === y2 && m1 === m2 && d1 === d2;
+
 /* ── Main Component ──────────────────────────────────────────── */
 const BookingSchedule = () => {
   const { id } = useParams();
@@ -68,6 +84,15 @@ const BookingSchedule = () => {
   const [zoomLevel, setZoomLevel] = useState(50); // 50px to 100px column width
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calYear, setCalYear] = useState(() => {
+    const d = new Date(); return d.getFullYear();
+  });
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date(); return d.getMonth();
+  });
+  const [tempDate, setTempDate] = useState(null);
+  const calendarRef = useRef(null);
 
   // Fetch venue & fields
   useEffect(() => {
@@ -93,6 +118,17 @@ const BookingSchedule = () => {
   useEffect(() => {
     setSelectedSlots([]);
   }, [selectedDate]);
+
+  // Close calendar on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target)) {
+        setShowCalendar(false);
+      }
+    };
+    if (showCalendar) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showCalendar]);
 
   // Generate time slots from venue open/close
   const slots = useMemo(
@@ -216,14 +252,17 @@ const BookingSchedule = () => {
   }, [selectedSlots, slots, fields, venue]);
 
   const handleMouseDown = (e) => {
+    if (!gridRef.current) return;
     setIsDragging(true);
-    setDragStart(e.clientX - (gridRef.current?.scrollLeft || 0));
+    setDragStart(e.clientX);
+    gridRef.current.dataset.scrollStart = gridRef.current.scrollLeft;
   };
 
   const handleMouseMove = (e) => {
     if (!isDragging || !gridRef.current) return;
-    const x = e.clientX - dragStart;
-    gridRef.current.scrollLeft = -x;
+    e.preventDefault();
+    const delta = e.clientX - dragStart;
+    gridRef.current.scrollLeft = Number(gridRef.current.dataset.scrollStart) - delta;
   };
 
   const handleMouseUp = () => {
@@ -265,16 +304,95 @@ const BookingSchedule = () => {
             <ArrowLeft size={20} />
           </button>
           <h1 className="bs-title">Đặt lịch ngày trực quan</h1>
-          <div className="bs-date-picker">
-            <input
-              type="date"
-              value={selectedDate}
-              min={todayStr()}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-            <span className="bs-date-display">
-              📅 {formatDateVN(selectedDate)}
+          <div className="bs-date-picker" ref={calendarRef}>
+            <span
+              className="bs-date-display"
+              onClick={() => {
+                const [y, m] = selectedDate.split("-").map(Number);
+                setCalYear(y);
+                setCalMonth(m - 1);
+                setTempDate(selectedDate);
+                setShowCalendar((v) => !v);
+              }}
+            >
+              {formatDateVN(selectedDate)} <Calendar size={18} />
             </span>
+
+            {showCalendar && (() => {
+              const today = new Date();
+              const todayY = today.getFullYear();
+              const todayM = today.getMonth();
+              const todayD = today.getDate();
+              const days = getCalendarDays(calYear, calMonth);
+              const monthLabel = new Date(calYear, calMonth).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
+              const [selY, selM, selD] = (tempDate || selectedDate).split("-").map(Number);
+
+              const canPrevMonth = calYear > todayY || (calYear === todayY && calMonth > todayM);
+
+              return (
+                <div className="bs-calendar-popup">
+                  <div className="bs-cal-header">
+                    <button
+                      className="bs-cal-nav"
+                      onClick={() => {
+                        if (!canPrevMonth) return;
+                        if (calMonth === 0) { setCalYear(calYear - 1); setCalMonth(11); }
+                        else setCalMonth(calMonth - 1);
+                      }}
+                      disabled={!canPrevMonth}
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span className="bs-cal-month">{monthLabel}</span>
+                    <button
+                      className="bs-cal-nav"
+                      onClick={() => {
+                        if (calMonth === 11) { setCalYear(calYear + 1); setCalMonth(0); }
+                        else setCalMonth(calMonth + 1);
+                      }}
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                  <div className="bs-cal-weekdays">
+                    {WEEKDAYS_VN.map((w) => <div key={w} className="bs-cal-wd">{w}</div>)}
+                  </div>
+                  <div className="bs-cal-grid">
+                    {days.map((d, i) => {
+                      if (d === null) return <div key={`e${i}`} className="bs-cal-day empty" />;
+                      const isToday = isSameDay(calYear, calMonth, d, todayY, todayM, todayD);
+                      const isSelected = isSameDay(calYear, calMonth + 1, d, selY, selM, selD);
+                      const isPast = new Date(calYear, calMonth, d) < new Date(todayY, todayM, todayD);
+                      return (
+                        <div
+                          key={d}
+                          className={`bs-cal-day${isToday ? " today" : ""}${isSelected ? " selected" : ""}${isPast ? " past" : ""}`}
+                          onClick={() => {
+                            if (isPast) return;
+                            const ds = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                            setTempDate(ds);
+                          }}
+                        >
+                          {d}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="bs-cal-footer">
+                    <button className="bs-cal-cancel" onClick={() => setShowCalendar(false)}>Hủy</button>
+                    <button
+                      className="bs-cal-confirm"
+                      onClick={() => {
+                        if (tempDate) setSelectedDate(tempDate);
+                        setShowCalendar(false);
+                      }}
+                    >
+                      Xác nhận
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 

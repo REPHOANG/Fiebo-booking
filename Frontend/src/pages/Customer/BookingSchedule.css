@@ -75,16 +75,9 @@
 .bs-date-picker {
   position: relative;
   flex-shrink: 0;
+  z-index: 100;
 }
-.bs-date-picker input[type="date"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  z-index: 2;
-}
+
 .bs-date-display {
   display: flex;
   align-items: center;
@@ -100,10 +93,151 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  user-select: none;
 }
-.bs-date-picker input:hover ~ .bs-date-display {
+.bs-date-display:hover {
   background: #f0fdf4;
   border-color: #6ee7b7;
+}
+
+/* ── Calendar Popup ──────────────────────────────────────────── */
+.bs-calendar-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 20px;
+  z-index: 1000;
+  animation: bsCalFadeIn 0.18s ease;
+}
+@keyframes bsCalFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bs-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.bs-cal-month {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: capitalize;
+}
+.bs-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #166534;
+  transition: background 0.15s;
+}
+.bs-cal-nav:hover:not(:disabled) {
+  background: #f0fdf4;
+}
+.bs-cal-nav:disabled {
+  color: #cbd5e1;
+  cursor: default;
+}
+.bs-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+.bs-cal-wd {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 4px 0;
+}
+.bs-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.bs-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 auto;
+  border-radius: 50%;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.bs-cal-day:hover:not(.empty):not(.past) {
+  background: #f0fdf4;
+}
+.bs-cal-day.empty {
+  cursor: default;
+}
+.bs-cal-day.past {
+  color: #cbd5e1;
+  cursor: default;
+}
+.bs-cal-day.today {
+  border: 2px solid #166534;
+  font-weight: 700;
+}
+.bs-cal-day.selected {
+  background: #166534;
+  color: #fff;
+  font-weight: 700;
+}
+.bs-cal-day.selected.today {
+  border-color: #166534;
+}
+.bs-cal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.bs-cal-cancel {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bs-cal-cancel:hover {
+  background: #f0fdf4;
+}
+.bs-cal-confirm {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #166534;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bs-cal-confirm:hover {
+  background: #14532d;
 }
 
 /* ── Venue Info Card ───────────────────────────────────────────── */
@@ -365,6 +499,19 @@
 }
 
 
+.bs-grid-wrapper {
+  overflow-x: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bs-grid-wrapper::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+.bs-grid-wrapper {
+  scrollbar-width: none;
+}
 .bs-grid-wrapper.dragging {
   cursor: grabbing;
 }
