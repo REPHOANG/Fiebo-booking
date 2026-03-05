@@ -93,6 +93,7 @@ builder.Services.AddScoped<ISmsService, SpeedSmsService>();
 builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<IMapService, OpenRouteService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 builder.Services.AddHttpClient();
 
