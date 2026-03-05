@@ -195,11 +195,9 @@ const CustomerHome = () => {
           <p className="ch-venue-hours">
             <Clock size={13} /> {venue.hours}
           </p>
-          {venue.bookings && (
-            <p className="ch-venue-bookings">
-              <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
-            </p>
-          )}
+          <p className="ch-venue-bookings">
+            <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
+          </p>
         </div>
         <button
           className="ch-book-btn"

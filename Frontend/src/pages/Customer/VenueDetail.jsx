@@ -347,9 +347,7 @@ const VenueDetail = () => {
                 <Star size={14} fill="#f59e0b" stroke="#f59e0b" /> {venue.averageRating?.toFixed(1) || "0.0"}
                 <span className="vd-reviews-count">({venue.ratingCount || 0} đánh giá)</span>
               </span>
-              {venue.bookingCount > 0 && (
-                <span className="vd-booking-count">{venue.bookingCount} lượt đặt</span>
-              )}
+              <span className="vd-booking-count">{venue.bookingCount || 0} lượt đặt</span>
             </div>
 
             {/* Quick info */}

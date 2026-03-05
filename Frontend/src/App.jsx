@@ -57,11 +57,13 @@ const App = () => {
 
           {/* Owner routes */}
           <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
+
+          {/* Booking - no header/footer */}
+          <Route path="/venue/:id/booking" element={<BookingSchedule />} />
           
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/venues" element={<Venues />} />
-            <Route path="/venue/:id/booking" element={<BookingSchedule />} />
             <Route path="/admin" element={<div>Admin Page</div>} />
           </Route>
         </Routes>

@@ -65,7 +65,7 @@ const Header = () => {
             <div className="mega-wrapper">
               <NavLink to="/venues">Sân</NavLink>
 
-              <div className="mega-menu">
+              {/* <div className="mega-menu">
                 <div className="mega-column">
                   <h4>Loại sân</h4>
                   <Link to="/venues/football">Sân bóng đá</Link>
@@ -79,7 +79,7 @@ const Header = () => {
                   <Link to="/venues/hcm">TP HCM</Link>
                   <Link to="/venues/danang">Đà Nẵng</Link>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <NavLink to="/map">Bản đồ</NavLink>

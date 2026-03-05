@@ -180,9 +180,7 @@ const VenuePopup = ({ venueId, onClose }) => {
                   {venue.averageRating?.toFixed(1) || "0.0"}
                   <span className="vp-rating-count">({venue.ratingCount || 0})</span>
                 </span>
-                {venue.bookingCount > 0 && (
-                  <span className="vp-badge">{venue.bookingCount} lượt đặt</span>
-                )}
+                <span className="vp-badge">{venue.bookingCount || 0} lượt đặt</span>
               </div>
             </div>
 
@@ -443,9 +441,7 @@ const Venues = () => {
               >
                 <div className="venue-image">
                   <img src={venue.thumbnailUrl || "/placeholder-venue.jpg"} alt={venue.venueName} loading="lazy" />
-                  {venue.bookingCount > 0 && (
-                    <span className="sport-badge">{venue.bookingCount} lượt đặt</span>
-                  )}
+                  <span className="sport-badge">{venue.bookingCount || 0} lượt đặt</span>
                 </div>
                 <div className="venue-info">
                   <h3>{venue.venueName}</h3>
