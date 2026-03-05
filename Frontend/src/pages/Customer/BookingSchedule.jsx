@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
 import "./BookingSchedule.css";
@@ -251,7 +252,12 @@ const BookingSchedule = () => {
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+    >
       <div className="bs-main">
         {/* Top bar */}
         <div className="bs-topbar">
@@ -454,7 +460,7 @@ const BookingSchedule = () => {
           TIẾP THEO
         </button>
       </div>
-    </>
+    </motion.div>
   );
 };
 

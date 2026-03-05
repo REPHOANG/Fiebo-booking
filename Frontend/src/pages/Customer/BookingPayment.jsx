@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Wallet,
@@ -117,9 +118,17 @@ const BookingPayment = () => {
     return `${dayName}, ${d}/${mo}/${y}`;
   }, [selectedDate]);
 
+  const pageTransition = {
+    initial: { opacity: 0, x: 40 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -40 },
+    transition: { duration: 0.35, ease: "easeInOut" },
+  };
+
   /* ── Payment success ── */
   if (paymentDone) {
     return (
+      <motion.div {...pageTransition}>
       <div className="bp-main">
         <div className="bp-success">
           <div className="bp-success-icon">
@@ -146,12 +155,14 @@ const BookingPayment = () => {
           </button>
         </div>
       </div>
+      </motion.div>
     );
   }
 
   /* ── Expired ── */
   if (expired) {
     return (
+      <motion.div {...pageTransition}>
       <div className="bp-main">
         <div className="bp-expired">
           <div className="bp-expired-icon">
@@ -164,10 +175,12 @@ const BookingPayment = () => {
           </button>
         </div>
       </div>
+      </motion.div>
     );
   }
 
   return (
+    <motion.div {...pageTransition}>
     <div className="bp-main">
       {/* Header */}
       <div className="bp-header">
@@ -221,7 +234,7 @@ const BookingPayment = () => {
               </div>
             )}
 
-            {!loadingBalance && !isEnough && (
+            {!loadingBalance && (
               <button className="bp-topup-btn" onClick={handleTopUp}>
                 <Plus size={18} />
                 Nạp tiền vào ví
@@ -298,6 +311,7 @@ const BookingPayment = () => {
         </div>
       </div>
     </div>
+     </motion.div>
   );
 };
 

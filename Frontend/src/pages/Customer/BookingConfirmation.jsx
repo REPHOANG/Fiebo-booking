@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight, Send, CheckCircle, AlertTriangle } from "lucide-react";
 import { sendPhoneLoginOtp, verifyPhoneLoginOtp } from "../../services/authService";
 import { setCredentials } from "../../store/authSlice";
@@ -145,6 +146,12 @@ const BookingConfirmation = () => {
   };
 
   return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+    >
     <div className="bc-main">
       {/* Header */}
       <div className="bc-header">
@@ -412,6 +419,7 @@ const BookingConfirmation = () => {
         </button>
       </div>
     </div>
+    </motion.div>
   );
 };
 
