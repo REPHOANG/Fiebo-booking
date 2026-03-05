@@ -230,10 +230,8 @@ namespace Fiebo.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("DayOfWeek")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
 
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time(6)");

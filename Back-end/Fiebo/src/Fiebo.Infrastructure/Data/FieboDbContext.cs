@@ -262,11 +262,6 @@ namespace Fiebo.Infrastructure.Data
                 entity.Property(x => x.EndTime)
                       .IsRequired();
 
-                entity.Property(x => x.DayOfWeek)
-                      .HasConversion<string>()
-                      .HasMaxLength(20)
-                      .IsRequired();
-
                 entity.Property(x => x.Price)
                       .HasPrecision(12, 2)
                       .IsRequired();
