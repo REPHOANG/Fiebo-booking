@@ -139,7 +139,18 @@ const BookingConfirmation = () => {
 
   const handleConfirmBooking = () => {
     (async () => {
-      // Reserve slots on server for TTL before navigating to payment
+      // Optimistic: mark slots as booked immediately (5 minutes default)
+      try {
+        // debug: log optimistic booked payload
+        // eslint-disable-next-line no-console
+        console.debug('[BookingConfirmation] dispatching optimistic addBookedSlots', { venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: 300 });
+        dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: 300 }));
+      } catch (e) {}
+        try {
+          dispatch(clearDraft(String(venue?.id)));
+      } catch (e) {}
+
+      // Then attempt to reserve on server and update TTL if server returns a different value
       try {
         const payload = {
           venueId: Number(venue?.id),
@@ -150,16 +161,17 @@ const BookingConfirmation = () => {
         };
 
         const res = await reserveSlots(payload);
-        // Expect { reservationId, expiresInSeconds }
         const reservationId = res?.reservationId || res?.id || null;
         const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
+
+        // Update local TTL if server provided a different value
         try {
-          dispatch(clearDraft(venue?.id));
-          // Mark slots as booked in local store so UI reflects booking immediately (respect server TTL when provided)
-          try {
-            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
-          } catch (e) {}
+          // debug: log server-ttl update
+          // eslint-disable-next-line no-console
+          console.debug('[BookingConfirmation] updating booked TTL', { venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl });
+          dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
         } catch (e) {}
+
         navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
           state: {
             venue,
@@ -175,15 +187,8 @@ const BookingConfirmation = () => {
           },
         });
       } catch (err) {
-        // If reservation failed, still navigate but without reservationId
         console.warn('Reserve failed, proceeding without server reservation', err);
-        try {
-          dispatch(clearDraft(venue?.id));
-          // Mark slots as booked in local store so UI reflects booking immediately
-          try {
-            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots }));
-          } catch (e) {}
-        } catch (e) {}
+        // Already optimistically marked; proceed to payment flow without reservationId
         navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
           state: {
             venue,

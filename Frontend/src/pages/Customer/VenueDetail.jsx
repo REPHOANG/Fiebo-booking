@@ -459,7 +459,7 @@ const VenueDetail = () => {
           <button
             className="vd-booking-btn"
             onClick={() => {
-              try { dispatch(clearDraft(id)); } catch (e) {}
+              try { dispatch(clearDraft(String(id))); } catch (e) {}
               navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`, { state: { forceReload: true } });
             }}
           >

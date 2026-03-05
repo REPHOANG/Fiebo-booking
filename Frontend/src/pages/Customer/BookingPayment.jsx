@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import "./BookingPayment.css";
 import { reserveSlots, confirmReservation, releaseReservation, payBooking } from '../../services/bookingService';
+import { addBookedSlots } from '../../store/bookedSlotsSlice';
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -26,9 +27,28 @@ const BookingPayment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const { user, token } = useSelector((state) => state.auth);
 
   const paymentState = location.state;
+
+  // If we arrived with booking state, mark the selected slots as booked (respect TTL)
+  useEffect(() => {
+    try {
+      const bs = location.state;
+      if (bs?.venue && bs?.selectedDate && Array.isArray(bs.selectedSlots) && bs.selectedSlots.length > 0) {
+        const ttl = Number(bs.reservationTtl ?? 300);
+        try {
+          // debug: log booking applied on payment mount
+          // eslint-disable-next-line no-console
+          console.debug('[BookingPayment] dispatching addBookedSlots on mount', { venueId: String(bs.venue.id), date: bs.selectedDate, slots: bs.selectedSlots, ttlSeconds: ttl });
+          dispatch(addBookedSlots({ venueId: String(bs.venue.id), date: bs.selectedDate, slots: bs.selectedSlots, ttlSeconds: ttl }));
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {}
+  }, [location.state, dispatch]);
 
   // Wallet balance (TODO: fetch from API)
   const [walletBalance, setWalletBalance] = useState(0);

@@ -157,7 +157,7 @@ const VenuePopup = ({ venueId, onClose }) => {
       >
         {/* Sticky top bar */}
         <div className="vp-top-bar">
-          <button className="vp-book-btn" onClick={() => { onClose(); try { dispatch(clearDraft(venueId)); } catch(e){}; navigate(`/venue/${venueId}/booking`); }}>
+          <button className="vp-book-btn" onClick={() => { onClose(); try { dispatch(clearDraft(String(venueId))); } catch(e){}; navigate(`/venue/${venueId}/booking`); }}>
             <Calendar size={16} /> Đặt sân
           </button>
           <button className="vp-close" onClick={onClose}><X size={22} /></button>

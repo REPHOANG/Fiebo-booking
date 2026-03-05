@@ -20,6 +20,10 @@ const bookedSlotsSlice = createSlice({
   reducers: {
     addBookedSlots: (state, action) => {
       // payload: { venueId, date, slots: [{fieldIdx, slotIdx}, ...], ttlSeconds }
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[bookedSlotsSlice] addBookedSlots action', action.payload);
+      } catch (e) {}
       const { venueId, date, slots, ttlSeconds } = action.payload || {};
       if (!venueId || !date || !Array.isArray(slots)) return;
       state[venueId] = state[venueId] || {};

@@ -275,11 +275,30 @@ const BookingSchedule = () => {
     [bookedForDate]
   );
 
+  // If a slot becomes booked (e.g., after confirm/payment), remove it from current selection
+  useEffect(() => {
+    if (!selectedSlots || !selectedSlots.length) return;
+    const remaining = selectedSlots.filter((s) => !isBooked(s.fieldIdx, s.slotIdx));
+    if (remaining.length !== selectedSlots.length) {
+      setSelectedSlots(remaining);
+    }
+  }, [bookedForDate]);
+
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>
       selectedSlots.some((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx),
     [selectedSlots]
   );
+
+  // Debug logging to help verify booked vs selected state
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug('[BookingSchedule] selectedSlots', selectedDate, selectedSlots);
+      // eslint-disable-next-line no-console
+      console.debug('[BookingSchedule] bookedForDate', selectedDate, bookedForDate);
+    } catch (e) {}
+  }, [selectedSlots, bookedForDate, selectedDate]);
 
   const toggleSlot = (fieldIdx, slotIdx) => {
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
