@@ -99,8 +99,62 @@ export const releaseReservation = async (payload) => {
   return response.data ?? response;
 };
 
+/**
+ * Send booking OTP to phone number
+ * @param {string} phoneNumber
+ */
+export const sendBookingOtp = async (phoneNumber) => {
+  const response = await fetchAPI('/api/Booking/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber }),
+  });
+  return response.data ?? response;
+};
+
+/**
+ * Verify booking OTP and return access token or confirmation
+ * @param {string} phoneNumber
+ * @param {string} otpCode
+ */
+export const verifyBookingOtp = async (phoneNumber, otpCode) => {
+  const response = await fetchAPI('/api/Booking/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phoneNumber, otpCode }),
+  });
+  return response.data ?? response;
+};
+
+/**
+ * Create a new booking (authenticated)
+ * @param {Object} payload
+ */
+export const createBooking = async (payload) => {
+  const response = await fetchAPI('/api/Booking', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.data ?? response;
+};
+
+/**
+ * Pay for a booking using wallet or payment reference
+ * @param {number|string} bookingId
+ * @param {Object} payload
+ */
+export const payBooking = async (bookingId, payload) => {
+  const response = await fetchAPI(`/api/Booking/${bookingId}/payment`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.data ?? response;
+};
+
 export default {
   reserveSlots,
   confirmReservation,
   releaseReservation,
+  sendBookingOtp,
+  verifyBookingOtp,
+  createBooking,
+  payBooking,
 };

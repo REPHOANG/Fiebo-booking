@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight, Send, CheckCircle, AlertTriangle } from "lucide-react";
-import { sendPhoneLoginOtp, verifyPhoneLoginOtp } from "../../services/authService";
+import { sendBookingOtp, verifyBookingOtp } from "../../services/bookingService";
 import { setCredentials } from "../../store/authSlice";
 import "./BookingConfirmation.css";
 
@@ -47,11 +47,11 @@ const BookingConfirmation = () => {
     setPhoneError("");
     setPhoneStatus("sending");
     try {
-      await sendPhoneLoginOtp(guestPhone);
+      await sendBookingOtp(guestPhone);
       setPhoneStatus("otp-sent");
       startCountdown();
     } catch (err) {
-      // If phone exists in system, backend may return specific error
+      // Booking OTP may still succeed even if backend returns conflict for user account
       if (err.status === 409 || err.message?.includes("đã tồn tại") || err.message?.includes("already")) {
         setPhoneStatus("exists");
         setPhoneError("Số điện thoại này đã có tài khoản. Vui lòng đăng nhập.");
@@ -71,10 +71,18 @@ const BookingConfirmation = () => {
     setPhoneError("");
     setPhoneStatus("verifying");
     try {
-      const result = await verifyPhoneLoginOtp(guestPhone, otpCode);
-      // Auto-login with obtained token
-      if (result.token) {
-        dispatch(setCredentials({ user: result.user, token: result.token }));
+      const result = await verifyBookingOtp(guestPhone, otpCode);
+      // If backend returned an access token, persist it so subsequent booking/payment calls can use it
+      const token = result?.accessToken || result?.token || result?.data || null;
+      const userFromRes = result?.user || result?.data?.user || null;
+      if (token) {
+        try {
+          const authState = { user: userFromRes || { name: guestName, phone: guestPhone }, token, isAuthenticated: !!token };
+          localStorage.setItem('authState', JSON.stringify(authState));
+          dispatch(setCredentials({ user: authState.user, token: authState.token }));
+        } catch (e) {
+          // ignore storage errors
+        }
       }
       setPhoneStatus("verified");
     } catch (err) {
