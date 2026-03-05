@@ -9,6 +9,7 @@ import Layout from './components/layout/Layout';
 import Home from './components/landing/Home';
 import CustomerHome from './pages/Customer/CustomerHome';
 import VenueDetail from './pages/Customer/VenueDetail';
+import BookingSchedule from './pages/Customer/BookingSchedule';
 import Login from './pages/auth/Login';
 import OwnerLogin from './pages/auth/OwnerLogin';
 import Register from './pages/auth/Register';
@@ -60,6 +61,7 @@ const App = () => {
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/venues" element={<Venues />} />
+            <Route path="/venue/:id/booking" element={<BookingSchedule />} />
             <Route path="/admin" element={<div>Admin Page</div>} />
           </Route>
         </Routes>

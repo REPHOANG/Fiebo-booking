@@ -97,3 +97,85 @@ export const getTopBookingFields = async ({
   const response = await fetchAPI(`/api/Venue/top-booking?${params.toString()}`);
   return response.data;
 };
+
+/**
+ * Get venue detail by ID
+ * @param {number} venueId
+ * @returns {Promise<Object>} VenueDetailResponse
+ */
+export const getVenueDetail = async (venueId) => {
+  const response = await fetchAPI(`/api/Venue/${venueId}/details`);
+  return response.data;
+};
+
+/**
+ * Get fields belonging to a venue (paginated)
+ * @param {number} venueId
+ * @param {number} [page=1]
+ * @param {number} [pageSize=20]
+ * @returns {Promise<Object>} PagedResult<FieldsDetailDTO>
+ */
+export const getVenueFields = async (venueId, page = 1, pageSize = 20) => {
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('pageSize', pageSize);
+  const response = await fetchAPI(`/api/Venue/${venueId}/fields?${params.toString()}`);
+  return response.data;
+};
+
+/**
+ * Get reviews for a venue (paginated)
+ * @param {number} venueId
+ * @param {Object} [options]
+ * @param {number} [options.page=1]
+ * @param {number} [options.pageSize=10]
+ * @param {string} [options.sort] - Sort option (e.g. "newest", "highest")
+ * @returns {Promise<Object>} PagedResult<ReviewDTO>
+ */
+export const getVenueReviews = async (venueId, { page = 1, pageSize = 10, sort } = {}) => {
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('pageSize', pageSize);
+  if (sort) params.append('sort', sort);
+  const response = await fetchAPI(`/api/Venue/${venueId}/reviews?${params.toString()}`);
+  return response.data;
+};
+
+/**
+ * Search venues by location, date, time and sport type
+ * @param {Object} params
+ * @param {string} [params.location]
+ * @param {string} [params.date] - "YYYY-MM-DD"
+ * @param {string} [params.time] - "HH:mm:ss"
+ * @param {number} [params.sportTypeId]
+ * @param {number} [params.page=1]
+ * @param {number} [params.pageSize=10]
+ * @param {number} [params.radiusKm]
+ * @param {number} [params.userLat]
+ * @param {number} [params.userLng]
+ * @returns {Promise<Object>} PagedResult<VenueInfoResponse>
+ */
+export const searchVenues = async ({
+  location,
+  date,
+  time,
+  sportTypeId,
+  page = 1,
+  pageSize = 10,
+  radiusKm,
+  userLat,
+  userLng,
+} = {}) => {
+  const params = new URLSearchParams();
+  if (location) params.append('location', location);
+  if (date) params.append('date', date);
+  if (time) params.append('time', time);
+  if (sportTypeId != null) params.append('sportTypeId', sportTypeId);
+  params.append('page', page);
+  params.append('pageSize', pageSize);
+  if (radiusKm != null) params.append('radiusKm', radiusKm);
+  if (userLat != null) params.append('userLat', userLat);
+  if (userLng != null) params.append('userLng', userLng);
+  const response = await fetchAPI(`/api/Venue/search?${params.toString()}`);
+  return response.data;
+};
