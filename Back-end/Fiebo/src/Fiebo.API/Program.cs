@@ -95,6 +95,7 @@ builder.Services.AddScoped<ISmsService, SpeedSmsService>();
 builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<IMapService, OpenRouteService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 builder.Services.AddHttpClient();
 
@@ -129,7 +130,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.AddServer(new OpenApiServer
     {
-        Url = "https://localhost:7078",
+        Url = "http://localhost:8080",
         Description = "Local"
     });
     var securityScheme = new OpenApiSecurityScheme

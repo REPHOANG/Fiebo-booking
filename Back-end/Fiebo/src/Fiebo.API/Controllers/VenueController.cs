@@ -2,10 +2,8 @@
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
@@ -30,14 +28,8 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Get nearby fields by user location, default location (HaNoi) if user does not allow to location
+        /// Get nearby fields by user location, default location (HaNoi) if user does not allow location.
         /// </summary>
-        /// <param name="sportTypeId"></param>
-        /// <param name="radiusKm"></param>
-        /// <param name="limit"></param>
-        /// <param name="userLat"></param>
-        /// <param name="userLng"></param>
-        /// <returns></returns>
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
@@ -50,18 +42,14 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<List<VenueInfoResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh sách sân gần nhất thành công",
+                Message = "Get nearby venues successfully",
                 Data = [.. result]
             });
         }
 
         /// <summary>
-        /// Get top booking fields
+        /// Get top booking fields.
         /// </summary>
-        /// <param name="limit"></param>
-        /// <param name="userLat"></param>
-        /// <param name="userLng"></param>
-        /// <returns></returns>
         [HttpGet("top-booking")]
         public async Task<IActionResult> GetTopBookingVenues(
             [FromQuery] int limit = 5,
@@ -72,7 +60,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<List<VenueInfoResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh sách sân nhiều lượt đặt nhất thành công",
+                Message = "Get top booking venues successfully",
                 Data = [.. result]
             });
         }
@@ -153,6 +141,50 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Search fields by location, date, time and sport type, but return matched venues.
+        /// </summary>
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchFields(
+            [FromQuery] SearchFieldsRequest request)
+        {
+            if (request.Page <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "page must be greater than 0"
+                });
+            }
+
+            if (request.PageSize <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "pageSize must be greater than 0"
+                });
+            }
+
+            if (!request.Date.HasValue && request.Time.HasValue)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = "time cannot be provided without date"
+                });
+            }
+
+            var result = await _venueService.SearchVenuesByFieldAsync(request);
+
+            return Ok(new ApiResponse<PagedResult<VenueInfoResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Search venues successfully",
                 Data = result
             });
         }

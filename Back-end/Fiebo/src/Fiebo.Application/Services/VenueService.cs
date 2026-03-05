@@ -2,14 +2,8 @@
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Application.Services
 {
@@ -208,6 +202,83 @@ namespace Fiebo.Application.Services
                 Page = result.Page,
                 PageSize = result.PageSize,
                 TotalItems = result.TotalItems
+            };
+        }
+
+        public async Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
+            SearchFieldsRequest request)
+        {
+            var page = request.Page <= 0 ? 1 : request.Page;
+            var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
+
+            var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
+                request.Location,
+                request.Date,
+                request.Time,
+                request.SportTypeId,
+                request.UserLat,
+                request.UserLng,
+                page,
+                pageSize,
+                request.RadiusKm);
+
+            if (!venues.Items.Any())
+            {
+                return new PagedResult<VenueInfoResponse>
+                {
+                    Page = venues.Page,
+                    PageSize = venues.PageSize,
+                    TotalItems = venues.TotalItems,
+                    Items = []
+                };
+            }
+
+            var venueIds = venues.Items.Select(v => v.Id).ToList();
+            var bookingMap = await _unitOfWork.BookingDetails.CountCompletedBookingsByVenueAsync(venueIds);
+            var ratingMap = await _unitOfWork.Reviews.GetAveragesByVenueAsync(venueIds);
+
+            var locationList = venues.Items
+                .Select(v => new VenueLocationDto
+                {
+                    VenueId = v.Id,
+                    Latitude = v.Latitude,
+                    Longitude = v.Longitude
+                })
+                .ToList();
+
+            var distances = await _mapService.GetDistancesAsync(request.UserLat, request.UserLng, locationList);
+
+            var items = venues.Items
+                .Select(v =>
+                {
+                    distances.TryGetValue(v.Id, out var distanceKm);
+
+                    return new VenueInfoResponse
+                    {
+                        VenueId = v.Id,
+                        VenueName = v.Name,
+                        Province = v.Ward?.Province?.Name ?? v.Province?.Name,
+                        Ward = v.Ward?.Name,
+                        AddressDetail = v.AddressDetail,
+                        OpenTime = v.OpenTime,
+                        CloseTime = v.CloseTime,
+                        BookingCount = bookingMap.GetValueOrDefault(v.Id, 0),
+                        Rating = Math.Round(ratingMap.GetValueOrDefault(v.Id, 0), 1),
+                        ThumbnailUrl = v.Fields
+                            .SelectMany(f => f.Images)
+                            .Select(i => i.ImageUrl)
+                            .FirstOrDefault(),
+                        DistanceKm = Math.Round(distanceKm, 2)
+                    };
+                })
+                .ToList();
+
+            return new PagedResult<VenueInfoResponse>
+            {
+                Page = venues.Page,
+                PageSize = venues.PageSize,
+                TotalItems = venues.TotalItems,
+                Items = items
             };
         }
 

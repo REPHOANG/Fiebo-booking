@@ -1,13 +1,6 @@
-﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
-using Fiebo.Domain.DTOs.Field;
 using Fiebo.Domain.Shared;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Application.Interfaces
 {
@@ -30,6 +23,9 @@ namespace Fiebo.Application.Interfaces
             int page,
             int pageSize,
             string? sort);
+
+        Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
+    SearchFieldsRequest request);
         Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date);
     }
 }

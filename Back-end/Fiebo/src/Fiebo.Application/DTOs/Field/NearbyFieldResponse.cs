@@ -1,5 +1,4 @@
-﻿
-namespace Fiebo.Domain.DTOs.Field
+﻿namespace Fiebo.Application.DTOs.Field
 {
     public class NearbyFieldResponse
     {

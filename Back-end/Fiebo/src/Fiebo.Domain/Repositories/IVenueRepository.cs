@@ -1,9 +1,5 @@
-﻿using Fiebo.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Domain.Repositories
 {
@@ -19,5 +15,16 @@ namespace Fiebo.Domain.Repositories
         Task<List<Venue>> GetTopBookingVenuesAsync(int top);
 
         Task<Venue?> GetVenueDetailById(int venueId);
+
+        Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
+            string? locationKeyword,
+            DateOnly? bookingDate,
+            TimeSpan? bookingTime,
+            int? sportTypeId,
+            double userLat,
+            double userLng,
+            int page,
+            int pageSize,
+            double? radiusKm);
     }
 }
