@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight, Send, CheckCircle, AlertTriangle } from "lucide-react";
-import { sendBookingOtp, verifyBookingOtp, reserveSlots } from "../../services/bookingService";
+import { sendBookingOtp, verifyBookingOtp, createBooking } from "../../services/bookingService";
+import { getVenueSchedule } from "../../services/fieldService";
 import { clearDraft } from '../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../store/bookedSlotsSlice';
 import { setCredentials } from "../../store/authSlice";
@@ -22,6 +23,7 @@ const BookingConfirmation = () => {
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [confirmError, setConfirmError] = useState("");
 
   // Start countdown timer for resending OTP
   const startCountdown = useCallback(() => {
@@ -72,7 +74,16 @@ const BookingConfirmation = () => {
     try {
       const result = await verifyBookingOtp(guestPhone, otpCode, guestName);
       // If backend returned an access token, persist it so subsequent booking/payment calls can use it
-      const token = result?.accessToken || result?.token || result?.data || null;
+      let token = null;
+      // Normalize token value whether backend nests it under `data` or returns directly
+      if (typeof result === 'string') token = result;
+      else if (result) {
+        token = result?.accessToken || result?.token || null;
+        if (!token && result.data) {
+          token = result.data?.accessToken || result.data?.token || (typeof result.data === 'string' ? result.data : null);
+        }
+      }
+
       const userFromRes = result?.user || result?.data?.user || null;
       if (token) {
         try {
@@ -110,7 +121,7 @@ const BookingConfirmation = () => {
     );
   }
 
-  const { venue, fields, selectedDate, selectedSlots, slots, slotSummary } = bookingState;
+  const { venue, fields, selectedDate, selectedSlots, slots, slotSummary, venueSchedule } = bookingState;
 
   // Format the date nicely
   const formattedDate = useMemo(() => {
@@ -125,6 +136,7 @@ const BookingConfirmation = () => {
   const bookingItems = useMemo(() => {
     if (!slotSummary?.groups) return [];
     return slotSummary.groups.map((g) => ({
+      fieldId: g.fieldId,
       fieldName: g.fieldName,
       ranges: g.ranges,
       slotCount: g.slotCount,
@@ -138,6 +150,7 @@ const BookingConfirmation = () => {
   const totalMinutes = slotSummary?.totalMinutes || 0;
 
   const handleConfirmBooking = () => {
+    setConfirmError("");
     (async () => {
       // Optimistic: mark slots as booked immediately (5 minutes default)
       try {
@@ -150,25 +163,64 @@ const BookingConfirmation = () => {
           dispatch(clearDraft(String(venue?.id)));
       } catch (e) {}
 
-      // Then attempt to reserve on server and update TTL if server returns a different value
+      // Create booking request on server with required payload structure
       try {
+        // Get schedule to map (fieldId, startTime) -> server slotId
+        let schedule = venueSchedule;
+        if (!schedule && venue?.id && selectedDate) {
+          const res = await getVenueSchedule(venue.id, selectedDate);
+          schedule = res;
+        }
+        const slotIdMap = {};
+        if (schedule?.sportTypes) {
+          schedule.sportTypes.forEach((st) => {
+            (st.fields || []).forEach((f) => {
+              const fieldId = Number(f.fieldId);
+              (st.slots || []).forEach((s) => {
+                const startTime = (s.startTime || "").slice(0, 5);
+                slotIdMap[`${fieldId}-${startTime}`] = Number(s.slotId);
+              });
+            });
+          });
+        }
+
+        // Build details array: [{ fieldId, slotId }] — backend expects int FieldId, int SlotId
+        const details = [];
+        if (Array.isArray(selectedSlots) && Array.isArray(fields) && Array.isArray(slots)) {
+          for (const { fieldIdx, slotIdx } of selectedSlots) {
+            const field = fields[fieldIdx];
+            if (!field) continue;
+            const fieldId = Number(field.id ?? field.fieldId);
+            const startTime = slots[slotIdx]?.label;
+            const slotId = startTime != null ? slotIdMap[`${fieldId}-${startTime}`] : undefined;
+            if (fieldId && slotId) {
+              details.push({ fieldId, slotId });
+            }
+          }
+        }
+        if (details.length === 0 && selectedSlots.length > 0) {
+          setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+          return;
+        }
+
         const payload = {
-          venueId: Number(venue?.id),
-          date: selectedDate,
-          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
-          customerName: displayName || guestName,
-          customerPhone: displayPhone || guestPhone,
+          bookingDate: selectedDate,
+          fullname: displayName || guestName,
+          phoneNumber: displayPhone || guestPhone,
+          bookingNote: "",
+          details,
         };
 
-        const res = await reserveSlots(payload);
-        const reservationId = res?.reservationId || res?.id || null;
+        // Debug: log payload before sending
+        // eslint-disable-next-line no-console
+        console.debug('[BookingConfirmation] sending booking payload', payload);
+
+        const res = await createBooking(payload);
+        const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
-        // Update local TTL if server provided a different value
         try {
-          // debug: log server-ttl update
-          // eslint-disable-next-line no-console
-          console.debug('[BookingConfirmation] updating booked TTL', { venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl });
+          console.debug('[BookingConfirmation] server created booking', { bookingId, venueId: String(venue?.id), date: selectedDate, ttlSeconds: ttl });
           dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
         } catch (e) {}
 
@@ -182,13 +234,19 @@ const BookingConfirmation = () => {
             customerName: displayName,
             customerPhone: displayPhone,
             totalPrice,
-            reservationId,
+            reservationId: bookingId,
             reservationTtl: ttl,
           },
         });
       } catch (err) {
-        console.warn('Reserve failed, proceeding without server reservation', err);
-        // Already optimistically marked; proceed to payment flow without reservationId
+        console.warn('Create booking failed', err);
+        if (err && err.status === 401) {
+          // Unauthorized — require user to login or verify phone first
+          setConfirmError('Bạn cần đăng nhập hoặc xác thực số điện thoại trước khi xác nhận. Vui lòng đăng nhập hoặc xác thực OTP.');
+          return;
+        }
+
+        // Other errors: proceed to payment without server booking
         navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
           state: {
             venue,
@@ -463,6 +521,12 @@ const BookingConfirmation = () => {
           <span className="bc-summary-total">{formatPrice(totalPrice)}</span>
         </div>
       </div>
+
+      {confirmError && (
+        <div className="bc-section" style={{ marginTop: "0.5rem" }}>
+          <p className="bc-field-error" role="alert">{confirmError}</p>
+        </div>
+      )}
 
       {/* Bottom action */}
       <div className="bc-bottom">

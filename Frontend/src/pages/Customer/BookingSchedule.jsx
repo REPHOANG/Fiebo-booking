@@ -106,6 +106,7 @@ const BookingSchedule = () => {
   });
   const [tempDate, setTempDate] = useState(null);
   const calendarRef = useRef(null);
+  const [venueSchedule, setVenueSchedule] = useState(null);
 
   // Fetch venue & fields
   useEffect(() => {
@@ -116,7 +117,8 @@ const BookingSchedule = () => {
           getVenueDetail(id),
           getVenueFields(id),
         ]);
-        setVenue(v);
+        // Đảm bảo venue luôn có property id
+        setVenue({ ...v, id });
         setFields(f?.items || []);
       } catch (err) {
         setError(err.message || "Không thể tải thông tin sân");
@@ -213,8 +215,11 @@ const BookingSchedule = () => {
           });
         });
 
-        if (mounted && booked.length) {
-          try { dispatch(addBookedSlots({ venueId: String(id), date: selectedDate, slots: booked })); } catch (e) {}
+        if (mounted) {
+          setVenueSchedule(res);
+          if (booked.length) {
+            try { dispatch(addBookedSlots({ venueId: String(id), date: selectedDate, slots: booked })); } catch (e) {}
+          }
         }
       } catch (e) {
         // ignore fetch errors
@@ -363,6 +368,7 @@ const BookingSchedule = () => {
       const fiNum = Number(fi);
       const fieldName = fields[fiNum]?.name || `Sân ${fiNum + 1}`;
       const pricePerSlot = fields[fiNum]?.pricePerSlot || 0;
+      const fieldId = (fields[fiNum] && (fields[fiNum].id ?? fields[fiNum].fieldId)) ?? fiNum;
       const rangeLabels = ranges.map((r) => {
         const startLabel = slots[r.from]?.label || "";
         const endSlot = slots[r.to + 1] || null;
@@ -374,7 +380,7 @@ const BookingSchedule = () => {
         return `${startLabel} - ${endLabel}`;
       });
 
-      return { fieldName, ranges: rangeLabels, slotCount: sorted.length, pricePerSlot };
+      return { fieldName, ranges: rangeLabels, slotCount: sorted.length, pricePerSlot, fieldId };
     });
 
     const totalMinutes = selectedSlots.length * 30;
@@ -717,6 +723,7 @@ const BookingSchedule = () => {
                 selectedSlots,
                 slots,
                 slotSummary,
+                venueSchedule,
               },
             });
           }}
