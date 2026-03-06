@@ -26,7 +26,17 @@ const fetchAPI = async (endpoint, options = {}) => {
       },
     };
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
+    // Debug log for outgoing token and Authorization header
+    // eslint-disable-next-line no-console
+    console.debug('[bookingService] fetchAPI', {
+      endpoint,
+      token,
+      authorizationHeader: fetchOptions.headers.Authorization,
+      headers: fetchOptions.headers,
+    });
+
+    const url = `${API_BASE_URL}${endpoint}`;
+    const response = await fetch(url, fetchOptions);
     clearTimeout(timeoutId);
 
     const contentType = response.headers.get('content-type');
@@ -38,11 +48,13 @@ const fetchAPI = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      throw {
+      const err = {
         status: response.status,
-        message: data?.message || `HTTP Error: ${response.status}`,
+        message: data?.message || (typeof data === 'string' ? data : null) || `HTTP ${response.status}`,
         data,
       };
+      console.error('[bookingService] request failed', { url, status: response.status, data: err.data });
+      throw err;
     }
 
     return data;
@@ -52,9 +64,14 @@ const fetchAPI = async (endpoint, options = {}) => {
       throw { status: 408, message: `Request timeout (${API_TIMEOUT}ms)` };
     }
     if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
+      const url = `${API_BASE_URL}${endpoint}`;
+      console.error('[bookingService] network error — backend unreachable', {
+        url,
+        hint: 'Kiểm tra backend đã chạy (ví dụ http://localhost:8080) và CORS.',
+      });
       throw {
         status: 0,
-        message: 'Cannot reach backend. Please check the server or network.',
+        message: 'Không kết nối được máy chủ. Kiểm tra backend đã chạy và mạng.',
         details: error.message,
       };
     }
@@ -68,11 +85,23 @@ const fetchAPI = async (endpoint, options = {}) => {
  * Returns server response which ideally contains { reservationId, expiresInSeconds }
  */
 export const reserveSlots = async (payload) => {
-  const response = await fetchAPI('/api/Booking/reserve', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  return response.data ?? response;
+  try {
+    const response = await fetchAPI('/api/Booking/reserve', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return response.data ?? response;
+  } catch (err) {
+    // If backend doesn't implement /reserve, fallback to creating a booking (unconfirmed)
+    if (err && err.status === 404) {
+      const fallback = await fetchAPI('/api/Booking', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return fallback.data ?? fallback;
+    }
+    throw err;
+  }
 };
 
 /**

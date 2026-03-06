@@ -327,12 +327,20 @@ export const getProfile = async (token) => {
 // Update user profile
 export const updateProfile = async (token, profileData) => {
   try {
+    // Backend expects DateOnly? for dateOfBirth; empty string "" cannot be converted and causes 400
+    const payload = {
+      fullName: profileData.fullName ?? null,
+      phoneNumber: profileData.phoneNumber && String(profileData.phoneNumber).trim() !== '' ? profileData.phoneNumber : null,
+      dateOfBirth: profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ''
+        ? profileData.dateOfBirth.trim().slice(0, 10)
+        : null,
+    };
     const response = await fetchAPI('/api/auth/profile', {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(payload),
     });
 
     return {

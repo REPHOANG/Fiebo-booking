@@ -321,6 +321,17 @@ const BookingPayment = () => {
             </div>
           </div>
 
+          {(paymentState?.slotMappingFailed || !paymentState?.reservationId) && (
+            <div className="bp-notice-card" role="status">
+              <AlertTriangle size={18} />
+              <span>
+                {paymentState?.slotMappingFailed
+                  ? "Đặt chỗ chưa được lưu trên máy chủ. Bạn vẫn có thể thanh toán hoặc quay lại đặt lịch."
+                  : "Đặt chỗ chưa có mã từ máy chủ. Giữ chỗ tạm 5 phút — hãy thanh toán sớm."}
+              </span>
+            </div>
+          )}
+
           {/* Wallet section */}
           <div className="bp-wallet-card">
             <div className="bp-wallet-header">

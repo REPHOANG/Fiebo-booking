@@ -352,16 +352,33 @@ const BookingConfirmation = () => {
             <>
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Họ tên</span>
-                <span className="bc-customer-value">{user.fullName || user.name || "—"}</span>
+               <input
+                  className="bc-field-input"
+                  type="text"
+                  placeholder="Nhập họ và tên"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                />
               </div>
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Số điện thoại</span>
-                <span className="bc-customer-value">{user.phone || user.phoneNumber || "—"}</span>
+                 <input
+                    className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
+                    type="tel"
+                    placeholder="0912 345 678"
+                    value={guestPhone}
+                    onChange={(e) => {
+                      setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
+                      setPhoneStatus("idle");
+                      setPhoneError("");
+                    }}
+                    disabled={phoneStatus === "otp-sent" || phoneStatus === "verifying"}
+                  />
               </div>
-              <div className="bc-customer-row">
+              {/* <div className="bc-customer-row">
                 <span className="bc-customer-label">Email</span>
                 <span className="bc-customer-value">{user.email || "—"}</span>
-              </div>
+              </div> */}
             </>
           ) : phoneStatus === "verified" ? (
             /* ── Guest – verified ── */

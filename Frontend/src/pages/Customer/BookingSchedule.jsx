@@ -263,17 +263,20 @@ const BookingSchedule = () => {
     [selectedDate, lockedBefore]
   );
 
-  // TODO: When backend API exists, fetch booked slots
-  const bookedForDate = useSelector((s) => {
+  // Raw booked slots for this venue/date (stable reference from Redux)
+  const rawBookedForDate = useSelector((s) => {
     try {
       const venueMap = s.bookedSlots && s.bookedSlots[id] ? s.bookedSlots[id] : {};
-      const arr = venueMap[selectedDate] || [];
-      const now = Date.now();
-      return arr.filter((e) => !e.expiresAt || e.expiresAt > now);
+      return venueMap[selectedDate] || [];
     } catch (e) {
       return [];
     }
   });
+  // Memoize filtered list so selector doesn't return new reference every time
+  const bookedForDate = useMemo(() => {
+    const now = Date.now();
+    return rawBookedForDate.filter((e) => !e.expiresAt || e.expiresAt > now);
+  }, [rawBookedForDate]);
 
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
