@@ -174,7 +174,7 @@ var app = builder.Build();
 app.UseCors("AllowFrontend");
 app.UseMiddleware<Fiebo.API.Middlewares.ExceptionHandlingMiddleware>();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseSerilogRequestLogging();
 // Seed Data
 using (var scope = app.Services.CreateScope())
