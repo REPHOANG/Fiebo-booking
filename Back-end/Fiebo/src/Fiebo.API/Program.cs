@@ -4,10 +4,10 @@ using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Repositories;
-using Fiebo.Infrastructure.Data;
+using Fiebo.Persistence.Data;
 using Fiebo.Infrastructure.ExternalServices;
-using Fiebo.Infrastructure.Identity;
-using Fiebo.Infrastructure.Repositories;
+using Fiebo.Persistence.Identity;
+using Fiebo.Persistence.Repositories;
 using Fiebo.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -18,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Reflection;
 using System.Text;
+
 
 Env.Load();
 var builder = WebApplication.CreateBuilder(args);
@@ -190,7 +191,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<Fiebo.Infrastructure.Data.FieboDbContext>();
+        var context = services.GetRequiredService<Fiebo.Persistence.Data.FieboDbContext>();
 
         // 1. Chạy lệnh tạo bảng (Migration)
         await context.Database.MigrateAsync();
