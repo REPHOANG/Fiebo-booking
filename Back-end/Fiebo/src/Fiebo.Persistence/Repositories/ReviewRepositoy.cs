@@ -21,13 +21,13 @@ namespace Fiebo.Persistence.Repositories
         public async Task<int> CountByVenueAsync(int venueId)
         {
             return await _context.Reviews
-                .Where(r => r.BookingDetail.Field.VenueId == venueId).CountAsync();
+                .Where(r => r.Booking!.VenueId == venueId).CountAsync();
         }
 
         public async Task<double> GetAverageByVenueAsync(int venueId)
         {
             return await _context.Reviews
-                .Where(r => r.BookingDetail.Field.VenueId == venueId)
+                .Where(r => r.Booking!.VenueId == venueId)
                 .AverageAsync(r => (double?)r.Rating) ?? 0;
         }
 
@@ -40,7 +40,7 @@ namespace Fiebo.Persistence.Repositories
             var baseQuery = _context.Reviews
                 .AsNoTracking()
                 .Where(r =>
-                    r.BookingDetail.Field.VenueId == venueId);
+                    r.Booking!.VenueId == venueId);
 
             var totalItems = await baseQuery.CountAsync();
             if (!ReviewSortMap.Map.TryGetValue(
@@ -51,6 +51,7 @@ namespace Fiebo.Persistence.Repositories
             }
 
             var items = await order(baseQuery)
+                .Include(r => r.Images)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -67,8 +68,8 @@ namespace Fiebo.Persistence.Repositories
         public async Task<Dictionary<int, double>> GetAveragesByVenueAsync(List<int> venueId)
         {
             return await _context.Reviews
-                .Where(r => venueId.Contains(r.BookingDetail.Field.VenueId))
-                .GroupBy(r => r.BookingDetail.Field.VenueId)
+                .Where(r => venueId.Contains(r.Booking!.VenueId))
+                .GroupBy(r => r.Booking!.VenueId)
                 .Select(g => new
                 {
                     VenueId = g.Key,

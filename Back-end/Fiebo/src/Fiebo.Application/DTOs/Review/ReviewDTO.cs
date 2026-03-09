@@ -12,5 +12,6 @@ namespace Fiebo.Application.DTOs.Review
         public DateTime CreatedAt { get; set; }
         public string? Comment { get; set; }
         public double Rating { get; set; } = 0;
+        public List<string> Images { get; set; } = [];
     }
 }
