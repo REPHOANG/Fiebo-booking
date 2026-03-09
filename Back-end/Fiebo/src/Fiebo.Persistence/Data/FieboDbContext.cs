@@ -28,6 +28,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<BookingDetail> BookingDetails { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
+        public DbSet<ReviewImage> ReviewImages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -177,18 +178,20 @@ namespace Fiebo.Persistence.Data
                 entity.Property(r => r.UserId)
                       .IsRequired();
 
-                entity.Property(r => r.BookingDetailId)
-                      .IsRequired();
-
                 entity.HasOne<ApplicationUser>()
                       .WithMany()
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(r => r.BookingDetail)
-                      .WithMany(v => v.Reviews)
-                      .HasForeignKey(r => r.BookingDetailId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => e.BookingId)
+                        .IsUnique();
+
+                modelBuilder.Entity<Review>(entity =>
+                {
+                    entity.HasMany(r => r.Images)
+                          .WithOne(i => i.Review)
+                          .HasForeignKey(i => i.ReviewId);
+                });
             });
 
             // Booking
@@ -204,6 +207,16 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(b => b.StaffId)
                       .HasMaxLength(50);
+
+                entity.HasOne(e => e.Venue)
+                      .WithMany(v => v.Bookings)
+                      .HasForeignKey(e => e.VenueId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Review)
+                      .WithOne(r => r.Booking)
+                      .HasForeignKey<Review>(r => r.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
                 entity.Property(b => b.TotalPrice)
                       .HasPrecision(18, 2);
@@ -292,6 +305,26 @@ namespace Fiebo.Persistence.Data
                     x.StartTime
                 })
                 .IsUnique();
+            });
+            // ReviewImage
+            modelBuilder.Entity<ReviewImage>(entity =>
+            {
+                entity.HasKey(e => e.ImageId);
+
+                entity.Property(e => e.ImageId)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.ImageUrl)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(e => e.ReviewId)
+                      .IsRequired();
+
+                entity.HasOne(e => e.Review)
+                      .WithMany(r => r.Images)
+                      .HasForeignKey(e => e.ReviewId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

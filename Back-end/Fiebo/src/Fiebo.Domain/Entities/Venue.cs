@@ -36,5 +36,6 @@ namespace Fiebo.Domain.Entities
         public Ward? Ward { get; set; }
         public ICollection<Field> Fields { get; set; } = [];
         public ICollection<TimeSlot> TimeSlots { get; set; } = [];
+        public ICollection<Booking> Bookings { get; set; } = [];
     }
 }

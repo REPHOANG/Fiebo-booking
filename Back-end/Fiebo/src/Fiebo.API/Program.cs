@@ -38,7 +38,7 @@ var connectionString = builder.Configuration.GetConnectionString("MyCnn");
 builder.Services.AddDbContext<FieboDbContext>(options =>
 {
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-        b => b.MigrationsAssembly("Fiebo.Infrastructure"));
+        b => b.MigrationsAssembly("Fiebo.Persistence"));
 });
 
 // ASP.NET Core Identity

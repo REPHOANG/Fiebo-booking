@@ -19,6 +19,5 @@ namespace Fiebo.Domain.Entities
         public Booking Booking { get; set; } = null!;
         public Field Field { get; set; } = null!;
         public TimeSlot? TimeSlot { get; set; }
-        public ICollection<Review> Reviews { get; set; } = null!;
     }
 }
