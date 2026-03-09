@@ -9,7 +9,9 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { restoreAuthFromStorage } from './store/authSlice';
 import Layout from './components/layout/Layout';
-import Home from './components/landing/Home';
+// import Home from './components/landing/Home';
+import LocationPrompt from './components/common/LocationPrompt/LocationPrompt';
+import './components/common/LocationPrompt/LocationPrompt.css';
 import CustomerHome from './pages/Customer/CustomerHome';
 import VenueDetail from './pages/Customer/VenueDetail';
 import BookingSchedule from './pages/Customer/BookingSchedule';
@@ -76,66 +78,84 @@ const App = () => {
     persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
   }, [queryClient]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [location, setLocation] = useState(null);
 
   // Initialize app - restore auth from localStorage
   useEffect(() => {
     console.log('🚀 App initializing...');
     // Restore auth state from localStorage on app start
     dispatch(restoreAuthFromStorage());
-    
+
     // Show splash screen
     const timer = setTimeout(() => {
       setIsInitialLoading(false);
+      // Kiểm tra đã hỏi location chưa
+      if (!localStorage.getItem('locationPromptAsked')) {
+        setShowLocationPrompt(true);
+      }
     }, 3000); // 3 seconds (2s show + 1s fade out)
 
     return () => clearTimeout(timer);
   }, [dispatch]);
 
+  const handleLocationConfirm = (coords) => {
+    setShowLocationPrompt(false);
+    localStorage.setItem('locationPromptAsked', 'true');
+    if (coords) {
+      setLocation(coords);
+      localStorage.setItem('userLocation', JSON.stringify(coords));
+    }
+  };
+
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id'}>
       <QueryClientProvider client={queryClient}>
         <SplashScreen isVisible={isInitialLoading} />
+        {showLocationPrompt && (
+          <LocationPrompt onConfirm={handleLocationConfirm} />
+        )}
         <Router>
           <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/owner/login" element={<OwnerLogin />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-otp" element={<VerifyOTP />} />
-          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          
-          {/* Customer Home - Public (no login required) */}
-          <Route path="/home" element={<CustomerHome />} />
-          <Route path="/venue/:id" element={<VenueDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/owner/login" element={<OwnerLogin />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
+            <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Owner routes */}
-          <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
+            {/* Customer Home - Public (no login required) */}
+            <Route path="/home" element={<CustomerHome />} />
+            <Route path="/venue/:id" element={<VenueDetail />} />
 
-          {/* Booking - no header/footer */}
-          <Route path="/venue/:id/booking" element={<BookingSchedule />} />
-          <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
-          <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
-          
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/venues" element={<Venues />} />
-            <Route path="/admin" element={<div>Admin Page</div>} />
-          </Route>
-        </Routes>
-          </Router>
-          <ToastContainer
-        position="top-right"
-        autoClose={4000}
-        hideProgressBar={false}
-        newestOnTop={true}
-        closeOnClick={true}
-        rtl={false}
-        pauseOnFocusLoss={true}
-        draggable={true}
-        pauseOnHover={true}
-        theme="light"
-      />
-        </QueryClientProvider>
+            {/* Owner routes */}
+            <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
+
+            {/* Booking - no header/footer */}
+            <Route path="/venue/:id/booking" element={<BookingSchedule />} />
+            <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
+            <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
+
+            <Route >
+              <Route path="/" element={<CustomerHome />} />
+              <Route path="/venues" element={<Venues />} />
+              <Route path="/admin" element={<div>Admin Page</div>} />
+            </Route>
+          </Routes>
+        </Router>
+        <ToastContainer
+          position="top-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick={true}
+          rtl={false}
+          pauseOnFocusLoss={true}
+          draggable={true}
+          pauseOnHover={true}
+          theme="light"
+        />
+      </QueryClientProvider>
     </GoogleOAuthProvider>
   );
 };

@@ -405,45 +405,7 @@ const VenueDetail = () => {
               </div>
             )}
           </div>
-          <div className="vd-col-right">
-            {reviews.length > 0 && (
-              <div className="vd-reviews-section">
-                <h3>
-                  <MessageSquare size={18} /> Đánh giá ({reviewTotal})
-                </h3>
-                <div className="vd-field-reviews-list">
-                  {reviews.map((r, i) => (
-                    <motion.div
-                      key={i}
-                      className="vd-review-item"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                    >
-                      <div className="vd-review-header">
-                        <div className="vd-review-avatar">
-                          <User size={16} />
-                        </div>
-                        <div className="vd-review-meta">
-                          <span className="vd-review-name">{r.name || "Ẩn danh"}</span>
-                          <span className="vd-review-time">{formatRelativeTime(r.createdAt)}</span>
-                        </div>
-                        <div className="vd-review-rating">
-                          {renderStars(r.rating)}
-                        </div>
-                      </div>
-                      {r.comment && <p className="vd-review-comment">{r.comment}</p>}
-                    </motion.div>
-                  ))}
-                </div>
-                {reviewPage < reviewTotalPages && (
-                  <button className="vd-reviews-toggle" onClick={loadMoreReviews}>
-                    Xem thêm đánh giá
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+         
         </div>
       </main>
 

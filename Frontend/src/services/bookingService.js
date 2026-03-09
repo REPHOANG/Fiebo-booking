@@ -117,7 +117,7 @@ export const confirmReservation = async (payload) => {
 };
 
 /**
- * Release reservation before TTL (optional)
+ * Hủy đặt chỗ trước khi hết TTL (tùy chọn)
  * payload: { reservationId }
  */
 export const releaseReservation = async (payload) => {
@@ -129,7 +129,7 @@ export const releaseReservation = async (payload) => {
 };
 
 /**
- * Send booking OTP to phone number
+ * Gửi OTP đặt chỗ đến số điện thoại
  * @param {string} phoneNumber
  */
 export const sendBookingOtp = async (phoneNumber) => {
@@ -141,7 +141,7 @@ export const sendBookingOtp = async (phoneNumber) => {
 };
 
 /**
- * Verify booking OTP and return access token or confirmation
+ * Xác thực OTP cho đặt chỗ
  * @param {string} phoneNumber
  * @param {string} otpCode
  */
@@ -156,7 +156,7 @@ export const verifyBookingOtp = async (phoneNumber, otpCode, fullName) => {
 };
 
 /**
- * Create a new booking (authenticated)
+ * Tạo đặt chỗ mới (đã xác thực)
  * @param {Object} payload
  */
 export const createBooking = async (payload) => {
@@ -168,7 +168,7 @@ export const createBooking = async (payload) => {
 };
 
 /**
- * Pay for a booking using wallet or payment reference
+ * Thanh toán cho một đặt chỗ sử dụng ví hoặc tham chiếu thanh toán
  * @param {number|string} bookingId
  * @param {Object} payload
  */

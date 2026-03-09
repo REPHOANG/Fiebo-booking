@@ -16,6 +16,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
+    "antd": "^6.3.2",
     "classnames": "^2.5.1",
     "framer-motion": "^12.34.3",
     "localforage": "^1.10.0",
