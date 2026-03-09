@@ -27,6 +27,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Fiebo.Application\Fiebo.Application.csproj" />
 		<ProjectReference Include="..\Fiebo.Infrastructure\Fiebo.Infrastructure.csproj" />
+		<ProjectReference Include="..\Fiebo.Persistence\Fiebo.Persistence.csproj" />
 	</ItemGroup>
 
   <ItemGroup>

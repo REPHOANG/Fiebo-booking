@@ -13,10 +13,13 @@ namespace Fiebo.Domain.Entities
         public required string Fullname { get; set; }
         public required string PhoneNumber { get; set; }
         public string? BookingNote { get; set; }
+        public int VenueId { get; set; }
         public string? StaffId { get; set; }
         public decimal TotalPrice { get; set; }
         public BookingStatus Status { get; set; }
 
+        public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
+        public Review? Review { get; set; }
     }
 }

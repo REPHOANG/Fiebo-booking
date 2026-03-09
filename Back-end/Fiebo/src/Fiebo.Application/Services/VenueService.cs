@@ -194,6 +194,7 @@ namespace Fiebo.Application.Services
                 Rating = r.Rating,
                 Comment = r.Comment,
                 CreatedAt = r.CreatedAt,
+                Images = [.. r.Images.Select(i => i.ImageUrl)]
             }).ToList();
 
             return new PagedResult<ReviewDTO>

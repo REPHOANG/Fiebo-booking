@@ -7,6 +7,7 @@ COPY ["src/Fiebo.API/Fiebo.API.csproj", "src/Fiebo.API/"]
 COPY ["src/Fiebo.Application/Fiebo.Application.csproj", "src/Fiebo.Application/"]
 COPY ["src/Fiebo.Domain/Fiebo.Domain.csproj", "src/Fiebo.Domain/"]
 COPY ["src/Fiebo.Infrastructure/Fiebo.Infrastructure.csproj", "src/Fiebo.Infrastructure/"]
+COPY ["src/Fiebo.Persistence/Fiebo.Persistence.csproj", "src/Fiebo.Persistence/"]
 
 # Restore packages
 RUN dotnet restore "src/Fiebo.API/Fiebo.API.csproj"

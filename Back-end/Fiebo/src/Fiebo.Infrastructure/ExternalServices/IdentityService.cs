@@ -3,7 +3,7 @@ using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
-using Fiebo.Infrastructure.Identity;
+using Fiebo.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Fiebo.Infrastructure.Services
+namespace Fiebo.Infrastructure.ExternalServices
 {
     public class IdentityService : IIdentityService
     {

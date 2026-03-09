@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Fiebo.Application\Fiebo.Application.csproj" />
     <ProjectReference Include="..\..\src\Fiebo.Domain\Fiebo.Domain.csproj" />
     <ProjectReference Include="..\..\src\Fiebo.Infrastructure\Fiebo.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Fiebo.Persistence\Fiebo.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
