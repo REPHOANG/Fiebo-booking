@@ -20,7 +20,7 @@ namespace Fiebo.Application.Interfaces
 
         Task<(bool IsNewUser, string UserId, string FullName, string Role, string Email)> GetOrCreateExternalUserAsync(string email, string fullName);
         Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request);
-        Task<UserProfileResponse> GetUserProfileAsync(string userId);
+        Task<UserProfileResponse?> GetUserProfileAsync(string userId);
         Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);
         Task<UserProfileResponse> GetUserProfileByEmailOrPhoneAsync(string account);
         Task<string> GeneratePasswordResetTokenAsync(string account);
