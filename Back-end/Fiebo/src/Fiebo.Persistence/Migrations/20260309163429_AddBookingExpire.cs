@@ -22,10 +22,10 @@ namespace Fiebo.Persistence.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            migrationBuilder.CreateIndex(
-                name: "IX_BookingDetails_FieldId",
-                table: "BookingDetails",
-                column: "FieldId");
+            //migrationBuilder.CreateIndex(
+            //    name: "IX_BookingDetails_FieldId",
+            //    table: "BookingDetails",
+            //    column: "FieldId");
         }
 
         /// <inheritdoc />
