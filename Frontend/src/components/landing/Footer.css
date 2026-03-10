@@ -40,6 +40,12 @@
   font-size: 1.5rem;
 }
 
+.ft-logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
 .ft-logo {
   font-size: 1.65rem;
   font-weight: 800;

@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   MapPin,
   Calendar,
   Star,
   ArrowRight,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import "./Home.css";
 import FadeInSection from "../ui/FadeInSection";
@@ -137,13 +139,29 @@ const Home = () => {
       <section className="categories">
         <h2>Khám Phá Theo Môn Thể Thao</h2>
 
-        <div className="categories-grid">
-          {sportsCategories.map((sport) => (
-            <div key={sport.id} className="category-card">
-              <div className="icon">{sport.icon}</div>
-              <p>{sport.name}</p>
-            </div>
-          ))}
+        <div className="carousel-container">
+          <button className="carousel-btn carousel-btn-left" onClick={() => {
+            const track = document.getElementById('home-cat-track');
+            track?.scrollBy({ left: -220, behavior: 'smooth' });
+          }}>
+            <ChevronLeft size={22} />
+          </button>
+
+          <div className="carousel-track" id="home-cat-track">
+            {sportsCategories.map((sport) => (
+              <div key={sport.id} className="category-card">
+                <div className="icon">{sport.icon}</div>
+                <h4>{sport.name}</h4>
+              </div>
+            ))}
+          </div>
+
+          <button className="carousel-btn carousel-btn-right" onClick={() => {
+            const track = document.getElementById('home-cat-track');
+            track?.scrollBy({ left: 220, behavior: 'smooth' });
+          }}>
+            <ChevronRight size={22} />
+          </button>
         </div>
       </section>
       </FadeInSection>

@@ -1,242 +1,325 @@
 import React, { useState, useEffect } from "react";
 import {
-  MapPin,
-  Calendar,
-  Star,
-  ArrowRight,
   Search,
-  LogOut,
+  SlidersHorizontal,
+  Map,
+  CheckSquare,
+  Heart,
+  Share2,
+  Clock,
+  MapPin,
+  TrendingUp,
+  Navigation,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
+import { getNearbyFields, getTopBookingFields } from "../../services/fieldService";
 import "./CustomerHome.css";
-import FadeInSection from "../../components/ui/FadeInSection";
 import Header from "../../components/landing/Header";
 import Footer from "../../components/landing/Footer";
+
+// Hà Nội mặc định khi không lấy được vị trí
+const DEFAULT_LOCATION = { lat: 21.0285, lng: 105.8542, name: "Hà Nội" };
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const [displayName, setDisplayName] = useState('Người dùng');
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
-  const [searchData, setSearchData] = useState({
-    location: "",
-    date: "",
-    sportType: "All",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationName, setLocationName] = useState("");
+  const [locationLoading, setLocationLoading] = useState(true);
 
-  const sportsCategories = [
-    { id: 1, name: "Bóng Đá", icon: "⚽" },
-    { id: 2, name: "Bóng Rổ", icon: "🏀" },
-    { id: 3, name: "Tennis", icon: "🎾" },
-    { id: 4, name: "Cầu Lông", icon: "🏸" },
-    { id: 5, name: "Bóng Chuyền", icon: "🏐" },
-    { id: 6, name: "Squash", icon: "🎯" },
-  ];
+  const [nearbyVenues, setNearbyVenues] = useState([]);
+  const [nearbyLoading, setNearbyLoading] = useState(true);
+  const [nearbyError, setNearbyError] = useState(null);
 
-  const featuredVenues = [
-    {
-      id: 1,
-      name: "Sân Bóng Đá Milan",
-      location: "Quận 1, TP.HCM",
-      image:
-        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800",
-      rating: 4.8,
-      reviews: 245,
-      price: "500.000đ/giờ",
-      sport: "Bóng Đá",
-    },
-    {
-      id: 2,
-      name: "Sân Tennis Premier Club",
-      location: "Quận 2, TP.HCM",
-      image:
-        "https://images.unsplash.com/photo-1554284154-83cb3142d9c1?w=800",
-      rating: 4.9,
-      reviews: 308,
-      price: "350.000đ/giờ",
-      sport: "Tennis",
-    },
-    {
-      id: 3,
-      name: "Sân Cầu Lông Pro",
-      location: "Quận 3, TP.HCM",
-      image:
-        "https://images.unsplash.com/photo-1546519638-68711109d298?w=800",
-      rating: 4.7,
-      reviews: 182,
-      price: "300.000đ/giờ",
-      sport: "Cầu Lông",
-    },
-  ];
+  const [popularVenues, setPopularVenues] = useState([]);
+  const [popularLoading, setPopularLoading] = useState(true);
+  const [popularError, setPopularError] = useState(null);
 
-  const handleSearch = () => {
-    console.log(searchData);
-    // TODO: Implement search functionality
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Lấy vị trí người dùng, fallback về Hà Nội
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setUserLocation(DEFAULT_LOCATION);
+      setLocationName(DEFAULT_LOCATION.name);
+      setLocationLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          name: "",
+        };
+        setUserLocation(loc);
+        setLocationName("Vị trí của bạn");
+        setLocationLoading(false);
+      },
+      () => {
+        // Không lấy được vị trí → fallback Hà Nội
+        setUserLocation(DEFAULT_LOCATION);
+        setLocationName(DEFAULT_LOCATION.name);
+        setLocationLoading(false);
+      },
+      { timeout: 5000 }
+    );
+  }, []);
+
+  // ── Fetch nearby venues from API ──
+  useEffect(() => {
+    if (!userLocation) return;
+
+    const fetchNearby = async () => {
+      setNearbyLoading(true);
+      setNearbyError(null);
+      try {
+        const data = await getNearbyFields({
+          userLat: userLocation.lat,
+          userLng: userLocation.lng,
+          limit: 6,
+        });
+        setNearbyVenues(data || []);
+      } catch (err) {
+        console.error("Failed to fetch nearby venues:", err);
+        setNearbyError(err.message || "Không thể tải sân gần bạn");
+      } finally {
+        setNearbyLoading(false);
+      }
+    };
+
+    const fetchPopular = async () => {
+      setPopularLoading(true);
+      setPopularError(null);
+      try {
+        const data = await getTopBookingFields({
+          userLat: userLocation.lat,
+          userLng: userLocation.lng,
+          limit: 6,
+        });
+        setPopularVenues(data || []);
+      } catch (err) {
+        console.error("Failed to fetch popular venues:", err);
+        setPopularError(err.message || "Không thể tải sân nổi bật");
+      } finally {
+        setPopularLoading(false);
+      }
+    };
+
+    fetchNearby();
+    fetchPopular();
+  }, [userLocation]);
+
+  // ── Helper: format TimeSpan "HH:MM:SS" → "HH:MM" ──
+  const formatTime = (t) => {
+    if (!t) return "";
+    const parts = t.split(":");
+    return `${parts[0]}:${parts[1]}`;
   };
 
-  // Update display name when user data changes
-  React.useEffect(() => {
-    if (user) {
-      const name = user?.name || user?.email || 'Người dùng';
-      setDisplayName(name);
-      console.log('✅ User updated:', name);
+  // ── Helper: map API response → VenueCard props ──
+  const mapVenue = (v) => ({
+    id: v.venueId,
+    name: v.venueName || "Chưa có tên",
+    logo: v.thumbnailUrl || "https://placehold.co/100x100?text=Logo",
+    image: v.thumbnailUrl || "https://placehold.co/800x400?text=Venue",
+    distance: v.distanceKm != null ? `${v.distanceKm.toFixed(1)}km` : "",
+    address: [v.ward, v.province].filter(Boolean).join(", ") || v.addressDetail || "",
+    hours: `${formatTime(v.openTime)} - ${formatTime(v.closeTime)}`,
+    badges: ["Đơn ngày"],
+    rating: v.rating,
+    bookings: v.bookingCount || 0,
+  });
+
+
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      navigate(`/venues?search=${encodeURIComponent(searchQuery.trim())}`);
     }
-  }, [user]);
+  };
 
   const handleLogout = () => {
     dispatch(logout());
-    // Clear any stored tokens or user data
-    localStorage.removeItem('token');
-    localStorage.removeItem('authState');
-    sessionStorage.removeItem('token');
+    localStorage.removeItem("token");
+    localStorage.removeItem("authState");
+    sessionStorage.removeItem("token");
     navigate("/login");
   };
 
+  // ── Venue card component ──
+  const VenueCard = ({ venue }) => (
+    <div className="ch-venue-card" onClick={() => navigate(`/venue/${venue.id}`)} style={{ cursor: 'pointer' }}>
+      <div className="ch-card-image">
+        <img src={venue.image} alt={venue.name} />
+        <div className="ch-card-badges">
+          {venue.badges.map((badge, i) => (
+            <span
+              key={i}
+              className={`ch-badge ${i === 0 ? "ch-badge-primary" : "ch-badge-event"}`}
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+        <div className="ch-card-actions">
+          <button className="ch-card-action-btn">
+            <Heart size={18} />
+          </button>
+          <button className="ch-card-action-btn">
+            <Share2 size={18} />
+          </button>
+        </div>
+      </div>
+      <div className="ch-card-info">
+        <div className="ch-card-info-left">
+          <img src={venue.logo} alt="" className="ch-venue-logo" />
+        </div>
+        <div className="ch-card-info-right">
+          <h3 className="ch-venue-name">{venue.name}</h3>
+          <p className="ch-venue-address">
+            <span className="ch-distance">({venue.distance})</span> {venue.address}
+          </p>
+          <p className="ch-venue-hours">
+            <Clock size={13} /> {venue.hours}
+          </p>
+          <p className="ch-venue-bookings">
+            <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
+          </p>
+        </div>
+        <button
+          className="ch-book-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isAuthenticated) navigate("/login");
+            else navigate(`/venue/${venue.id}`);
+          }}
+        >
+          ĐẶT LỊCH
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="customer-home">
-      {/* Header Component */}
       <Header />
 
-      <div className="customer-container">
-        {/* HERO */}
-        <FadeInSection>
-          <section className="hero">
-            <div className="hero-overlay" />
+      {/* ===== SEARCH BAR ===== */}
+      <div className={`ch-search-section ${scrolled ? "ch-search-scrolled" : ""}`}>
+        <div className="ch-search-bar">
+          <div className="ch-search-icon-left">
+            <button type="button" className="ch-search-icon-btn" onClick={handleSearch} aria-label="Tìm kiếm">
+              <Search size={18} />
+            </button>
+          </div>
+          <input
+            type="text"
+            className="ch-search-input"
+            placeholder="Tìm kiếm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          />
+          <button className="ch-filter-btn">
+            <SlidersHorizontal size={18} />
+          </button>
+        </div>
 
-            <div className="hero-content">
-              <h1>
-                Đặt Sân Thể Thao <span>Chỉ Trong Vài Giây</span>
-              </h1>
-              <p>
-                Tìm kiếm – So sánh – Đặt sân nhanh chóng với trải nghiệm cao cấp.
-              </p>
-
-              <div className="search-bar">
-                <div className="search-field">
-                  <MapPin size={18} />
-                  <input
-                    type="text"
-                    placeholder="Nhập địa điểm"
-                    value={searchData.location}
-                    onChange={(e) =>
-                      setSearchData({ ...searchData, location: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="divider" />
-
-                <div className="search-field">
-                  <Calendar size={18} />
-                  <input
-                    type="date"
-                    value={searchData.date}
-                    onChange={(e) =>
-                      setSearchData({ ...searchData, date: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="divider" />
-
-                <select
-                  className="sport-select"
-                  value={searchData.sportType}
-                  onChange={(e) =>
-                    setSearchData({ ...searchData, sportType: e.target.value })
-                  }
-                >
-                  <option value="All">Tất cả</option>
-                  {sportsCategories.map((sport) => (
-                    <option key={sport.id} value={sport.name}>
-                      {sport.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button className="search-btn" onClick={handleSearch}>
-                  <Search size={18} />
-                </button>
-              </div>
-            </div>
-          </section>
-        </FadeInSection>
-
-        {/* CATEGORIES */}
-        <FadeInSection>
-          <section className="categories">
-            <h2>Khám Phá Theo Môn Thể Thao</h2>
-
-            <div className="categories-grid">
-              {sportsCategories.map((sport) => (
-                <div key={sport.id} className="category-card">
-                  <div className="icon">{sport.icon}</div>
-                  <p>{sport.name}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </FadeInSection>
-
-        {/* FEATURED */}
-        <FadeInSection>
-          <section className="featured">
-            <div className="section-header">
-              <h2>Sân Nổi Bật</h2>
-              <a href="/venues">
-                Xem tất cả <ArrowRight size={16} />
-              </a>
-            </div>
-
-            <div className="venue-grid">
-              {featuredVenues.map((venue) => (
-                <div key={venue.id} className="venue-card">
-                  <div className="image-wrapper">
-                    <img src={venue.image} alt={venue.name} />
-                    <span className="badge">{venue.sport}</span>
-                  </div>
-
-                  <div className="venue-content">
-                    <h3>{venue.name}</h3>
-
-                    <div className="location">
-                      <MapPin size={14} /> {venue.location}
-                    </div>
-
-                    <div className="bottom-row">
-                      <div className="rating">
-                        <Star size={14} />
-                        <span>{venue.rating}</span>
-                        <small>({venue.reviews})</small>
-                      </div>
-
-                      <div className="price">{venue.price}</div>
-                    </div>
-
-                    <button className="book-btn">Đặt ngay</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </FadeInSection>
-
-        {/* CTA */}
-        <section className="cta">
-          <h2>Sẵn Sàng Bắt Đầu?</h2>
-          <p>Hơn 10.000 người dùng đã tin tưởng Fiebo</p>
-          <button className="cta-btn" onClick={handleSearch}>Đặt Sân Ngay</button>
-        </section>
+        <div className="ch-nav-tabs">
+          <button className="ch-nav-tab">
+            <Map size={16} />
+            <span>Bản đồ</span>
+          </button>
+          <button className="ch-nav-tab" onClick={() => !isAuthenticated && navigate("/login")}>
+            <CheckSquare size={16} />
+            <span>Sân đã đặt</span>
+          </button>
+          <button className="ch-nav-tab" onClick={() => !isAuthenticated && navigate("/login")}>
+            <Heart size={16} fill="#22c55e" />
+            <span>Yêu thích</span>
+          </button>
+        </div>
       </div>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="ch-main">
+
+        {/* ── Section 1: Sân gần bạn ── */}
+        <section className="ch-section">
+          <div className="ch-section-header">
+            <div className="ch-section-title-group">
+              <Navigation size={20} className="ch-section-icon" />
+              <h2 className="ch-section-title">Sân gần bạn</h2>
+              {locationLoading ? (
+                <span className="ch-location-tag loading">Đang xác định...</span>
+              ) : (
+                <span className="ch-location-tag">
+                  <MapPin size={13} /> {locationName}
+                </span>
+              )}
+            </div>
+            <button className="ch-see-all-btn">Xem tất cả →</button>
+          </div>
+          <div className="ch-venue-grid">
+            {nearbyLoading ? (
+              <p className="ch-loading-text">Đang tải sân gần bạn...</p>
+            ) : nearbyError ? (
+              <p className="ch-error-text">{nearbyError}</p>
+            ) : nearbyVenues.length === 0 ? (
+              <p className="ch-empty-text">Không tìm thấy sân nào gần bạn</p>
+            ) : (
+              nearbyVenues.map((v) => {
+                const venue = mapVenue(v);
+                return <VenueCard key={venue.id} venue={venue} />;
+              })
+            )}
+          </div>
+        </section>
+
+        {/* ── Section 2: Sân nổi bật ── */}
+        <section className="ch-section">
+          <div className="ch-section-header">
+            <div className="ch-section-title-group">
+              <TrendingUp size={20} className="ch-section-icon" />
+              <h2 className="ch-section-title">Sân nổi bật</h2>
+              <span className="ch-section-subtitle">Nhiều lượt đặt nhất</span>
+            </div>
+            <button className="ch-see-all-btn">Xem tất cả →</button>
+          </div>
+          <div className="ch-venue-grid">
+            {popularLoading ? (
+              <p className="ch-loading-text">Đang tải sân nổi bật...</p>
+            ) : popularError ? (
+              <p className="ch-error-text">{popularError}</p>
+            ) : popularVenues.length === 0 ? (
+              <p className="ch-empty-text">Không tìm thấy sân nổi bật</p>
+            ) : (
+              popularVenues.map((v) => {
+                const venue = mapVenue(v);
+                return <VenueCard key={venue.id} venue={venue} />;
+              })
+            )}
+          </div>
+        </section>
+
+      </main>
+
       <Footer />
     </div>
-        
   );
- 
-
 };
- 
+
 export default CustomerHome;

@@ -145,6 +145,10 @@ export const verifyOTP = async (email, otp) => {
   }
 };
 
+// .NET ClaimTypes URIs used by backend
+const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
+const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+
 // Helper function to decode JWT token
 const decodeJWT = (token) => {
   try {
@@ -196,8 +200,8 @@ export const login = async (credentials) => {
         id: decodedToken?.sub || decodedToken?.userId || decodedToken?.id || 'unknown',
         email: decodedToken?.email || credentials.email || 'user@example.com',
         phone: decodedToken?.phone || decodedToken?.phoneNumber || credentials.phone || '',
-        name: decodedToken?.name || decodedToken?.fullName || decodedToken?.username || credentials.email?.split('@')[0] || 'User',
-        role: decodedToken?.role || 'customer',
+        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || decodedToken?.username || credentials.email?.split('@')[0] || 'User',
+        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
         status: decodedToken?.status || 'active',
       },
       accessToken: token,
@@ -225,22 +229,33 @@ export const loginWithGoogle = async (credential) => {
   try {
     const response = await fetchAPI('/api/auth/google-login', {
       method: 'POST',
-      body: JSON.stringify({ token: credential }),
+      body: JSON.stringify({ idToken: credential }),
     });
+
+    // Backend returns token in 'data' field (same as normal login)
+    const token = response.data || response.accessToken || response.token;
+    if (!token) {
+      throw { message: 'No token in Google login response' };
+    }
+
+    // Decode JWT to extract user info
+    const decodedToken = decodeJWT(token);
 
     return {
       user: {
-        id: response.user?.userId,
-        email: response.user?.email,
-        name: response.user?.name,
-        role: response.user?.role || 'user',
+        id: decodedToken?.sub || decodedToken?.userId || 'unknown',
+        email: decodedToken?.email || '',
+        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || '',
+        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
+        status: decodedToken?.status || 'active',
       },
-      accessToken: response.accessToken || response.token,
-      token: response.accessToken || response.token,
+      accessToken: token,
+      token: token,
     };
   } catch (error) {
+    console.error('❌ Google login error:', error.data || error);
     throw {
-      message: error.message || 'Google login failed',
+      message: error.data?.message || error.message || 'Google login failed',
     };
   }
 };
@@ -312,12 +327,20 @@ export const getProfile = async (token) => {
 // Update user profile
 export const updateProfile = async (token, profileData) => {
   try {
+    // Backend expects DateOnly? for dateOfBirth; empty string "" cannot be converted and causes 400
+    const payload = {
+      fullName: profileData.fullName ?? null,
+      phoneNumber: profileData.phoneNumber && String(profileData.phoneNumber).trim() !== '' ? profileData.phoneNumber : null,
+      dateOfBirth: profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ''
+        ? profileData.dateOfBirth.trim().slice(0, 10)
+        : null,
+    };
     const response = await fetchAPI('/api/auth/profile', {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(profileData),
+      body: JSON.stringify(payload),
     });
 
     return {
@@ -402,6 +425,63 @@ export const verifyResetOTP = async (email, otp) => {
   } catch (error) {
     throw {
       message: error.data?.message || error.message || 'OTP verification failed',
+      status: error.status,
+    };
+  }
+};
+
+// ── Phone + OTP Login ───────────────────────────────────────────────────────
+
+// Step 1: Send OTP to phone number for login
+export const sendPhoneLoginOtp = async (phoneNumber) => {
+  try {
+    const response = await fetchAPI('/api/auth/phone-login', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber }),
+    });
+
+    return {
+      success: true,
+      message: response.message || 'OTP đã được gửi đến số điện thoại của bạn',
+    };
+  } catch (error) {
+    throw {
+      message: error.data?.message || error.message || 'Không thể gửi mã OTP',
+      status: error.status,
+    };
+  }
+};
+
+// Step 2: Verify OTP and get JWT token
+export const verifyPhoneLoginOtp = async (phoneNumber, otpCode) => {
+  try {
+    const response = await fetchAPI('/api/auth/phone-login/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber, otpCode }),
+    });
+
+    const token = response.data || response.accessToken || response.token;
+    if (!token) {
+      throw { message: 'No token in response' };
+    }
+
+    const decodedToken = decodeJWT(token);
+
+    return {
+      user: {
+        id: decodedToken?.sub || decodedToken?.userId || decodedToken?.id || 'unknown',
+        email: decodedToken?.email || '',
+        phone: decodedToken?.phone || decodedToken?.phoneNumber || phoneNumber,
+        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || 'User',
+        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
+        status: decodedToken?.status || 'active',
+      },
+      accessToken: token,
+      token: token,
+    };
+  } catch (error) {
+    throw {
+      message: error.data?.message || error.message || 'Xác thực OTP thất bại',
       status: error.status,
     };
   }

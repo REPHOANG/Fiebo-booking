@@ -24,7 +24,9 @@ namespace Fiebo.Infrastructure.ExternalServices
             {
                 var settings = new GoogleJsonWebSignature.ValidationSettings()
                 {
-                    Audience = new List<string>() { _configuration["Authentication:Google:ClientId"]! }
+                    Audience = new List<string>() { _configuration["Authentication:Google:ClientId"]! },
+                    IssuedAtClockTolerance = TimeSpan.FromMinutes(5),
+                    ExpirationTimeClockTolerance = TimeSpan.FromMinutes(5)
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);

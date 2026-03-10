@@ -3,17 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/react-fontawesome": "^3.2.0",
     "@hookform/resolvers": "^5.2.2",
+    "@mui/material": "^7.3.9",
     "@react-oauth/google": "^0.13.4",
     "@reduxjs/toolkit": "^2.11.2",
+    "@tanstack/react-query-persist-client": "^5.90.24",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
+    "antd": "^6.3.2",
     "classnames": "^2.5.1",
     "framer-motion": "^12.34.3",
+    "localforage": "^1.10.0",
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -53,6 +59,7 @@
     ]
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.4"
+    "@vitejs/plugin-react": "^5.1.4",
+    "vite": "^7.3.1"
   }
 }
