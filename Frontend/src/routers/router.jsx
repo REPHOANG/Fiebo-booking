@@ -13,6 +13,7 @@ import VerifyOTP from '../pages/auth/VerifyOTP';
 import Profile from '../pages/Profile';
 import Venues from '../pages/Venues';
 import ProtectedRoute from './ProtectedRoute';
+import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 
 export const publicRoutes = [
   {

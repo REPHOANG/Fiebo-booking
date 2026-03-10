@@ -70,7 +70,7 @@ const fetchAPI = async (endpoint, options = {}) => {
 // Register new user - returns pending state waiting for OTP verification
 export const register = async (data) => {
   try {
-    console.log('📤 Sending to backend:', {
+    console.log('Sending to backend:', {
       fullName: data.fullName,
       email: data.email,
       phoneNumber: data.phoneNumber,
@@ -112,7 +112,7 @@ export const register = async (data) => {
       errorMessage = error.data.message;
     }
     
-    console.error('❌ Backend error:', error.data || error);
+    console.error('Backend error:', error.data || error);
     throw {
       message: errorMessage,
       details: errorMessage,

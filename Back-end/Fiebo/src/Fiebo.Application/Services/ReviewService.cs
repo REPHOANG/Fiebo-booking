@@ -59,9 +59,31 @@ namespace Fiebo.Application.Services
             {
                 if (request.Images.Count > 5)
                     throw new BadRequestException("Tối đa được đính kèm 5 hình ảnh.");
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
+                var allowedContentTypes = new[]
+                {
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+            "image/svg+xml"
+        };
 
                 foreach (var file in request.Images)
                 {
+                    if (file.Length == 0)
+                        throw new BadRequestException("Ảnh không hợp lệ.");
+
+                    if (file.Length > 5 * 1024 * 1024) //5mb
+                        throw new BadRequestException("Mỗi ảnh không được vượt quá 5MB.");
+
+                    var extension = Path.GetExtension(file.FileName).ToLower();
+
+                    if (!allowedExtensions.Contains(extension))
+                        throw new BadRequestException("Chỉ chấp nhận ảnh jpg, jpeg, png, webp, svg.");
+
+                    if (!allowedContentTypes.Contains(file.ContentType))
+                        throw new BadRequestException("Định dạng ảnh không hợp lệ.");
                     try
                     {
                         var imageUrl = await _cloudinaryService.UploadImageAsync(file);

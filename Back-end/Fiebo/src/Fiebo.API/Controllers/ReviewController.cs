@@ -15,6 +15,8 @@ namespace Fiebo.API.Controllers
     public class ReviewController : ControllerBase
     {
         private readonly IReviewService _reviewService;
+        private readonly ICloudinaryService _cloudinaryService;
+
 
         public ReviewController(IReviewService reviewService, ICloudinaryService cloudinaryService)
         {
@@ -23,29 +25,12 @@ namespace Fiebo.API.Controllers
         }
 
         [Authorize(Roles = AppRoles.Customer)]
-        [HttpPost("create-review")]
+        [HttpPost]
         public async Task<IActionResult> CreateReview([FromForm] CreateReviewRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return Unauthorized(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status401Unauthorized,
-                    Message = "Không thể định danh."
-                });
-            }
 
-            var result = await _reviewService.CreateReviewAsync(request, userId);
-
-            if (!result)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Tạo đánh giá thất bại."
-                });
-            }
+            var result = await _reviewService.CreateReviewAsync(request, userId!);
 
             return Ok(new ApiResponse<object>
             {
@@ -54,7 +39,6 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        private readonly ICloudinaryService _cloudinaryService;
         [HttpPost("upload-test")]
         [Consumes("multipart/form-data")] // Ép kiểu nhận File chứ không phải JSON
         public async Task<IActionResult> TestUploadImage(IFormFile file)

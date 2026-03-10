@@ -8,8 +8,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { restoreAuthFromStorage } from './store/authSlice';
-import Layout from './components/layout/Layout';
-// import Home from './components/landing/Home';
 import LocationPrompt from './components/common/LocationPrompt/LocationPrompt';
 import './components/common/LocationPrompt/LocationPrompt.css';
 import CustomerHome from './pages/Customer/CustomerHome';
@@ -27,10 +25,9 @@ import VerifyOTP from './pages/auth/VerifyOTP';
 import ProtectedRoute from './routers/ProtectedRoute';
 import SplashScreen from './components/ui/SplashScreen/SplashScreen';
 import CreateVenue from './pages/Owner/CreateVenue';
+import GiveRating from './pages/Customer/GiveRating/GiveRating';
 
-const App = () => {
-  const dispatch = useDispatch();
-  const queryClient = new QueryClient({
+const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -44,6 +41,8 @@ const App = () => {
       },
     },
   });
+const App = () => {
+  const dispatch = useDispatch();
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {
@@ -123,6 +122,7 @@ const App = () => {
             <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/rating" element={<GiveRating />} />
 
             {/* Customer Home - Public (no login required) */}
             <Route path="/home" element={<CustomerHome />} />
