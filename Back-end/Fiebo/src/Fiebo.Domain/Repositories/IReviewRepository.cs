@@ -18,5 +18,6 @@ namespace Fiebo.Domain.Repositories
         Task<double> GetAverageByVenueAsync(int venueId);
         Task<Dictionary<int, double>> GetAveragesByVenueAsync(List<int> venueId);
         Task<int> CountByVenueAsync(int venueId);
+        Task<bool> HasReviewForBookingAsync(int bookingId);
     }
 }

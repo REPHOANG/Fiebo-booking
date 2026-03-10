@@ -12,9 +12,9 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Persistence.Repositories
 {
-    public class ReviewRepositoy : Repository<Review>, IReviewRepository
+    public class ReviewRepository : Repository<Review>, IReviewRepository
     {
-        public ReviewRepositoy(FieboDbContext context) : base(context)
+        public ReviewRepository(FieboDbContext context) : base(context)
         {
         }
 
@@ -76,6 +76,11 @@ namespace Fiebo.Persistence.Repositories
                     Average = g.Average(r => (double?)r.Rating) ?? 0
                 })
                 .ToDictionaryAsync(x => x.VenueId, x => x.Average);
+        }
+
+        public async Task<bool> HasReviewForBookingAsync(int bookingId)
+        {
+            return await _context.Reviews.AnyAsync(r => r.BookingId == bookingId);
         }
     }
 }
