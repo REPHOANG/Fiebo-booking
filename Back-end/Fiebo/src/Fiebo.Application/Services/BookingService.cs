@@ -216,5 +216,27 @@ namespace Fiebo.Application.Services
 
             return true;
         }
+
+        public async Task<List<BookingHistoryResponse>> GetBookingHistoryAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+
+            var bookings = await _unitOfWork.Bookings.GetBookingHistoryByUserIdAsync(userId);
+
+            return bookings.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
+            {
+                BookingId = b.Id,
+                TotalPrice = b.TotalPrice,
+                Status = b.Status.ToString(),
+                BookingDate = b.CreatedAt,
+                VenueName = bd.Field?.Venue?.Name ?? "N/A",
+                FieldName = bd.Field?.Name ?? "N/A",
+                Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
+                StartTime = bd.TimeSlot?.StartTime ?? default,
+                EndTime = bd.TimeSlot?.EndTime ?? default,
+                PlayDate = bd.BookingDate
+            })).ToList();
+        }
     }
 }

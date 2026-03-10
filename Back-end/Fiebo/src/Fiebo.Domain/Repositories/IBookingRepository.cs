@@ -9,5 +9,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IBookingRepository : IRepository<Booking>
     {
+        Task<List<Booking>> GetBookingHistoryByUserIdAsync(string userId);
+        Task<Booking?> GetBookingForReportAsync(int bookingId, string userId);
     }
 }

@@ -84,6 +84,7 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepositoy>();
 builder.Services.AddScoped<ISportTypeRepository, SportTypeRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -98,6 +99,7 @@ builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<IMapService, OpenRouteService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 builder.Services.AddHttpClient();
 

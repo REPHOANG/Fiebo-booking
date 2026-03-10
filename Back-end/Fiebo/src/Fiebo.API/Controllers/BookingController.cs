@@ -120,5 +120,29 @@ namespace Fiebo.API.Controllers
                 Message = "Đặt sân thành công"
             });
         }
+
+        /// <summary>
+        /// Retrieves the booking history for the authenticated customer.
+        /// </summary>
+        /// <returns>A list of booking history records wrapped in an ApiResponse.</returns>
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpGet("history")]
+        public async Task<IActionResult> GetBookingHistory()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var result = await _bookingService.GetBookingHistoryAsync(userId);
+            return Ok(new ApiResponse<List<BookingHistoryResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải lịch sử đặt sân thành công.",
+                Data = result
+            });
+        }
     }
 }
