@@ -175,12 +175,12 @@ namespace Fiebo.Application.Services
         public async Task<string> VerifyBookingOtp(string fullname, string phoneNumber, string otpCode)
         {
             var isValid = await _otpService.ValidateBookingOtpAsync(phoneNumber, otpCode);
-            if(!isValid)
+            if (!isValid)
             {
                 throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
             }
             var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(phoneNumber);
-            if(user == null)
+            if (user == null)
             {
                 var newUser = await _identityService.CreateActiveUserWithoutPasswordAsync(fullname, phoneNumber);
                 _unitOfWork.Wallets.Add(new Wallet { UserId = newUser.Id });
@@ -285,6 +285,38 @@ namespace Fiebo.Application.Services
                     await _cacheService.ReleaseLockAsync(key, value);
                 }
             }
+        }
+
+        public async Task<BookingDetailResponse> GetBookingDetailAsync(int bookingId, string userId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+            if (booking == null)
+            {
+                throw new NotFoundException("Booking not found.");
+            }
+            if (booking.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
+            }
+            return new BookingDetailResponse
+            {
+                BookingId = booking.Id,
+                FullName = booking.Fullname,
+                Phone = booking.PhoneNumber,
+                BookingNote = booking.BookingNote,
+                Status = booking.Status.ToString(),
+                ExpiredAt = booking.ExpiredAt,
+                VenueId = booking.VenueId,
+                VenueName = booking.Venue.Name,
+                Date = booking.BookingDetails.First().BookingDate,
+                TotalPrice = booking.TotalPrice,
+                Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.TimeSlot!.StartTime,
+                    EndTime = d.TimeSlot.EndTime
+                })]
+            };
         }
     }
 }
