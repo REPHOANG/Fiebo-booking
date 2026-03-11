@@ -124,20 +124,17 @@ const App = () => {
             <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Customer Home - Public (no login required) */}
-            <Route path="/home" element={<CustomerHome />} />
             <Route path="/venue/:id" element={<VenueDetail />} />
 
             {/* Owner routes */}
             <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
 
-            {/* Booking - no header/footer */}
-            <Route path="/venue/:id/booking" element={<BookingSchedule />} />
-            <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
-            <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
-
+            {/* Layout (Header + Footer): home, venues, booking */}
             <Route element={<Layout />}>
               <Route path="/" element={<CustomerHome />} />
+              <Route path="/venue/:id/booking" element={<BookingSchedule />} />
+              <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
+              <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
               <Route path="/venues" element={<Venues />} />
               <Route path="/admin" element={<div>Admin Page</div>} />
             </Route>

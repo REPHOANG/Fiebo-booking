@@ -53,13 +53,13 @@ const Header = () => {
       <div className="header-container">
         {/* LEFT */}
         <div className="header-left">
-          <Link to="/home" className="logo">
+          <Link to="/" className="logo">
             <img src={Logohomepage} alt="Fiebo Logo" className="logo-img" />
             <span className="logo-text">Fiebo</span>
           </Link>
 
           <nav className="menu-desktop">
-            <NavLink to="/home" end>Trang chủ</NavLink>
+            <NavLink to="/" end>Trang chủ</NavLink>
 
             {/* Mega Menu */}
             <div className="mega-wrapper">
