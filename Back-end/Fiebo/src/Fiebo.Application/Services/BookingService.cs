@@ -228,11 +228,12 @@ namespace Fiebo.Application.Services
                 }
 
                 // 4. Create booking with hold
-                var expiredAt = DateTime.UtcNow.AddMinutes(15);
+                var expiredAt = DateTime.UtcNow.AddMinutes(5);
 
                 var booking = new Booking
                 {
                     UserId = userId,
+                    VenueId = request.VenueId,
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
                     BookingNote = request.BookingNote,

@@ -57,13 +57,14 @@ namespace Fiebo.Persistence.Repositories
 
         public async Task<List<Field>> GetFieldsWithBookingsAsync(int venueId, DateOnly date)
         {
+            var now = TimeOnly.FromDateTime(DateTime.UtcNow);
             return await _context.Fields
                 .AsNoTracking()
                 .Where(f => f.VenueId == venueId)
                 .Include(f => f.BookingDetails
                     .Where(bd =>
-                        bd.BookingDate == date &&
-                        bd.Booking.Status != BookingStatus.Cancelled))
+                        bd.BookingDate == date && bd.TimeSlot!.StartTime > now &&
+                        (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked)))
                 .ThenInclude(bd => bd.Booking)
                 .ToListAsync();
         }

@@ -19,8 +19,6 @@ namespace Fiebo.Domain.Entities
         public BookingStatus Status { get; set; }
         public DateTime? ExpiredAt { get; set; }
 
-        public DateTime ExpireAt { get; set; }
-
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
         public Review? Review { get; set; }
