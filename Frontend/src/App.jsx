@@ -27,6 +27,7 @@ import VerifyOTP from './pages/auth/VerifyOTP';
 import ProtectedRoute from './routers/ProtectedRoute';
 import SplashScreen from './components/ui/SplashScreen/SplashScreen';
 import CreateVenue from './pages/Owner/CreateVenue';
+import WalletTopUp from './pages/Customer/WalletTopUp';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -135,6 +136,7 @@ const App = () => {
               <Route path="/venue/:id/booking" element={<BookingSchedule />} />
               <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
               <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
+              <Route path="/wallet/top-up" element={<ProtectedRoute element={<WalletTopUp />} />} />
               <Route path="/venues" element={<Venues />} />
               <Route path="/admin" element={<div>Admin Page</div>} />
             </Route>

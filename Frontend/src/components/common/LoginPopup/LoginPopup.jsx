@@ -8,7 +8,7 @@ const LoginPopup = ({ open, onClose }) => {
     <div className="login-popup-overlay">
       <div className="login-popup-modal">
         <button className="login-popup-close" onClick={onClose}>×</button>
-        <Login />
+        <Login onLoginSuccess={onClose} />
       </div>
     </div>
   );

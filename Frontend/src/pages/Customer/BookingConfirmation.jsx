@@ -2,8 +2,8 @@ import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight, Send, CheckCircle, AlertTriangle } from "lucide-react";
-import { sendBookingOtp, verifyBookingOtp, createBooking } from "../../services/bookingService";
+import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight } from "lucide-react";
+import { createBooking } from "../../services/bookingService";
 import { getVenueSchedule } from "../../services/fieldService";
 import { clearDraft } from '../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../store/bookedSlotsSlice';
@@ -64,13 +64,10 @@ const BookingConfirmation = () => {
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [phoneStatus, setPhoneStatus] = useState("idle");
-  const [otpCode, setOtpCode] = useState("");
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
-  const [countdown, setCountdown] = useState(0);
   const [confirmError, setConfirmError] = useState("");
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
@@ -84,63 +81,9 @@ const BookingConfirmation = () => {
     }
   }, [isAuthenticated, user]);
 
-  // Start countdown timer for resending OTP
-  const startCountdown = useCallback(() => {
-    setCountdown(60);
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
-
-  // ...existing code...
-
-  // Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.length < 4) {
-      setPhoneError("Vui lòng nhập mã OTP");
-      return;
-    }
-    setPhoneError("");
-    setPhoneStatus("verifying");
-    try {
-      const result = await verifyBookingOtp(guestPhone, otpCode, guestName);
-      // If backend returned an access token, persist it so subsequent booking/payment calls can use it
-      let token = null;
-      // Normalize token value whether backend nests it under `data` or returns directly
-      if (typeof result === 'string') token = result;
-      else if (result) {
-        token = result?.accessToken || result?.token || null;
-        if (!token && result.data) {
-          token = result.data?.accessToken || result.data?.token || (typeof result.data === 'string' ? result.data : null);
-        }
-      }
-
-      const userFromRes = result?.user || result?.data?.user || null;
-      if (token) {
-        try {
-          const authState = { user: userFromRes || { name: guestName, phone: guestPhone }, token, isAuthenticated: !!token };
-          localStorage.setItem('authState', JSON.stringify(authState));
-          dispatch(setCredentials({ user: authState.user, token: authState.token }));
-        } catch (e) {
-          // ignore storage errors
-        }
-      }
-      setPhoneStatus("verified");
-    } catch (err) {
-      setPhoneError(err.message || "Mã OTP không đúng");
-      setPhoneStatus("otp-sent");
-    }
-  };
-
-  const isGuestReady = phoneStatus === "verified" || (isAuthenticated && user);
-  const displayName = isAuthenticated ? (user?.fullName || user?.name || "") : guestName;
-  const displayPhone = isAuthenticated ? (user?.phone || user?.phoneNumber || "") : guestPhone;
+  const isGuestReady = isAuthenticated && user;
+  const displayName = user?.fullName || user?.name || guestName;
+  const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
 
   // Data passed from BookingSchedule via navigate state
   const bookingState = location.state;
@@ -241,7 +184,7 @@ const BookingConfirmation = () => {
       slotCount: g.slotCount,
       pricePerSlot: g.pricePerSlot,
       subtotal: g.slotCount * g.pricePerSlot,
-      duration: `${Math.floor((g.slotCount * 30) / 60)}h${(g.slotCount * 30) % 60 > 0 ? (g.slotCount * 30) % 60 + "p" : ""}`,
+      duration: `${Math.floor((g.slotCount * 60) / 60)}h${(g.slotCount * 60) % 60 > 0 ? (g.slotCount * 60) % 60 + "p" : ""}`,
     }));
   }, [slotSummary]);
 
@@ -301,11 +244,12 @@ const BookingConfirmation = () => {
           return;
         }
 
+        // API contract (POST /api/Booking): bookingDate, fullname, phoneNumber, bookingNote?, details: [{ fieldId, slotId }]
         const payload = {
           bookingDate: selectedDate,
           fullname,
           phoneNumber,
-          bookingNote: (bookingNote || "").trim() || undefined,
+          ...((bookingNote || "").trim() && { bookingNote: (bookingNote || "").trim() }),
           details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
         };
 
@@ -347,7 +291,7 @@ const BookingConfirmation = () => {
         }
         console.warn('Create booking failed', err);
         if (err && err.status === 401) {
-          setConfirmError('Bạn cần đăng nhập hoặc xác thực số điện thoại trước khi xác nhận. Vui lòng đăng nhập hoặc xác thực OTP.');
+          setConfirmError('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
           return;
         }
         if (err && err.status === 400) {
@@ -544,16 +488,14 @@ const BookingConfirmation = () => {
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Số điện thoại</span>
                 <input
-                  className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
+                  className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
                   placeholder="0912 345 678"
                   value={guestPhone}
                   onChange={(e) => {
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                    setPhoneStatus("idle");
                     setPhoneError("");
                   }}
-                  disabled={phoneStatus === "otp-sent" || phoneStatus === "verifying"}
                 />
               </div>
               <div className="bc-customer-row">
@@ -566,92 +508,20 @@ const BookingConfirmation = () => {
                 />
               </div>
             </>
-          ) : phoneStatus === "verified" ? (
-            /* ── Guest – verified ── */
-            <div className="bc-verified-badge">
-              <CheckCircle size={18} />
-              <span>Đã xác thực: <strong>{guestName}</strong> — {guestPhone}</span>
-            </div>
           ) : (
-            /* ── Guest form ── */
-            <div className="bc-guest-form">
+            /* ── Chưa đăng nhập: chỉ hiện nút Đăng nhập, bấm vào mở popup ── */
+            <div className="bc-guest-form bc-guest-login-only">
               <p className="bc-guest-note">
-                Bạn không cần tài khoản để đặt sân. Nhập thông tin và xác thực SĐT để tiếp tục.
+                Bạn cần đăng nhập để xác nhận đặt sân.
               </p>
-
-              {/* Name */}
-              <div className="bc-field">
-                <label className="bc-field-label">Họ tên</label>
-                <input
-                  className="bc-field-input"
-                  type="text"
-                  placeholder="Nhập họ và tên"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                />
-              </div>
-
-              {/* Phone */}
-              <div className="bc-field">
-                <label className="bc-field-label">Số điện thoại</label>
-                <input
-                  className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
-                  type="tel"
-                  placeholder="0912 345 678"
-                  value={guestPhone}
-                  onChange={(e) => {
-                    setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                    setPhoneStatus("idle");
-                    setPhoneError("");
-                  }}
-                  // No OTP logic, always enabled
-                />
-              </div>
-
-                {/* Booking note */}
-                <div className="bc-field">
-                  <label className="bc-field-label">Ghi chú đặt sân (tuỳ chọn)</label>
-                  <textarea
-                    className="bc-field-input bc-textarea"
-                    placeholder="Nhập ghi chú cho nhà quản lý (ví dụ: cần lưới, bóng...)"
-                    value={bookingNote}
-                    onChange={(e) => setBookingNote(e.target.value)}
-                  />
-                </div>
-
-              {/* Phone exists warning */}
-              {phoneStatus === "exists" && (
-                <div className="bc-phone-warning">
-                  <AlertTriangle size={16} />
-                  <span>{phoneError}</span>
-                  <button
-                    className="bc-login-link"
-                    onClick={() => navigate("/login", { state: { from: location } })}
-                  >
-                    Đăng nhập <ChevronRight size={14} />
-                  </button>
-                </div>
-              )}
-
-              {/* ...existing code... (OTP input removed) */}
-
-              {/* Generic error */}
-              {phoneError && phoneStatus !== "exists" && (
-                <p className="bc-field-error">{phoneError}</p>
-              )}
-
-              {/* Already have account hint */}
-              {phoneStatus === "idle" && (
-                <p className="bc-login-hint">
-                  Đã có tài khoản?{" "}
-                  <button
-                    className="bc-login-link-inline"
-                    onClick={() => navigate("/login", { state: { from: location } })}
-                  >
-                    Đăng nhập
-                  </button>
-                </p>
-              )}
+              <button
+                type="button"
+                className="bc-login-btn-primary"
+                onClick={() => setShowLoginPopup(true)}
+              >
+                Đăng nhập
+              </button>
+              <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
             </div>
           )}
         </div>
@@ -686,19 +556,6 @@ const BookingConfirmation = () => {
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* đăng nhập nếu chưa đăng nhập */}
-      {!isAuthenticated && (
-        <div style={{ textAlign: "center", margin: "1rem 0" }}>
-          <button
-            className="bc-login-link"
-            onClick={() => setShowLoginPopup(true)}
-          >
-            Đăng nhập để tiếp tục
-          </button>
-          <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
         </div>
       )}
 

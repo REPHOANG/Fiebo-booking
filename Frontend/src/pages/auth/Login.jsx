@@ -45,7 +45,7 @@ const phoneSchema = yup.object({
 });
 
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -170,6 +170,10 @@ const Login = () => {
         position: 'top-right', autoClose: 3000,
       });
 
+      if (typeof onLoginSuccess === 'function') {
+        onLoginSuccess();
+        return;
+      }
       const userRole = (response.user?.role || '').toLowerCase();
       navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
 
@@ -231,6 +235,10 @@ const Login = () => {
         position: 'top-right', autoClose: 3000,
       });
 
+      if (typeof onLoginSuccess === 'function') {
+        onLoginSuccess();
+        return;
+      }
       const userRole = (response.user?.role || '').toLowerCase();
       navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
     } catch (error) {
@@ -310,6 +318,10 @@ const Login = () => {
         position: 'top-right',
         autoClose: 3000,
       });
+      if (typeof onLoginSuccess === 'function') {
+        onLoginSuccess();
+        return;
+      }
       navigate('/');
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập Google thất bại' });
@@ -337,7 +349,7 @@ const Login = () => {
         <button
           type="button"
           className="back-home-btn"
-          onClick={() => navigate('/home')}
+          onClick={() => navigate('/')}
           aria-label="Back to Home"
         >
           Quay lại trang chủ
