@@ -176,7 +176,7 @@ const Profile = () => {
           </nav>
 
           <div className="sidebar-actions">
-            <button className="btn-sidebar-back" onClick={() => navigate('/home')}>
+            <button className="btn-sidebar-back" onClick={() => navigate('/')}>
               <FontAwesomeIcon icon={faArrowLeft} /> Quay lại
             </button>
             <button className="btn-sidebar-logout" onClick={handleLogout}>

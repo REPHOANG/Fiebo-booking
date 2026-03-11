@@ -8,10 +8,13 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { restoreAuthFromStorage } from './store/authSlice';
+import { getProfile } from './services/authService';
 import LocationPrompt from './components/common/LocationPrompt/LocationPrompt';
 import './components/common/LocationPrompt/LocationPrompt.css';
 import SplashScreen from './components/ui/SplashScreen/SplashScreen';
 import AppRoutes from './routers/router';
+
+const SPLASH_MIN_MS = 800;
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -66,22 +69,38 @@ const App = () => {
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
 
-  // Initialize app - restore auth from localStorage
+  // Splash = loading cho đến khi restore auth + API khởi tạo xong
   useEffect(() => {
-    console.log('🚀 App initializing...');
-    // Restore auth state from localStorage on app start
-    dispatch(restoreAuthFromStorage());
+    let cancelled = false;
+    const init = async () => {
+      console.log('🚀 App initializing...');
+      dispatch(restoreAuthFromStorage());
 
-    // Show splash screen
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-      // Kiểm tra đã hỏi location chưa
-      if (!localStorage.getItem('locationPromptAsked')) {
-        setShowLocationPrompt(true);
+      let token = null;
+      try {
+        const authStr = localStorage.getItem('authState');
+        if (authStr) {
+          const parsed = JSON.parse(authStr);
+          token = parsed?.token ?? parsed?.accessToken;
+        }
+      } catch (_) {}
+
+      const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
+      const apiReady = token
+        ? getProfile(token).catch(() => null) // xong khi gọi API xong (thành công hoặc lỗi)
+        : Promise.resolve();
+
+      await Promise.all([minDelay, apiReady]);
+
+      if (!cancelled) {
+        setIsInitialLoading(false);
+        if (!localStorage.getItem('locationPromptAsked')) {
+          setShowLocationPrompt(true);
+        }
       }
-    }, 3000); // 3 seconds (2s show + 1s fade out)
-
-    return () => clearTimeout(timer);
+    };
+    init();
+    return () => { cancelled = true; };
   }, [dispatch]);
 
   const handleLocationConfirm = (coords) => {
