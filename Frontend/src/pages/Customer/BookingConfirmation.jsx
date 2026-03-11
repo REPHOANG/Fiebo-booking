@@ -244,8 +244,9 @@ const BookingConfirmation = () => {
           return;
         }
 
-        // API contract (POST /api/Booking): bookingDate, fullname, phoneNumber, bookingNote?, details: [{ fieldId, slotId }]
+        // API contract (POST /api/Booking): venueId, bookingDate, fullname, phoneNumber, bookingNote?, details: [{ fieldId, slotId }]
         const payload = {
+          venueId: Number(venue?.id),
           bookingDate: selectedDate,
           fullname,
           phoneNumber,
@@ -263,10 +264,13 @@ const BookingConfirmation = () => {
 
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
-        const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
+        const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
+        const ttl = expireAt
+          ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
+          : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
         try {
-          console.debug('[BookingConfirmation] server created booking', { bookingId, venueId: String(venue?.id), date: selectedDate, ttlSeconds: ttl });
+          console.debug('[BookingConfirmation] server created booking', { bookingId, venueId: String(venue?.id), date: selectedDate, ttlSeconds: ttl, expireAt });
           dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
         } catch (e) {}
 
@@ -282,6 +286,7 @@ const BookingConfirmation = () => {
             totalPrice,
             reservationId: bookingId,
             reservationTtl: ttl,
+            reservationExpireAt: expireAt,
           },
         });
       } catch (err) {
@@ -340,6 +345,7 @@ const BookingConfirmation = () => {
         });
         try {
           const payload = {
+            venueId: Number(venue?.id),
             bookingDate: selectedDate,
             fullname: (displayName || guestName || "").trim(),
             phoneNumber: (displayPhone || guestPhone || "").trim(),
@@ -348,7 +354,10 @@ const BookingConfirmation = () => {
           };
           const res = await createBooking(payload);
           const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
-          const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
+          const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
+          const ttl = expireAt
+            ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
+            : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
           try {
             dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
           } catch (e) {}
@@ -365,6 +374,7 @@ const BookingConfirmation = () => {
               totalPrice,
               reservationId: bookingId,
               reservationTtl: ttl,
+              reservationExpireAt: expireAt,
             },
           });
         } catch (err) {

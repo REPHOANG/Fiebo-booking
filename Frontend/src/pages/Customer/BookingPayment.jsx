@@ -80,16 +80,44 @@ const BookingPayment = () => {
     fetchBalance();
   }, [token]);
 
-  // Countdown timer
+  // Init reservation + countdown from server expireAt (5 phút) or fallback TTL — chạy trước early return (Rules of Hooks)
+  useEffect(() => {
+    if (!paymentState) return;
+    if (paymentState.reservationId) {
+      setReservationId(paymentState.reservationId);
+    }
+    const expireAt = paymentState.reservationExpireAt;
+    if (expireAt) {
+      const secs = Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000));
+      setTimeLeft(secs);
+      return;
+    }
+    const ttl = Number(paymentState.reservationTtl ?? HOLD_SECONDS);
+    setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
+  }, [paymentState?.reservationId, paymentState?.reservationExpireAt, paymentState?.reservationTtl]);
+
+  // Countdown: mỗi giây cập nhật từ reservationExpireAt (5 phút từ server) hoặc giảm 1
   useEffect(() => {
     if (paymentDone || expired) return;
     if (timeLeft <= 0) {
       setExpired(true);
       return;
     }
-    const timer = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
+    const timer = setTimeout(() => {
+      const expireAt = paymentState?.reservationExpireAt;
+      if (expireAt) {
+        const secs = Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000));
+        setTimeLeft(secs);
+        if (secs <= 0) setExpired(true);
+      } else {
+        setTimeLeft((t) => {
+          if (t <= 1) setExpired(true);
+          return Math.max(0, t - 1);
+        });
+      }
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, paymentDone, expired]);
+  }, [timeLeft, paymentDone, expired, paymentState?.reservationExpireAt]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -111,21 +139,6 @@ const BookingPayment = () => {
   const { venue, selectedDate, slotSummary, bookingItems, customerName, customerPhone, totalPrice } = paymentState;
 
   const isEnough = walletBalance >= totalPrice;
-
-  // No server-side reserve endpoint in current API; payment requires a server-created bookingId.
-  // If `reservationId` is provided by previous step (server created booking), use it; otherwise
-  // we keep a client-side hold timer for UI only and require users to complete booking creation first.
-  useEffect(() => {
-    if (paymentState?.reservationId) {
-      setReservationId(paymentState.reservationId);
-      const ttl = Number(paymentState.reservationTtl ?? HOLD_SECONDS);
-      setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
-      return;
-    }
-    // No server reservation — use client-only TTL for UX feedback
-    setTimeLeft(HOLD_SECONDS);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, bookingItems, paymentState]);
 
   // No server release call — nothing to do when client-only hold expires
   useEffect(() => {
