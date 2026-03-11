@@ -244,14 +244,14 @@ namespace Fiebo.Infrastructure.ExternalServices
             return token;
         }
 
-        public async Task<UserProfileResponse> GetUserProfileByEmailOrPhoneAsync(string account)
+        public async Task<UserProfileResponse?> GetUserProfileByEmailOrPhoneAsync(string account)
         {
             var user = account.Contains("@")
                 ? await _userManager.FindByEmailAsync(account)
                 : await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == account);
             if (user == null)
             {
-                return null!;
+                return null;
             }
             return new UserProfileResponse
             {
