@@ -16,8 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 import { getNearbyFields, getTopBookingFields } from "../../services/fieldService";
 import "./CustomerHome.css";
-import Header from "../../components/landing/Header";
-import Footer from "../../components/landing/Footer";
+// Header and Footer are provided by Layout; remove local renders to avoid duplicates
 
 // Hà Nội mặc định khi không lấy được vị trí
 const DEFAULT_LOCATION = { lat: 21.0285, lng: 105.8542, name: "Hà Nội" };
@@ -215,7 +214,6 @@ const CustomerHome = () => {
 
   return (
     <div className="customer-home">
-      <Header />
 
       {/* ===== SEARCH BAR ===== */}
       <div className={`ch-search-section ${scrolled ? "ch-search-scrolled" : ""}`}>
@@ -317,7 +315,7 @@ const CustomerHome = () => {
 
       </main>
 
-      <Footer />
+      {/* Footer rendered by Layout when present */}
     </div>
   );
 };

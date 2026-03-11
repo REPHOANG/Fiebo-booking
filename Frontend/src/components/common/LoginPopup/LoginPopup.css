@@ -1,0 +1,259 @@
+/* ============ LOGIN POPUP — overlay + modal ============ */
+
+.login-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: lpFadeIn 0.22s ease-out;
+}
+
+@keyframes lpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.login-popup-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  max-height: calc(100vh - 40px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: lpSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lpSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.login-popup-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.login-popup-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.login-popup-content {
+  overflow-y: auto;
+  max-height: calc(100vh - 40px);
+}
+
+.login-popup-content .login-page {
+  min-height: auto;
+  padding: 32px 24px 28px;
+  overflow: visible;
+}
+
+.login-popup-content .back-home-btn,
+.login-popup-content .owner-toggle-btn {
+  display: none;
+}
+
+/* ============ Override nội dung Login trong popup — gọn, đẹp ============ */
+
+.login-popup-content .login-card {
+  box-shadow: none;
+  padding: 0;
+  max-width: none;
+}
+
+.login-popup-content .login-header {
+  margin-bottom: 24px;
+}
+
+.login-popup-content .login-logo {
+  max-width: 140px;
+  margin-bottom: 8px;
+}
+
+.login-popup-content .login-title,
+.login-popup-content .logo-placeholder {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.login-popup-content .login-subtitle {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Tab đăng nhập */
+.login-popup-content .login-method-tabs {
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  gap: 0;
+}
+
+.login-popup-content .method-tab {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.login-popup-content .method-tab:hover {
+  color: #0f172a;
+}
+
+.login-popup-content .method-tab.active {
+  color: #0f172a;
+  border-bottom: 2px solid #0f172a;
+}
+
+/* Form */
+.login-popup-content .login-form {
+  gap: 18px;
+}
+
+.login-popup-content .form-group {
+  gap: 12px;
+}
+
+.login-popup-content .input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.login-popup-content .input-field {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #f8fafc;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-popup-content .input-field:focus {
+  border-color: #0f172a;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+.login-popup-content .input-field::placeholder {
+  color: #94a3b8;
+}
+
+.login-popup-content .toggle-password {
+  color: #94a3b8;
+  right: 12px;
+}
+
+.login-popup-content .toggle-password:hover {
+  color: #475569;
+}
+
+.login-popup-content .remember-forgot {
+  font-size: 13px;
+}
+
+.login-popup-content .forgot-link {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.login-popup-content .forgot-link:hover {
+  color: #334155;
+  text-decoration: underline;
+}
+
+/* Nút đăng nhập — solid, hiện đại */
+.login-popup-content .login-btn {
+  height: 48px;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.login-popup-content .login-btn:hover:not(.loading) {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+}
+
+/* Divider "hoặc" */
+.login-popup-content .login-divider {
+  margin: 8px 0 16px;
+}
+
+.login-popup-content .login-divider span {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.login-popup-content .login-divider::before,
+.login-popup-content .login-divider::after {
+  border-top-color: #e2e8f0;
+}
+
+/* Google / social — rõ ràng hơn */
+.login-popup-content .google-login {
+  margin-top: 4px;
+}
+
+.login-popup-content .google-login > div {
+  min-height: 44px;
+}
+
+/* Đăng ký */
+.login-popup-content .signup-prompt {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.login-popup-content .signup-link {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.login-popup-content .signup-link:hover {
+  text-decoration: underline;
+  color: #334155;
+}
