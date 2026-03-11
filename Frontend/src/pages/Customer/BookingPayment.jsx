@@ -15,7 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import "./BookingPayment.css";
-import { reserveSlots, confirmReservation, releaseReservation, payBooking } from '../../services/bookingService';
+import { payBooking } from '../../services/bookingService';
 import { addBookedSlots } from '../../store/bookedSlotsSlice';
 
 const formatPrice = (price) =>
@@ -32,16 +32,17 @@ const BookingPayment = () => {
 
   const paymentState = location.state;
 
-  // If we arrived with booking state, mark the selected slots as booked (respect TTL)
+  // Mark selected slots local-booked for UI if we have them (no server reserve by default)
   useEffect(() => {
     try {
       const bs = location.state;
       if (bs?.venue && bs?.selectedDate && Array.isArray(bs.selectedSlots) && bs.selectedSlots.length > 0) {
         const ttl = Number(bs.reservationTtl ?? 300);
         try {
-          // debug: log booking applied on payment mount
+          // Add to local bookedSlots so UI reflects chosen slots while on payment screen
+          // This does not call server reserve — backend currently exposes only createBooking + payment.
           // eslint-disable-next-line no-console
-          console.debug('[BookingPayment] dispatching addBookedSlots on mount', { venueId: String(bs.venue.id), date: bs.selectedDate, slots: bs.selectedSlots, ttlSeconds: ttl });
+          console.debug('[BookingPayment] marking local booked slots on mount', { venueId: String(bs.venue.id), date: bs.selectedDate, slots: bs.selectedSlots, ttlSeconds: ttl });
           dispatch(addBookedSlots({ venueId: String(bs.venue.id), date: bs.selectedDate, slots: bs.selectedSlots, ttlSeconds: ttl }));
         } catch (e) {
           // ignore
@@ -111,61 +112,32 @@ const BookingPayment = () => {
 
   const isEnough = walletBalance >= totalPrice;
 
-  // Reserve slots on mount: call backend to reserve with TTL, use server-provided TTL when available
+  // No server-side reserve endpoint in current API; payment requires a server-created bookingId.
+  // If `reservationId` is provided by previous step (server created booking), use it; otherwise
+  // we keep a client-side hold timer for UI only and require users to complete booking creation first.
   useEffect(() => {
-    // If we already have a reservationId passed from previous step, use it and TTL
     if (paymentState?.reservationId) {
       setReservationId(paymentState.reservationId);
       const ttl = Number(paymentState.reservationTtl ?? HOLD_SECONDS);
       setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
       return;
     }
-
-    let mounted = true;
-    const doReserve = async () => {
-      try {
-        const payload = {
-          venueId: Number(id),
-          date: selectedDate,
-          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
-          customerName: customerName || (user && user.name) || '',
-          customerPhone: customerPhone || (user && user.phone) || '',
-        };
-
-        const res = await reserveSlots(payload);
-        // Expect server to return { reservationId, expiresInSeconds }
-        if (!mounted) return;
-        const rid = res?.reservationId || res?.id || null;
-        const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? HOLD_SECONDS);
-        if (rid) setReservationId(rid);
-        setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
-      } catch (err) {
-        // If reservation fails, fall back to client hold but inform user could not reserve
-        console.warn('Reserve failed', err);
-        setTimeLeft(HOLD_SECONDS);
-      }
-    };
-    doReserve();
-
-    return () => {
-      mounted = false;
-    };
+    // No server reservation — use client-only TTL for UX feedback
+    setTimeLeft(HOLD_SECONDS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, bookingItems, customerName, customerPhone, id, paymentState]);
+  }, [selectedDate, bookingItems, paymentState]);
 
-  // When reservation expires, notify server to release
+  // No server release call — nothing to do when client-only hold expires
   useEffect(() => {
     if (expired && reservationId) {
-      releaseReservation({ reservationId }).catch(() => {});
+      // Optionally inform user that server reservation expired; nothing to release on server.
     }
   }, [expired, reservationId]);
 
   // On unmount, if still have reservation and not confirmed, release it
   useEffect(() => {
     return () => {
-      if (reservationId) {
-        releaseReservation({ reservationId }).catch(() => {});
-      }
+      // nothing to release on server in current API
     };
   }, [reservationId]);
 
@@ -182,35 +154,23 @@ const BookingPayment = () => {
     setPaying(true);
     try {
       // Call backend to confirm reservation + process payment
-      let confirmRes = null;
-      if (reservationId) {
-        confirmRes = await confirmReservation({ reservationId, paymentMethod: 'wallet' });
-      } else {
-        // No reservationId (server reserve failed) — attempt to confirm via full payload
-        const payload = {
-          venueId: Number(id),
-          date: selectedDate,
-          items: bookingItems?.map((it) => ({ fieldId: it.fieldId, ranges: it.ranges })) || [],
-          paymentMethod: 'wallet',
-        };
-        confirmRes = await confirmReservation(payload);
+      let bookingId = reservationId;
+      if (!bookingId) {
+        // No server booking id available — cannot proceed to server payment.
+        alert('Không tìm thấy mã đặt chỗ trên máy chủ. Vui lòng hoàn tất xác nhận đặt sân trước khi thanh toán.');
+        // navigate back to confirmation step
+        navigate(`/venue/${id}/booking/confirm`, { state: { venue, selectedDate, selectedSlots, slots, slotSummary } });
+        setPaying(false);
+        return;
       }
 
-      // If backend returns a bookingId, call the payment endpoint explicitly
-      const bookingId = confirmRes?.bookingId || confirmRes?.id || confirmRes?.data?.bookingId || confirmRes?.data?.id;
-      if (bookingId) {
-        try {
-          await payBooking(bookingId, { paymentMethod: 'wallet' });
-          setPaymentDone(true);
-        } catch (payErr) {
-          console.error('Payment failed', payErr);
-          // If payment failed, we may want to navigate to an error screen or show message
-          alert('Thanh toán không thành công. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
-          setPaying(false);
-        }
-      } else {
-        // If no bookingId returned, assume confirmReservation handled payment already
+      try {
+        await payBooking(bookingId, { paymentMethod: 'wallet' });
         setPaymentDone(true);
+      } catch (payErr) {
+        console.error('Payment failed', payErr);
+        alert('Thanh toán không thành công. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
+        setPaying(false);
       }
     } catch {
       setPaying(false);

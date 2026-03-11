@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
@@ -8,22 +8,81 @@ import { getVenueSchedule } from "../../services/fieldService";
 import { clearDraft } from '../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../store/bookedSlotsSlice';
 import { setCredentials } from "../../store/authSlice";
+import LoginPopup from '../../components/common/LoginPopup/LoginPopup';
 import "./BookingConfirmation.css";
+
+// Normalize time to "HH:mm" so map keys match client slot labels (e.g. "08:00" not "8:00")
+const normalizeTime = (t) => {
+  if (t == null || t === "") return "";
+  const s = String(t).trim();
+  const part = s.length >= 5 ? s.slice(0, 5) : s; // "08:00:00" -> "08:00" or "8:00"
+  const [h, m] = part.split(":").map((n) => parseInt(n, 10) || 0);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+// Build booking details from schedule by matching client field (name + sportType) to schedule.
+// Frontend-only: works when backend returns same fields for every sportType and client fields may have no id.
+const buildDetailsFromSchedule = (schedule, fields, slots, selectedSlots) => {
+  const details = [];
+  if (!schedule?.sportTypes || !Array.isArray(selectedSlots) || !Array.isArray(fields) || !Array.isArray(slots)) return details;
+
+  const sportTypeByName = {};
+  schedule.sportTypes.forEach((st) => {
+    const key = (st.sportTypeName || st.sportType || "").trim().toLowerCase();
+    if (key) sportTypeByName[key] = st;
+  });
+
+  for (const { fieldIdx, slotIdx } of selectedSlots) {
+    const clientField = fields[fieldIdx];
+    if (!clientField) continue;
+    const startTime = normalizeTime(slots[slotIdx]?.label);
+    if (!startTime) continue;
+
+    const sportKey = (clientField.sportType || clientField.sportTypeName || "").trim().toLowerCase();
+    const st = sportTypeByName[sportKey];
+    if (!st?.fields?.length || !st?.slots?.length) continue;
+
+    const fieldNameNorm = (clientField.name || "").trim();
+    const scheduleField = st.fields.find((f) => (String(f.fieldName || f.name || "").trim() === fieldNameNorm));
+    if (!scheduleField) continue;
+
+    const slot = st.slots.find((s) => normalizeTime(s.startTime) === startTime);
+    if (!slot) continue;
+
+    const fieldId = Number(scheduleField.fieldId ?? scheduleField.id);
+    const slotId = Number(slot.slotId ?? slot.id);
+    if (fieldId && slotId) details.push({ fieldId, slotId });
+  }
+  return details;
+};
+
 const BookingConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, token, isAuthenticated } = useSelector((state) => state.auth || {});
+  const { user, isAuthenticated } = useSelector((state) => state.auth || {});
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [phoneStatus, setPhoneStatus] = useState("idle");
   const [otpCode, setOtpCode] = useState("");
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [countdown, setCountdown] = useState(0);
   const [confirmError, setConfirmError] = useState("");
+  const [localSchedule, setLocalSchedule] = useState(null);
+  const [bookingNote, setBookingNote] = useState("");
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Prefill name and phone from authenticated user when available
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      if (!guestName && (user?.fullName || user?.name)) setGuestName(user.fullName || user.name || "");
+      if (!guestPhone && (user?.phone || user?.phoneNumber)) setGuestPhone(user.phone || user.phoneNumber || "");
+    }
+  }, [isAuthenticated, user]);
 
   // Start countdown timer for resending OTP
   const startCountdown = useCallback(() => {
@@ -39,29 +98,7 @@ const BookingConfirmation = () => {
     }, 1000);
   }, []);
 
-  // Send OTP to phone number
-  const handleSendOtp = async () => {
-    if (!guestPhone || guestPhone.length < 9) {
-      setPhoneError("Vui lòng nhập số điện thoại hợp lệ");
-      return;
-    }
-    setPhoneError("");
-    setPhoneStatus("sending");
-    try {
-      await sendBookingOtp(guestPhone);
-      setPhoneStatus("otp-sent");
-      startCountdown();
-    } catch (err) {
-      // Booking OTP may still succeed even if backend returns conflict for user account
-      if (err.status === 409 || err.message?.includes("đã tồn tại") || err.message?.includes("already")) {
-        setPhoneStatus("exists");
-        setPhoneError("Số điện thoại này đã có tài khoản. Vui lòng đăng nhập.");
-      } else {
-        setPhoneStatus("otp-sent");
-        startCountdown();
-      }
-    }
-  };
+  // ...existing code...
 
   // Verify OTP
   const handleVerifyOtp = async () => {
@@ -108,6 +145,68 @@ const BookingConfirmation = () => {
   // Data passed from BookingSchedule via navigate state
   const bookingState = location.state;
 
+  // initialize localSchedule from booking state if provided
+  useEffect(() => {
+    try {
+      if (bookingState?.venueSchedule) setLocalSchedule(bookingState.venueSchedule);
+    } catch (e) {}
+  }, [bookingState]);
+
+  // Poll venue schedule periodically while on this page (must run before early return for rules of hooks)
+  useEffect(() => {
+    if (!bookingState?.venue?.id || !bookingState?.selectedDate) return;
+    const venue = bookingState.venue;
+    const selectedDate = bookingState.selectedDate;
+    const fields = bookingState.fields;
+    const venueSchedule = bookingState.venueSchedule;
+    let mounted = true;
+    const POLL_MS = 10000;
+
+    const poll = async () => {
+      try {
+        const res = await getVenueSchedule(venue.id, selectedDate);
+        if (!mounted) return;
+        const serverSlots = [];
+        (res?.sportTypes || []).forEach((st) => (st.slots || []).forEach((s) => serverSlots.push(s)));
+
+        const startToIdx = {};
+        serverSlots.forEach((s) => {
+          const hhmm = (s.startTime || "").slice(0, 5);
+          const idx = venueSchedule?.slots ? venueSchedule.slots.findIndex((sl) => sl.label === hhmm) : -1;
+          if (idx >= 0) startToIdx[s.slotId] = idx;
+        });
+
+        const booked = [];
+        (res?.sportTypes || []).forEach((st) => {
+          (st.fields || []).forEach((f) => {
+            const fieldId = f.fieldId;
+            const fieldIdx = (fields || []).findIndex((ff) => Number(ff.id ?? ff.fieldId) === Number(fieldId));
+            if (fieldIdx < 0) return;
+            (f.unavailableSlots || []).forEach((us) => {
+              const slotIdx = startToIdx[us.slotId];
+              if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
+            });
+          });
+        });
+
+        if (booked.length) {
+          try {
+            dispatch(addBookedSlots({ venueId: String(venue.id), date: selectedDate, slots: booked }));
+          } catch (e) {}
+        }
+      } catch (e) {
+        // ignore polling errors
+      }
+    };
+
+    poll();
+    const idt = setInterval(poll, POLL_MS);
+    return () => {
+      mounted = false;
+      clearInterval(idt);
+    };
+  }, [bookingState?.venue?.id, bookingState?.selectedDate, bookingState?.fields, bookingState?.venueSchedule, dispatch]);
+
   // If no booking data, redirect back
   if (!bookingState) {
     return (
@@ -152,66 +251,69 @@ const BookingConfirmation = () => {
   const handleConfirmBooking = () => {
     setConfirmError("");
     (async () => {
-      // Optimistic: mark slots as booked immediately (5 minutes default)
+      // Note: removed optimistic slot locking here. Slots will be reserved
+      // only after server confirms booking (see below). We still clear draft.
       try {
-        // debug: log optimistic booked payload
-        // eslint-disable-next-line no-console
-        console.debug('[BookingConfirmation] dispatching optimistic addBookedSlots', { venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: 300 });
-        dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: 300 }));
-      } catch (e) {}
-        try {
-          dispatch(clearDraft(String(venue?.id)));
+        dispatch(clearDraft(String(venue?.id)));
       } catch (e) {}
 
       // Create booking request on server with required payload structure
       try {
         // Get schedule to map (fieldId, startTime) -> server slotId
-        let schedule = venueSchedule;
+        let schedule = localSchedule || venueSchedule;
         if (!schedule && venue?.id && selectedDate) {
           const res = await getVenueSchedule(venue.id, selectedDate);
           schedule = res;
+          setLocalSchedule(res);
         }
-        const slotIdMap = {};
-        if (schedule?.sportTypes) {
-          schedule.sportTypes.forEach((st) => {
-            (st.fields || []).forEach((f) => {
-              const fieldId = Number(f.fieldId);
-              (st.slots || []).forEach((s) => {
-                const startTime = (s.startTime || "").slice(0, 5);
-                slotIdMap[`${fieldId}-${startTime}`] = Number(s.slotId);
-              });
-            });
-          });
-        }
+        // Build details by matching client field (name + sportType) to schedule — frontend-only, no backend change needed
+        let details = buildDetailsFromSchedule(schedule, fields, slots, selectedSlots);
 
-        // Build details array: [{ fieldId, slotId }] — backend expects int FieldId, int SlotId
-        const details = [];
-        if (Array.isArray(selectedSlots) && Array.isArray(fields) && Array.isArray(slots)) {
-          for (const { fieldIdx, slotIdx } of selectedSlots) {
-            const field = fields[fieldIdx];
-            if (!field) continue;
-            const fieldId = Number(field.id ?? field.fieldId);
-            const startTime = slots[slotIdx]?.label;
-            const slotId = startTime != null ? slotIdMap[`${fieldId}-${startTime}`] : undefined;
-            if (fieldId && slotId) {
-              details.push({ fieldId, slotId });
-            }
+        if (details.length === 0 && selectedSlots.length > 0) {
+          // Retry: refresh schedule and try again
+          try {
+            const refreshed = await getVenueSchedule(venue.id, selectedDate);
+            setLocalSchedule(refreshed);
+            details = buildDetailsFromSchedule(refreshed, fields, slots, selectedSlots);
+          } catch (e) {
+            // ignore
+          }
+
+          if (details.length === 0) {
+            setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+            return;
           }
         }
-        if (details.length === 0 && selectedSlots.length > 0) {
-          setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+
+        // Deduplicate (fieldId, slotId) — backend has unique constraint on (FieldId, SlotId, BookingDate)
+        const seen = new Set();
+        const uniqueDetails = details.filter((d) => {
+          const key = `${d.fieldId}-${d.slotId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        const fullname = (displayName || guestName || "").trim();
+        const phoneNumber = (displayPhone || guestPhone || "").trim();
+        if (!fullname || !phoneNumber) {
+          setConfirmError("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
           return;
         }
 
         const payload = {
           bookingDate: selectedDate,
-          fullname: displayName || guestName,
-          phoneNumber: displayPhone || guestPhone,
-          bookingNote: "",
-          details,
+          fullname,
+          phoneNumber,
+          bookingNote: (bookingNote || "").trim() || undefined,
+          details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
         };
 
-        // Debug: log payload before sending
+        if (!payload.details.length) {
+          setConfirmError("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
+          return;
+        }
+
         // eslint-disable-next-line no-console
         console.debug('[BookingConfirmation] sending booking payload', payload);
 
@@ -239,10 +341,18 @@ const BookingConfirmation = () => {
           },
         });
       } catch (err) {
+        // Log full response for 400 to debug backend validation/constraints
+        if (err?.status === 400 && err?.data) {
+          console.error('[BookingConfirmation] 400 response body:', err.data);
+        }
         console.warn('Create booking failed', err);
         if (err && err.status === 401) {
-          // Unauthorized — require user to login or verify phone first
           setConfirmError('Bạn cần đăng nhập hoặc xác thực số điện thoại trước khi xác nhận. Vui lòng đăng nhập hoặc xác thực OTP.');
+          return;
+        }
+        if (err && err.status === 400) {
+          const msg = err?.data?.message || err?.message || 'Một hoặc nhiều khung giờ đã được đặt hoặc không hợp lệ. Vui lòng quay lại trang đặt lịch và chọn lại.';
+          setConfirmError(msg);
           return;
         }
 
@@ -261,6 +371,67 @@ const BookingConfirmation = () => {
         });
       }
     })();
+  };
+
+  // Attempt to refresh schedule and remap selected slots to server slotIds
+  const attemptRemap = async () => {
+    if (!venue?.id || !selectedDate) return;
+    setIsRetrying(true);
+    try {
+      const res = await getVenueSchedule(venue.id, selectedDate);
+      setLocalSchedule(res);
+
+      const details = buildDetailsFromSchedule(res, fields, slots, selectedSlots);
+
+      if (details.length === 0) {
+        setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+      } else {
+        setConfirmError("");
+        const seen = new Set();
+        const uniqueDetails = details.filter((d) => {
+          const key = `${d.fieldId}-${d.slotId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        try {
+          const payload = {
+            bookingDate: selectedDate,
+            fullname: (displayName || guestName || "").trim(),
+            phoneNumber: (displayPhone || guestPhone || "").trim(),
+            bookingNote: (bookingNote || "").trim() || undefined,
+            details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
+          };
+          const res = await createBooking(payload);
+          const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
+          const ttl = Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
+          try {
+            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+          } catch (e) {}
+
+          navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
+            state: {
+              venue,
+              selectedDate,
+              selectedSlots,
+              slotSummary,
+              bookingItems,
+              customerName: displayName,
+              customerPhone: displayPhone,
+              totalPrice,
+              reservationId: bookingId,
+              reservationTtl: ttl,
+            },
+          });
+        } catch (err) {
+          setConfirmError(err?.message || 'Không thể tạo đặt chỗ.');
+        }
+      }
+    } catch (e) {
+      setConfirmError('Không thể lấy lịch từ server. Vui lòng thử lại.');
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   return (
@@ -351,8 +522,18 @@ const BookingConfirmation = () => {
             /* ── Logged-in user ── */
             <>
               <div className="bc-customer-row">
+                <span className="bc-customer-label">Email</span>
+                <input
+                  className="bc-field-input"
+                  type="email"
+                  value={user?.email || user?.username || ""}
+                  disabled
+                  readOnly
+                />
+              </div>
+              <div className="bc-customer-row">
                 <span className="bc-customer-label">Họ tên</span>
-               <input
+                <input
                   className="bc-field-input"
                   type="text"
                   placeholder="Nhập họ và tên"
@@ -362,23 +543,28 @@ const BookingConfirmation = () => {
               </div>
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Số điện thoại</span>
-                 <input
-                    className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
-                    type="tel"
-                    placeholder="0912 345 678"
-                    value={guestPhone}
-                    onChange={(e) => {
-                      setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                      setPhoneStatus("idle");
-                      setPhoneError("");
-                    }}
-                    disabled={phoneStatus === "otp-sent" || phoneStatus === "verifying"}
-                  />
+                <input
+                  className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
+                  type="tel"
+                  placeholder="0912 345 678"
+                  value={guestPhone}
+                  onChange={(e) => {
+                    setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
+                    setPhoneStatus("idle");
+                    setPhoneError("");
+                  }}
+                  disabled={phoneStatus === "otp-sent" || phoneStatus === "verifying"}
+                />
               </div>
-              {/* <div className="bc-customer-row">
-                <span className="bc-customer-label">Email</span>
-                <span className="bc-customer-value">{user.email || "—"}</span>
-              </div> */}
+              <div className="bc-customer-row">
+                <span className="bc-customer-label">Ghi chú đặt sân (tuỳ chọn)</span>
+                <textarea
+                  className="bc-field-input bc-textarea"
+                  placeholder="Nhập ghi chú cho nhà quản lý (ví dụ: cần lưới, bóng...)"
+                  value={bookingNote}
+                  onChange={(e) => setBookingNote(e.target.value)}
+                />
+              </div>
             </>
           ) : phoneStatus === "verified" ? (
             /* ── Guest – verified ── */
@@ -408,34 +594,30 @@ const BookingConfirmation = () => {
               {/* Phone */}
               <div className="bc-field">
                 <label className="bc-field-label">Số điện thoại</label>
-                <div className="bc-phone-row">
-                  <input
-                    className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
-                    type="tel"
-                    placeholder="0912 345 678"
-                    value={guestPhone}
-                    onChange={(e) => {
-                      setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                      setPhoneStatus("idle");
-                      setPhoneError("");
-                    }}
-                    disabled={phoneStatus === "otp-sent" || phoneStatus === "verifying"}
-                  />
-                  {phoneStatus !== "otp-sent" && phoneStatus !== "verifying" && (
-                    <button
-                      className="bc-send-otp-btn"
-                      onClick={handleSendOtp}
-                      disabled={!guestPhone || guestPhone.length < 9 || !guestName.trim() || phoneStatus === "sending"}
-                    >
-                      {phoneStatus === "sending" ? (
-                        <span className="bc-btn-loading" />
-                      ) : (
-                        <><Send size={14} /> Gửi OTP</>
-                      )}
-                    </button>
-                  )}
-                </div>
+                <input
+                  className={`bc-field-input${phoneStatus === "exists" ? " error" : ""}`}
+                  type="tel"
+                  placeholder="0912 345 678"
+                  value={guestPhone}
+                  onChange={(e) => {
+                    setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
+                    setPhoneStatus("idle");
+                    setPhoneError("");
+                  }}
+                  // No OTP logic, always enabled
+                />
               </div>
+
+                {/* Booking note */}
+                <div className="bc-field">
+                  <label className="bc-field-label">Ghi chú đặt sân (tuỳ chọn)</label>
+                  <textarea
+                    className="bc-field-input bc-textarea"
+                    placeholder="Nhập ghi chú cho nhà quản lý (ví dụ: cần lưới, bóng...)"
+                    value={bookingNote}
+                    onChange={(e) => setBookingNote(e.target.value)}
+                  />
+                </div>
 
               {/* Phone exists warning */}
               {phoneStatus === "exists" && (
@@ -451,52 +633,7 @@ const BookingConfirmation = () => {
                 </div>
               )}
 
-              {/* OTP input */}
-              {(phoneStatus === "otp-sent" || phoneStatus === "verifying") && (
-                <div className="bc-otp-section">
-                  <p className="bc-otp-hint">Nhập mã OTP đã gửi đến <strong>{guestPhone}</strong></p>
-                  <div className="bc-otp-row">
-                    <input
-                      className="bc-otp-input"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="Nhập mã OTP"
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
-                      autoFocus
-                    />
-                    <button
-                      className="bc-verify-btn"
-                      onClick={handleVerifyOtp}
-                      disabled={!otpCode || otpCode.length < 4 || phoneStatus === "verifying"}
-                    >
-                      {phoneStatus === "verifying" ? (
-                        <span className="bc-btn-loading" />
-                      ) : (
-                        "Xác thực"
-                      )}
-                    </button>
-                  </div>
-                  <div className="bc-otp-actions">
-                    {countdown > 0 ? (
-                      <span className="bc-countdown">Gửi lại sau {countdown}s</span>
-                    ) : (
-                      <button className="bc-resend-btn" onClick={handleSendOtp}>Gửi lại mã</button>
-                    )}
-                    <button
-                      className="bc-change-phone-btn"
-                      onClick={() => {
-                        setPhoneStatus("idle");
-                        setOtpCode("");
-                        setPhoneError("");
-                      }}
-                    >
-                      Đổi SĐT
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* ...existing code... (OTP input removed) */}
 
               {/* Generic error */}
               {phoneError && phoneStatus !== "exists" && (
@@ -542,6 +679,26 @@ const BookingConfirmation = () => {
       {confirmError && (
         <div className="bc-section" style={{ marginTop: "0.5rem" }}>
           <p className="bc-field-error" role="alert">{confirmError}</p>
+          {confirmError.includes("Không thể ánh xạ") && (
+            <div style={{ marginTop: "0.5rem", textAlign: "center" }}>
+              <button className="bc-login-link" onClick={attemptRemap} disabled={isRetrying}>
+                {isRetrying ? 'Đang tải...' : 'Tải lại lịch và thử lại'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* đăng nhập nếu chưa đăng nhập */}
+      {!isAuthenticated && (
+        <div style={{ textAlign: "center", margin: "1rem 0" }}>
+          <button
+            className="bc-login-link"
+            onClick={() => setShowLoginPopup(true)}
+          >
+            Đăng nhập để tiếp tục
+          </button>
+          <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
         </div>
       )}
 

@@ -81,52 +81,25 @@ const fetchAPI = async (endpoint, options = {}) => {
 
 /**
  * Reserve slots on server for a limited TTL.
- * payload should include venueId, date (YYYY-MM-DD), items: [{ fieldId, ranges }], customer info
- * Returns server response which ideally contains { reservationId, expiresInSeconds }
+ * Supports two payload shapes:
+ * - legacy: payload.items = [{ fieldId, ranges }]
+ * - slot-id based: payload.details = [{ fieldId, slotId }]
+ * The function will try a slot-id-aware endpoint first when `details` is present,
+ * then fall back to the legacy `/reserve` and finally to creating an unconfirmed booking.
  */
-export const reserveSlots = async (payload) => {
-  try {
-    const response = await fetchAPI('/api/Booking/reserve', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return response.data ?? response;
-  } catch (err) {
-    // If backend doesn't implement /reserve, fallback to creating a booking (unconfirmed)
-    if (err && err.status === 404) {
-      const fallback = await fetchAPI('/api/Booking', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
-      return fallback.data ?? fallback;
-    }
-    throw err;
-  }
-};
+// Note: server does not provide reserve/confirm/release endpoints in current API.
+// Booking flow should use `createBooking` (POST /api/Booking) and payment endpoint
+// (POST /api/Booking/{bookingId}/payment). The older reserve/confirm/release
+// helpers were removed to avoid calling non-existing endpoints.
 
 /**
  * Confirm reservation (finalize booking & payment)
  * payload: { reservationId, paymentMethod, paymentRef }
  */
-export const confirmReservation = async (payload) => {
-  const response = await fetchAPI('/api/Booking/confirm', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  return response.data ?? response;
-};
-
-/**
- * Hủy đặt chỗ trước khi hết TTL (tùy chọn)
- * payload: { reservationId }
- */
-export const releaseReservation = async (payload) => {
-  const response = await fetchAPI('/api/Booking/release', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  return response.data ?? response;
-};
+// Note: server does not expose /api/Booking/confirm or /api/Booking/release.
+// Payment is handled by POST /api/Booking/{bookingId}/payment and booking creation
+// is handled by POST /api/Booking (createBooking). Helpers for confirm/release
+// are intentionally omitted to avoid calling non-existing endpoints.
 
 /**
  * Gửi OTP đặt chỗ đến số điện thoại
@@ -181,9 +154,6 @@ export const payBooking = async (bookingId, payload) => {
 };
 
 export default {
-  reserveSlots,
-  confirmReservation,
-  releaseReservation,
   sendBookingOtp,
   verifyBookingOtp,
   createBooking,

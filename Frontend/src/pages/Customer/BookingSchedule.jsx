@@ -183,30 +183,38 @@ const BookingSchedule = () => {
   useEffect(() => {
     if (!venue || !selectedDate) return;
     let mounted = true;
-    (async () => {
-      try {
-        const res = await getVenueSchedule(id, selectedDate);
-        // res.SportTypes -> each has Slots (SlotId, StartTime) and Fields -> each has UnavailableSlots (SlotId)
-        // Build mapping from slot start time to our slot index
+    const POLL_MS = 10000; // poll every 10s
+
+    const fetchAndDispatch = async () => {
+        try {
+          const res = await getVenueSchedule(id, selectedDate);
+          try {
+            // eslint-disable-next-line no-console
+            console.debug('[BookingSchedule] fetched schedule', { venueId: id, date: selectedDate, schedule: res });
+          } catch (e) {}
         const serverSlots = [];
         (res?.sportTypes || []).forEach((st) => {
-          (st.slots || []).forEach((s) => {
-            serverSlots.push(s);
-          });
+          (st.slots || []).forEach((s) => serverSlots.push(s));
         });
 
         const startToIdx = {};
         serverSlots.forEach((s) => {
-          const hhmm = (s.startTime || '').slice(0,5);
+          const hhmm = (s.startTime || '').slice(0, 5);
           const idx = slots.findIndex((sl) => sl.label === hhmm);
           if (idx >= 0) startToIdx[s.slotId] = idx;
         });
 
+        // Map server fields to client fieldIdx: API fields have no id, so match by (name + sportType)
         const booked = [];
         (res?.sportTypes || []).forEach((st) => {
+          const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
           (st.fields || []).forEach((f) => {
-            const fieldId = f.fieldId;
-            const fieldIdx = fields.findIndex((ff) => Number(ff.id || ff.fieldId || ff.fieldId) === Number(fieldId));
+            const nameKey = (f.fieldName || f.name || '').trim();
+            const fieldIdx = fields.findIndex(
+              (ff) =>
+                (String(ff.name || '').trim() === nameKey) &&
+                (String(ff.sportType || '').trim().toLowerCase() === sportKey)
+            );
             if (fieldIdx < 0) return;
             (f.unavailableSlots || []).forEach((us) => {
               const slotIdx = startToIdx[us.slotId];
@@ -224,8 +232,12 @@ const BookingSchedule = () => {
       } catch (e) {
         // ignore fetch errors
       }
-    })();
-    return () => { mounted = false; };
+    };
+
+    // initial fetch then poll
+    fetchAndDispatch();
+    const interval = setInterval(fetchAndDispatch, POLL_MS);
+    return () => { mounted = false; clearInterval(interval); };
   }, [venue, selectedDate, id, slots, fields, dispatch]);
 
   // Labels = slots + closing time (N+1 labels for N columns)

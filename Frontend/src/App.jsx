@@ -136,7 +136,7 @@ const App = () => {
             <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
             <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
 
-            <Route >
+            <Route element={<Layout />}>
               <Route path="/" element={<CustomerHome />} />
               <Route path="/venues" element={<Venues />} />
               <Route path="/admin" element={<div>Admin Page</div>} />
