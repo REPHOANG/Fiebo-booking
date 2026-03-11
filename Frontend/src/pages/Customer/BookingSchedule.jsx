@@ -120,6 +120,13 @@ const BookingSchedule = () => {
   const [tempDate, setTempDate] = useState(null);
   const calendarRef = useRef(null);
   const [venueSchedule, setVenueSchedule] = useState(null);
+  // Cập nhật mỗi phút để slot "đã qua" (Khoá) được tính lại khi đang xem ngày hôm nay
+  const [timeTick, setTimeTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (selectedDate !== todayStr()) return;
+    const id = setInterval(() => setTimeTick(Date.now()), 60 * 1000);
+    return () => clearInterval(id);
+  }, [selectedDate]);
 
   // Fetch venue & fields
   useEffect(() => {
@@ -302,13 +309,15 @@ const BookingSchedule = () => {
     return [...slots, { h: endH, m: endM, label: formatSlot(endH, endM) }];
   }, [slots]);
 
-  // Determine locked slots (past time for today)
+  // Determine locked slots (past time for today) — phụ thuộc timeTick để cập nhật mỗi phút
   const lockedBefore = useMemo(() => {
     if (selectedDate !== todayStr()) return -1;
+    if (!slots.length) return -1;
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    return slots.findIndex((s) => s.h * 60 + s.m >= nowMin) - 1;
-  }, [selectedDate, slots]);
+    const idx = slots.findIndex((s) => s.h * 60 + s.m >= nowMin);
+    return idx < 0 ? slots.length - 1 : idx - 1; // toàn bộ đã qua -> khóa hết
+  }, [selectedDate, slots, timeTick]);
 
   // Scroll to prefill time column when available
   useEffect(() => {

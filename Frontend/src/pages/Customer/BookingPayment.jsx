@@ -70,7 +70,7 @@ const BookingPayment = () => {
         // TODO: Replace with actual API call
         // const res = await getWalletBalance(token);
         // setWalletBalance(res.balance);
-        setWalletBalance(0); // demo
+        setWalletBalance(9999999); // demo
       } catch {
         setWalletBalance(0);
       } finally {
