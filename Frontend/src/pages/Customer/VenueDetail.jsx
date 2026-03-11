@@ -3,8 +3,6 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   ArrowLeft,
-  Heart,
-  Share2,
   Clock,
   MapPin,
   Star,
@@ -19,7 +17,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/landing/Header";
-import Footer from "../../components/landing/Footer";
 import { getVenueDetail, getVenueFields, getVenueReviews } from "../../services/fieldService";
 import "./VenueDetail.css";
 import { clearDraft } from '../../store/bookingDraftSlice';
