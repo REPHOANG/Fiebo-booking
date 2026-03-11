@@ -192,12 +192,24 @@ namespace Fiebo.Application.Services
 
         public async Task<UserProfileResponse> GetUserProfileAsync(string userId)
         {
-            return await _identityService.GetUserProfileAsync(userId);
+            var result = await _identityService.GetUserProfileAsync(userId);
+            if (result == null)
+            {
+                _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
+                throw new NotFoundException("Người dùng không tồn tại!");
+            }
+            return result;
         }
 
         public Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
         {
-            return _identityService.UpdateUserProfileAsync(userId, request);
+            var result = _identityService.UpdateUserProfileAsync(userId, request);
+            if (result == null)
+            {
+                _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
+                throw new NotFoundException("Người dùng không tồn tại!");
+            }
+            return result;
         }
 
         public async Task<ServiceResponse> SendForgotPasswordAsync(string account)

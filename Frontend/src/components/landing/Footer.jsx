@@ -13,6 +13,7 @@ import {
   Send,
 } from 'lucide-react'
 import './Footer.css'
+import FieboLogo from '../../assets/images/Logo Fiebo.png'
 
 const Footer = () => {
   return (
@@ -24,7 +25,7 @@ const Footer = () => {
         {/* ── Brand ── */}
         <div className="ft-col ft-brand">
           <div className="ft-logo-row">
-            <span className="ft-logo-icon">⚽</span>
+            <img src={FieboLogo} alt="Fiebo" className="ft-logo-img" />
             <h2 className="ft-logo">Fiebo</h2>
           </div>
           <p className="ft-desc">

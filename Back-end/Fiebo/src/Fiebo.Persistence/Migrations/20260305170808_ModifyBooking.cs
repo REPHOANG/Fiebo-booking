@@ -11,9 +11,13 @@ namespace Fiebo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //migrationBuilder.DropIndex(
-            //    name: "IX_BookingDetails_FieldId",
-            //    table: "BookingDetails");
+            migrationBuilder.DropForeignKey(
+                name: "FK_BookingDetails_Fields_FieldId",
+                table: "BookingDetails");
+
+            migrationBuilder.DropIndex(
+                name: "IX_BookingDetails_FieldId",
+                table: "BookingDetails");
 
             migrationBuilder.DropColumn(
                 name: "BookingDate",
