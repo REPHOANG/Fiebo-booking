@@ -9,6 +9,7 @@ using Fiebo.Infrastructure.ExternalServices;
 using Fiebo.Persistence.Identity;
 using Fiebo.Persistence.Repositories;
 using Fiebo.Infrastructure.Services;
+using Fiebo.Persistence.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -98,6 +99,9 @@ builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddScoped<IMapService, OpenRouteService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+
+// Background jobs
+builder.Services.AddHostedService<BookingExpirationJob>();
 
 builder.Services.AddHttpClient();
 

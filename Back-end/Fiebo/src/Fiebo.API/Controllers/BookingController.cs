@@ -92,32 +92,21 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new booking for the authenticated customer.
+        /// Hold slots for booking — check availability, lock slots, and create a Pending booking.
+        /// Returns bookingId and expiredAt for payment countdown.
         /// </summary>
-        /// <remarks>This action requires the caller to be authenticated as a customer. The booking is
-        /// associated with the current user's identity.</remarks>
-        /// <param name="request">The booking details to be created. Must contain valid information required for booking.</param>
-        /// <returns>An IActionResult indicating the result of the booking operation. Returns a success response if the booking
-        /// is created; otherwise, returns a bad request response.</returns>
         [Authorize(Roles = AppRoles.Customer)]
         [HttpPost]
         public async Task<IActionResult> CreateBooking(CreateBookingRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
             var result = await _bookingService.CreateBookingAsync(request, userId);
-            if(!result)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Đặt sân thất bại."
-                });
-            }
 
-            return Ok(new ApiResponse<object>
+            return Ok(new ApiResponse<HoldSlotResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Đặt sân thành công"
+                Message = "Đặt sân thành công. Vui lòng thanh toán trước thời hạn.",
+                Data = result
             });
         }
     }
