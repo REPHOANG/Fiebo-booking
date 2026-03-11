@@ -17,6 +17,7 @@ namespace Fiebo.Domain.Entities
         public string? StaffId { get; set; }
         public decimal TotalPrice { get; set; }
         public BookingStatus Status { get; set; }
+        public DateTime? ExpiredAt { get; set; }
 
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];

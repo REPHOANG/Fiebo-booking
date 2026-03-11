@@ -28,6 +28,15 @@ namespace Fiebo.API.Middlewares
             {
                 await HandleExceptionAsync(
                     context,
+                    HttpStatusCode.BadRequest,
+                    ex.Message
+                );
+            }
+
+            catch (ResourceConflictException ex)
+            {
+                await HandleExceptionAsync(
+                    context,
                     HttpStatusCode.Conflict,
                     ex.Message
                 );
@@ -37,7 +46,7 @@ namespace Fiebo.API.Middlewares
             {
                 await HandleExceptionAsync(
                     context,
-                    HttpStatusCode.BadRequest,
+                    HttpStatusCode.Unauthorized,
                     ex.Message
                 );
             }
