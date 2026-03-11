@@ -7,6 +7,7 @@ import { getVenueDetail, getVenueFields } from "../../services/fieldService";
 import { setDraft } from '../../store/bookingDraftSlice';
 import { getVenueSchedule } from '../../services/fieldService';
 import { setBookedSlotsFromServer } from '../../store/bookedSlotsSlice';
+import LoginPopup from '../../components/common/LoginPopup/LoginPopup';
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -102,6 +103,8 @@ const BookingSchedule = () => {
   const initialMount = useRef(true);
   const dispatch = useDispatch();
   const draft = useSelector((s) => s.bookingDrafts?.[id]);
+  const { isAuthenticated } = useSelector((state) => state.auth || {});
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(50); // 50px to 100px column width
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
@@ -372,6 +375,10 @@ const BookingSchedule = () => {
   }, [selectedSlots, bookedForDate, selectedDate]);
 
   const toggleSlot = (fieldIdx, slotIdx) => {
+    if (!isAuthenticated) {
+      setShowLoginPopup(true);
+      return;
+    }
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
@@ -798,6 +805,10 @@ const BookingSchedule = () => {
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
           onClick={() => {
+            if (!isAuthenticated) {
+              setShowLoginPopup(true);
+              return;
+            }
             navigate(`/venue/${id}/booking/confirm`, {
               state: {
                 venue,
@@ -825,6 +836,8 @@ const BookingSchedule = () => {
           <span className="bs-field-tooltip-name">{tooltipField.name}</span>
         </div>
       )}
+
+      <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
     </motion.div>
   );
 };

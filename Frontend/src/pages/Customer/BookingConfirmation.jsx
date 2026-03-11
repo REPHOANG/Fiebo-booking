@@ -83,6 +83,7 @@ const BookingConfirmation = () => {
 
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
+  const [nameError, setNameError] = useState("");
   const [confirmError, setConfirmError] = useState("");
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
@@ -99,6 +100,10 @@ const BookingConfirmation = () => {
   const isGuestReady = isAuthenticated && user;
   const displayName = user?.fullName || user?.name || guestName;
   const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
+
+  // Form-level validation: require fullname and phone
+  const isFormValid = Boolean((displayName || "").toString().trim() && (displayPhone || "").toString().trim());
+  const canConfirm = Boolean(isAuthenticated && isFormValid);
 
   // Data passed from BookingSchedule via navigate state
   const bookingState = location.state;
@@ -209,6 +214,15 @@ const BookingConfirmation = () => {
   const handleConfirmBooking = () => {
     setConfirmError("");
     (async () => {
+      // Client-side validation: require name and phone before attempting
+      const fullnameCheck = (displayName || guestName || "").toString().trim();
+      const phoneCheck = (displayPhone || guestPhone || "").toString().trim();
+      if (!fullnameCheck || !phoneCheck) {
+        if (!fullnameCheck) setNameError("Vui lòng nhập họ tên.");
+        if (!phoneCheck) setPhoneError("Vui lòng nhập số điện thoại.");
+        setConfirmError("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+        return;
+      }
       // Note: removed optimistic slot locking here. Slots will be reserved
       // only after server confirms booking (see below). We still clear draft.
       try {
@@ -522,12 +536,19 @@ const BookingConfirmation = () => {
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Họ tên</span>
                 <input
-                  className="bc-field-input"
+                  className={`bc-field-input${nameError ? " error" : ""}`}
                   type="text"
                   placeholder="Nhập họ và tên"
                   value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
+                  onChange={(e) => {
+                    setGuestName(e.target.value);
+                    if (e.target.value && e.target.value.trim().length > 0) setNameError("");
+                  }}
+                  onBlur={() => {
+                    if (!((displayName || guestName || "").toString().trim())) setNameError("Vui lòng nhập họ tên.");
+                  }}
                 />
+                {nameError && <p className="bc-field-error" role="alert">{nameError}</p>}
               </div>
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Số điện thoại</span>
@@ -538,9 +559,14 @@ const BookingConfirmation = () => {
                   value={guestPhone}
                   onChange={(e) => {
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                    setPhoneError("");
+                    if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");
+                  }}
+                  onBlur={() => {
+                    const phoneVal = (displayPhone || guestPhone || "").toString().trim();
+                    if (!phoneVal) setPhoneError("Vui lòng nhập số điện thoại.");
                   }}
                 />
+                {phoneError && <p className="bc-field-error" role="alert">{phoneError}</p>}
               </div>
               <div className="bc-customer-row">
                 <span className="bc-customer-label">Ghi chú đặt sân (tuỳ chọn)</span>
@@ -610,8 +636,8 @@ const BookingConfirmation = () => {
           <span className="bc-bottom-amount">{formatPrice(totalPrice)}</span>
         </div>
         <button
-          className={`bc-confirm-btn${!isGuestReady ? " disabled" : ""}`}
-          disabled={!isGuestReady}
+          className={`bc-confirm-btn${!canConfirm ? " disabled" : ""}`}
+          disabled={!canConfirm}
           onClick={handleConfirmBooking}
         >
           XÁC NHẬN ĐẶT SÂN
