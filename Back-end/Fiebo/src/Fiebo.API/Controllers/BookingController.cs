@@ -95,5 +95,28 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Retrieves the booking details for the specified booking identifier belonging to the authenticated customer.
+        /// </summary>
+        /// <remarks>This method is accessible only to users in the Customer role. The booking must belong
+        /// to the authenticated user; otherwise, an error response is returned.</remarks>
+        /// <param name="id">The unique identifier of the booking to retrieve. Must be a valid booking ID associated with the current
+        /// user.</param>
+        /// <returns>An <see cref="IActionResult"/> containing an <see cref="ApiResponse{BookingDetailResponse}"/> with the
+        /// booking details if found; otherwise, an appropriate error response.</returns>
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetBookingById([FromRoute] int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var result = await _bookingService.GetBookingDetailAsync(id, userId);
+            return Ok(new ApiResponse<BookingDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Booking retrieved successfully.",
+                Data = result
+            });
+        }
     }
 }

@@ -9,5 +9,6 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IBookingRepository : IRepository<Booking>
     {
+        Task<Booking?> GetBookingDetailByBookingId(int id);
     }
 }
