@@ -87,15 +87,18 @@ const Login = ({ onLoginSuccess }) => {
     mode: 'onTouched',
   });
 
-  // Load saved credentials on mount
+  // Load saved identifier only (không lưu mật khẩu vào localStorage)
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('rememberedCredentials');
+      // Xóa key cũ có thể chứa mật khẩu
+      localStorage.removeItem('rememberedCredentials');
+      const saved = localStorage.getItem('rememberedIdentifier');
       if (saved) {
-        const { identifier, password } = JSON.parse(saved);
-        setValue('identifier', identifier || '');
-        setValue('password', password || '');
-        setRememberMe(true);
+        const { identifier } = JSON.parse(saved);
+        if (identifier) {
+          setValue('identifier', identifier);
+          setRememberMe(true);
+        }
       }
     } catch (_) {}
   }, [setValue]);
@@ -153,11 +156,11 @@ const Login = ({ onLoginSuccess }) => {
       dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
 
       if (rememberMe) {
-        localStorage.setItem('rememberedCredentials', JSON.stringify({
-          identifier: data.identifier, password: data.password,
+        localStorage.setItem('rememberedIdentifier', JSON.stringify({
+          identifier: data.identifier,
         }));
       } else {
-        localStorage.removeItem('rememberedCredentials');
+        localStorage.removeItem('rememberedIdentifier');
       }
 
       localStorage.setItem('authState', JSON.stringify({

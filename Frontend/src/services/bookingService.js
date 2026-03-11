@@ -80,57 +80,15 @@ const fetchAPI = async (endpoint, options = {}) => {
 };
 
 /**
- * Reserve slots on server for a limited TTL.
- * Supports two payload shapes:
- * - legacy: payload.items = [{ fieldId, ranges }]
- * - slot-id based: payload.details = [{ fieldId, slotId }]
- * The function will try a slot-id-aware endpoint first when `details` is present,
- * then fall back to the legacy `/reserve` and finally to creating an unconfirmed booking.
+ * Booking API chỉ còn 2 endpoint:
+ * 1. POST /api/Booking — giữ slot, tạo booking Pending, trả về bookingId và expiredAt
+ * 2. POST /api/Booking/{bookingId}/payment — thanh toán đặt chỗ bằng ví
  */
-// Note: server does not provide reserve/confirm/release endpoints in current API.
-// Booking flow should use `createBooking` (POST /api/Booking) and payment endpoint
-// (POST /api/Booking/{bookingId}/payment). The older reserve/confirm/release
-// helpers were removed to avoid calling non-existing endpoints.
 
 /**
- * Confirm reservation (finalize booking & payment)
- * payload: { reservationId, paymentMethod, paymentRef }
- */
-// Note: server does not expose /api/Booking/confirm or /api/Booking/release.
-// Payment is handled by POST /api/Booking/{bookingId}/payment and booking creation
-// is handled by POST /api/Booking (createBooking). Helpers for confirm/release
-// are intentionally omitted to avoid calling non-existing endpoints.
-
-/**
- * Gửi OTP đặt chỗ đến số điện thoại
- * @param {string} phoneNumber
- */
-export const sendBookingOtp = async (phoneNumber) => {
-  const response = await fetchAPI('/api/Booking/send-otp', {
-    method: 'POST',
-    body: JSON.stringify({ phoneNumber }),
-  });
-  return response.data ?? response;
-};
-
-/**
- * Xác thực OTP cho đặt chỗ
- * @param {string} phoneNumber
- * @param {string} otpCode
- */
-export const verifyBookingOtp = async (phoneNumber, otpCode, fullName) => {
-  const body = { phoneNumber, otpCode };
-  if (fullName) body.fullname = fullName;
-  const response = await fetchAPI('/api/Booking/verify-otp', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-  return response.data ?? response;
-};
-
-/**
- * Tạo đặt chỗ mới (đã xác thực)
- * @param {Object} payload
+ * Giữ slot và tạo booking Pending.
+ * Payload: { venueId, bookingDate, fullname, phoneNumber, bookingNote?, details: [{ fieldId, slotId }] }
+ * Trả về: { bookingId, expiredAt, totalPrice, bookingStatus }
  */
 export const createBooking = async (payload) => {
   const response = await fetchAPI('/api/Booking', {
@@ -141,9 +99,9 @@ export const createBooking = async (payload) => {
 };
 
 /**
- * Thanh toán cho một đặt chỗ sử dụng ví hoặc tham chiếu thanh toán
+ * Thanh toán đặt chỗ bằng ví (Complete booking payment using customer's wallet).
  * @param {number|string} bookingId
- * @param {Object} payload
+ * @param {Object} payload e.g. { paymentMethod: 'wallet' }
  */
 export const payBooking = async (bookingId, payload) => {
   const response = await fetchAPI(`/api/Booking/${bookingId}/payment`, {
@@ -154,8 +112,6 @@ export const payBooking = async (bookingId, payload) => {
 };
 
 export default {
-  sendBookingOtp,
-  verifyBookingOtp,
   createBooking,
   payBooking,
 };

@@ -70,7 +70,7 @@ const BookingPayment = () => {
         // TODO: Replace with actual API call
         // const res = await getWalletBalance(token);
         // setWalletBalance(res.balance);
-        setWalletBalance(50000); // demo
+        setWalletBalance(5000000); // demo
       } catch {
         setWalletBalance(0);
       } finally {
@@ -238,7 +238,7 @@ const BookingPayment = () => {
               <strong className="bp-success-price">{formatPrice(totalPrice)}</strong>
             </div>
           </div>
-          <button className="bp-home-btn" onClick={() => navigate("/home")}>
+          <button className="bp-home-btn" onClick={() => navigate("/")}>
             Về trang chủ
           </button>
         </div>

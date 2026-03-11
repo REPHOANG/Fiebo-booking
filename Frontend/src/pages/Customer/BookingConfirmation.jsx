@@ -20,8 +20,23 @@ const normalizeTime = (t) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
+/** Trả về Set các key "fieldId_slotId" đang bị chiếm (unavailable) trong schedule từ DB */
+const getUnavailableKeysFromSchedule = (schedule) => {
+  const keys = new Set();
+  if (!schedule?.sportTypes) return keys;
+  schedule.sportTypes.forEach((st) => {
+    (st.fields || []).forEach((f) => {
+      const fieldId = Number(f.fieldId ?? f.id);
+      (f.unavailableSlots || []).forEach((us) => {
+        const slotId = Number(us.slotId ?? us.id);
+        if (fieldId && slotId) keys.add(`${fieldId}_${slotId}`);
+      });
+    });
+  });
+  return keys;
+};
+
 // Build booking details from schedule by matching client field (name + sportType) to schedule.
-// Frontend-only: works when backend returns same fields for every sportType and client fields may have no id.
 const buildDetailsFromSchedule = (schedule, fields, slots, selectedSlots) => {
   const details = [];
   if (!schedule?.sportTypes || !Array.isArray(selectedSlots) || !Array.isArray(fields) || !Array.isArray(slots)) return details;
@@ -259,6 +274,20 @@ const BookingConfirmation = () => {
           return;
         }
 
+        // Refetch schedule từ DB ngay trước khi gửi để tránh conflict: nếu slot đã bị đặt thì báo lỗi, không gọi API
+        try {
+          const freshSchedule = await getVenueSchedule(venue.id, selectedDate);
+          setLocalSchedule(freshSchedule);
+          const unavailableKeys = getUnavailableKeysFromSchedule(freshSchedule);
+          const hasConflict = uniqueDetails.some((d) => unavailableKeys.has(`${Number(d.fieldId)}_${Number(d.slotId)}`));
+          if (hasConflict) {
+            setConfirmError("Một hoặc nhiều khung giờ đã được đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.");
+            return;
+          }
+        } catch (e) {
+          // Nếu refetch lỗi vẫn gửi createBooking; backend sẽ check DB và trả 409 nếu conflict
+        }
+
         // eslint-disable-next-line no-console
         console.debug('[BookingConfirmation] sending booking payload', payload);
 
@@ -301,6 +330,11 @@ const BookingConfirmation = () => {
         }
         if (err && err.status === 400) {
           const msg = err?.data?.message || err?.message || 'Một hoặc nhiều khung giờ đã được đặt hoặc không hợp lệ. Vui lòng quay lại trang đặt lịch và chọn lại.';
+          setConfirmError(msg);
+          return;
+        }
+        if (err && err.status === 409) {
+          const msg = err?.data?.message || err?.message || 'Slot đã được đặt hoặc đang được người khác đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.';
           setConfirmError(msg);
           return;
         }

@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
 import { setDraft } from '../../store/bookingDraftSlice';
 import { getVenueSchedule } from '../../services/fieldService';
-import { addBookedSlots } from '../../store/bookedSlotsSlice';
+import { setBookedSlotsFromServer } from '../../store/bookedSlotsSlice';
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -274,9 +274,10 @@ const BookingSchedule = () => {
 
           if (mounted) {
             setVenueSchedule(res);
-            if (booked.length) {
-              try { dispatch(addBookedSlots({ venueId: String(id), date: selectedDate, slots: booked })); } catch (e) {}
-            }
+            // Nguồn sự thật: database qua API — thay thế toàn bộ slot "đã đặt" cho venue+date (kể cả khi booked rỗng)
+            try {
+              dispatch(setBookedSlotsFromServer({ venueId: String(id), date: selectedDate, slots: booked }));
+            } catch (e) {}
           }
         } catch (e) {
           // ignore fetch errors

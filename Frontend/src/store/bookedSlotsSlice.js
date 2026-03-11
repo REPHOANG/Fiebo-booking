@@ -18,12 +18,19 @@ const bookedSlotsSlice = createSlice({
   name: 'bookedSlots',
   initialState,
   reducers: {
+    /** Thay thế toàn bộ slot "đã đặt" cho venue+date bằng dữ liệu từ API (database). Dùng cho lưới đặt sân. */
+    setBookedSlotsFromServer: (state, action) => {
+      const { venueId, date, slots } = action.payload || {};
+      if (!venueId || !date || !Array.isArray(slots)) return;
+      state[venueId] = state[venueId] || {};
+      state[venueId][date] = slots.map((s) => ({
+        fieldIdx: s.fieldIdx,
+        slotIdx: s.slotIdx,
+        expiresAt: null, // từ DB, không hết hạn
+      }));
+    },
+    /** Thêm slot "đã đặt" (merge), dùng sau khi tạo booking để hiển thị optimistic UI. Có thể truyền ttlSeconds. */
     addBookedSlots: (state, action) => {
-      // payload: { venueId, date, slots: [{fieldIdx, slotIdx}, ...], ttlSeconds }
-      try {
-        // eslint-disable-next-line no-console
-        console.debug('[bookedSlotsSlice] addBookedSlots action', action.payload);
-      } catch (e) {}
       const { venueId, date, slots, ttlSeconds } = action.payload || {};
       if (!venueId || !date || !Array.isArray(slots)) return;
       state[venueId] = state[venueId] || {};
@@ -37,7 +44,6 @@ const bookedSlotsSlice = createSlice({
       slots.forEach((s) => {
         const key = `${s.fieldIdx}_${s.slotIdx}`;
         if (map.has(key)) {
-          // update expiry if provided and later
           const existingEntry = map.get(key);
           if (expiresAt && (!existingEntry.expiresAt || existingEntry.expiresAt < expiresAt)) {
             existingEntry.expiresAt = expiresAt;
@@ -71,6 +77,6 @@ const bookedSlotsSlice = createSlice({
   },
 });
 
-export const { addBookedSlots, clearBookedSlotsForVenueDate, purgeExpired } = bookedSlotsSlice.actions;
+export const { setBookedSlotsFromServer, addBookedSlots, clearBookedSlotsForVenueDate, purgeExpired } = bookedSlotsSlice.actions;
 
 export default bookedSlotsSlice.reducer;
