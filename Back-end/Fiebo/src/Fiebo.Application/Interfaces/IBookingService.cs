@@ -8,6 +8,6 @@ namespace Fiebo.Application.Interfaces
         Task<BookingPaymentResponse> MakeBookingPaymentAsync(int bookingId, string userId);
         Task<ServiceResponse> SendBookingVerifyOtp(string phoneNumber);
         Task<string> VerifyBookingOtp(string fullname, string phoneNumber, string otpCode);
-        Task<bool> CreateBookingAsync(CreateBookingRequest request, string userId);
+        Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId);
     }
 }

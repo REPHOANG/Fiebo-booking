@@ -36,6 +36,9 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Fullname")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -707,7 +710,7 @@ namespace Fiebo.Persistence.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.ReviewImage", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.Review", "Review")
-                        .WithMany("ReviewImages")
+                        .WithMany("Images")
                         .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -847,7 +850,7 @@ namespace Fiebo.Persistence.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>
                 {
-                    b.Navigation("ReviewImages");
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.SportType", b =>
