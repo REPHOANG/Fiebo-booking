@@ -65,10 +65,10 @@ namespace Fiebo.Application.Services
 
             EnsureBookingCanBePaid(booking.Status);
 
-            if (booking.ExpiredAt.HasValue && DateTime.UtcNow > booking.ExpiredAt.Value)
+            if (booking.ExpiredAt.HasValue && DateTimeHelper.VietnamNow > booking.ExpiredAt.Value)
             {
                 booking.Status = BookingStatus.Expired;
-                booking.UpdatedAt = DateTime.UtcNow;
+                booking.UpdatedAt = DateTimeHelper.VietnamNow;
                 _unitOfWork.Bookings.Update(booking);
                 await _unitOfWork.SaveChangesAsync();
                 throw new BadRequestException("Booking đã hết hạn thanh toán. Vui lòng tạo booking mới.");
@@ -100,7 +100,7 @@ namespace Fiebo.Application.Services
                 wallet.Balance -= booking.TotalPrice;
                 booking.Status = BookingStatus.Booked;
                 booking.ExpiredAt = null;
-                booking.UpdatedAt = DateTime.UtcNow;
+                booking.UpdatedAt = DateTimeHelper.VietnamNow;
 
                 _unitOfWork.Wallets.Update(wallet);
                 _unitOfWork.Bookings.Update(booking);
@@ -229,7 +229,7 @@ namespace Fiebo.Application.Services
                 }
 
                 // 4. Create booking with hold
-                var expiredAt = DateTime.UtcNow.AddMinutes(5);
+                var expiredAt = DateTimeHelper.VietnamNow.AddMinutes(5);
 
                 var booking = new Booking
                 {

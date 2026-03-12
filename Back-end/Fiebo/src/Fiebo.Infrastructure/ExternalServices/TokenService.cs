@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -22,7 +22,6 @@ namespace Fiebo.Infrastructure.Services
 
         public string GenerateAccessToken(string userId, string fullName, string role, string email)
         {
-            // Tự động lấy từ .env thông qua IConfiguration
             var secretKey = _configuration["JwtSettings:SecretKey"];
             var issuer = _configuration["JwtSettings:Issuer"];
             var audience = _configuration["JwtSettings:Audience"];
@@ -41,7 +40,7 @@ namespace Fiebo.Infrastructure.Services
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+                expires: Fiebo.Domain.Shared.DateTimeHelper.VietnamNow.AddMinutes(expiryMinutes),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 
