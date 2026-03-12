@@ -17,6 +17,7 @@ import {
 import "./BookingPayment.css";
 import { savePaymentDraft, clearPaymentDraft } from '../../../utils/paymentDraft';
 import { payBooking, getBookingById } from '../../../services/bookingService';
+import { getWalletBalance } from '../../../services/walletService';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 
 const formatPrice = (price) =>
@@ -149,17 +150,19 @@ const BookingPayment = () => {
     const fetchBalance = async () => {
       setLoadingBalance(true);
       try {
-        // TODO: Replace with actual API call
-        // const res = await getWalletBalance(token);
-        // setWalletBalance(res.balance);
-        setWalletBalance(9999999); // demo
+        const res = await getWalletBalance();
+        setWalletBalance(res.balance ?? 0);
       } catch {
         setWalletBalance(0);
       } finally {
         setLoadingBalance(false);
       }
     };
-    fetchBalance();
+    if (token) fetchBalance();
+    else {
+      setWalletBalance(0);
+      setLoadingBalance(false);
+    }
   }, [token]);
 
   const isContinuePaymentMode = !!continuePaymentState;

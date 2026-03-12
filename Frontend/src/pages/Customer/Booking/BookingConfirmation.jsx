@@ -11,6 +11,7 @@ import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 import { setCredentials } from "../../../store/authSlice";
 import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
 import "./BookingConfirmation.css";
+import { toast } from 'react-toastify';
 
 // Normalize time to "HH:mm" so map keys match client slot labels (e.g. "08:00" not "8:00")
 const normalizeTime = (t) => {
@@ -221,7 +222,7 @@ const BookingConfirmation = () => {
       if (!fullnameCheck || !phoneCheck) {
         if (!fullnameCheck) setNameError("Vui lòng nhập họ tên.");
         if (!phoneCheck) setPhoneError("Vui lòng nhập số điện thoại.");
-        setConfirmError("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+        toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
         return;
       }
       // Note: removed optimistic slot locking here. Slots will be reserved
@@ -253,7 +254,7 @@ const BookingConfirmation = () => {
           }
 
           if (details.length === 0) {
-            setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+            toast.error("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
             return;
           }
         }
@@ -270,7 +271,7 @@ const BookingConfirmation = () => {
         const fullname = (displayName || guestName || "").trim();
         const phoneNumber = (displayPhone || guestPhone || "").trim();
         if (!fullname || !phoneNumber) {
-          setConfirmError("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+          toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
           return;
         }
 
@@ -285,7 +286,7 @@ const BookingConfirmation = () => {
         };
 
         if (!payload.details.length) {
-          setConfirmError("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
+          toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
           return;
         }
 
@@ -296,7 +297,7 @@ const BookingConfirmation = () => {
           const unavailableKeys = getUnavailableKeysFromSchedule(freshSchedule);
           const hasConflict = uniqueDetails.some((d) => unavailableKeys.has(`${Number(d.fieldId)}_${Number(d.slotId)}`));
           if (hasConflict) {
-            setConfirmError("Một hoặc nhiều khung giờ đã được đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.");
+            toast.error("Một hoặc nhiều khung giờ đã được đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.");
             return;
           }
         } catch (e) {
@@ -344,17 +345,17 @@ const BookingConfirmation = () => {
         }
         console.warn('Create booking failed', err);
         if (err && err.status === 401) {
-          setConfirmError('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
+          toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
           return;
         }
         if (err && err.status === 400) {
           const msg = err?.data?.message || err?.message || 'Một hoặc nhiều khung giờ đã được đặt hoặc không hợp lệ. Vui lòng quay lại trang đặt lịch và chọn lại.';
-          setConfirmError(msg);
+          toast.error(msg);
           return;
         }
         if (err && err.status === 409) {
           const msg = err?.data?.message || err?.message || 'Slot đã được đặt hoặc đang được người khác đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.';
-          setConfirmError(msg);
+          toast.error(msg);
           return;
         }
 
@@ -431,11 +432,11 @@ const BookingConfirmation = () => {
             },
           });
         } catch (err) {
-          setConfirmError(err?.message || 'Không thể tạo đặt chỗ.');
+          toast.error(err?.message || 'Không thể tạo đặt chỗ.');
         }
       }
-    } catch (e) {
-      setConfirmError('Không thể lấy lịch từ server. Vui lòng thử lại.');
+      } catch (e) {
+      toast.error('Không thể lấy lịch từ server. Vui lòng thử lại.');
     } finally {
       setIsRetrying(false);
     }
@@ -621,18 +622,7 @@ const BookingConfirmation = () => {
         </div>
       </div>
 
-      {confirmError && (
-        <div className="bc-section" style={{ marginTop: "0.5rem" }}>
-          <p className="bc-field-error" role="alert">{confirmError}</p>
-          {confirmError.includes("Không thể ánh xạ") && (
-            <div style={{ marginTop: "0.5rem", textAlign: "center" }}>
-              <button className="bc-login-link" onClick={attemptRemap} disabled={isRetrying}>
-                {isRetrying ? 'Đang tải...' : 'Tải lại lịch và thử lại'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      
 
       {/* Bottom action */}
       <div className="bc-bottom">
