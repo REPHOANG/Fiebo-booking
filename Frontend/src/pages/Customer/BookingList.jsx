@@ -243,7 +243,7 @@ const BookingList = () => {
   };
 
   const handleContinuePaymentFromList = (venueId, bookingId) => {
-    navigate(`/venue/${venueId}/booking/payment`, { state: { bookingId } });
+    navigate(`/venue/${venueId}/booking/payment?bookingId=${bookingId}`, { state: { bookingId } });
   };
 
   const handleCancelFromList = () => {

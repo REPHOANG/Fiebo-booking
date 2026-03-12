@@ -1,4 +1,5 @@
 import React from 'react';
+import './SearchBar.css';
 import { Search, SlidersHorizontal, Map, CheckSquare, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, FormControl } from 'react-bootstrap';
@@ -19,14 +20,14 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenti
     }
     if (variant === 'outline') {
       return (
-        <Button variant="outline-secondary" onClick={onSearch} className="p-2">
+        <Button variant="outline-success" onClick={onSearch} className="p-2 ch-search-btn rounded-pill">
           <Search size={16} />
         </Button>
       );
     }
     // default: icon (light)
     return (
-      <Button variant="light" onClick={onSearch} className="p-2">
+      <Button variant="outline-success" onClick={onSearch} className="p-2 ch-search-btn rounded-pill">
         <Search size={18} />
       </Button>
     );
@@ -50,10 +51,14 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenti
       </div>
 
       <div className="ch-nav-tabs d-flex gap-2 mt-2">
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/venues')}>
+        <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/')}>
           <Map size={16} /> <span className="ms-1">Bản đồ</span>
         </Button>
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && navigate('/login')}>
+        <Button
+          variant="link"
+          className="ch-nav-tab p-0"
+          onClick={() => (isAuthenticated ? navigate('/bookings') : navigate('/login'))}
+        >
           <CheckSquare size={16} /> <span className="ms-1">Sân đã đặt</span>
         </Button>
         <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && navigate('/login')}>

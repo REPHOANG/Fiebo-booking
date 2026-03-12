@@ -30,7 +30,7 @@ const style = {
   px: 2.5,
   py: 5,
 };
-export default function GiveRating({ open = true, handleClose, bookingId = 1 }) {
+export default function GiveRating({ open, handleClose, bookingId  }) {
   const [error, setError] = useState(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");

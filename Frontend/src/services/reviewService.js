@@ -13,7 +13,7 @@ export const giveRatingApi = async ({ bookingId, rating, comment, images }) => {
     });
   }
 
-  const response = await api.post("/review", formData, {
+  const response = await api.post("/api/review", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import {
@@ -23,23 +23,49 @@ const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
 
 const HOLD_SECONDS = 5 * 60; // 5 minutes
+const BOOKING_GRACE_STORAGE_KEY = (bookingId) => `fiebo_booking_grace_${bookingId}`;
+const PAYMENT_VENUE_SESSION_KEY = (venueId) => `fiebo_payment_venue_${venueId}`;
 
 const BookingPayment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
   const { user, token } = useSelector((state) => state.auth);
 
   const paymentState = location.state;
+  const bookingIdFromQuery = searchParams.get('bookingId');
+  const resolvedBookingId = paymentState?.bookingId ?? (bookingIdFromQuery ? Number(bookingIdFromQuery) : null);
 
-  // "Tiếp tục thanh toán" từ danh sách: chỉ có bookingId → gọi API lấy chi tiết booking
+  // "Tiếp tục thanh toán" từ danh sách hoặc mở lại từ URL có ?bookingId= → gọi API lấy chi tiết
   const [continuePaymentState, setContinuePaymentState] = useState(null);
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [bookingLoadError, setBookingLoadError] = useState(null);
 
   useEffect(() => {
-    const bookingId = paymentState?.bookingId;
+    if (resolvedBookingId && !paymentState?.totalPrice) {
+      setSearchParams({ bookingId: String(resolvedBookingId) }, { replace: true });
+    }
+  }, [resolvedBookingId, paymentState?.totalPrice, setSearchParams]);
+
+  // Reload: nếu không có state nhưng có session theo venue → chuyển sang URL có bookingId để tải lại đơn và dùng thời gian đã lưu
+  useEffect(() => {
+    if (paymentState != null || bookingIdFromQuery || !id) return;
+    try {
+      const raw = sessionStorage.getItem(PAYMENT_VENUE_SESSION_KEY(id));
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      const rid = data?.reservationId;
+      const expiresAt = data?.reservationExpireAt ? Number(data.reservationExpireAt) : 0;
+      if (!rid || expiresAt <= Date.now()) return;
+      sessionStorage.setItem(BOOKING_GRACE_STORAGE_KEY(rid), String(expiresAt));
+      setSearchParams({ bookingId: String(rid) }, { replace: true });
+    } catch (_) {}
+  }, [id, paymentState, bookingIdFromQuery, setSearchParams]);
+
+  useEffect(() => {
+    const bookingId = resolvedBookingId;
     if (!bookingId || paymentState?.totalPrice != null) return; // đã có state đầy đủ từ luồng confirm
     let cancelled = false;
     setLoadingBooking(true);
@@ -71,9 +97,21 @@ const BookingPayment = () => {
         if (!cancelled) setLoadingBooking(false);
       });
     return () => { cancelled = true; };
-  }, [paymentState?.bookingId, paymentState?.totalPrice]);
+  }, [resolvedBookingId, paymentState?.totalPrice]);
 
   const effectiveState = continuePaymentState || paymentState;
+
+  // Đồng bộ thời gian: lưu expiry theo venue + theo booking để reload không bị reset
+  useEffect(() => {
+    const state = effectiveState;
+    if (!state?.reservationId || !state?.reservationExpireAt) return;
+    const ts = new Date(state.reservationExpireAt).getTime();
+    if (ts <= Date.now()) return;
+    try {
+      sessionStorage.setItem(BOOKING_GRACE_STORAGE_KEY(state.reservationId), String(ts));
+      if (id) sessionStorage.setItem(PAYMENT_VENUE_SESSION_KEY(id), JSON.stringify({ reservationId: state.reservationId, reservationExpireAt: ts }));
+    } catch (_) {}
+  }, [effectiveState?.reservationId, effectiveState?.reservationExpireAt, id]);
 
   // Mark selected slots local-booked for UI if we have them (no server reserve by default)
   useEffect(() => {
@@ -104,6 +142,7 @@ const BookingPayment = () => {
   const [timeLeft, setTimeLeft] = useState(HOLD_SECONDS);
   const [expired, setExpired] = useState(false);
   const [reservationId, setReservationId] = useState(null);
+  const [graceExpiresAt, setGraceExpiresAt] = useState(null);
 
   // Fetch wallet balance
   useEffect(() => {
@@ -123,7 +162,10 @@ const BookingPayment = () => {
     fetchBalance();
   }, [token]);
 
+  const isContinuePaymentMode = !!continuePaymentState;
+
   // Init reservation + countdown from server expireAt (5 phút) or fallback TTL
+  // Khi "Tiếp tục thanh toán": nếu expiredAt đã qua thì dùng grace; grace lưu sessionStorage để reload không reset
   useEffect(() => {
     const state = effectiveState;
     if (!state) return;
@@ -133,72 +175,79 @@ const BookingPayment = () => {
     const expireAt = state.reservationExpireAt;
     if (expireAt) {
       const secs = Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000));
-      setTimeLeft(secs);
+      if (secs > 0) {
+        setTimeLeft(secs);
+        setGraceExpiresAt(null);
+        return;
+      }
+      if (isContinuePaymentMode) {
+        const key = BOOKING_GRACE_STORAGE_KEY(state.reservationId);
+        const stored = sessionStorage.getItem(key);
+        const now = Date.now();
+        if (stored) {
+          const expiresAt = parseInt(stored, 10);
+          const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+          setTimeLeft(remaining);
+          setGraceExpiresAt(expiresAt);
+        } else {
+          const expiresAt = now + HOLD_SECONDS * 1000;
+          sessionStorage.setItem(key, String(expiresAt));
+          setTimeLeft(HOLD_SECONDS);
+          setGraceExpiresAt(expiresAt);
+        }
+        return;
+      }
+      setTimeLeft(0);
       return;
     }
     const ttl = Number(state.reservationTtl ?? HOLD_SECONDS);
     setTimeLeft(ttl > 0 ? ttl : HOLD_SECONDS);
-  }, [effectiveState?.reservationId, effectiveState?.reservationExpireAt, effectiveState?.reservationTtl]);
+  }, [effectiveState?.reservationId, effectiveState?.reservationExpireAt, effectiveState?.reservationTtl, isContinuePaymentMode]);
 
   useEffect(() => {
     if (paymentDone || expired) return;
     if (timeLeft <= 0) {
-      setExpired(true);
+      if (!isContinuePaymentMode) setExpired(true);
       return;
     }
     const timer = setTimeout(() => {
+      if (graceExpiresAt != null) {
+        const secs = Math.max(0, Math.floor((graceExpiresAt - Date.now()) / 1000));
+        setTimeLeft(secs);
+        return;
+      }
       const expireAt = effectiveState?.reservationExpireAt;
       if (expireAt) {
         const secs = Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000));
-        setTimeLeft(secs);
-        if (secs <= 0) setExpired(true);
+        if (secs > 0) {
+          setTimeLeft(secs);
+        } else if (isContinuePaymentMode) {
+          setTimeLeft((t) => Math.max(0, t - 1));
+        } else {
+          setTimeLeft(0);
+          setExpired(true);
+        }
       } else {
         setTimeLeft((t) => {
-          if (t <= 1) setExpired(true);
+          if (t <= 1 && !isContinuePaymentMode) setExpired(true);
           return Math.max(0, t - 1);
         });
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, paymentDone, expired, effectiveState?.reservationExpireAt]);
+  }, [timeLeft, paymentDone, expired, effectiveState?.reservationExpireAt, isContinuePaymentMode, graceExpiresAt]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timerDisplay = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
-  if (bookingLoadError) {
-    return (
-      <div className="bp-empty">
-        <h2>Không tải được đơn đặt chỗ</h2>
-        <p>{bookingLoadError}</p>
-        <button onClick={() => navigate('/bookings')} className="bp-back-link">
-          ← Về danh sách đặt chỗ
-        </button>
-      </div>
-    );
-  }
-
-  if (!effectiveState) {
-    if (paymentState?.bookingId && loadingBooking) {
-      return (
-        <div className="bp-empty">
-          <p>Đang tải thông tin đơn đặt chỗ...</p>
-        </div>
-      );
-    }
-    return (
-      <div className="bp-empty">
-        <h2>Không có thông tin thanh toán</h2>
-        <p>Vui lòng quay lại trang đặt lịch.</p>
-        <button onClick={() => navigate(-1)} className="bp-back-link">
-          ← Quay lại
-        </button>
-      </div>
-    );
-  }
-
-  const { venue, selectedDate, slotSummary, bookingItems, customerName, customerPhone, totalPrice } = effectiveState;
-
+  const venue = effectiveState?.venue;
+  const selectedDate = effectiveState?.selectedDate;
+  const slotSummary = effectiveState?.slotSummary;
+  const bookingItems = effectiveState?.bookingItems;
+  const customerName = effectiveState?.customerName;
+  const customerPhone = effectiveState?.customerPhone;
+  const totalPrice = effectiveState?.totalPrice ?? 0;
   const isEnough = walletBalance >= totalPrice;
 
   // No server release call — nothing to do when client-only hold expires
@@ -218,24 +267,60 @@ const BookingPayment = () => {
   // Save draft while user is on payment page so they can return later
   useEffect(() => {
     const draft = {
-      bookingId: reservationId || effectiveState?.reservationId || effectiveState?.reservationId,
+      bookingId: reservationId ?? effectiveState?.reservationId,
       venueId: venue?.id,
-      selectedDate,
-      selectedSlots: location.state?.selectedSlots || effectiveState?.selectedSlots || [],
+      selectedDate: selectedDate ?? effectiveState?.selectedDate,
+      selectedSlots: location.state?.selectedSlots ?? effectiveState?.selectedSlots ?? [],
       totalPrice: totalPrice ?? effectiveState?.totalPrice ?? 0,
-      expiresAt: effectiveState?.reservationExpireAt || null,
+      expiresAt: effectiveState?.reservationExpireAt ?? null,
     };
-    if (draft.bookingId || (draft.venueId && draft.selectedSlots && draft.selectedSlots.length)) {
+    if (draft.bookingId || (draft.venueId && draft.selectedSlots?.length)) {
       savePaymentDraft(draft);
     }
-
     const handleBeforeUnload = () => savePaymentDraft(draft);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservationId, venue, selectedDate, location.state]);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [reservationId, effectiveState, venue?.id, selectedDate, totalPrice, location.state]);
+
+  const formattedDate = useMemo(() => {
+    const sd = selectedDate ?? effectiveState?.selectedDate;
+    if (!sd) return "";
+    const [y, mo, d] = String(sd).split("-");
+    const date = new Date(Number(y), Number(mo) - 1, Number(d));
+    const dayName = date.toLocaleDateString("vi-VN", { weekday: "long" });
+    return `${dayName}, ${d}/${mo}/${y}`;
+  }, [selectedDate, effectiveState?.selectedDate]);
+
+  if (bookingLoadError) {
+    return (
+      <div className="bp-empty">
+        <h2>Không tải được đơn đặt chỗ</h2>
+        <p>{bookingLoadError}</p>
+        <button onClick={() => navigate('/bookings')} className="bp-back-link">
+          ← Về danh sách đặt chỗ
+        </button>
+      </div>
+    );
+  }
+
+  if (!effectiveState) {
+    if ((resolvedBookingId || paymentState?.bookingId) && loadingBooking) {
+      return (
+        <div className="bp-empty">
+          <p>Đang tải thông tin đơn đặt chỗ...</p>
+        </div>
+      );
+    }
+    return (
+      <div className="bp-empty">
+        <h2>Không có thông tin thanh toán</h2>
+        <p>Vui lòng quay lại trang đặt lịch hoặc chọn "Tiếp tục thanh toán" từ Sân đã đặt.</p>
+        <button onClick={() => navigate('/bookings')} className="bp-back-link">
+          ← Về danh sách đặt chỗ
+        </button>
+      </div>
+    );
+  }
 
   const handlePay = async () => {
     if (!token) {
@@ -256,8 +341,11 @@ const BookingPayment = () => {
       }
       await payBooking(bookingId, { paymentMethod: 'wallet' });
       setPaymentDone(true);
-      // clear stored draft on success
       try { clearPaymentDraft(); } catch (e) {}
+      try {
+        sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(bookingId));
+        if (id) sessionStorage.removeItem(PAYMENT_VENUE_SESSION_KEY(id));
+      } catch (_) {}
     } catch (payErr) {
       console.error('Payment failed', payErr);
       alert('Thanh toán không thành công. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
@@ -271,15 +359,6 @@ const BookingPayment = () => {
       state: { returnTo: location.pathname, returnState: effectiveState },
     });
   };
-
-  // Format date
-  const formattedDate = useMemo(() => {
-    if (!selectedDate) return "";
-    const [y, mo, d] = selectedDate.split("-");
-    const date = new Date(y, mo - 1, d);
-    const dayName = date.toLocaleDateString("vi-VN", { weekday: "long" });
-    return `${dayName}, ${d}/${mo}/${y}`;
-  }, [selectedDate]);
 
   const pageTransition = {
     initial: { opacity: 0, x: 40 },
@@ -329,6 +408,10 @@ const BookingPayment = () => {
     try {
       await payBooking(reservationId, { paymentMethod: 'wallet' });
       setPaymentDone(true);
+      try {
+        sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(reservationId));
+        if (id) sessionStorage.removeItem(PAYMENT_VENUE_SESSION_KEY(id));
+      } catch (_) {}
     } catch (err) {
       console.error('Pay after expired failed', err);
       alert(err?.message || 'Không thể thanh toán. Đơn có thể đã bị hủy hoặc hết hạn.');
@@ -397,7 +480,14 @@ const BookingPayment = () => {
             </div>
           </div>
 
-          {(effectiveState?.slotMappingFailed || !effectiveState?.reservationId) && (
+          {isContinuePaymentMode && timeLeft <= 0 && (
+            <div className="bp-notice-card" role="status">
+              <AlertTriangle size={18} />
+              <span>Thời gian giữ chỗ đã qua. Bạn vẫn có thể thanh toán nếu đơn còn hiệu lực.</span>
+            </div>
+          )}
+
+          {(effectiveState?.slotMappingFailed || !effectiveState?.reservationId) && !(isContinuePaymentMode && timeLeft <= 0) && (
             <div className="bp-notice-card" role="status">
               <AlertTriangle size={18} />
               <span>

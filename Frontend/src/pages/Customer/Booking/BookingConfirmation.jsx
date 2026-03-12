@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight } from "lucide-react";
 import { createBooking } from "../../../services/bookingService";
+import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
@@ -308,6 +309,10 @@ const BookingConfirmation = () => {
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
+        // Persist minimal server-side draft (bookingId) so users can resume across devices
+        try {
+          if (bookingId) savePaymentDraft({ bookingId, venueId: venue?.id, expiresAt: expireAt });
+        } catch (e) {}
         const ttl = expireAt
           ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
           : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
