@@ -26,6 +26,7 @@ namespace Fiebo.Domain.Repositories
         ITopUpRequestRepository TopUpRequests { get; }
 
         //IReportRepository Reports { get; }
+        IWalletTransactionRepository WalletTransactions { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

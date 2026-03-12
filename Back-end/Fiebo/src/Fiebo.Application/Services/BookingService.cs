@@ -100,7 +100,7 @@ namespace Fiebo.Application.Services
                 wallet.Balance -= booking.TotalPrice;
                 booking.Status = BookingStatus.Booked;
                 booking.ExpiredAt = null;
-                booking.UpdatedAt = DateTime.now;
+                booking.UpdatedAt = DateTime.Now;
 
                 _unitOfWork.Wallets.Update(wallet);
                 _unitOfWork.Bookings.Update(booking);
