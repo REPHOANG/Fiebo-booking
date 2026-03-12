@@ -27,8 +27,8 @@ const WalletTopUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (amount < 10000) {
-      toast.warning("Số tiền nạp tối thiểu 10.000 đ");
+    if (amount < 10000 || amount > 1000000) {
+      toast.warning("Số tiền nạp tối thiểu 10.000 đ và tối đa 1.000.000 đ");
       return;
     }
     setLoading(true);
@@ -118,7 +118,7 @@ const WalletTopUp = () => {
           <button
             type="submit"
             className="wtu-submit"
-            disabled={loading || amount < 10000}
+            
           >
             <Plus size={18} />
             {loading ? "Đang xử lý..." : "Xác nhận nạp tiền"}
