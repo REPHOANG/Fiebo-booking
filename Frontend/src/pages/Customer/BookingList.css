@@ -1,0 +1,419 @@
+/* ============ BOOKING LIST — Sân đã đặt ============ */
+
+.bl-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 20px 100px;
+}
+
+.bl-header {
+  margin-bottom: 24px;
+}
+
+.bl-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.bl-back:hover {
+  background: #fff;
+  transform: translateX(-2px);
+}
+
+.bl-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.bl-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Danh sách booking */
+.bl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.bl-list-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.bl-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bl-list-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.bl-list-badge[data-status="pending"] { background: #fef3c7; color: #92400e; }
+.bl-list-badge[data-status="booked"] { background: #dbeafe; color: #1e40af; }
+.bl-list-badge[data-status="completed"] { background: #d1fae5; color: #065f46; }
+.bl-list-badge[data-status="cancelled"],
+.bl-list-badge[data-status="expired"] { background: #f1f5f9; color: #64748b; }
+
+.bl-list-venue {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.bl-list-meta {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bl-list-slots {
+  font-size: 0.85rem;
+  color: #475569;
+  margin: 0;
+}
+
+.bl-list-actions {
+  flex-shrink: 0;
+}
+
+.bl-btn-sm {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+/* Search */
+.bl-search {
+  margin-bottom: 20px;
+}
+
+.bl-search-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.bl-search-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.bl-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  color: #0f172a;
+  min-width: 0;
+}
+
+.bl-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.bl-search-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.bl-search-btn:hover:not(:disabled) {
+  background: #1e293b;
+}
+
+.bl-search-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.bl-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.bl-error svg {
+  flex-shrink: 0;
+}
+
+.bl-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.bl-loading .spin {
+  animation: blSpin 0.8s linear infinite;
+}
+
+@keyframes blSpin {
+  to { transform: rotate(360deg); }
+}
+
+.bl-detail {
+  margin-top: 8px;
+}
+
+.bl-detail-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.bl-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.bl-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bl-badge[data-status="pending"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.bl-badge[data-status="confirmed"] {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.bl-badge[data-status="cancelled"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.bl-id {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.bl-venue-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 12px;
+}
+
+.bl-venue-name svg {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.bl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.bl-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bl-contact {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.bl-contact p {
+  margin: 0 0 6px;
+}
+
+.bl-expiry {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bl-slots {
+  margin-bottom: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.bl-slots h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #475569;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bl-slots ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bl-slots li {
+  padding: 8px 0;
+  font-size: 0.95rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bl-slots li:last-child {
+  border-bottom: none;
+}
+
+.bl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.bl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.15s;
+  border: none;
+  cursor: pointer;
+}
+
+.bl-btn.primary {
+  background: #0f172a;
+  color: #fff;
+}
+
+.bl-btn.primary:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.bl-btn.secondary {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.bl-btn.secondary:hover {
+  background: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.bl-btn.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.bl-btn.danger:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+}
+
+.bl-empty,
+.bl-empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.bl-empty h2,
+.bl-empty-state h2 {
+  font-size: 1.25rem;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.bl-empty p,
+.bl-empty-state p {
+  margin: 0 0 20px;
+}
+
+.bl-empty .bl-btn {
+  margin-top: 8px;
+}
+
+.bl-empty-state p {
+  margin: 0;
+}

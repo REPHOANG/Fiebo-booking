@@ -2,6 +2,13 @@
    VENUES PAGE — Modern glassmorphism card grid
    ============================================================ */
 
+/* Background riêng cho trang Venues — không phụ thuộc body */
+.venues-screen {
+  min-height: 100%;
+  background: linear-gradient(180deg, #34c832 0%, #3caa29 35%, #31c1cc 70%, #0f3895 100%);
+  background-attachment: fixed;
+}
+
 /* ── Page header ─────────────────────────────────────────────── */
 .venues-page {
   max-width: 1280px;

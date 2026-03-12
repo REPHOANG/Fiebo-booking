@@ -3,12 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight } from "lucide-react";
-import { createBooking } from "../../services/bookingService";
-import { getVenueSchedule } from "../../services/fieldService";
-import { clearDraft } from '../../store/bookingDraftSlice';
-import { addBookedSlots } from '../../store/bookedSlotsSlice';
-import { setCredentials } from "../../store/authSlice";
-import LoginPopup from '../../components/common/LoginPopup/LoginPopup';
+import { createBooking } from "../../../services/bookingService";
+import { getVenueSchedule } from "../../../services/fieldService";
+import { clearDraft } from '../../../store/bookingDraftSlice';
+import { addBookedSlots } from '../../../store/bookedSlotsSlice';
+import { setCredentials } from "../../../store/authSlice";
+import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
 import "./BookingConfirmation.css";
 
 // Normalize time to "HH:mm" so map keys match client slot labels (e.g. "08:00" not "8:00")

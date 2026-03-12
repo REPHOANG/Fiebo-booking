@@ -15,8 +15,8 @@ import {
   Receipt,
 } from "lucide-react";
 import "./BookingPayment.css";
-import { payBooking } from '../../services/bookingService';
-import { addBookedSlots } from '../../store/bookedSlotsSlice';
+import { payBooking } from '../../../services/bookingService';
+import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";

@@ -3,11 +3,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { getVenueDetail, getVenueFields } from "../../services/fieldService";
-import { setDraft } from '../../store/bookingDraftSlice';
-import { getVenueSchedule } from '../../services/fieldService';
-import { setBookedSlotsFromServer } from '../../store/bookedSlotsSlice';
-import LoginPopup from '../../components/common/LoginPopup/LoginPopup';
+import { getVenueDetail, getVenueFields } from "../../../services/fieldService";
+import { setDraft } from '../../../store/bookingDraftSlice';
+import { getVenueSchedule } from '../../../services/fieldService';
+import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
+import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */

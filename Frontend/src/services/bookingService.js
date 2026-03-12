@@ -111,7 +111,18 @@ export const payBooking = async (bookingId, payload) => {
   return response.data ?? response;
 };
 
+/**
+ * Lấy chi tiết đặt chỗ theo id (GET /api/Booking/{id}).
+ * @param {number|string} bookingId
+ * @returns {Promise<{ bookingId, fullName, phone, bookingNote, status, expiredAt, venueId, venueName, date, totalPrice, details }>}
+ */
+export const getBookingById = async (bookingId) => {
+  const response = await fetchAPI(`/api/Booking/${bookingId}`, { method: 'GET' });
+  return response.data ?? response;
+};
+
 export default {
   createBooking,
   payBooking,
+  getBookingById,
 };
