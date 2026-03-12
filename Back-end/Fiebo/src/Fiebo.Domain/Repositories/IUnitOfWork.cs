@@ -24,6 +24,8 @@ namespace Fiebo.Domain.Repositories
 
         ITimeSlotRepository TimeSlots { get; }
 
+        //IReportRepository Reports { get; }
+
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

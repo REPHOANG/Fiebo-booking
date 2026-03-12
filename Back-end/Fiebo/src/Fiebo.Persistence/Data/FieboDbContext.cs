@@ -29,6 +29,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<BookingDetail> BookingDetails { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<ReviewImage> ReviewImages { get; set; }
+        public DbSet<Report> Reports { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -323,6 +324,41 @@ namespace Fiebo.Persistence.Data
                       .WithMany(r => r.Images)
                       .HasForeignKey(e => e.ReviewId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<Report>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Id).ValueGeneratedOnAdd();
+
+                entity.Property(r => r.Title)
+                      .HasMaxLength(200)
+                      .IsRequired();
+
+                entity.Property(r => r.Content)
+                      .HasColumnType("text")
+                      .IsRequired();
+
+                entity.Property(r => r.Status)
+                      .HasDefaultValue(0); // 0: Pending
+
+                entity.Property(r => r.UserId)
+                      .IsRequired();
+
+                entity.HasOne(r => r.Booking)
+                      .WithMany() 
+                      .HasForeignKey(r => r.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(r => r.ResponseContent)
+                      .HasColumnType("text")
+                      .IsRequired(false);
+                entity.Property(r => r.AdminId)
+                      .HasMaxLength(450)
+                      .IsRequired(false);
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+               
             });
         }
     }
