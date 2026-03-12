@@ -76,6 +76,16 @@ function getTabForStatus(status) {
   return null;
 }
 
+function translateStatus(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "pending") return "Chờ thanh toán";
+  if (s === "booked") return "Đã đặt";
+  if (s === "completed") return "Hoàn thành";
+  if (s === "cancelled") return "Đã hủy";
+  if (s === "expired") return "Hết hạn";
+  return status || "—";
+}
+
 const BookingList = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -370,12 +380,15 @@ const BookingList = () => {
             return filtered.map((b) => (
               <div key={b.bookingId} className="bl-list-item">
                 <div className="bl-list-info">
-                  <span
-                    className="bl-list-badge"
-                    data-status={activeTab === "upcoming" ? "upcoming" : (b.status || "").toLowerCase()}
-                  >
-                    {b.status || "—"}
-                  </span>
+                  <div className="bl-badge-row">
+                    <span
+                      className="bl-list-badge"
+                      data-status={activeTab === "upcoming" ? "upcoming" : (b.status || "").toLowerCase()}
+                    >
+                      {translateStatus(b.status)}
+                    </span>
+                    <span className="bl-list-id">Mã #{b.bookingId}</span>
+                  </div>
                   <h3 className="bl-list-venue">{b.venueName || "—"}</h3>
                   {(b.address || b.ward || b.province) && (
                     <p className="bl-list-address">
@@ -462,10 +475,12 @@ const BookingList = () => {
             ) : (
               <div className="bl-detail-card bl-popup-card">
                 <div className="bl-detail-header">
-                  <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
-                    {popupBooking.status || "—"}
-                  </span>
-                  <span className="bl-id">Mã #{popupBooking.bookingId ?? popupBooking.id}</span>
+                  <div className="bl-badge-row">
+                    <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
+                      {translateStatus(popupBooking.status)}
+                    </span>
+                  </div>
+                  <div className="bl-popup-code">Mã #{popupBooking.bookingId ?? popupBooking.id}</div>
                 </div>
                 <h2 className="bl-venue-name">
                   <MapPin size={18} />

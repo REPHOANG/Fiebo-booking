@@ -331,9 +331,77 @@
 .bl-detail-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 28px;
   box-shadow: var(--shadow-md);
   border: 1px solid rgba(255,255,255,0.8);
+}
+
+/* Detail header: badge left, booking id right */
+.bl-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+/* avoid overlap with absolute-positioned close button */
+.bl-popup .bl-detail-header {
+  padding-right: 64px;
+}
+
+.bl-detail-header .bl-id {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* Booking code shown at top-right in popup */
+.bl-popup-code {
+  font-weight: 800;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.bl-detail-card .bl-meta {
+  display: flex;
+  gap: 18px;
+  margin-top: 8px;
+  color: var(--text-muted);
+}
+
+/* badge + booking code inline on list items */
+.bl-badge-row {
+  display: inline-flex;
+  /* align to text baseline so badge and code line up with the title */
+  align-items: baseline;
+  gap: 12px;
+}
+
+.bl-list-id {
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-left: 8px;
+  transform: translateY(-2px);
+}
+
+.bl-contact p {
+  margin: 6px 0;
+}
+
+.bl-expiry {
+  margin-top: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Align popup action buttons to the right and space them */
+.bl-popup .bl-actions {
+  justify-content: flex-end;
 }
 
 .bl-venue-name {
@@ -370,6 +438,27 @@
   display: flex;
   gap: 12px;
   margin-top: 24px;
+}
+
+/* List item action buttons: keep compact and spaced */
+.bl-list-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.bl-btn-sm {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  flex: 0 0 140px;
+  width: 140px;
+}
+
+/* nút action trong popup */
+.bl-popup .bl-actions .bl-btn {
+  flex: 0 0 140px;
+  width: 140px;
 }
 
 .bl-btn {
