@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.DTOs.Booking;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Interfaces
 {
@@ -9,6 +10,7 @@ namespace Fiebo.Application.Interfaces
         Task<ServiceResponse> SendBookingVerifyOtp(string phoneNumber);
         Task<string> VerifyBookingOtp(string fullname, string phoneNumber, string otpCode);
         Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId);
+        Task<PagedResult<BookingHistoryResponse>> GetBookingHistoryAsync(string userId, BookingHistory request);
         Task<BookingDetailResponse> GetBookingDetailAsync(int bookingId, string userId);
     }
 }
