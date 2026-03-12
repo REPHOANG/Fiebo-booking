@@ -5,6 +5,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System.Security.Principal;
 
@@ -319,24 +320,38 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task<List<BookingHistoryResponse>> GetBookingHistoryAsync(string userId)
+        public async Task<PagedResult<BookingHistoryResponse>> GetBookingHistoryAsync(string userId, BookingHistory request)
         {
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new UnauthorizedAccessException("Cannot identify current user.");
+            var parameters = new BookingHistory
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                FromDate = request.FromDate,
+                ToDate = request.ToDate
+            };
 
-            var bookings = await _unitOfWork.Bookings.GetBookingHistoryByUserIdAsync(userId);
+            var result = await _unitOfWork.Bookings.GetBookingHistoryByUserIdAsync(userId, parameters);
 
-            return bookings.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
+
+            var items = result.Items.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
             {
                 BookingId = b.Id,
                 Status = b.Status.ToString(),
                 BookingDate = b.CreatedAt,
                 VenueName = bd.Field?.Venue?.Name ?? "N/A",
-                Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
-                VenueId = bd.Field?.VenueId ?? 0,
                 Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
-                Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A"
+                Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
+                Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
+                VenueId = bd.Field?.VenueId ?? 0
             })).ToList();
+
+            return new PagedResult<BookingHistoryResponse>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = items
+            };
         }
     }
 }

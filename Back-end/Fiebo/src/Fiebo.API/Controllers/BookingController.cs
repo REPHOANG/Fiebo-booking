@@ -2,6 +2,7 @@ using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -120,22 +121,22 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Retrieves the booking history for the authenticated customer.
+        /// Retrieves the booking history for the authenticated customer with pagination and date filters.
         /// </summary>
-        /// <returns>A list of booking history records wrapped in an ApiResponse.</returns>
         [Authorize(Roles = AppRoles.Customer)]
         [HttpGet("history")]
-        public async Task<IActionResult> GetBookingHistory()
+        public async Task<IActionResult> GetBookingHistory([FromQuery] BookingHistory request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrWhiteSpace(userId))
             {
                 throw new UnauthorizedAccessException("Cannot identify current user.");
             }
 
-            var result = await _bookingService.GetBookingHistoryAsync(userId);
-            return Ok(new ApiResponse<List<BookingHistoryResponse>>
+            var result = await _bookingService.GetBookingHistoryAsync(userId, request);
+
+            return Ok(new ApiResponse<PagedResult<BookingHistoryResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải lịch sử đặt sân thành công.",

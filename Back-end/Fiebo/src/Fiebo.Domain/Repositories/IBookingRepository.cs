@@ -1,4 +1,5 @@
 ﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IBookingRepository : IRepository<Booking>
     {
-        Task<List<Booking>> GetBookingHistoryByUserIdAsync(string userId);
+        Task<PagedResult<Booking>> GetBookingHistoryByUserIdAsync(string userId, BookingHistory parameters);
         Task<Booking?> GetBookingForReportAsync(int bookingId, string userId);
         Task<Booking?> GetBookingDetailByBookingId(int id);
     }
