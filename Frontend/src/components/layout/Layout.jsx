@@ -9,10 +9,10 @@ const Layout = () => {
   const isBookingPage = location.pathname.includes("/booking");
   const isVenuesPage = location.pathname === "/venues";
   const isVenueDetailPage = /^\/venue\/[0-9]+$/.test(location.pathname);
-
   return (
     <div className="layout">
       <Header />
+      {/* draft banner removed */}
       <main className="main">
         <Outlet />
       </main>

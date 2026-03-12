@@ -397,7 +397,8 @@ const Venues = () => {
   };
 
   return (
-    <div className="venues-page">
+    <div className="venues-screen screen-bg screen-bg-sport-static">
+      <div className="venues-page">
       {/* Hero heading */}
       <div className="venues-hero">
         <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -534,8 +535,7 @@ const Venues = () => {
       {!hasMore && venues.length > 0 && (
         <p className="venues-end">Bạn đã xem hết tất cả sân.</p>
       )}
-
-      {/* ...existing code... */}
+      </div>
     </div>
   );
 };

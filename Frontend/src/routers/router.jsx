@@ -2,9 +2,9 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import CustomerHome from '../pages/Customer/CustomerHome';
 import VenueDetail from '../pages/Customer/VenueDetail';
-import BookingSchedule from '../pages/Customer/BookingSchedule';
-import BookingConfirmation from '../pages/Customer/BookingConfirmation';
-import BookingPayment from '../pages/Customer/BookingPayment';
+import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
+import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
+import BookingPayment from '../pages/Customer/Booking/BookingPayment';
 import Login from '../pages/auth/Login';
 import OwnerLogin from '../pages/auth/OwnerLogin';
 import Register from '../pages/auth/Register';
@@ -17,6 +17,7 @@ import CreateVenue from '../pages/Owner/CreateVenue';
 import Layout from '../components/layout/Layout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
+import BookingList from '../pages/Customer/BookingList';
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -44,6 +45,8 @@ const AppRoutes = () => (
       <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
       <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
       <Route path="/wallet/top-up" element={<ProtectedRoute element={<WalletTopUp />} />} />
+      <Route path="/bookings" element={<ProtectedRoute element={<BookingList />} />} />
+      <Route path="/bookings/:id" element={<ProtectedRoute element={<BookingList />} />} />
       <Route path="/venues" element={<Venues />} />
       <Route path="/admin" element={<div>Admin Page</div>} />
     </Route>

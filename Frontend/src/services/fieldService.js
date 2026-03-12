@@ -195,6 +195,8 @@ export const searchVenues = async ({
   userLat,
   userLng,
 } = {}) => {
+
+  // tìm kiếm sân theo location + date + time + sportTypeId (có phân trang)
   const params = new URLSearchParams();
   if (location) params.append('location', location);
   if (date) params.append('date', date);
