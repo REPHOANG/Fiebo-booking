@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Wallet, Plus } from "lucide-react";
 import { toast } from "react-toastify";
+import { getWalletBalance, topUpWallet } from "../../services/walletService";
 import "./WalletTopUp.css";
 
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000];
@@ -16,9 +17,27 @@ const WalletTopUp = () => {
   const returnPath = location.state?.returnPath ?? location.state?.returnTo;
   const returnState = location.state?.returnState;
 
+  const [balance, setBalance] = useState(0);
+  const [loadingBalance, setLoadingBalance] = useState(true);
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount, setCustomAmount] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingBalance(true);
+    getWalletBalance()
+      .then((res) => {
+        if (!cancelled) setBalance(res.balance ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) setBalance(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBalance(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const amount =
     selectedAmount != null
@@ -27,15 +46,16 @@ const WalletTopUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (amount < 10000) {
-      toast.warning("Số tiền nạp tối thiểu 10.000 đ");
+    if (amount < 10000 || amount > 10000000) {
+      toast.warning("Số tiền nạp tối thiểu 10.000 đ và tối đa 10.000.000 đ");
       return;
     }
     setLoading(true);
     try {
-      // TODO: gọi API nạp tiền khi backend có endpoint
-      // await topUpWallet({ amount });
-      toast.success(`Đã ghi nhận yêu cầu nạp ${formatPrice(amount)}. Chức năng đang được phát triển.`);
+      await topUpWallet({ amount });
+      toast.success(`Đã nạp ${formatPrice(amount)} vào ví.`);
+      const res = await getWalletBalance();
+      setBalance(res.balance ?? 0);
       if (returnPath) {
         navigate(returnPath, { state: returnState, replace: true });
       } else if (fromPayment) {
@@ -73,6 +93,12 @@ const WalletTopUp = () => {
       <div className="wtu-card">
         <div className="wtu-card-icon">
           <Wallet size={32} />
+        </div>
+        <div className="wtu-balance">
+          <span className="wtu-balance-label">Số dư hiện tại</span>
+          <span className="wtu-balance-value">
+            {loadingBalance ? "..." : formatPrice(balance)}
+          </span>
         </div>
         <p className="wtu-card-desc">Chọn số tiền cần nạp hoặc nhập số tiền tùy chọn.</p>
 
@@ -118,7 +144,7 @@ const WalletTopUp = () => {
           <button
             type="submit"
             className="wtu-submit"
-            disabled={loading || amount < 10000}
+            
           >
             <Plus size={18} />
             {loading ? "Đang xử lý..." : "Xác nhận nạp tiền"}
