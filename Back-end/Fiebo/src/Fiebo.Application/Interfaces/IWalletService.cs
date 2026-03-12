@@ -11,5 +11,6 @@ namespace Fiebo.Application.Interfaces
     {
         Task<decimal> GetBalanceAsync(string userId);
         Task<QrPaymentResponseDto> GenerateTopUpQrAsync(decimal amount, string userId);
+        Task<bool> TopUpWalletAsync(SepayWebhookRequest request);
     }
 }
