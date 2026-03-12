@@ -1,4 +1,5 @@
-﻿using Fiebo.API.Wrappers;
+﻿using Fiebo.API.Services;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
@@ -48,6 +49,13 @@ namespace Fiebo.API.Controllers
                 Data = await _walletService.GenerateTopUpQrAsync(request.Amount, userId ?? "")
             });
 
+        }
+
+        [HttpGet("wallet/stream")]
+        public async Task Stream(string userId, [FromServices] SseService sse)
+        {
+            Response.Headers.Append("Content-Type", "text/event-stream");
+            sse.AddClient(userId, Response); await Task.Delay(-1);
         }
     }
 }
