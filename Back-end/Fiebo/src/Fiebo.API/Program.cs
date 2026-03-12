@@ -4,12 +4,12 @@ using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Repositories;
-using Fiebo.Persistence.Data;
 using Fiebo.Infrastructure.ExternalServices;
-using Fiebo.Persistence.Identity;
-using Fiebo.Persistence.Repositories;
 using Fiebo.Infrastructure.Services;
 using Fiebo.Persistence.BackgroundJobs;
+using Fiebo.Persistence.Data;
+using Fiebo.Persistence.Identity;
+using Fiebo.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -86,6 +86,8 @@ builder.Services.AddScoped<ISportTypeRepository, SportTypeRepository>();
 builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 //builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+builder.Services.AddScoped<ITopUpRequestRepository, TopUpRequestRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -103,6 +105,8 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 //builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IQrPaymentService, QrPaymentService>();
 builder.Services.AddHostedService<BookingExpirationJob>();
 
 

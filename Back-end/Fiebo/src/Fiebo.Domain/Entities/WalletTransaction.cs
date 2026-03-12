@@ -1,0 +1,27 @@
+﻿using Fiebo.Domain.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Fiebo.Domain.Entities
+{
+    public class WalletTransaction
+    {
+        public int Id { get; set; }
+
+        public int WalletId { get; set; }
+        public Wallet Wallet { get; set; }
+
+        public decimal Amount { get; set; }
+
+        public TransactionDirection Direction { get; set; }
+
+        public TransactionType TransactionType { get; set; }
+
+        public int? ReferenceId { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+}
