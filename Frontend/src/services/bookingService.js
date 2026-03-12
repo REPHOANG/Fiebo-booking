@@ -1,21 +1,29 @@
 // Booking Service - client calls for reservation and confirmation
+import { store } from '../store';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+
+function getAuthToken() {
+  try {
+    const state = store.getState();
+    if (state?.auth?.token) return state.auth.token;
+  } catch (_) {}
+  const raw = localStorage.getItem('token');
+  if (raw) return raw;
+  try {
+    const a = JSON.parse(localStorage.getItem('authState') || '{}');
+    return a?.token ?? a?.accessToken ?? null;
+  } catch (_) {}
+  return null;
+}
 
 const fetchAPI = async (endpoint, options = {}) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const rawToken = localStorage.getItem('token');
-    const token = rawToken || (() => {
-      try {
-        const a = JSON.parse(localStorage.getItem('authState'));
-        return a?.token || a?.accessToken || null;
-      } catch (e) {
-        return null;
-      }
-    })();
+    const token = getAuthToken();
     const fetchOptions = {
       signal: controller.signal,
       ...options,
@@ -113,16 +121,36 @@ export const payBooking = async (bookingId, payload) => {
 
 /**
  * Lấy chi tiết đặt chỗ theo id (GET /api/Booking/{id}).
- * @param {number|string} bookingId
- * @returns {Promise<{ bookingId, fullName, phone, bookingNote, status, expiredAt, venueId, venueName, date, totalPrice, details }>}
  */
 export const getBookingById = async (bookingId) => {
   const response = await fetchAPI(`/api/Booking/${bookingId}`, { method: 'GET' });
   return response.data ?? response;
 };
 
+/**
+ * Lấy lịch sử đặt sân của user (GET /api/Booking/history).
+ * @param {Object} params - { pageNumber, pageSize, fromDate?, toDate? }
+ * @returns {Promise<{ page, pageSize, totalItems, items }>} items: [{ bookingId, status, bookingDate, venueName, address, province, ward, venueId }]
+ */
+export const getBookingHistory = async (params = {}) => {
+  const sp = new URLSearchParams();
+  if (params.pageNumber != null) sp.set('pageNumber', params.pageNumber);
+  if (params.pageSize != null) sp.set('pageSize', params.pageSize);
+  if (params.fromDate != null) sp.set('fromDate', params.fromDate);
+  if (params.toDate != null) sp.set('toDate', params.toDate);
+  const query = sp.toString();
+  const response = await fetchAPI(`/api/Booking/history${query ? `?${query}` : ''}`, { method: 'GET' });
+  const data = response.data ?? response;
+  const items = data?.items ?? data?.Items ?? [];
+  const totalItems = data?.totalItems ?? data?.TotalItems ?? items.length;
+  const page = data?.page ?? data?.Page ?? 1;
+  const pageSize = data?.pageSize ?? data?.PageSize ?? 10;
+  return { page, pageSize, totalItems, items: Array.isArray(items) ? items : [] };
+};
+
 export default {
   createBooking,
   payBooking,
   getBookingById,
+  getBookingHistory,
 };
