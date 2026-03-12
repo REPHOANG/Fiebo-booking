@@ -21,6 +21,23 @@
   background: var(--bg-hover, #f7fafc);
 }
 
+/* Fixed back button under header on desktop */
+.vd-back-btn {
+  position: fixed;
+  left: 32px;
+  top: calc(var(--header-height, 90px) + 12px);
+  z-index: 105;
+}
+
+@media (max-width: 900px) {
+  .vd-back-btn {
+    position: relative;
+    left: 0;
+    top: 0;
+    margin-bottom: 16px;
+  }
+}
+
 /* Not found */
 .vd-not-found {
   text-align: center;
@@ -40,7 +57,10 @@
 .vd-main {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 32px 80px;
+  /* Add top padding to avoid overlap with sticky header */
+  padding: 50px 100px 70px;
+  /* Prevent page-level scrolling; columns will handle scroll internally on desktop */
+  overflow: hidden;
 }
 
 /* ── Hero thumbnail ── */
@@ -101,6 +121,8 @@
   flex-direction: row;
   gap: 24px;
   height: calc(100vh - 180px);
+  /* keep outer container from scrolling so only columns show scrollbars */
+  overflow: hidden;
 }
 
 .vd-col-left {
@@ -111,6 +133,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  /* add inner padding so scrollbar doesn't overlap content */
+  padding-inline-end: 12px;
 }
 .vd-col-left::-webkit-scrollbar {
   width: 4px;
@@ -125,6 +149,7 @@
   min-width: 320px;
   overflow-y: auto;
   padding-left: 8px;
+  padding-inline-start: 12px;
 }
 .vd-col-right::-webkit-scrollbar {
   width: 4px;
@@ -138,6 +163,8 @@
   .vd-content {
     flex-direction: column;
     height: auto;
+    /* re-enable normal page scrolling on small screens */
+    overflow: visible;
   }
   .vd-col-left,
   .vd-col-right {
@@ -741,4 +768,18 @@
   gap: 8px;
   font-size: 18px;
   margin-bottom: 16px;
+}
+
+/* Venue reviews styles (re-use review item styles but scoped) */
+.vd-reviews {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid #e8eef5;
+  box-shadow: 0 1px 6px rgba(14, 30, 37, 0.03);
+}
+.vd-reviews-empty {
+  padding: 12px 0;
+  color: #64748b;
+  font-size: 14px;
 }

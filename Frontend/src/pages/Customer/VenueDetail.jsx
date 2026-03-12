@@ -171,6 +171,54 @@ const FieldReviews = ({ reviews }) => {
 };
 
 /* ================================================================
+   Sub-component – Venue reviews (full section shown under fields)
+   ================================================================ */
+const VenueReviews = ({ reviews, total, onLoadMore, page }) => {
+  const [showAll, setShowAll] = useState(false);
+  if (!reviews || reviews.length === 0) return (
+    <div className="vd-reviews-empty">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá.</div>
+  );
+
+  const visible = showAll ? reviews : reviews.slice(0, 3);
+
+  return (
+    <div className="vd-reviews">
+      <div className="vd-field-reviews-list">
+        {visible.map((r, i) => (
+          <motion.div
+            key={i}
+            className="vd-review-item"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04 }}
+          >
+            <div className="vd-review-header">
+              <div className="vd-review-avatar"><User size={16} /></div>
+              <div className="vd-review-meta">
+                <span className="vd-review-name">{r.name || r.userName || 'Người dùng'}</span>
+                <span className="vd-review-time">{formatRelativeTime(r.createdAt || r.time)}</span>
+              </div>
+              <div className="vd-review-rating">{renderStars(Number(r.rating || 0))}</div>
+            </div>
+            {r.comment && <p className="vd-review-comment">{r.comment}</p>}
+          </motion.div>
+        ))}
+      </div>
+      <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+        {!showAll && total > visible.length && (
+          <button className="vd-reviews-toggle" onClick={() => { setShowAll(true); if (onLoadMore) onLoadMore(); }}>
+            Xem thêm
+          </button>
+        )}
+        {showAll && page < Math.ceil(total / 10) && (
+          <button className="vd-reviews-toggle" onClick={onLoadMore}>Tải thêm</button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ================================================================
    Sub-component – Field Card (expandable) — with API-loaded reviews
    ================================================================ */
 const FieldCard = ({ field, venueId, index }) => {
@@ -401,6 +449,11 @@ const VenueDetail = () => {
                 </div>
               </div>
             )}
+            {/* Venue-level reviews placed below fields */}
+            <div className="vd-reviews-section" style={{ marginTop: 12 }}>
+              <h3><MessageSquare size={18} /> Đánh giá</h3>
+              <VenueReviews reviews={reviews} total={reviewTotal} onLoadMore={loadMoreReviews} page={reviewPage} />
+            </div>
           </div>
          
         </div>

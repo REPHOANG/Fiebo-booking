@@ -6,7 +6,8 @@ import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-
 import { getVenueDetail, getVenueFields } from "../../services/fieldService";
 import { setDraft } from '../../store/bookingDraftSlice';
 import { getVenueSchedule } from '../../services/fieldService';
-import { addBookedSlots } from '../../store/bookedSlotsSlice';
+import { setBookedSlotsFromServer } from '../../store/bookedSlotsSlice';
+import LoginPopup from '../../components/common/LoginPopup/LoginPopup';
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -24,7 +25,17 @@ const formatTime = (timeSpan) => {
   return time ? formatSlot(time.h, time.m) : "";
 };
 
-const generateSlots = (openTime, closeTime) => {
+/** Normalize server slot time (StartTime/EndTime e.g. "11:00:00.000000" or "11:00") to "HH:mm" for matching */
+const normalizeSlotTime = (t) => {
+  if (t == null || t === "") return "";
+  const s = String(t).trim();
+  const part = s.length >= 5 ? s.slice(0, 5) : s;
+  const [h, m] = part.split(":").map((n) => parseInt(n, 10) || 0);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+/** Generate time slots: stepMinutes = 60 (mỗi slot 1 tiếng) */
+const generateSlots = (openTime, closeTime, stepMinutes = 60) => {
   const start = parseTime(openTime);
   const end = parseTime(closeTime);
   if (!start || !end) return [];
@@ -36,10 +47,10 @@ const generateSlots = (openTime, closeTime) => {
 
   while (h * 60 + m < endMin) {
     slots.push({ h, m, label: formatSlot(h, m) });
-    m += 30;
+    m += stepMinutes;
     if (m >= 60) {
-      h += 1;
-      m -= 60;
+      h += Math.floor(m / 60);
+      m = m % 60;
     }
   }
   return slots;
@@ -92,6 +103,8 @@ const BookingSchedule = () => {
   const initialMount = useRef(true);
   const dispatch = useDispatch();
   const draft = useSelector((s) => s.bookingDrafts?.[id]);
+  const { isAuthenticated } = useSelector((state) => state.auth || {});
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(50); // 50px to 100px column width
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
@@ -173,68 +186,121 @@ const BookingSchedule = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showCalendar]);
 
-  // Generate time slots from venue open/close
-  const slots = useMemo(
-    () => (venue ? generateSlots(venue.openTime, venue.closeTime) : []),
-    [venue]
-  );
+  // Generate time slots:
+  // - Prefer server schedule (venueSchedule.sportTypes[].slots: StartTime/EndTime)
+  // - Fallback to venue.openTime / venue.closeTime when schedule chưa tải
+  const slots = useMemo(() => {
+    try {
+      if (venueSchedule?.sportTypes?.length) {
+        const allSlots = [];
+        venueSchedule.sportTypes.forEach((st) => {
+          (st.slots || []).forEach((s) => allSlots.push(s));
+        });
+        if (allSlots.length) {
+          // Tìm min StartTime và max EndTime từ DB, sau đó sinh lưới 30 phút giữa hai mốc đó
+          const minStart = allSlots.reduce(
+            (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
+            allSlots[0].startTime
+          );
+          const maxEnd = allSlots.reduce(
+            (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
+            allSlots[0].endTime
+          );
+          return generateSlots(minStart, maxEnd);
+        }
+      }
+    } catch (e) {
+      // ignore and fall back
+    }
+    return venue ? generateSlots(venue.openTime, venue.closeTime) : [];
+  }, [venue, venueSchedule]);
 
   // Fetch server schedule (booked/unavailable slots) when venue or date changes
   useEffect(() => {
     if (!venue || !selectedDate) return;
     let mounted = true;
-    (async () => {
-      try {
-        const res = await getVenueSchedule(id, selectedDate);
-        // res.SportTypes -> each has Slots (SlotId, StartTime) and Fields -> each has UnavailableSlots (SlotId)
-        // Build mapping from slot start time to our slot index
-        const serverSlots = [];
-        (res?.sportTypes || []).forEach((st) => {
-          (st.slots || []).forEach((s) => {
-            serverSlots.push(s);
+    const POLL_MS = 10000; // poll every 10s
+
+    const fetchAndDispatch = async () => {
+        try {
+          const res = await getVenueSchedule(id, selectedDate);
+          if (!mounted) return;
+          try {
+            // eslint-disable-next-line no-console
+            console.debug('[BookingSchedule] fetched schedule', { venueId: id, date: selectedDate, schedule: res });
+          } catch (e) {}
+          const serverSlots = [];
+          (res?.sportTypes || []).forEach((st) => {
+            (st.slots || []).forEach((s) => serverSlots.push(s));
           });
-        });
 
-        const startToIdx = {};
-        serverSlots.forEach((s) => {
-          const hhmm = (s.startTime || '').slice(0,5);
-          const idx = slots.findIndex((sl) => sl.label === hhmm);
-          if (idx >= 0) startToIdx[s.slotId] = idx;
-        });
+          // Build slots from response (giống useMemo) để map slotId -> idx, tránh phụ thuộc state slots gây loop
+          let slotsForMap = [];
+          if (serverSlots.length) {
+            const minStart = serverSlots.reduce(
+              (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
+              serverSlots[0].startTime
+            );
+            const maxEnd = serverSlots.reduce(
+              (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
+              serverSlots[0].endTime
+            );
+            slotsForMap = generateSlots(minStart, maxEnd);
+          } else if (venue?.openTime && venue?.closeTime) {
+            slotsForMap = generateSlots(venue.openTime, venue.closeTime);
+          }
 
-        const booked = [];
-        (res?.sportTypes || []).forEach((st) => {
-          (st.fields || []).forEach((f) => {
-            const fieldId = f.fieldId;
-            const fieldIdx = fields.findIndex((ff) => Number(ff.id || ff.fieldId || ff.fieldId) === Number(fieldId));
-            if (fieldIdx < 0) return;
-            (f.unavailableSlots || []).forEach((us) => {
-              const slotIdx = startToIdx[us.slotId];
-              if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
+          const startToIdx = {};
+          serverSlots.forEach((s) => {
+            const hhmm = normalizeSlotTime(s.startTime);
+            const idx = slotsForMap.findIndex((sl) => sl.label === hhmm);
+            if (idx >= 0) startToIdx[s.slotId] = idx;
+          });
+
+          const booked = [];
+          (res?.sportTypes || []).forEach((st) => {
+            const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
+            (st.fields || []).forEach((f) => {
+              const nameKey = (f.fieldName || f.name || '').trim();
+              const fieldIdx = fields.findIndex(
+                (ff) =>
+                  (String(ff.name || '').trim() === nameKey) &&
+                  (String(ff.sportType || '').trim().toLowerCase() === sportKey)
+              );
+              if (fieldIdx < 0) return;
+              (f.unavailableSlots || []).forEach((us) => {
+                const slotIdx = startToIdx[us.slotId];
+                if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
+              });
             });
           });
-        });
 
-        if (mounted) {
-          setVenueSchedule(res);
-          if (booked.length) {
-            try { dispatch(addBookedSlots({ venueId: String(id), date: selectedDate, slots: booked })); } catch (e) {}
+          if (mounted) {
+            setVenueSchedule(res);
+            // Nguồn sự thật: database qua API — thay thế toàn bộ slot "đã đặt" cho venue+date (kể cả khi booked rỗng)
+            try {
+              dispatch(setBookedSlotsFromServer({ venueId: String(id), date: selectedDate, slots: booked }));
+            } catch (e) {}
           }
+        } catch (e) {
+          // ignore fetch errors
         }
-      } catch (e) {
-        // ignore fetch errors
-      }
-    })();
-    return () => { mounted = false; };
-  }, [venue, selectedDate, id, slots, fields, dispatch]);
+    };
 
-  // Labels = slots + closing time (N+1 labels for N columns)
+    fetchAndDispatch();
+    const interval = setInterval(fetchAndDispatch, POLL_MS);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [venue, selectedDate, id, fields, dispatch]);
+
+  // Labels = slots + closing time (N+1 labels cho N cột)
   const timeLabels = useMemo(() => {
-    if (!slots.length || !venue) return [];
-    const end = parseTime(venue.closeTime);
-    if (!end) return slots;
-    return [...slots, { h: end.h, m: end.m, label: formatSlot(end.h, end.m) }];
-  }, [slots, venue]);
+    if (!slots.length) return [];
+    // Nhãn cuối = sau slot cuối 1 tiếng (mỗi slot = 1h)
+    const last = slots[slots.length - 1];
+    const endH = last.h + 1;
+    const endM = last.m;
+    return [...slots, { h: endH, m: endM, label: formatSlot(endH, endM) }];
+  }, [slots]);
 
   // Determine locked slots (past time for today)
   const lockedBefore = useMemo(() => {
@@ -309,6 +375,10 @@ const BookingSchedule = () => {
   }, [selectedSlots, bookedForDate, selectedDate]);
 
   const toggleSlot = (fieldIdx, slotIdx) => {
+    if (!isAuthenticated) {
+      setShowLoginPopup(true);
+      return;
+    }
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
@@ -340,9 +410,22 @@ const BookingSchedule = () => {
     return groups;
   }, [fields]);
 
-  // Build grouped slot summary for the bottom bar
+  // Build grouped slot summary for the bottom bar.
+  // Price comes from venueSchedule (server slot: SlotId, StartTime, EndTime, Price) when available.
   const slotSummary = useMemo(() => {
-    if (!selectedSlots.length || !slots.length) return { groups: [], totalMinutes: 0 };
+    if (!selectedSlots.length || !slots.length) return { groups: [], totalMinutes: 0, totalPrice: 0 };
+
+    // (sportTypeName, startTimeLabel) -> price from API slots (Id, StartTime, EndTime, Price)
+    const priceBySportAndTime = {};
+    if (venueSchedule?.sportTypes) {
+      venueSchedule.sportTypes.forEach((st) => {
+        const sportKey = (st.sportTypeName || st.sportType || "").trim().toLowerCase();
+        (st.slots || []).forEach((s) => {
+          const timeKey = normalizeSlotTime(s.startTime);
+          if (timeKey) priceBySportAndTime[`${sportKey}:${timeKey}`] = Number(s.price) || 0;
+        });
+      });
+    }
 
     // Group by fieldIdx
     const map = {};
@@ -353,7 +436,6 @@ const BookingSchedule = () => {
 
     const groups = Object.entries(map).map(([fi, slotIdxs]) => {
       const sorted = [...slotIdxs].sort((a, b) => a - b);
-      // Merge consecutive slots into ranges
       const ranges = [];
       let rangeStart = sorted[0];
       let rangeEnd = sorted[0];
@@ -369,27 +451,32 @@ const BookingSchedule = () => {
       ranges.push({ from: rangeStart, to: rangeEnd });
 
       const fiNum = Number(fi);
-      const fieldName = fields[fiNum]?.name || `Sân ${fiNum + 1}`;
-      const pricePerSlot = fields[fiNum]?.pricePerSlot || 0;
-      const fieldId = (fields[fiNum] && (fields[fiNum].id ?? fields[fiNum].fieldId)) ?? fiNum;
+      const field = fields[fiNum];
+      const fieldName = field?.name || `Sân ${fiNum + 1}`;
+      const sportKey = (field?.sportType || "").trim().toLowerCase();
+      // Price per slot: from server (venueSchedule) by sportType + startTime, else fallback
+      const firstSlotLabel = slots[sorted[0]]?.label;
+      const pricePerSlot =
+        firstSlotLabel != null && priceBySportAndTime[`${sportKey}:${firstSlotLabel}`] != null
+          ? priceBySportAndTime[`${sportKey}:${firstSlotLabel}`]
+          : (field?.pricePerSlot != null ? Number(field.pricePerSlot) : 0);
+      const fieldId = (field && (field.id ?? field.fieldId)) ?? fiNum;
       const rangeLabels = ranges.map((r) => {
         const startLabel = slots[r.from]?.label || "";
-        const endSlot = slots[r.to + 1] || null;
-        const endLabel = endSlot
-          ? endSlot.label
-          : venue
-            ? formatTime(venue.closeTime)
-            : formatSlot(slots[r.to].h, slots[r.to].m + 30);
+        // Mỗi slot = 1h → kết thúc = slot cuối + 1h
+        const endH = (slots[r.to]?.h ?? 0) + 1;
+        const endM = slots[r.to]?.m ?? 0;
+        const endLabel = formatSlot(endH, endM);
         return `${startLabel} - ${endLabel}`;
       });
 
       return { fieldName, ranges: rangeLabels, slotCount: sorted.length, pricePerSlot, fieldId };
     });
 
-    const totalMinutes = selectedSlots.length * 30;
+    const totalMinutes = selectedSlots.length * 60; // mỗi slot = 1 tiếng
     const totalPrice = groups.reduce((sum, g) => sum + g.slotCount * g.pricePerSlot, 0);
     return { groups, totalMinutes, totalPrice };
-  }, [selectedSlots, slots, fields, venue]);
+  }, [selectedSlots, slots, fields, venue, venueSchedule]);
 
   const handleMouseDown = (e) => {
     if (!gridRef.current) return;
@@ -718,6 +805,10 @@ const BookingSchedule = () => {
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
           onClick={() => {
+            if (!isAuthenticated) {
+              setShowLoginPopup(true);
+              return;
+            }
             navigate(`/venue/${id}/booking/confirm`, {
               state: {
                 venue,
@@ -745,6 +836,8 @@ const BookingSchedule = () => {
           <span className="bs-field-tooltip-name">{tooltipField.name}</span>
         </div>
       )}
+
+      <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
     </motion.div>
   );
 };
