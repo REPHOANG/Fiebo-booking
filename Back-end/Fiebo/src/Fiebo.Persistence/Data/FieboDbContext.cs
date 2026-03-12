@@ -29,11 +29,13 @@ namespace Fiebo.Persistence.Data
         public DbSet<BookingDetail> BookingDetails { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<ReviewImage> ReviewImages { get; set; }
+        public DbSet<TopUpRequest> TopUpRequests { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            // Wallet
             modelBuilder.Entity<Wallet>(entity =>
             {
                 entity.HasKey(x => x.Id);
@@ -323,6 +325,55 @@ namespace Fiebo.Persistence.Data
                       .WithMany(r => r.Images)
                       .HasForeignKey(e => e.ReviewId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+            // TopUpRequest
+            modelBuilder.Entity<TopUpRequest>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Amount)
+                    .IsRequired()
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(x => x.Status)
+                    .IsRequired();
+
+                entity.Property(x => x.PaidAt);
+
+                entity.HasOne(x => x.Wallet)
+                    .WithMany()
+                    .HasForeignKey(x => x.WalletId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+            // WalletTransaction
+            modelBuilder.Entity<WalletTransaction>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Amount)
+                    .IsRequired()
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(x => x.Direction)
+                    .IsRequired();
+
+                entity.Property(x => x.TransactionType)
+                    .IsRequired();
+
+                entity.Property(x => x.ReferenceId);
+
+                entity.HasIndex(x => x.WalletId);
+
+                entity.HasOne(x => x.Wallet)
+                    .WithMany()
+                    .HasForeignKey(x => x.WalletId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

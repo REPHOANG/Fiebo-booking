@@ -15,7 +15,7 @@ namespace Fiebo.Persistence.Repositories
         private readonly FieboDbContext _context;
         private IDbContextTransaction? _transaction;
 
-        public IRepository<Wallet> Wallets { get; }
+        public IWalletRepository Wallets { get; }
         public IBookingRepository Bookings { get; }
         public IVenueRepository Venues { get; }
         public IFieldRepository Fields { get; }
@@ -23,17 +23,19 @@ namespace Fiebo.Persistence.Repositories
         public IBookingDetailRepository BookingDetails { get; }
         public ISportTypeRepository SportTypes { get; }
         public ITimeSlotRepository TimeSlots { get; }
+        public ITopUpRequestRepository TopUpRequests { get; }
 
 
         public UnitOfWork(FieboDbContext context,
-            IRepository<Wallet> walletRepository,
+            IWalletRepository walletRepository,
             IBookingRepository bookingRepository,
             IVenueRepository venueRepository,
             IFieldRepository fieldRepository,
             IReviewRepository reviewRepository,
             IBookingDetailRepository bookingDetailRepository,
             ISportTypeRepository sportTypeRepository,
-            ITimeSlotRepository timeSlotRepository
+            ITimeSlotRepository timeSlotRepository,
+            ITopUpRequestRepository topUpRequestRepository
             )
         {
             _context = context;
@@ -45,6 +47,7 @@ namespace Fiebo.Persistence.Repositories
             BookingDetails = bookingDetailRepository;
             SportTypes = sportTypeRepository;
             TimeSlots = timeSlotRepository;
+            TopUpRequests = topUpRequestRepository;
         }
 
 
