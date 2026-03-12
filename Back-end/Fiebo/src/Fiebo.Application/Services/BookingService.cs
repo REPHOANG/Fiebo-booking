@@ -5,6 +5,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System.Security.Principal;
 
@@ -64,10 +65,10 @@ namespace Fiebo.Application.Services
 
             EnsureBookingCanBePaid(booking.Status);
 
-            if (booking.ExpiredAt.HasValue && DateTime.UtcNow > booking.ExpiredAt.Value)
+            if (booking.ExpiredAt.HasValue && DateTimeHelper.VietnamNow > booking.ExpiredAt.Value)
             {
                 booking.Status = BookingStatus.Expired;
-                booking.UpdatedAt = DateTime.UtcNow;
+                booking.UpdatedAt = DateTimeHelper.VietnamNow;
                 _unitOfWork.Bookings.Update(booking);
                 await _unitOfWork.SaveChangesAsync();
                 throw new BadRequestException("Booking đã hết hạn thanh toán. Vui lòng tạo booking mới.");
@@ -99,7 +100,7 @@ namespace Fiebo.Application.Services
                 wallet.Balance -= booking.TotalPrice;
                 booking.Status = BookingStatus.Booked;
                 booking.ExpiredAt = null;
-                booking.UpdatedAt = DateTime.UtcNow;
+                booking.UpdatedAt = DateTimeHelper.VietnamNow;
 
                 _unitOfWork.Wallets.Update(wallet);
                 _unitOfWork.Bookings.Update(booking);
@@ -228,7 +229,7 @@ namespace Fiebo.Application.Services
                 }
 
                 // 4. Create booking with hold
-                var expiredAt = DateTime.UtcNow.AddMinutes(5);
+                var expiredAt = DateTimeHelper.VietnamNow.AddMinutes(5);
 
                 var booking = new Booking
                 {
@@ -316,6 +317,40 @@ namespace Fiebo.Application.Services
                     StartTime = d.TimeSlot!.StartTime,
                     EndTime = d.TimeSlot.EndTime
                 })]
+            };
+        }
+
+        public async Task<PagedResult<BookingHistoryResponse>> GetBookingHistoryAsync(string userId, BookingHistory request)
+        {
+            var parameters = new BookingHistory
+            {
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                FromDate = request.FromDate,
+                ToDate = request.ToDate
+            };
+
+            var result = await _unitOfWork.Bookings.GetBookingHistoryByUserIdAsync(userId, parameters);
+
+
+            var items = result.Items.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
+            {
+                BookingId = b.Id,
+                Status = b.Status.ToString(),
+                BookingDate = b.CreatedAt,
+                VenueName = bd.Field?.Venue?.Name ?? "N/A",
+                Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
+                Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
+                Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
+                VenueId = bd.Field?.VenueId ?? 0
+            })).ToList();
+
+            return new PagedResult<BookingHistoryResponse>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = items
             };
         }
     }

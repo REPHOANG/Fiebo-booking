@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Fiebo.Persistence.BackgroundJobs
 {
     /// <summary>
-    /// Background job that runs every 5 minutes to auto-expire
+    /// Background job that runs every 1 minutes to auto-expire
     /// Pending bookings that have passed their ExpiredAt deadline.
     /// </summary>
     public class BookingExpirationJob : BackgroundService
@@ -52,7 +52,7 @@ namespace Fiebo.Persistence.BackgroundJobs
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
 
-            var now = DateTime.UtcNow;
+            var now = Fiebo.Domain.Shared.DateTimeHelper.VietnamNow;
 
             var expiredCount = await context.Bookings
                 .Where(b =>

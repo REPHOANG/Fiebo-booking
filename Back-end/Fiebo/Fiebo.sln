@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.4.11519.219 insiders
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{839F7327-BE8E-4FC9-8666-F23D6C654DD6}"
 EndProject
@@ -19,7 +19,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Architecture.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Persistence", "src\Fiebo.Persistence\Fiebo.Persistence.csproj", "{9423C327-76A4-4F61-96A8-BEA7DE56AC2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Application.Tests", "Fiebo.Application.Tests\Fiebo.Application.Tests.csproj", "{EB6A7973-C623-4458-83ED-CA18BDAD345D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Unit.Tests", "test\Fiebo.Unit.Tests\Fiebo.Unit.Tests.csproj", "{9F34E27F-6182-338E-8227-AB3CFF2840E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Application.Tests", "test\Fiebo.Application.Tests\Fiebo.Application.Tests.csproj", "{569C630A-F71F-41BF-EC61-8A8651F92BD5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,10 +53,14 @@ Global
 		{9423C327-76A4-4F61-96A8-BEA7DE56AC2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9423C327-76A4-4F61-96A8-BEA7DE56AC2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9423C327-76A4-4F61-96A8-BEA7DE56AC2C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EB6A7973-C623-4458-83ED-CA18BDAD345D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EB6A7973-C623-4458-83ED-CA18BDAD345D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EB6A7973-C623-4458-83ED-CA18BDAD345D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EB6A7973-C623-4458-83ED-CA18BDAD345D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F34E27F-6182-338E-8227-AB3CFF2840E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F34E27F-6182-338E-8227-AB3CFF2840E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F34E27F-6182-338E-8227-AB3CFF2840E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F34E27F-6182-338E-8227-AB3CFF2840E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,7 +72,8 @@ Global
 		{6DD9DDBF-F1A5-4E09-909F-853C0ABF9AAB} = {839F7327-BE8E-4FC9-8666-F23D6C654DD6}
 		{34513679-869C-4376-8191-B4B5E7EB4130} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
 		{9423C327-76A4-4F61-96A8-BEA7DE56AC2C} = {839F7327-BE8E-4FC9-8666-F23D6C654DD6}
-		{EB6A7973-C623-4458-83ED-CA18BDAD345D} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
+		{9F34E27F-6182-338E-8227-AB3CFF2840E7} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
+		{569C630A-F71F-41BF-EC61-8A8651F92BD5} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0890D88-FE4C-4594-8776-6729FA0674DF}

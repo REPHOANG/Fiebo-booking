@@ -23,7 +23,7 @@ namespace Fiebo.Persistence.Repositories
         public IBookingDetailRepository BookingDetails { get; }
         public ISportTypeRepository SportTypes { get; }
         public ITimeSlotRepository TimeSlots { get; }
-        public ITopUpRequestRepository TopUpRequests { get; }
+        //public IReportRepository Reports { get; }        public ITopUpRequestRepository TopUpRequests { get; }
 
 
         public UnitOfWork(FieboDbContext context,
@@ -36,6 +36,7 @@ namespace Fiebo.Persistence.Repositories
             ISportTypeRepository sportTypeRepository,
             ITimeSlotRepository timeSlotRepository,
             ITopUpRequestRepository topUpRequestRepository
+            //IReportRepository reportRepository
             )
         {
             _context = context;
@@ -47,6 +48,7 @@ namespace Fiebo.Persistence.Repositories
             BookingDetails = bookingDetailRepository;
             SportTypes = sportTypeRepository;
             TimeSlots = timeSlotRepository;
+            //Reports = reportRepository;
             TopUpRequests = topUpRequestRepository;
         }
 
