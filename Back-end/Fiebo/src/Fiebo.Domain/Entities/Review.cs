@@ -18,7 +18,7 @@ namespace Fiebo.Domain.Entities
 
         public int BookingId { get; set; }
 
-        public DateTime CreatedAt { get; set; } = Shared.DateTimeHelper.VietnamNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
 
         // Navigation
