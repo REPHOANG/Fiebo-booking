@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Fiebo.Application.DTOs.Wallet;
+using Fiebo.Application.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
@@ -8,14 +10,16 @@ namespace Fiebo.API.Controllers
     public class PaymentWebhookController : ControllerBase
     {
         private readonly IConfiguration _config;
+        private readonly IWalletService _walletService;
 
-        public PaymentWebhookController(IConfiguration config)
+        public PaymentWebhookController(IConfiguration config, IWalletService walletService)
         {
             _config = config;
+            _walletService = walletService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> HandlePaymentWebhook()
+        public async Task<IActionResult> HandlePaymentWebhook(SepayWebhookRequest request)
         {
             var authHeader = Request.Headers.Authorization.FirstOrDefault();
 
@@ -30,10 +34,14 @@ namespace Fiebo.API.Controllers
             }
 
             var apiKey = authHeader.Substring("Apikey ".Length).Trim();
-
-            if (apiKey != _config["Sepay:ApiKey"])
+            if (apiKey != _config["WebhookSepay:Apikey"])
             {
                 return Unauthorized();
+            }
+            var result = await _walletService.TopUpWalletAsync(request);
+            if(result == false)
+            {
+                return BadRequest();
             }
             return Ok();
         }

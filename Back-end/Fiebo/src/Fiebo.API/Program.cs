@@ -88,6 +88,7 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 //builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IWalletRepository, WalletRepository>();
 builder.Services.AddScoped<ITopUpRequestRepository, TopUpRequestRepository>();
+builder.Services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();

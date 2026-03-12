@@ -20,7 +20,7 @@ namespace Fiebo.Application.Services
         public async Task<QrPaymentResponseDto> GenerateTopUpQrAsync(decimal amount, string userId)
         {
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
-            if(wallet == null)
+            if (wallet == null)
             {
                 throw new NotFoundException("Wallet is not found");
             }
@@ -43,6 +43,47 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Wallet is not found");
             }
             return wallet?.Balance ?? 0;
+        }
+
+        public async Task<bool> TopUpWalletAsync(SepayWebhookRequest request)
+        {
+            if (request.TransferType != "in")
+            {
+                return true;
+            }
+            var topUpId = int.Parse(request.Content.Replace("FIEBOTU", ""));
+            var topUpRequest = await _unitOfWork.TopUpRequests.GetByIdAsync(topUpId);
+            if (topUpRequest == null)
+            {
+                throw new NotFoundException("Top-up request is not found");
+            }
+            var wallet = await _unitOfWork.Wallets.GetByIdAsync(topUpRequest.WalletId);
+            if (wallet == null)
+            {
+                throw new NotFoundException("Wallet is not found");
+            }
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                wallet.Balance += topUpRequest.Amount;
+                topUpRequest.Status = TopUpStatus.Paid;
+                topUpRequest.PaidAt = DateTime.Now;
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    Amount = topUpRequest.Amount,
+                    Direction = TransactionDirection.Credit,
+                    TransactionType = TransactionType.TopUp,
+                });
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+            return true;
         }
     }
 }
