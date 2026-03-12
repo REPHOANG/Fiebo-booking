@@ -40,7 +40,7 @@ namespace Fiebo.Infrastructure.Services
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: Fiebo.Domain.Shared.DateTimeHelper.VietnamNow.AddMinutes(expiryMinutes),
+                expires: DateTime.Now.AddMinutes(expiryMinutes),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 

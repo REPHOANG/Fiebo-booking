@@ -52,7 +52,7 @@ namespace Fiebo.Persistence.BackgroundJobs
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
 
-            var now = Fiebo.Domain.Shared.DateTimeHelper.VietnamNow;
+            var now = DateTime.now;
 
             var expiredCount = await context.Bookings
                 .Where(b =>

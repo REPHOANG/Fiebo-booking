@@ -8,7 +8,7 @@ namespace Fiebo.Domain.Entities
 
         public decimal Balance { get; set; } = 0; // Số dư mặc định = 0
 
-        public DateTime CreatedDate { get; set; } = Shared.DateTimeHelper.VietnamNow;
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
 
         public string UserId { get; set; } = null!;
     }
