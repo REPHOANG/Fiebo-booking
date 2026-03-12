@@ -397,7 +397,7 @@ const Venues = () => {
   };
 
   return (
-    <div className="venues-screen">
+    <div className="venues-screen screen-bg screen-bg-sport-static">
       <div className="venues-page">
       {/* Hero heading */}
       <div className="venues-hero">

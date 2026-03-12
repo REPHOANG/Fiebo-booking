@@ -12,6 +12,7 @@ import {
   Navigation,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import SearchBar from "../../components/common/SearchBar/SearchBar";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/authSlice";
 import { getNearbyFields, getTopBookingFields } from "../../services/fieldService";
@@ -216,41 +217,13 @@ const CustomerHome = () => {
     <div className="customer-home">
 
       {/* ===== SEARCH BAR ===== */}
-      <div className={`ch-search-section ${scrolled ? "ch-search-scrolled" : ""}`}>
-        <div className="ch-search-bar">
-          <div className="ch-search-icon-left">
-            <button type="button" className="ch-search-icon-btn" onClick={handleSearch} aria-label="Tìm kiếm">
-              <Search size={18} />
-            </button>
-          </div>
-          <input
-            type="text"
-            className="ch-search-input"
-            placeholder="Tìm kiếm"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <button className="ch-filter-btn">
-            <SlidersHorizontal size={18} />
-          </button>
-        </div>
-
-        <div className="ch-nav-tabs">
-          <button className="ch-nav-tab">
-            <Map size={16} />
-            <span>Bản đồ</span>
-          </button>
-          <button className="ch-nav-tab" onClick={() => !isAuthenticated && navigate("/login")}>
-            <CheckSquare size={16} />
-            <span>Sân đã đặt</span>
-          </button>
-          <button className="ch-nav-tab" onClick={() => !isAuthenticated && navigate("/login")}>
-            <Heart size={16} fill="#22c55e" />
-            <span>Yêu thích</span>
-          </button>
-        </div>
-      </div>
+      <SearchBar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSearch={handleSearch}
+        scrolled={scrolled}
+        isAuthenticated={isAuthenticated}
+      />
 
       {/* ===== MAIN CONTENT ===== */}
       <main className="ch-main">

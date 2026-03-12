@@ -15,6 +15,7 @@ import {
   Receipt,
 } from "lucide-react";
 import "./BookingPayment.css";
+import { savePaymentDraft, clearPaymentDraft } from '../../../utils/paymentDraft';
 import { payBooking, getBookingById } from '../../../services/bookingService';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 
@@ -214,6 +215,28 @@ const BookingPayment = () => {
     };
   }, [reservationId]);
 
+  // Save draft while user is on payment page so they can return later
+  useEffect(() => {
+    const draft = {
+      bookingId: reservationId || effectiveState?.reservationId || effectiveState?.reservationId,
+      venueId: venue?.id,
+      selectedDate,
+      selectedSlots: location.state?.selectedSlots || effectiveState?.selectedSlots || [],
+      totalPrice: totalPrice ?? effectiveState?.totalPrice ?? 0,
+      expiresAt: effectiveState?.reservationExpireAt || null,
+    };
+    if (draft.bookingId || (draft.venueId && draft.selectedSlots && draft.selectedSlots.length)) {
+      savePaymentDraft(draft);
+    }
+
+    const handleBeforeUnload = () => savePaymentDraft(draft);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservationId, venue, selectedDate, location.state]);
+
   const handlePay = async () => {
     if (!token) {
       navigate('/auth/login', { state: { returnTo: location.pathname, returnState: effectiveState } });
@@ -233,6 +256,8 @@ const BookingPayment = () => {
       }
       await payBooking(bookingId, { paymentMethod: 'wallet' });
       setPaymentDone(true);
+      // clear stored draft on success
+      try { clearPaymentDraft(); } catch (e) {}
     } catch (payErr) {
       console.error('Payment failed', payErr);
       alert('Thanh toán không thành công. Vui lòng thử lại hoặc liên hệ hỗ trợ.');

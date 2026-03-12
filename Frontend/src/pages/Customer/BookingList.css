@@ -27,6 +27,11 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* When using the global screen background, make the main container transparent so background shows through */
+.bl-main.screen-bg {
+  background-color: transparent;
+}
+
 .bl-header {
   margin-bottom: 32px;
 }
@@ -174,8 +179,8 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(226,232,240,0.6);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   transition: var(--transition);

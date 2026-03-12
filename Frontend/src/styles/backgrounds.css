@@ -37,6 +37,22 @@
   animation: sportGradientMove 18s ease infinite;
 }
 
+/* Static (non-animated) variant for pages that shouldn't animate the background */
+.screen-bg-sport-static {
+  background: linear-gradient(
+    135deg,
+    #16a34a 0%,
+    #22c55e 25%,
+    #2dd4bf 50%,
+    #38bdf8 75%,
+    #2563eb 100%
+  );
+  /* keep background fixed and avoid animating background-position */
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
 /* Gradient animation */
 
 @keyframes sportGradientMove {
