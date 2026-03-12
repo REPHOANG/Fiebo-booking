@@ -227,15 +227,13 @@ namespace Fiebo.Application.Services
             return bookings.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
             {
                 BookingId = b.Id,
-                TotalPrice = b.TotalPrice,
                 Status = b.Status.ToString(),
                 BookingDate = b.CreatedAt,
                 VenueName = bd.Field?.Venue?.Name ?? "N/A",
-                FieldName = bd.Field?.Name ?? "N/A",
                 Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
-                StartTime = bd.TimeSlot?.StartTime ?? default,
-                EndTime = bd.TimeSlot?.EndTime ?? default,
-                PlayDate = bd.BookingDate
+                VenueId = bd.Field?.VenueId ?? 0,
+                Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
+                Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A"
             })).ToList();
         }
     }

@@ -20,10 +20,13 @@ namespace Fiebo.Persistence.Repositories
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Field)
                         .ThenInclude(f => f.Venue)
+                            .ThenInclude(v => v.Province) 
                 .Include(b => b.BookingDetails)
-                    .ThenInclude(bd => bd.TimeSlot)
+                    .ThenInclude(bd => bd.Field)
+                        .ThenInclude(f => f.Venue)
+                            .ThenInclude(v => v.Ward) 
                 .Where(b => b.UserId == userId)
-                .OrderByDescending(b => b.CreatedAt) 
+                .OrderByDescending(b => b.CreatedAt)
                 .ToListAsync();
         }
 
