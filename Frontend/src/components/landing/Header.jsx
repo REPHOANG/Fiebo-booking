@@ -65,7 +65,7 @@ const Header = () => {
             <div className="mega-wrapper">
               <NavLink to="/venues">Sân</NavLink>
 
-              <div className="mega-menu">
+              {/* <div className="mega-menu">
                 <div className="mega-column">
                   <h4>Loại sân</h4>
                   <Link to="/venues/football">Sân bóng đá</Link>
@@ -79,7 +79,7 @@ const Header = () => {
                   <Link to="/venues/hcm">TP HCM</Link>
                   <Link to="/venues/danang">Đà Nẵng</Link>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <NavLink to="/map">Bản đồ</NavLink>
@@ -111,7 +111,7 @@ const Header = () => {
                 }}
               >
                 <span className="greeting-text">
-                  Xin chào, <strong>{user?.name || user?.email || "Người dùng"}</strong>
+                  Xin chào, <strong>{user?.name || user?.fullName || "Người dùng"}</strong>
                 </span>
 
                 <motion.span
@@ -205,8 +205,8 @@ const Header = () => {
         <nav className="menu-mobile">
           <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
           <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
-          <Link to="/about" onClick={() => setIsMenuOpen(false)}>About</Link>
-          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
+          <Link to="/about" onClick={() => setIsMenuOpen(false)}>Về chúng tôi</Link>
+          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link>
         </nav>
       )}
     </header>

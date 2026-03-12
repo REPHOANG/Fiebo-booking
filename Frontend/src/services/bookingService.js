@@ -1,0 +1,117 @@
+// Booking Service - client calls for reservation and confirmation
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+
+const fetchAPI = async (endpoint, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  try {
+    const rawToken = localStorage.getItem('token');
+    const token = rawToken || (() => {
+      try {
+        const a = JSON.parse(localStorage.getItem('authState'));
+        return a?.token || a?.accessToken || null;
+      } catch (e) {
+        return null;
+      }
+    })();
+    const fetchOptions = {
+      signal: controller.signal,
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    };
+
+    // Debug log for outgoing token and Authorization header
+    // eslint-disable-next-line no-console
+    console.debug('[bookingService] fetchAPI', {
+      endpoint,
+      token,
+      authorizationHeader: fetchOptions.headers.Authorization,
+      headers: fetchOptions.headers,
+    });
+
+    const url = `${API_BASE_URL}${endpoint}`;
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
+
+    const contentType = response.headers.get('content-type');
+    let data = null;
+    if (contentType?.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    if (!response.ok) {
+      const err = {
+        status: response.status,
+        message: data?.message || (typeof data === 'string' ? data : null) || `HTTP ${response.status}`,
+        data,
+      };
+      console.error('[bookingService] request failed', { url, status: response.status, data: err.data });
+      throw err;
+    }
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw { status: 408, message: `Request timeout (${API_TIMEOUT}ms)` };
+    }
+    if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
+      const url = `${API_BASE_URL}${endpoint}`;
+      console.error('[bookingService] network error — backend unreachable', {
+        url,
+        hint: 'Kiểm tra backend đã chạy (ví dụ http://localhost:8080) và CORS.',
+      });
+      throw {
+        status: 0,
+        message: 'Không kết nối được máy chủ. Kiểm tra backend đã chạy và mạng.',
+        details: error.message,
+      };
+    }
+    throw error;
+  }
+};
+
+/**
+ * Booking API chỉ còn 2 endpoint:
+ * 1. POST /api/Booking — giữ slot, tạo booking Pending, trả về bookingId và expiredAt
+ * 2. POST /api/Booking/{bookingId}/payment — thanh toán đặt chỗ bằng ví
+ */
+
+/**
+ * Giữ slot và tạo booking Pending.
+ * Payload: { venueId, bookingDate, fullname, phoneNumber, bookingNote?, details: [{ fieldId, slotId }] }
+ * Trả về: { bookingId, expiredAt, totalPrice, bookingStatus }
+ */
+export const createBooking = async (payload) => {
+  const response = await fetchAPI('/api/Booking', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.data ?? response;
+};
+
+/**
+ * Thanh toán đặt chỗ bằng ví (Complete booking payment using customer's wallet).
+ * @param {number|string} bookingId
+ * @param {Object} payload e.g. { paymentMethod: 'wallet' }
+ */
+export const payBooking = async (bookingId, payload) => {
+  const response = await fetchAPI(`/api/Booking/${bookingId}/payment`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.data ?? response;
+};
+
+export default {
+  createBooking,
+  payBooking,
+};

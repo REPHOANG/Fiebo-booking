@@ -18,6 +18,9 @@ namespace Fiebo.Application.Services
         private readonly ILogger<BookingService> _logger;
         private readonly IIdentityService _identityService;
         private readonly ITokenService _tokenService;
+        private readonly ICacheService _cacheService;
+
+        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(10);
 
         public BookingService(
             IUnitOfWork unitOfWork,
@@ -25,7 +28,8 @@ namespace Fiebo.Application.Services
             ISmsService smsService,
             ILogger<BookingService> logger,
             IIdentityService identityService,
-            ITokenService tokenService
+            ITokenService tokenService,
+            ICacheService cacheService
             )
         {
             _unitOfWork = unitOfWork;
@@ -34,6 +38,7 @@ namespace Fiebo.Application.Services
             _logger = logger;
             _identityService = identityService;
             _tokenService = tokenService;
+            _cacheService = cacheService;
         }
 
         public async Task<BookingPaymentResponse> MakeBookingPaymentAsync(int bookingId, string userId)
@@ -59,6 +64,15 @@ namespace Fiebo.Application.Services
 
             EnsureBookingCanBePaid(booking.Status);
 
+            if (booking.ExpiredAt.HasValue && DateTime.UtcNow > booking.ExpiredAt.Value)
+            {
+                booking.Status = BookingStatus.Expired;
+                booking.UpdatedAt = DateTime.UtcNow;
+                _unitOfWork.Bookings.Update(booking);
+                await _unitOfWork.SaveChangesAsync();
+                throw new BadRequestException("Booking đã hết hạn thanh toán. Vui lòng tạo booking mới.");
+            }
+
             if (booking.TotalPrice <= 0)
             {
                 throw new BadRequestException("Booking total price must be greater than 0.");
@@ -78,13 +92,25 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Insufficient wallet balance. Please perform UC-29_Top Up Wallet before payment.");
             }
 
-            wallet.Balance -= booking.TotalPrice;
-            booking.Status = BookingStatus.Booked;
-            booking.UpdatedAt = DateTime.UtcNow;
+            // Transaction: deduct wallet + update booking status atomically
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                wallet.Balance -= booking.TotalPrice;
+                booking.Status = BookingStatus.Booked;
+                booking.ExpiredAt = null;
+                booking.UpdatedAt = DateTime.UtcNow;
 
-            _unitOfWork.Wallets.Update(wallet);
-            _unitOfWork.Bookings.Update(booking);
-            await _unitOfWork.SaveChangesAsync();
+                _unitOfWork.Wallets.Update(wallet);
+                _unitOfWork.Bookings.Update(booking);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
 
             return new BookingPaymentResponse
             {
@@ -149,12 +175,12 @@ namespace Fiebo.Application.Services
         public async Task<string> VerifyBookingOtp(string fullname, string phoneNumber, string otpCode)
         {
             var isValid = await _otpService.ValidateBookingOtpAsync(phoneNumber, otpCode);
-            if(!isValid)
+            if (!isValid)
             {
                 throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
             }
             var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(phoneNumber);
-            if(user == null)
+            if (user == null)
             {
                 var newUser = await _identityService.CreateActiveUserWithoutPasswordAsync(fullname, phoneNumber);
                 _unitOfWork.Wallets.Add(new Wallet { UserId = newUser.Id });
@@ -164,57 +190,133 @@ namespace Fiebo.Application.Services
             return _tokenService.GenerateAccessToken(user!.Id, user.FullName ?? "", user.Roles ?? "", user.Email ?? "");
         }
 
-        public async Task<bool> CreateBookingAsync(CreateBookingRequest request, string userId)
+        public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
-            var booking = new Booking
-            {
-                UserId = userId,
-                Fullname = request.Fullname,
-                PhoneNumber = request.PhoneNumber,
-                BookingNote = request.BookingNote,
-                Status = BookingStatus.Pending
-            };
+            // 1. Build lock keys for each slot
+            var lockKeys = request.Details
+                .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
+                .ToList();
 
-            _unitOfWork.Bookings.Add(booking);
-
-            decimal totalPrice = 0;
-
-            var details = new List<BookingDetail>();
-
-            foreach (var item in request.Details)
-            {
-                var slot = await _unitOfWork.TimeSlots
-                    .GetByIdAsync(item.SlotId);
-
-                var price = slot!.Price;
-
-                totalPrice += price;
-
-                details.Add(new BookingDetail
-                {
-                    Booking = booking,
-                    FieldId = item.FieldId,
-                    SlotId = item.SlotId,
-                    BookingDate = request.BookingDate,
-                    Price = price
-                });
-            }
-
-            _unitOfWork.BookingDetails.AddRange(details);
-
-            booking.TotalPrice = totalPrice;
+            // 2. Acquire locks for all slots
+            var acquiredLocks = new List<(string Key, string Value)>();
 
             try
             {
-                await _unitOfWork.SaveChangesAsync();
-            }
-            catch (Exception)
-            {
-                _logger.LogError("Fail to create booking: duplicate index");
-                return false;
-            }
+                foreach (var lockKey in lockKeys)
+                {
+                    var lockValue = await _cacheService.AcquireLockAsync(lockKey, LockExpiry);
 
-            return true;
+                    if (lockValue is null)
+                    {
+                        _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
+                        throw new ResourceConflictException("Slot đang được người khác đặt, vui lòng thử lại sau giây lát.");
+                    }
+
+                    acquiredLocks.Add((lockKey, lockValue));
+                }
+
+                // 3. Check slot availability
+                foreach (var item in request.Details)
+                {
+                    var isAvailable = await _unitOfWork.BookingDetails
+                        .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
+
+                    if (!isAvailable)
+                    {
+                        throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+                }
+
+                // 4. Create booking with hold
+                var expiredAt = DateTime.UtcNow.AddMinutes(5);
+
+                var booking = new Booking
+                {
+                    UserId = userId,
+                    VenueId = request.VenueId,
+                    Fullname = request.Fullname,
+                    PhoneNumber = request.PhoneNumber,
+                    BookingNote = request.BookingNote,
+                    ExpiredAt = expiredAt,
+                    Status = BookingStatus.Pending
+                };
+
+                _unitOfWork.Bookings.Add(booking);
+
+                decimal totalPrice = 0;
+                var details = new List<BookingDetail>();
+
+                foreach (var item in request.Details)
+                {
+                    var slot = await _unitOfWork.TimeSlots
+                        .GetByIdAsync(item.SlotId);
+
+                    var price = slot!.Price;
+                    totalPrice += price;
+
+                    details.Add(new BookingDetail
+                    {
+                        Booking = booking,
+                        FieldId = item.FieldId,
+                        SlotId = item.SlotId,
+                        BookingDate = request.BookingDate,
+                        Price = price
+                    });
+                }
+
+                _unitOfWork.BookingDetails.AddRange(details);
+                booking.TotalPrice = totalPrice;
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return new HoldSlotResponse
+                {
+                    BookingId = booking.Id,
+                    TotalPrice = totalPrice,
+                    ExpiredAt = expiredAt,
+                    BookingStatus = BookingStatus.Pending.ToString()
+                };
+            }
+            finally
+            {
+                // 5. Always release all acquired locks
+                foreach (var (key, value) in acquiredLocks)
+                {
+                    await _cacheService.ReleaseLockAsync(key, value);
+                }
+            }
+        }
+
+        public async Task<BookingDetailResponse> GetBookingDetailAsync(int bookingId, string userId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+            if (booking == null)
+            {
+                throw new NotFoundException("Booking not found.");
+            }
+            if (booking.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
+            }
+            return new BookingDetailResponse
+            {
+                BookingId = booking.Id,
+                FullName = booking.Fullname,
+                Phone = booking.PhoneNumber,
+                BookingNote = booking.BookingNote,
+                Status = booking.Status.ToString(),
+                ExpiredAt = booking.ExpiredAt,
+                VenueId = booking.VenueId,
+                VenueName = booking.Venue.Name,
+                Date = booking.BookingDetails.First().BookingDate,
+                TotalPrice = booking.TotalPrice,
+                Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.TimeSlot!.StartTime,
+                    EndTime = d.TimeSlot.EndTime
+                })]
+            };
         }
 
         public async Task<List<BookingHistoryResponse>> GetBookingHistoryAsync(string userId)

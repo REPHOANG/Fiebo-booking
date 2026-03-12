@@ -11,5 +11,6 @@ namespace Fiebo.Domain.Repositories
     {
         Task<List<Booking>> GetBookingHistoryByUserIdAsync(string userId);
         Task<Booking?> GetBookingForReportAsync(int bookingId, string userId);
+        Task<Booking?> GetBookingDetailByBookingId(int id);
     }
 }

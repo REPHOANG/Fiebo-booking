@@ -11,9 +11,13 @@ namespace Fiebo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //migrationBuilder.DropIndex(
-            //    name: "IX_BookingDetails_FieldId",
-            //    table: "BookingDetails");
+            migrationBuilder.DropForeignKey(
+                name: "FK_BookingDetails_Fields_FieldId",
+                table: "BookingDetails");
+
+            migrationBuilder.DropIndex(
+                name: "IX_BookingDetails_FieldId",
+                table: "BookingDetails");
 
             migrationBuilder.DropColumn(
                 name: "BookingDate",
@@ -47,11 +51,11 @@ namespace Fiebo.Persistence.Migrations
                 nullable: false,
                 defaultValue: new DateOnly(1, 1, 1));
 
-            migrationBuilder.CreateIndex(
-                name: "IX_BookingDetails_FieldId_SlotId_BookingDate",
-                table: "BookingDetails",
-                columns: new[] { "FieldId", "SlotId", "BookingDate" },
-                unique: true);
+            //migrationBuilder.CreateIndex(
+            //    name: "IX_BookingDetails_FieldId_SlotId_BookingDate",
+            //    table: "BookingDetails",
+            //    columns: new[] { "FieldId", "SlotId", "BookingDate" },
+            //    unique: true);
         }
 
         /// <inheritdoc />

@@ -1,10 +1,15 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "../landing/Header";
 import BottomNav from "./BottomNav";
 import Footer from "../landing/Footer";
 
 const Layout = () => {
+  const location = useLocation();
+  const isBookingPage = location.pathname.includes("/booking");
+  const isVenuesPage = location.pathname === "/venues";
+  const isVenueDetailPage = /^\/venue\/[0-9]+$/.test(location.pathname);
+
   return (
     <div className="layout">
       <Header />
@@ -12,7 +17,7 @@ const Layout = () => {
         <Outlet />
       </main>
       <BottomNav />
-      <Footer />
+      {!isBookingPage && !isVenuesPage && !isVenueDetailPage && <Footer />}
     </div>
   );
 };

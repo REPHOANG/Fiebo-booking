@@ -246,8 +246,6 @@ namespace Fiebo.Persistence.Data
                       .HasColumnType("decimal(12,2)")
                       .IsRequired();
 
-                entity.HasIndex(e => new { e.FieldId, e.SlotId, e.BookingDate }).IsUnique();
-
                 entity.HasOne(e => e.Booking)
                       .WithMany(b => b.BookingDetails)
                       .HasForeignKey(e => e.BookingId)

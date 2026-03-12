@@ -27,5 +27,8 @@ namespace Fiebo.Domain.Repositories
         //IReportRepository Reports { get; }
 
         Task<int> SaveChangesAsync();
+        Task BeginTransactionAsync();
+        Task CommitTransactionAsync();
+        Task RollbackTransactionAsync();
     }
 }

@@ -35,5 +35,17 @@ namespace Fiebo.Persistence.Repositories
             return await _context.Bookings
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId);
         }
+
+        public async Task<Booking?> GetBookingDetailByBookingId(int id)
+        {
+            return await _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Include(b => b.BookingDetails)
+                .ThenInclude(d => d.Field)
+                .Include(b => b.BookingDetails)
+                .ThenInclude(d => d.TimeSlot)
+                .FirstOrDefaultAsync(b => b.Id == id);
+        }
     }
 }

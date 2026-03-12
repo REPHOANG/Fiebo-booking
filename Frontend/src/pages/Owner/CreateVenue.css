@@ -1,0 +1,308 @@
+/* ============ CREATE VENUE PAGE ============ */
+
+.create-venue-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+}
+
+.cv-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.cv-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.cv-back-btn {
+  background: white;
+  border: none;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+}
+
+.cv-back-btn:hover {
+  background: #f0f0f0;
+  transform: translateX(-2px);
+}
+
+.cv-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.cv-header p {
+  font-size: 14px;
+  color: #666;
+  margin: 2px 0 0 0;
+}
+
+/* ── Card ── */
+.cv-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.cv-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cv-card-title svg {
+  color: #22c55e;
+}
+
+/* ── Form Grid ── */
+.cv-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.cv-form-grid .cv-full-width {
+  grid-column: 1 / -1;
+}
+
+/* ── Form Group ── */
+.cv-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cv-form-group label .cv-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.cv-form-group input,
+.cv-form-group select,
+.cv-form-group textarea {
+  padding: 11px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #1a1a2e;
+  background: #fafafa;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+}
+
+.cv-form-group input:focus,
+.cv-form-group select:focus,
+.cv-form-group textarea:focus {
+  border-color: #22c55e;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.cv-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.cv-form-group select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 20px;
+  padding-right: 36px;
+}
+
+.cv-error-text {
+  font-size: 12px;
+  color: #ef4444;
+  margin: 0;
+}
+
+/* ── Fields (sub-fields) Section ── */
+.cv-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cv-field-item {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  background: #fafbfc;
+  transition: border-color 0.2s;
+}
+
+.cv-field-item:hover {
+  border-color: #22c55e;
+}
+
+.cv-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cv-field-header h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.cv-field-remove-btn {
+  background: #fee2e2;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ef4444;
+  transition: all 0.2s;
+}
+
+.cv-field-remove-btn:hover {
+  background: #fecaca;
+}
+
+.cv-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cv-add-field-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.cv-add-field-btn:hover {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.04);
+}
+
+/* ── Submit ── */
+.cv-submit-section {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cv-cancel-btn {
+  padding: 12px 28px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  color: #374151;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.cv-cancel-btn:hover {
+  background: #f3f4f6;
+}
+
+.cv-submit-btn {
+  padding: 12px 36px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  font-family: inherit;
+}
+
+.cv-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+}
+
+.cv-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .create-venue-page {
+    padding: 12px;
+  }
+
+  .cv-card {
+    padding: 20px;
+  }
+
+  .cv-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-submit-section {
+    flex-direction: column;
+  }
+
+  .cv-submit-btn,
+  .cv-cancel-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

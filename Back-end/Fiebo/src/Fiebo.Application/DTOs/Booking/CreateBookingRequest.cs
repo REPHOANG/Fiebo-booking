@@ -8,6 +8,7 @@ namespace Fiebo.Application.DTOs.Booking
 {
     public class CreateBookingRequest
     {
+        public int VenueId { get; set; }
         public DateOnly BookingDate { get; set; }
 
         public required string Fullname { get; set; }
