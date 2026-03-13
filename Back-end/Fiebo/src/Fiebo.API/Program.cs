@@ -1,5 +1,6 @@
 ﻿using DotNetEnv;
 using Fiebo.API.Middlewares;
+using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
@@ -109,6 +110,8 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IQrPaymentService, QrPaymentService>();
 builder.Services.AddHostedService<BookingExpirationJob>();
+builder.Services.AddSingleton<SseService>();
+builder.Services.AddScoped<INotificationService, SseNotificationService>();
 
 
 builder.Services.AddHttpClient();
