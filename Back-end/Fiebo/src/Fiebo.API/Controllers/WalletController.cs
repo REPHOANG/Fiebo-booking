@@ -51,8 +51,8 @@ namespace Fiebo.API.Controllers
 
         }
 
-        [HttpGet("wallet/stream")]
-        public async Task Stream(string userId, [FromServices] SseService sse)
+        [HttpGet("stream")]
+        public async Task Stream([FromQuery]string userId, [FromServices] SseService sse)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             sse.AddClient(userId, Response); await Task.Delay(-1);

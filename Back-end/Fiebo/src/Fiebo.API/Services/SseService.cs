@@ -9,6 +9,12 @@ namespace Fiebo.API.Services
     public class SseService
     {
         private readonly Dictionary<string, List<HttpResponse>> _clients = new();
+        private readonly ILogger<SseService> _logger;
+
+        public SseService(ILogger<SseService> logger)
+        {
+            _logger = logger;
+        }
 
         public void AddClient(string userId, HttpResponse response)
         {
@@ -16,11 +22,19 @@ namespace Fiebo.API.Services
                 _clients[userId] = new List<HttpResponse>();
 
             _clients[userId].Add(response);
+            _logger.LogInformation($"Client connected: {userId}");
+            _logger.LogInformation($"Total users connected: {_clients.Count}");
         }
 
         public async Task SendToUserAsync(string userId, string message)
         {
-            if (!_clients.ContainsKey(userId)) return;
+            _logger.LogInformation($"Send event to user: {userId}");
+            _logger.LogInformation($"Connected users: {string.Join(",", _clients.Keys)}");
+            if (!_clients.ContainsKey(userId))
+            {
+                _logger.LogWarning("User not connected to SSE");
+                return;
+            }
 
             var clients = _clients[userId];
 
