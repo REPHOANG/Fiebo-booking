@@ -120,6 +120,19 @@ export const payBooking = async (bookingId, payload) => {
 };
 
 /**
+ * Notify backend webhook about completed payment.
+ * This calls POST /api/webhook/payment with a small payload.
+ */
+export const callPaymentWebhook = async (bookingId, payload = {}) => {
+  const body = { bookingId, ...payload };
+  const response = await fetchAPI('/api/webhook/payment', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return response.data ?? response;
+};
+
+/**
  * Lấy chi tiết đặt chỗ theo id (GET /api/Booking/{id}).
  */
 export const getBookingById = async (bookingId) => {
