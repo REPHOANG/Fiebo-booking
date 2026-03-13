@@ -11,10 +11,16 @@ namespace Fiebo.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private IQrPaymentService _qrPaymentService;
-        public WalletService(IUnitOfWork unitOfWork, IQrPaymentService qrPaymentService)
+        private readonly INotificationService _notificationService;
+        public WalletService(
+            IUnitOfWork unitOfWork,
+            IQrPaymentService qrPaymentService,
+            INotificationService notificationService
+                        )
         {
             _unitOfWork = unitOfWork;
             _qrPaymentService = qrPaymentService;
+            _notificationService = notificationService;
         }
 
         public async Task<QrPaymentResponseDto> GenerateTopUpQrAsync(decimal amount, string userId)
@@ -62,6 +68,10 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Wallet is not found");
             }
+            if (topUpRequest.Status == TopUpStatus.Paid)
+            {
+                return true;
+            }
             await _unitOfWork.BeginTransactionAsync();
             try
             {
@@ -83,6 +93,7 @@ namespace Fiebo.Application.Services
                 await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
+            await _notificationService.NotifyWalletTopupAsync(wallet.UserId, request.TransferAmount);
             return true;
         }
     }
