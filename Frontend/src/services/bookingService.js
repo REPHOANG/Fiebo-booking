@@ -1,5 +1,6 @@
 // Booking Service - client calls for reservation and confirmation
 import { store } from '../store';
+import api from './api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
@@ -147,6 +148,16 @@ export const getBookingHistory = async (params = {}) => {
   const pageSize = data?.pageSize ?? data?.PageSize ?? 10;
   return { page, pageSize, totalItems, items: Array.isArray(items) ? items : [] };
 };
+
+export const getCancelBookingPreview = async (id) => {
+  const response = await api.get(`/api/booking/${id}/cancel-preview`);
+  return response.data.data ?? response;
+}
+
+export const cancelBookingApi = async (id) => {
+  const response = api.post(`/api/booking/${id}/cancel`);
+  return response.data.data ?? response;
+}
 
 export default {
   createBooking,

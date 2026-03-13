@@ -16,5 +16,6 @@ namespace Fiebo.Domain.Repositories
         Task<Dictionary<int, int>> CountCompletedBookingsByVenueAsync(List<int> venueId);
         Task<bool> IsSlotAvailable(int slotId, int fieldId, DateOnly bookingDate);
         Task AddBookingDetailsAsync(IEnumerable<BookingDetail> details);
+        Task<BookingDetail?> GetEarliestDetailAsync(int bookingId);
     }
 }

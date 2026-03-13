@@ -71,5 +71,14 @@ namespace Fiebo.Persistence.Repositories
         {
             await _context.BookingDetails.AddRangeAsync(details);
         }
+
+        public async Task<BookingDetail?> GetEarliestDetailAsync(int bookingId)
+        {
+            return await _context.BookingDetails
+                .Include(d => d.TimeSlot)
+                .Where(d => d.BookingId == bookingId)
+                .OrderBy(d => d.TimeSlot!.StartTime)
+                .FirstOrDefaultAsync();
+        }
     }
 }
