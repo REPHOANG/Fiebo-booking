@@ -27,8 +27,8 @@ import {
 import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
+import { callPaymentWebhook } from "../../../services/bookingService";
 import useWalletStream from "../../../hooks/useWalletHook";
-import { fire } from "./../../../../node_modules/sweetalert2/src/staticMethods/fire";
 import Swal from "sweetalert2";
 
 const formatPrice = (price) =>
@@ -454,6 +454,13 @@ const BookingPayment = () => {
         return;
       }
       await payBooking(bookingId, { paymentMethod: "wallet" });
+      try {
+        await callPaymentWebhook(bookingId, { paymentMethod: "wallet" });
+      } catch (webErr) {
+        // non-fatal: log and continue
+        // eslint-disable-next-line no-console
+        console.warn("Payment webhook call failed", webErr);
+      }
       setPaymentDone(true);
       try {
         clearPaymentDraft();
@@ -527,6 +534,12 @@ const BookingPayment = () => {
     setPaying(true);
     try {
       await payBooking(reservationId, { paymentMethod: "wallet" });
+      try {
+        await callPaymentWebhook(reservationId, { paymentMethod: "wallet" });
+      } catch (webErr) {
+        // eslint-disable-next-line no-console
+        console.warn("Payment webhook call failed", webErr);
+      }
       setPaymentDone(true);
       try {
         sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(reservationId));

@@ -65,6 +65,50 @@ const WalletTopUp = () => {
       const info = await topUpWallet({ amount });
       setPaymentInfo(info);
       toast.success("Vui lòng chuyển khoản theo thông tin bên dưới.");
+      // Nếu backend trả về url chuyển hướng (ví dụ cổng thanh toán), điều hướng trình duyệt tới đó.
+      // Nếu không có, mặc định điều hướng tới endpoint webhook để backend xử lý luồng thanh toán.
+      try {
+        if (info && info.redirectUrl) {
+          window.location.href = info.redirectUrl;
+        } else {
+          // Gửi POST tới endpoint webhook để backend xử lý luồng thanh toán (ví dụ cho môi trường dev/test).
+          // Xây payload mẫu dựa trên dữ liệu trả về từ topUpWallet.
+          const payload = {
+            transactionDate: new Date().toISOString(),
+            accountNumber: info.accountNumber || "",
+            code: info.code || "",
+            content: info.transferContent || "",
+            transferType: "bank",
+            transferAmount: Number(info.amount || amount || 0),
+            accumulated: 0,
+            subAccount: info.subAccount || "",
+            referenceCode: info.referenceCode || info.transferContent || "",
+            description: info.description || `Top-up request ${Number(info.amount || amount || 0)}`,
+          };
+          try {
+            const resp = await fetch('/api/webhook/payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (resp.ok) {
+              toast.success('Yêu cầu webhook đã gửi. Cập nhật số dư nếu thành công.');
+              // Cập nhật số dư và điều hướng phù hợp
+              await handleDoneTransfer();
+              return;
+            }
+            // Nếu webhook trả lỗi, giữ lại paymentInfo để người dùng có thể làm chuyển khoản thủ công
+            const txt = await resp.text().catch(() => null);
+            console.warn('Webhook response not ok', resp.status, txt);
+            toast.error('Gửi webhook thất bại — vui lòng làm theo hướng dẫn chuyển khoản.');
+          } catch (webErr) {
+            console.warn('Failed to call webhook', webErr);
+            toast.error('Không thể gửi webhook. Vui lòng làm theo hướng dẫn chuyển khoản.');
+          }
+        }
+      } catch (e) {
+        // Nếu không thể điều hướng hoặc gọi webhook, giữ lại paymentInfo để hiển thị hướng dẫn chuyển khoản
+      }
     } catch (err) {
       toast.error(err?.message || "Tạo yêu cầu nạp tiền thất bại.");
     } finally {
