@@ -164,6 +164,7 @@ const Login = ({ onLoginSuccess }) => {
         localStorage.removeItem('rememberedIdentifier');
       }
 
+      localStorage.setItem('accessToken', token);
       localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
@@ -225,6 +226,7 @@ const Login = ({ onLoginSuccess }) => {
       const response = await verifyPhoneLoginOtp(otpPhone, otpCode);
       const token = response.accessToken || response.token;
       dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem('accessToken', token);
       localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.phone), {
@@ -308,6 +310,7 @@ const Login = ({ onLoginSuccess }) => {
       const response = await loginWithGoogle(credential);
       const token = response.accessToken || response.token;
       dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem('accessToken', token);
       localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
       toast.success('Đăng nhập Google thành công!', {
         position: 'top-right',

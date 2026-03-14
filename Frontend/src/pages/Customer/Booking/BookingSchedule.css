@@ -726,27 +726,33 @@
   background: linear-gradient(135deg, #166534 0%, #15803d 100%);
   border-top: 1px solid #16a34a;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 /* ── Top row: info left, price right ───────────────────────── */
 .bs-bottom-bar > .bs-bottom-info,
 .bs-bottom-bar > .bs-bottom-price {
-  /* laid out via the summary row below */
+  display: flex;
+  align-items: center;
 }
 
 /* ── Hover info badge (left side) ──────────────────────────── */
 .bs-bottom-info {
   position: relative;
-  float: left;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-
 .bs-bottom-price {
-  float: right;
   color: #fff;
   font-size: 0.95rem;
   margin-top: 4px;
   margin-bottom: 8px;
+  margin-left: auto;
 }
 
 .bs-bottom-price strong {

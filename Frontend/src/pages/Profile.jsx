@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import {  useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout, updateProfile } from "../store/authSlice";
+import { logout, updateProfile, AUTH_STORAGE_KEY } from "../store/authSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
@@ -158,6 +158,10 @@ const Profile = () => {
 
   const handleLogout = () => {
     dispatch(logout());
+    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem('token');
     toast.success("Đăng xuất thành công!");
     navigate("/login");
   };

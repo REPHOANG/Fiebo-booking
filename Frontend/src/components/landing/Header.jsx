@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
+import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import {
   SearchIcon,
   ShoppingCartIcon,
@@ -43,7 +43,8 @@ const Header = () => {
   const handleLogout = () => {
     dispatch(logout());
     localStorage.removeItem('token');
-    localStorage.removeItem('authState');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem('token');
     setUserMenuOpen(false);
   };

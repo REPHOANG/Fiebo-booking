@@ -6,7 +6,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 function getAuthToken() {
-  return store.getState()?.auth?.token ?? null;
+  try {
+    return store.getState()?.auth?.token ?? null;
+  } catch (_) {
+    return null;
+  }
 }
 
 const fetchAPI = async (endpoint, options = {}) => {

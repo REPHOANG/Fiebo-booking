@@ -43,8 +43,8 @@ const BookingPayment = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
-  const token = useSelector((state) => state.auth?.token);
 
+  const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
   const bookingIdFromQuery = searchParams.get("bookingId");
   const resolvedBookingId =
@@ -591,7 +591,12 @@ const BookingPayment = () => {
       <div className="bp-main">
         {/* Header */}
         <div className="bp-header">
-          <button className="bp-back-btn" onClick={() => navigate(-1)}>
+          <button
+            className="bp-back-btn"
+            onClick={() => navigate(-1)}
+            disabled={paying}
+            aria-disabled={paying}
+          >
             <ArrowLeft size={20} />
           </button>
           <h1 className="bp-header-title">Thanh toán</h1>
@@ -670,7 +675,12 @@ const BookingPayment = () => {
               )}
 
               {!loadingBalance && (
-                <button className="bp-topup-btn" onClick={handleTopUp}>
+                <button
+                  className="bp-topup-btn"
+                  onClick={handleTopUp}
+                  disabled={paying}
+                  aria-disabled={paying}
+                >
                   <Plus size={18} />
                   Nạp tiền vào ví
                 </button>
@@ -708,6 +718,8 @@ const BookingPayment = () => {
                     },
                   })
                 }
+                disabled={paying}
+                aria-disabled={paying}
               >
                 Đăng nhập
               </button>

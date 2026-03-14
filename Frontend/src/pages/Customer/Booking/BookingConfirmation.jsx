@@ -89,6 +89,7 @@ const BookingConfirmation = () => {
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Prefill name and phone from authenticated user when available
   React.useEffect(() => {
@@ -223,6 +224,8 @@ const BookingConfirmation = () => {
         toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
         return;
       }
+      setIsSubmitting(true);
+      try {
       // Note: removed optimistic slot locking here. Slots will be reserved
       // only after server confirms booking (see below). We still clear draft.
       try {
@@ -371,6 +374,9 @@ const BookingConfirmation = () => {
           },
         });
       }
+      } finally {
+        setIsSubmitting(false);
+      }
     })();
   };
 
@@ -450,7 +456,12 @@ const BookingConfirmation = () => {
     <div className="bc-main">
       {/* Header */}
       <div className="bc-header">
-        <button className="bc-back-btn" onClick={() => navigate(-1)}>
+        <button
+          className="bc-back-btn"
+          onClick={() => navigate(-1)}
+          disabled={isSubmitting}
+          aria-disabled={isSubmitting}
+        >
           <ArrowLeft size={20} />
         </button>
         <h1 className="bc-header-title">Xác nhận đặt sân</h1>
@@ -629,11 +640,11 @@ const BookingConfirmation = () => {
           <span className="bc-bottom-amount">{formatPrice(totalPrice)}</span>
         </div>
         <button
-          className={`bc-confirm-btn${!canConfirm ? " disabled" : ""}`}
-          disabled={!canConfirm}
+          className={`bc-confirm-btn${!canConfirm || isSubmitting ? " disabled" : ""}${isSubmitting ? " loading" : ""}`}
+          disabled={!canConfirm || isSubmitting}
           onClick={handleConfirmBooking}
         >
-          XÁC NHẬN ĐẶT SÂN
+          {isSubmitting ? "Đang xử lý..." : "XÁC NHẬN ĐẶT SÂN"}
         </button>
       </div>
     </div>

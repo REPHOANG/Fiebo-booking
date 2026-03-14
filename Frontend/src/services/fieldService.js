@@ -1,15 +1,17 @@
 // Field / Venue Service - API calls for field-related endpoints
-import { getStoredAuth } from '../store/authSlice';
+import store from '../store';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
+
+const getTokenFromRedux = () => store.getState()?.auth?.token ?? null;
 
 const fetchAPI = async (endpoint, options = {}) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const token = localStorage.getItem('accessToken') || getStoredAuth()?.token || null;
+    const token = getTokenFromRedux();
 
     const fetchOpts = {
       signal: controller.signal,

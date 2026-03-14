@@ -55,7 +55,17 @@ const getInitialState = () => {
   }
 };
 
-export { AUTH_STORAGE_KEY, encodeAuthStorage };
+/** Đọc auth đã lưu từ storage (đã decode), dùng cho ProtectedRoute và các service lấy token. */
+function getStoredAuth() {
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    return raw ? decodeAuthStorage(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export { AUTH_STORAGE_KEY, encodeAuthStorage, getStoredAuth };
 
 const initialState = getInitialState();
 

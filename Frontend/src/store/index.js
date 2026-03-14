@@ -11,25 +11,7 @@ export const store = configureStore({
   }
 });
 
-// Subscribe to store changes and save to localStorage
-// Persist auth and bookingDrafts to localStorage
-store.subscribe(() => {
-  const state = store.getState();
-  try {
-    localStorage.setItem('authState', JSON.stringify(state.auth));
-  } catch (error) {
-    console.error('Failed to save auth state:', error);
-  }
-  try {
-    localStorage.setItem('bookingDrafts', JSON.stringify(state.bookingDrafts || {}));
-  } catch (e) {
-    console.error('Failed to save booking drafts:', e);
-  }
-  try {
-    localStorage.setItem('bookedSlots', JSON.stringify(state.bookedSlots || {}));
-  } catch (e) {
-    console.error('Failed to save booked slots:', e);
-  }
-});
+// NOTE: Previously we persisted slices to localStorage here.
+// That behavior was removed to avoid duplicating state (Redux is the source of truth).
 
 export default store;

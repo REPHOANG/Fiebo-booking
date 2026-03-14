@@ -1,7 +1,11 @@
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, Heart, Share2, TrendingUp } from "lucide-react";
 
 // ── Venue card component ──
-  export const VenueCard = ({ venue, isAuthenticated, navigate }) => (
+export const VenueCard = ({ venue, isAuthenticated }) => {
+  const navigate = useNavigate();
+  return (
     <div
       className="ch-venue-card"
       onClick={() => navigate(`/venue/${venue.id}`)}
@@ -58,3 +62,6 @@ import { Clock, Heart, Share2, TrendingUp } from "lucide-react";
       </div>
     </div>
   );
+};
+
+export default VenueCard;

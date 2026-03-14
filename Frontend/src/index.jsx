@@ -6,6 +6,13 @@ import App from './App';
 import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+// Remove only legacy keys that are no longer used (auth persisted under _fs)
+try {
+  localStorage.removeItem('bookingDrafts');
+  localStorage.removeItem('bookedSlots');
+} catch (e) {
+  // ignore
+}
 root.render(
   <React.StrictMode>
     <Provider store={store}>
