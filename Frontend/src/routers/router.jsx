@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import CustomerHome from '../pages/Customer/CustomerHome';
+import CustomerHome from '../pages/Customer/Home/CustomerHome';
 import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
 import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';

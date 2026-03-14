@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, Plus, Copy, Check } from "lucide-react";
+import { ArrowLeft, Wallet, Plus, Copy } from "lucide-react";
 import { toast } from "react-toastify";
 import { getWalletBalance, topUpWallet } from "../../services/walletService";
 import "./WalletTopUp.css";
+import Swal from "sweetalert2";
+import useWalletStream from "../../hooks/useWalletHook";
+import { useSelector } from "react-redux";
 
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000];
 const formatPrice = (price) =>
@@ -14,14 +17,13 @@ const copyToClipboard = (text, label) => {
   if (!text) return;
   navigator.clipboard.writeText(String(text)).then(
     () => toast.success(`Đã sao chép ${label}`),
-    () => toast.error("Không thể sao chép")
+    () => toast.error("Không thể sao chép"),
   );
 };
 
 const WalletTopUp = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const fromPayment = location.state?.fromPayment;
   const returnPath = location.state?.returnPath ?? location.state?.returnTo;
   const returnState = location.state?.returnState;
 
@@ -46,7 +48,9 @@ const WalletTopUp = () => {
       .finally(() => {
         if (!cancelled) setLoadingBalance(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const amount =
@@ -64,51 +68,6 @@ const WalletTopUp = () => {
     try {
       const info = await topUpWallet({ amount });
       setPaymentInfo(info);
-      toast.success("Vui lòng chuyển khoản theo thông tin bên dưới.");
-      // Nếu backend trả về url chuyển hướng (ví dụ cổng thanh toán), điều hướng trình duyệt tới đó.
-      // Nếu không có, mặc định điều hướng tới endpoint webhook để backend xử lý luồng thanh toán.
-      try {
-        if (info && info.redirectUrl) {
-          window.location.href = info.redirectUrl;
-        } else {
-          // Gửi POST tới endpoint webhook để backend xử lý luồng thanh toán (ví dụ cho môi trường dev/test).
-          // Xây payload mẫu dựa trên dữ liệu trả về từ topUpWallet.
-          const payload = {
-            transactionDate: new Date().toISOString(),
-            accountNumber: info.accountNumber || "",
-            code: info.code || "",
-            content: info.transferContent || "",
-            transferType: "bank",
-            transferAmount: Number(info.amount || amount || 0),
-            accumulated: 0,
-            subAccount: info.subAccount || "",
-            referenceCode: info.referenceCode || info.transferContent || "",
-            description: info.description || `Top-up request ${Number(info.amount || amount || 0)}`,
-          };
-          try {
-            const resp = await fetch('/api/webhook/payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            if (resp.ok) {
-              toast.success('Yêu cầu webhook đã gửi. Cập nhật số dư nếu thành công.');
-              // Cập nhật số dư và điều hướng phù hợp
-              await handleDoneTransfer();
-              return;
-            }
-            // Nếu webhook trả lỗi, giữ lại paymentInfo để người dùng có thể làm chuyển khoản thủ công
-            const txt = await resp.text().catch(() => null);
-            console.warn('Webhook response not ok', resp.status, txt);
-            toast.error('Gửi webhook thất bại — vui lòng làm theo hướng dẫn chuyển khoản.');
-          } catch (webErr) {
-            console.warn('Failed to call webhook', webErr);
-            toast.error('Không thể gửi webhook. Vui lòng làm theo hướng dẫn chuyển khoản.');
-          }
-        }
-      } catch (e) {
-        // Nếu không thể điều hướng hoặc gọi webhook, giữ lại paymentInfo để hiển thị hướng dẫn chuyển khoản
-      }
     } catch (err) {
       toast.error(err?.message || "Tạo yêu cầu nạp tiền thất bại.");
     } finally {
@@ -120,20 +79,22 @@ const WalletTopUp = () => {
     setPaymentInfo(null);
   };
 
-  const handleDoneTransfer = async () => {
-    try {
-      const res = await getWalletBalance();
-      setBalance(res.balance ?? 0);
-      toast.success("Số dư đã được cập nhật. Nếu đã chuyển khoản, tiền sẽ vào ví trong giây lát.");
-    } catch (_) {}
-    if (returnPath) {
-      navigate(returnPath, { state: returnState, replace: true });
-    } else if (fromPayment) {
-      navigate(-1);
-    } else {
-      setPaymentInfo(null);
-    }
+  const { user } = useSelector((state) => state.auth);
+  const handleTopup = async (amount) => {
+    Swal.fire({
+      icon: "success",
+      title: "Nạp tiền thành công",
+      confirmButtonText: "OK",
+    }).then(() => {
+      if (returnPath) {
+        navigate(returnPath, { state: returnState, replace: true });
+      } else {
+        setPaymentInfo(null);
+        setSelectedAmount(null);
+      }
+    });
   };
+  useWalletStream(user.id, handleTopup);
 
   const showPaymentInstructions = paymentInfo != null;
 
@@ -166,7 +127,8 @@ const WalletTopUp = () => {
       {showPaymentInstructions ? (
         <div className="wtu-card wtu-payment-card">
           <p className="wtu-payment-intro">
-            Quét mã QR hoặc chuyển khoản theo thông tin bên dưới. Nhớ ghi đúng nội dung chuyển khoản.
+            Quét mã QR hoặc chuyển khoản theo thông tin bên dưới. Nhớ ghi đúng
+            nội dung chuyển khoản.
           </p>
 
           {paymentInfo.qrImageUrl && (
@@ -183,17 +145,23 @@ const WalletTopUp = () => {
             <h3 className="wtu-block-title">Thông tin tài khoản nhận</h3>
             <div className="wtu-info-row">
               <span className="wtu-info-label">Ngân hàng</span>
-              <span className="wtu-info-value">{paymentInfo.bankName || "—"}</span>
+              <span className="wtu-info-value">
+                {paymentInfo.bankName || "—"}
+              </span>
             </div>
             <div className="wtu-info-row">
               <span className="wtu-info-label">Số tài khoản</span>
               <div className="wtu-info-value-with-copy">
-                <span className="wtu-info-value">{paymentInfo.accountNumber || "—"}</span>
+                <span className="wtu-info-value">
+                  {paymentInfo.accountNumber || "—"}
+                </span>
                 {paymentInfo.accountNumber && (
                   <button
                     type="button"
                     className="wtu-copy-btn"
-                    onClick={() => copyToClipboard(paymentInfo.accountNumber, "số tài khoản")}
+                    onClick={() =>
+                      copyToClipboard(paymentInfo.accountNumber, "số tài khoản")
+                    }
                     aria-label="Sao chép số tài khoản"
                   >
                     <Copy size={16} />
@@ -204,12 +172,19 @@ const WalletTopUp = () => {
             <div className="wtu-info-row">
               <span className="wtu-info-label">Chủ tài khoản</span>
               <div className="wtu-info-value-with-copy">
-                <span className="wtu-info-value">{paymentInfo.accountName || "—"}</span>
+                <span className="wtu-info-value">
+                  {paymentInfo.accountName || "—"}
+                </span>
                 {paymentInfo.accountName && (
                   <button
                     type="button"
                     className="wtu-copy-btn"
-                    onClick={() => copyToClipboard(paymentInfo.accountName, "tên chủ tài khoản")}
+                    onClick={() =>
+                      copyToClipboard(
+                        paymentInfo.accountName,
+                        "tên chủ tài khoản",
+                      )
+                    }
                     aria-label="Sao chép tên chủ tài khoản"
                   >
                     <Copy size={16} />
@@ -223,17 +198,26 @@ const WalletTopUp = () => {
             <h3 className="wtu-block-title">Thông tin giao dịch</h3>
             <div className="wtu-info-row">
               <span className="wtu-info-label">Số tiền</span>
-              <strong className="wtu-info-value wtu-amount">{formatPrice(paymentInfo.amount)}</strong>
+              <strong className="wtu-info-value wtu-amount">
+                {formatPrice(paymentInfo.amount)}
+              </strong>
             </div>
             <div className="wtu-info-row">
               <span className="wtu-info-label">Nội dung chuyển khoản</span>
               <div className="wtu-info-value-with-copy">
-                <span className="wtu-info-value wtu-transfer-content">{paymentInfo.transferContent || "—"}</span>
+                <span className="wtu-info-value wtu-transfer-content">
+                  {paymentInfo.transferContent || "—"}
+                </span>
                 {paymentInfo.transferContent && (
                   <button
                     type="button"
                     className="wtu-copy-btn"
-                    onClick={() => copyToClipboard(paymentInfo.transferContent, "nội dung chuyển khoản")}
+                    onClick={() =>
+                      copyToClipboard(
+                        paymentInfo.transferContent,
+                        "nội dung chuyển khoản",
+                      )
+                    }
                     aria-label="Sao chép nội dung"
                   >
                     <Copy size={16} />
@@ -241,16 +225,6 @@ const WalletTopUp = () => {
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="wtu-payment-actions">
-            <button type="button" className="wtu-btn-secondary" onClick={handleBackToForm}>
-              Nạp thêm yêu cầu khác
-            </button>
-            <button type="button" className="wtu-submit" onClick={handleDoneTransfer}>
-              <Check size={18} />
-              Đã chuyển khoản
-            </button>
           </div>
         </div>
       ) : (
@@ -264,7 +238,9 @@ const WalletTopUp = () => {
               {loadingBalance ? "..." : formatPrice(balance)}
             </span>
           </div>
-          <p className="wtu-card-desc">Chọn số tiền cần nạp hoặc nhập số tiền tùy chọn.</p>
+          <p className="wtu-card-desc">
+            Chọn số tiền cần nạp hoặc nhập số tiền tùy chọn.
+          </p>
 
           <form onSubmit={handleSubmit} className="wtu-form">
             <div className="wtu-presets">
@@ -317,4 +293,3 @@ const WalletTopUp = () => {
 };
 
 export default WalletTopUp;
-

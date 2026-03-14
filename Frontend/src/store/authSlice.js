@@ -4,34 +4,21 @@ import { createSlice } from '@reduxjs/toolkit';
 // This function attempts to load the auth state from localStorage and parse it.
 // chức năng: cố gắng tải trạng thái auth từ localStorage và phân tích nó.
 const getInitialState = () => {
-  try {
-    const savedAuth = localStorage.getItem('authState');
-    if (savedAuth) {
-      return JSON.parse(savedAuth);
-    }
-  } catch (error) {
-    console.error('Failed to restore auth state:', error);
-  }
 
   return {
     user: null,
-    token: null,
     isAuthenticated: false,
-    
-    // User Profile State
+
     profile: null,
     profileLoading: false,
-    
-    // OTP Registration State
+
     registrationPending: false,
     registrationEmail: null,
     registrationPhone: null,
-    
-    // Password Reset State
+
     resetEmail: null,
     resetPending: false,
-    
-    // Loading states
+
     isLoading: false,
     error: null,
   };
@@ -46,8 +33,7 @@ const authSlice = createSlice({
     // Set authenticated credentials
     setCredentials: (state, action) => {
       state.user = action.payload.user;
-      state.token = action.payload.token;
-      state.isAuthenticated = !!action.payload.token;
+      state.isAuthenticated = true;
       state.error = null;
       
       // xóa thông tin đăng ký tạm thời nếu có
@@ -128,28 +114,6 @@ const authSlice = createSlice({
       state.resetPending = false;
     },
 
-    // Restore auth from localStorage (for hydration)
-    restoreAuthFromStorage: (state) => {
-      try {
-        const savedAuth = localStorage.getItem('authState');
-        if (savedAuth) {
-          const parsed = JSON.parse(savedAuth);
-          if (parsed.user && parsed.token) {
-            state.user = parsed.user;
-            state.token = parsed.token;
-            state.isAuthenticated = true;
-            console.log('✅ Auth restored from localStorage:', parsed.user.email);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to restore auth from localStorage:', error);
-      }
-      // Reset if restore fails
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
-    },
   },
 });
 

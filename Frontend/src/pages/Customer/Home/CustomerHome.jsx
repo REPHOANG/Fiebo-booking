@@ -1,23 +1,21 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
-  Search,
-  SlidersHorizontal,
-  Map,
-  CheckSquare,
-  Heart,
-  Share2,
-  Clock,
   MapPin,
   TrendingUp,
   Navigation,
 } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
-import SearchBar from "../../components/common/SearchBar/SearchBar";
+import { useNavigate } from "react-router-dom";
+import SearchBar from "../../../components/common/SearchBar/SearchBar";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
-import { getNearbyFields, getTopBookingFields } from "../../services/fieldService";
+import { logout } from "../../../store/authSlice";
+import {
+  getNearbyFields,
+  getTopBookingFields,
+} from "../../../services/fieldService";
 import "./CustomerHome.css";
-// Header and Footer are provided by Layout; remove local renders to avoid duplicates
+import { useQuery } from "@tanstack/react-query";
+import { mapVenue } from "../../../utils/helperFunction";
+import { VenueCard } from './VenueCard';
 
 // Hà Nội mặc định khi không lấy được vị trí
 const DEFAULT_LOCATION = { lat: 21.0285, lng: 105.8542, name: "Hà Nội" };
@@ -25,7 +23,6 @@ const DEFAULT_LOCATION = { lat: 21.0285, lng: 105.8542, name: "Hà Nội" };
 const CustomerHome = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.auth.user);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,14 +30,6 @@ const CustomerHome = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationName, setLocationName] = useState("");
   const [locationLoading, setLocationLoading] = useState(true);
-
-  const [nearbyVenues, setNearbyVenues] = useState([]);
-  const [nearbyLoading, setNearbyLoading] = useState(true);
-  const [nearbyError, setNearbyError] = useState(null);
-
-  const [popularVenues, setPopularVenues] = useState([]);
-  const [popularLoading, setPopularLoading] = useState(true);
-  const [popularError, setPopularError] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -74,76 +63,46 @@ const CustomerHome = () => {
         setLocationName(DEFAULT_LOCATION.name);
         setLocationLoading(false);
       },
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
   }, []);
 
   // ── Fetch nearby venues from API ──
-  useEffect(() => {
-    if (!userLocation) return;
-
-    const fetchNearby = async () => {
-      setNearbyLoading(true);
-      setNearbyError(null);
-      try {
-        const data = await getNearbyFields({
-          userLat: userLocation.lat,
-          userLng: userLocation.lng,
-          limit: 6,
-        });
-        setNearbyVenues(data || []);
-      } catch (err) {
-        console.error("Failed to fetch nearby venues:", err);
-        setNearbyError(err.message || "Không thể tải sân gần bạn");
-      } finally {
-        setNearbyLoading(false);
-      }
-    };
-
-    const fetchPopular = async () => {
-      setPopularLoading(true);
-      setPopularError(null);
-      try {
-        const data = await getTopBookingFields({
-          userLat: userLocation.lat,
-          userLng: userLocation.lng,
-          limit: 6,
-        });
-        setPopularVenues(data || []);
-      } catch (err) {
-        console.error("Failed to fetch popular venues:", err);
-        setPopularError(err.message || "Không thể tải sân nổi bật");
-      } finally {
-        setPopularLoading(false);
-      }
-    };
-
-    fetchNearby();
-    fetchPopular();
-  }, [userLocation]);
-
-  // ── Helper: format TimeSpan "HH:MM:SS" → "HH:MM" ──
-  const formatTime = (t) => {
-    if (!t) return "";
-    const parts = t.split(":");
-    return `${parts[0]}:${parts[1]}`;
-  };
-
-  // ── Helper: map API response → VenueCard props ──
-  const mapVenue = (v) => ({
-    id: v.venueId,
-    name: v.venueName || "Chưa có tên",
-    logo: v.thumbnailUrl || "https://placehold.co/100x100?text=Logo",
-    image: v.thumbnailUrl || "https://placehold.co/800x400?text=Venue",
-    distance: v.distanceKm != null ? `${v.distanceKm.toFixed(1)}km` : "",
-    address: [v.ward, v.province].filter(Boolean).join(", ") || v.addressDetail || "",
-    hours: `${formatTime(v.openTime)} - ${formatTime(v.closeTime)}`,
-    badges: ["Đơn ngày"],
-    rating: v.rating,
-    bookings: v.bookingCount || 0,
+  const {
+    data: nearbyVenues = [],
+    isLoading: nearbyLoading,
+    error: nearbyError,
+  } = useQuery({
+    queryKey: ["nearbyVenues", userLocation],
+    queryFn: () =>
+      getNearbyFields({
+        userLat: userLocation.lat,
+        userLng: userLocation.lng,
+        limit: 6,
+      }),
+    enabled: !!userLocation,
+    staleTime: 30 * 60 * 1000, //30min
+    gcTime: 30 * 60 * 1000, //30min
   });
 
+  const {
+    data: popularVenues = [],
+    isLoading: popularLoading,
+    error: popularError,
+  } = useQuery({
+    queryKey: ["popularVenues", userLocation],
+    queryFn: () =>
+      getTopBookingFields({
+        userLat: userLocation.lat,
+        userLng: userLocation.lng,
+        limit: 6,
+      }),
+    enabled: !!userLocation,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
+  
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -159,63 +118,8 @@ const CustomerHome = () => {
     navigate("/login");
   };
 
-  // ── Venue card component ──
-  const VenueCard = ({ venue }) => (
-    <div className="ch-venue-card" onClick={() => navigate(`/venue/${venue.id}`)} style={{ cursor: 'pointer' }}>
-      <div className="ch-card-image">
-        <img src={venue.image} alt={venue.name} />
-        <div className="ch-card-badges">
-          {venue.badges.map((badge, i) => (
-            <span
-              key={i}
-              className={`ch-badge ${i === 0 ? "ch-badge-primary" : "ch-badge-event"}`}
-            >
-              {badge}
-            </span>
-          ))}
-        </div>
-        <div className="ch-card-actions">
-          <button className="ch-card-action-btn">
-            <Heart size={18} />
-          </button>
-          <button className="ch-card-action-btn">
-            <Share2 size={18} />
-          </button>
-        </div>
-      </div>
-      <div className="ch-card-info">
-        <div className="ch-card-info-left">
-          <img src={venue.logo} alt="" className="ch-venue-logo" />
-        </div>
-        <div className="ch-card-info-right">
-          <h3 className="ch-venue-name">{venue.name}</h3>
-          <p className="ch-venue-address">
-            <span className="ch-distance">({venue.distance})</span> {venue.address}
-          </p>
-          <p className="ch-venue-hours">
-            <Clock size={13} /> {venue.hours}
-          </p>
-          <p className="ch-venue-bookings">
-            <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
-          </p>
-        </div>
-        <button
-          className="ch-book-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isAuthenticated) navigate("/login");
-            else navigate(`/venue/${venue.id}`);
-          }}
-        >
-          ĐẶT LỊCH
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="customer-home">
-
       {/* ===== SEARCH BAR ===== */}
       <SearchBar
         searchQuery={searchQuery}
@@ -227,7 +131,6 @@ const CustomerHome = () => {
 
       {/* ===== MAIN CONTENT ===== */}
       <main className="ch-main">
-
         {/* ── Section 1: Sân gần bạn ── */}
         <section className="ch-section">
           <div className="ch-section-header">
@@ -235,7 +138,9 @@ const CustomerHome = () => {
               <Navigation size={20} className="ch-section-icon" />
               <h2 className="ch-section-title">Sân gần bạn</h2>
               {locationLoading ? (
-                <span className="ch-location-tag loading">Đang xác định...</span>
+                <span className="ch-location-tag loading">
+                  Đang xác định...
+                </span>
               ) : (
                 <span className="ch-location-tag">
                   <MapPin size={13} /> {locationName}
@@ -254,7 +159,10 @@ const CustomerHome = () => {
             ) : (
               nearbyVenues.map((v) => {
                 const venue = mapVenue(v);
-                return <VenueCard key={venue.id} venue={venue} />;
+                return <VenueCard key={venue.id} 
+                venue={venue} 
+                isAuthenticated={isAuthenticated}
+                navigate={navigate} />;
               })
             )}
           </div>
@@ -285,7 +193,6 @@ const CustomerHome = () => {
             )}
           </div>
         </section>
-
       </main>
 
       {/* Footer rendered by Layout when present */}

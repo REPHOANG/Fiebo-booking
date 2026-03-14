@@ -1,4 +1,6 @@
 // Frontend Authentication Service - Connected to Backend API
+import api from "./api";
+
 // Default fallback for local development (use env var when available)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
@@ -298,91 +300,81 @@ export const logout = async (token) => {
 };
 
 // Get user profile
-export const getProfile = async (token) => {
+export const getProfile = async () => {
   try {
-    const response = await fetchAPI('/api/auth/profile', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = response.data || response.user || response;
-    return {
-      id: data.id || data.userId,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      fullName: data.fullName,
-      dateOfBirth: data.dateOfBirth,
-      role: data.roles || data.role,
-    };
+    const response = await api.get('/api/auth/profile');
+    return response.data.data;
   } catch (error) {
-    throw {
-      message: error.message || 'Failed to fetch profile',
-      status: error.status,
-    };
+    console.error('Failed to fetch profile:', error.response?.data || error.message || error);
   }
 };
 
 // Update user profile
-export const updateProfile = async (token, profileData) => {
+export const updateProfile = async (profileData) => {
   try {
-    // Backend expects DateOnly? for dateOfBirth; empty string "" cannot be converted and causes 400
+    // Backend expects DateOnly? for dateOfBirth
     const payload = {
       fullName: profileData.fullName ?? null,
-      phoneNumber: profileData.phoneNumber && String(profileData.phoneNumber).trim() !== '' ? profileData.phoneNumber : null,
-      dateOfBirth: profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ''
-        ? profileData.dateOfBirth.trim().slice(0, 10)
-        : null,
+      phoneNumber:
+        profileData.phoneNumber && String(profileData.phoneNumber).trim() !== ""
+          ? profileData.phoneNumber
+          : null,
+      dateOfBirth:
+        profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ""
+          ? profileData.dateOfBirth.trim().slice(0, 10)
+          : null,
     };
-    const response = await fetchAPI('/api/auth/profile', {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+
+    const response = await api.put("/api/auth/profile", payload);
+
+    const data = response.data?.data || response.data;
 
     return {
       success: true,
-      message: response.message,
-      user: response.user || profileData,
+      message: data.message,
+      user: data.user || payload,
     };
   } catch (error) {
+    console.error(
+      "Failed to update profile:",
+      error.response?.data || error.message || error
+    );
+
     throw {
-      message: error.data?.message || error.message || 'Failed to update profile',
-      status: error.status,
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update profile",
+      status: error.response?.status,
     };
   }
 };
 
 // Change password
-export const changePassword = async (token, passwordData) => {
+export const changePassword = async (passwordData) => {
   try {
-    const response = await fetchAPI('/api/auth/change-password', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-        confirmPassword: passwordData.confirmPassword,
-      }),
+    const { data } = await api.post("/api/auth/change-password", {
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword,
     });
 
     return {
       success: true,
-      message: response.message,
+      message: data?.message,
     };
   } catch (error) {
-    const errorMsg = error.data?.message || error.message || 'Failed to change password';
-    
-    if (error.status === 401) {
-      throw { message: 'Current password is incorrect' };
+    const status = error.response?.status;
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Failed to change password";
+
+    if (status === 401) {
+      throw { message: "Current password is incorrect" };
     }
-    
-    throw { message: errorMsg };
+
+    throw { message };
   }
 };
 

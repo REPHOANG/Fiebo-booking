@@ -28,8 +28,6 @@ import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
 import { callPaymentWebhook } from "../../../services/bookingService";
-import useWalletStream from "../../../hooks/useWalletHook";
-import Swal from "sweetalert2";
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -45,19 +43,8 @@ const BookingPayment = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
-  const { user, token } = useSelector((state) => state.auth);
 
-  const handleTopup = async (amount) => {
-    // After successful top-up, refresh wallet balance and show success message
-    // ...
-    Swal.fire({
-      icon: "success",
-      title: "Nạp tiền thành công",
-      confirmButtonText: "OK",
-    });
-  };
-  useWalletStream(user.id, handleTopup);
-
+  const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
   const bookingIdFromQuery = searchParams.get("bookingId");
   const resolvedBookingId =
