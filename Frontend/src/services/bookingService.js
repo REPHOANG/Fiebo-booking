@@ -29,15 +29,6 @@ const fetchAPI = async (endpoint, options = {}) => {
       },
     };
 
-    // Debug log for outgoing token and Authorization header
-    // eslint-disable-next-line no-console
-    console.debug('[bookingService] fetchAPI', {
-      endpoint,
-      token,
-      authorizationHeader: fetchOptions.headers.Authorization,
-      headers: fetchOptions.headers,
-    });
-
     const url = `${API_BASE_URL}${endpoint}`;
     const response = await fetch(url, fetchOptions);
     clearTimeout(timeoutId);
@@ -56,7 +47,6 @@ const fetchAPI = async (endpoint, options = {}) => {
         message: data?.message || (typeof data === 'string' ? data : null) || `HTTP ${response.status}`,
         data,
       };
-      console.error('[bookingService] request failed', { url, status: response.status, data: err.data });
       throw err;
     }
 
@@ -68,10 +58,6 @@ const fetchAPI = async (endpoint, options = {}) => {
     }
     if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
       const url = `${API_BASE_URL}${endpoint}`;
-      console.error('[bookingService] network error — backend unreachable', {
-        url,
-        hint: 'Kiểm tra backend đã chạy (ví dụ http://localhost:8080) và CORS.',
-      });
       throw {
         status: 0,
         message: 'Không kết nối được máy chủ. Kiểm tra backend đã chạy và mạng.',

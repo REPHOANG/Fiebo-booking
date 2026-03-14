@@ -231,10 +231,6 @@ const BookingSchedule = () => {
         try {
           const res = await getVenueSchedule(id, selectedDate);
           if (!mounted) return;
-          try {
-            // eslint-disable-next-line no-console
-            console.debug('[BookingSchedule] fetched schedule', { venueId: id, date: selectedDate, schedule: res });
-          } catch (e) {}
           const serverSlots = [];
           (res?.sportTypes || []).forEach((st) => {
             (st.slots || []).forEach((s) => serverSlots.push(s));
@@ -371,16 +367,6 @@ const BookingSchedule = () => {
       selectedSlots.some((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx),
     [selectedSlots]
   );
-
-  // Debug logging to help verify booked vs selected state
-  useEffect(() => {
-    try {
-      // eslint-disable-next-line no-console
-      console.debug('[BookingSchedule] selectedSlots', selectedDate, selectedSlots);
-      // eslint-disable-next-line no-console
-      console.debug('[BookingSchedule] bookedForDate', selectedDate, bookedForDate);
-    } catch (e) {}
-  }, [selectedSlots, bookedForDate, selectedDate]);
 
   const toggleSlot = (fieldIdx, slotIdx) => {
     // Allow selecting slots even when the user is not authenticated.

@@ -15,7 +15,6 @@ export default function SvgIcon(props) {
   const { token } = theme.useToken()
   const { name, className, antMode, ...rest } = props
   const iconElement = listSVGIcon[name]
-  // console.log("token", token)
 
   if (!iconElement) return null
   return (

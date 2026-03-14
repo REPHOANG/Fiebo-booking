@@ -305,9 +305,6 @@ const BookingConfirmation = () => {
           // Nếu refetch lỗi vẫn gửi createBooking; backend sẽ check DB và trả 409 nếu conflict
         }
 
-        // eslint-disable-next-line no-console
-        console.debug('[BookingConfirmation] sending booking payload', payload);
-
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
@@ -320,7 +317,6 @@ const BookingConfirmation = () => {
           : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
         try {
-          console.debug('[BookingConfirmation] server created booking', { bookingId, venueId: String(venue?.id), date: selectedDate, ttlSeconds: ttl, expireAt });
           dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
         } catch (e) {}
 
@@ -340,11 +336,6 @@ const BookingConfirmation = () => {
           },
         });
       } catch (err) {
-        // Log full response for 400 to debug backend validation/constraints
-        if (err?.status === 400 && err?.data) {
-          console.error('[BookingConfirmation] 400 response body:', err.data);
-        }
-        console.warn('Create booking failed', err);
         if (err && err.status === 401) {
           toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
           return;

@@ -73,7 +73,7 @@ const Home = () => {
   ];
 
   const handleSearch = () => {
-    console.log(searchData);
+    // TODO: wire to search/navigation when ready
   };
 
   return (

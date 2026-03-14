@@ -24,8 +24,6 @@ const fetchAPI = async (endpoint, options = {}) => {
       },
     };
 
-    console.log('➡️ Fetching:', `${API_BASE_URL}${endpoint}`, fetchOptions.method);
-
     const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
 
     clearTimeout(timeoutId);
@@ -72,15 +70,6 @@ const fetchAPI = async (endpoint, options = {}) => {
 // Register new user - returns pending state waiting for OTP verification
 export const register = async (data) => {
   try {
-    console.log('Sending to backend:', {
-      fullName: data.fullName,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      password: '****',
-      confirmPassword: '****',
-      dateOfBirth: data.dateOfBirth,
-    });
-
     const response = await fetchAPI('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({
@@ -114,7 +103,6 @@ export const register = async (data) => {
       errorMessage = error.data.message;
     }
     
-    console.error('Backend error:', error.data || error);
     throw {
       message: errorMessage,
       details: errorMessage,
@@ -162,7 +150,6 @@ const decodeJWT = (token) => {
 
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Failed to decode JWT:', error);
     return null;
   }
 };
@@ -176,26 +163,17 @@ export const login = async (credentials) => {
       password: credentials.password,
     };
 
-    console.log('🔗 Calling /api/auth/login with:', payload);
     const response = await fetchAPI('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
 
-    console.log('📦 Raw response from backend:', response);
-
-    // Backend returns token in 'data' field, also check other common locations
     const token = response.data || response.accessToken || response.token || response.jwtToken;
     if (!token) {
-      console.error('❌ No token found in response:', response);
       throw { message: 'No token in response' };
     }
 
-    console.log('✅ Token extracted:', token.substring(0, 20) + '...');
-
-    // Decode JWT to extract user info
     const decodedToken = decodeJWT(token);
-    console.log('🔐 Decoded token:', decodedToken);
 
     const result = {
       user: {
@@ -210,8 +188,6 @@ export const login = async (credentials) => {
       token: token,
       expiresIn: response.expiresIn,
     };
-    
-    console.log('✅ Processed login result:', result);
     return result;
   } catch (error) {
     const errorMsg = error.data?.message || error.message || 'Login failed';
@@ -255,7 +231,6 @@ export const loginWithGoogle = async (credential) => {
       token: token,
     };
   } catch (error) {
-    console.error('❌ Google login error:', error.data || error);
     throw {
       message: error.data?.message || error.message || 'Google login failed',
     };
@@ -293,8 +268,6 @@ export const logout = async (token) => {
     });
     return { success: true };
   } catch (error) {
-    // Logout failures are non-critical
-    console.warn('Logout warning:', error.message);
     return { success: true };
   }
 };
@@ -305,7 +278,7 @@ export const getProfile = async () => {
     const response = await api.get('/api/auth/profile');
     return response.data.data;
   } catch (error) {
-    console.error('Failed to fetch profile:', error.response?.data || error.message || error);
+    return undefined;
   }
 };
 
@@ -335,11 +308,6 @@ export const updateProfile = async (profileData) => {
       user: data.user || payload,
     };
   } catch (error) {
-    console.error(
-      "Failed to update profile:",
-      error.response?.data || error.message || error
-    );
-
     throw {
       message:
         error.response?.data?.message ||

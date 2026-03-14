@@ -63,5 +63,3 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
     </div>
   );
 };
-
-export default VenueCard;

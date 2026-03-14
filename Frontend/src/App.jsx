@@ -92,9 +92,7 @@ const App = () => {
             );
           }
         })
-        .catch(() => {
-          console.log("No valid auth token found, starting as guest.");
-        });
+      .catch(() => {});
 
       await Promise.all([minDelay, apiReady]);
 
