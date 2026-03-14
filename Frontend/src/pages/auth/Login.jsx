@@ -178,7 +178,7 @@ const Login = ({ onLoginSuccess }) => {
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
-      navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
+      navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
 
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
@@ -243,7 +243,7 @@ const Login = ({ onLoginSuccess }) => {
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
-      navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
+      navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Mã OTP không hợp lệ' });
       setOtp(['', '', '', '', '', '']);
