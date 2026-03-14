@@ -27,9 +27,7 @@ import {
 import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
-import useWalletStream from "../../../hooks/useWalletHook";
-import { fire } from "./../../../../node_modules/sweetalert2/src/staticMethods/fire";
-import Swal from "sweetalert2";
+import { callPaymentWebhook } from "../../../services/bookingService";
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -45,19 +43,8 @@ const BookingPayment = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
-  const { user, token } = useSelector((state) => state.auth);
 
-  const handleTopup = async (amount) => {
-    // After successful top-up, refresh wallet balance and show success message
-    // ...
-    Swal.fire({
-      icon: "success",
-      title: "Nạp tiền thành công",
-      confirmButtonText: "OK",
-    });
-  };
-  useWalletStream(user.id, handleTopup);
-
+  const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
   const bookingIdFromQuery = searchParams.get("bookingId");
   const resolvedBookingId =
@@ -454,6 +441,13 @@ const BookingPayment = () => {
         return;
       }
       await payBooking(bookingId, { paymentMethod: "wallet" });
+      try {
+        await callPaymentWebhook(bookingId, { paymentMethod: "wallet" });
+      } catch (webErr) {
+        // non-fatal: log and continue
+        // eslint-disable-next-line no-console
+        console.warn("Payment webhook call failed", webErr);
+      }
       setPaymentDone(true);
       try {
         clearPaymentDraft();
@@ -527,6 +521,12 @@ const BookingPayment = () => {
     setPaying(true);
     try {
       await payBooking(reservationId, { paymentMethod: "wallet" });
+      try {
+        await callPaymentWebhook(reservationId, { paymentMethod: "wallet" });
+      } catch (webErr) {
+        // eslint-disable-next-line no-console
+        console.warn("Payment webhook call failed", webErr);
+      }
       setPaymentDone(true);
       try {
         sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(reservationId));

@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -163,11 +163,7 @@ const Login = ({ onLoginSuccess }) => {
         localStorage.removeItem('rememberedIdentifier');
       }
 
-      localStorage.setItem('authState', JSON.stringify({
-        user: response.user,
-        token: response.accessToken || response.token,
-        isAuthenticated: true,
-      }));
+      localStorage.setItem('accessToken', response.accessToken || response.token);
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
         position: 'top-right', autoClose: 3000,
@@ -178,7 +174,7 @@ const Login = ({ onLoginSuccess }) => {
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
-      navigate(userRole === 'admin' ? '/admin' : '/home', { replace: true });
+      navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
 
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
@@ -227,12 +223,6 @@ const Login = ({ onLoginSuccess }) => {
     try {
       const response = await verifyPhoneLoginOtp(otpPhone, otpCode);
       dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
-
-      localStorage.setItem('authState', JSON.stringify({
-        user: response.user,
-        token: response.accessToken || response.token,
-        isAuthenticated: true,
-      }));
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.phone), {
         position: 'top-right', autoClose: 3000,
@@ -393,7 +383,7 @@ const Login = ({ onLoginSuccess }) => {
           {alertInfo && (
             <Alert
               severity={alertInfo.type}
-              onClose={() => setAlertInfo(null)}
+              
               sx={{ mb: 2, mt: 1 }}
             >
               {alertInfo.message}

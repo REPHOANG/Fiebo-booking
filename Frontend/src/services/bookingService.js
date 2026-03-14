@@ -10,7 +10,7 @@ function getAuthToken() {
     const state = store.getState();
     if (state?.auth?.token) return state.auth.token;
   } catch (_) {}
-  const raw = localStorage.getItem('token');
+  const raw = localStorage.getItem('accessToken');
   if (raw) return raw;
   try {
     const a = JSON.parse(localStorage.getItem('authState') || '{}');
@@ -116,6 +116,19 @@ export const payBooking = async (bookingId, payload) => {
   const response = await fetchAPI(`/api/Booking/${bookingId}/payment`, {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+  return response.data ?? response;
+};
+
+/**
+ * Notify backend webhook about completed payment.
+ * This calls POST /api/webhook/payment with a small payload.
+ */
+export const callPaymentWebhook = async (bookingId, payload = {}) => {
+  const body = { bookingId, ...payload };
+  const response = await fetchAPI('/api/webhook/payment', {
+    method: 'POST',
+    body: JSON.stringify(body),
   });
   return response.data ?? response;
 };

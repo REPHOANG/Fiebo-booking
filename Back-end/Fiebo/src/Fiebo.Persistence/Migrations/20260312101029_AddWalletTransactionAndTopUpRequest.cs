@@ -12,9 +12,9 @@ namespace Fiebo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_BookingDetails_FieldId_SlotId_BookingDate",
-                table: "BookingDetails");
+            // migrationBuilder.DropIndex(
+            //     name: "IX_BookingDetails_FieldId_SlotId_BookingDate",
+            //     table: "BookingDetails");
 
             migrationBuilder.CreateTable(
                 name: "TopUpRequests",

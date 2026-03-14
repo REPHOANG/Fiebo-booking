@@ -9,7 +9,7 @@ function getAuthToken() {
     const state = store.getState();
     if (state?.auth?.token) return state.auth.token;
   } catch (_) {}
-  const raw = localStorage.getItem('token');
+  const raw = localStorage.getItem('accessToken');
   if (raw) return raw;
   try {
     const a = JSON.parse(localStorage.getItem('authState') || '{}');
@@ -84,8 +84,16 @@ export const getWalletBalance = async () => {
 
 /**
  * Nạp tiền vào ví (POST /api/Wallet/top-up).
+ * Tạo yêu cầu nạp và trả về thông tin chuyển khoản (QR, tài khoản nhận, số tiền, nội dung).
  * @param {{ amount: number }} payload — amount (VND)
- * @returns {Promise<{ balance?: number }>}
+ * @returns {Promise<{
+ *   qrImageUrl: string,
+ *   bankName: string,
+ *   accountName: string,
+ *   accountNumber: string,
+ *   amount: number,
+ *   transferContent: string
+ * }>}
  */
 export const topUpWallet = async (payload) => {
   const body = typeof payload?.amount === 'number' ? { amount: payload.amount } : payload;
@@ -93,6 +101,13 @@ export const topUpWallet = async (payload) => {
     method: 'POST',
     body: JSON.stringify(body || {}),
   });
-  const balance = response?.data?.balance ?? response?.balance;
-  return { balance: balance != null ? Number(balance) : undefined, raw: response };
+  const d = response?.data ?? response;
+  return {
+    qrImageUrl: d?.qrImageUrl ?? d?.QrImageUrl ?? '',
+    bankName: d?.bankName ?? d?.BankName ?? '',
+    accountName: d?.accountName ?? d?.AccountName ?? '',
+    accountNumber: d?.accountNumber ?? d?.AccountNumber ?? '',
+    amount: Number(d?.amount ?? d?.Amount ?? 0),
+    transferContent: d?.transferContent ?? d?.TransferContent ?? '',
+  };
 };
