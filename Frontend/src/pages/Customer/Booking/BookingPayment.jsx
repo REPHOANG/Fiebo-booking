@@ -43,8 +43,8 @@ const BookingPayment = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth?.token);
 
-  const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
   const bookingIdFromQuery = searchParams.get("bookingId");
   const resolvedBookingId =

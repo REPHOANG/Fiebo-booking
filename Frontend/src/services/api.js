@@ -1,17 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+import { store } from "../store";
+import { AUTH_STORAGE_KEY } from "../store/authSlice";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
 
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
-// attach token to every request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken") || (() => {
-    })();
+    const token = store.getState()?.auth?.token ?? null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,7 +33,7 @@ api.interceptors.response.use(
       !originalRequest.url.includes("/auth/login")
       // !originalRequest.url.includes("/auth/refresh-token")
     ) {
-      localStorage.removeItem("accessToken");
+      localStorage.removeItem(AUTH_STORAGE_KEY);
       // queryClient.removeQueries({ queryKey: ["profile"] });
 
     }
@@ -55,7 +54,7 @@ api.interceptors.response.use(
       !originalRequest.url.includes("/auth/login") &&
       !originalRequest.url.includes("/auth/refresh-token")
     ) {
-      localStorage.removeItem("authState");
+      localStorage.removeItem(AUTH_STORAGE_KEY);
       // queryClient.removeQueries({ queryKey: ["profile"] });
       // window.location.href = "/";
     }

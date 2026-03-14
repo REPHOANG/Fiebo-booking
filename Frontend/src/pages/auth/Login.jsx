@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../../store/authSlice';
+import { setCredentials, AUTH_STORAGE_KEY, encodeAuthStorage } from '../../store/authSlice';
 import { login, loginWithGoogle, sendPhoneLoginOtp, verifyPhoneLoginOtp } from '../../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
@@ -153,7 +153,8 @@ const Login = ({ onLoginSuccess }) => {
     setAlertInfo(null);
     try {
       const response = await login(loginPayload);
-      dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
 
       if (rememberMe) {
         localStorage.setItem('rememberedIdentifier', JSON.stringify({
@@ -163,7 +164,7 @@ const Login = ({ onLoginSuccess }) => {
         localStorage.removeItem('rememberedIdentifier');
       }
 
-      localStorage.setItem('accessToken', response.accessToken || response.token);
+      localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
         position: 'top-right', autoClose: 3000,
@@ -222,7 +223,9 @@ const Login = ({ onLoginSuccess }) => {
     setAlertInfo(null);
     try {
       const response = await verifyPhoneLoginOtp(otpPhone, otpCode);
-      dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.phone), {
         position: 'top-right', autoClose: 3000,
@@ -303,10 +306,9 @@ const Login = ({ onLoginSuccess }) => {
       setIsLoading(true);
       setAlertInfo(null);
       const response = await loginWithGoogle(credential);
-      dispatch(setCredentials({
-        user: response.user,
-        token: response.accessToken || response.token
-      }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
       toast.success('Đăng nhập Google thành công!', {
         position: 'top-right',
         autoClose: 3000,

@@ -6,17 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 function getAuthToken() {
-  try {
-    const state = store.getState();
-    if (state?.auth?.token) return state.auth.token;
-  } catch (_) {}
-  const raw = localStorage.getItem('accessToken');
-  if (raw) return raw;
-  try {
-    const a = JSON.parse(localStorage.getItem('authState') || '{}');
-    return a?.token ?? a?.accessToken ?? null;
-  } catch (_) {}
-  return null;
+  return store.getState()?.auth?.token ?? null;
 }
 
 const fetchAPI = async (endpoint, options = {}) => {

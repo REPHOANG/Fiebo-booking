@@ -1,4 +1,6 @@
 // Venue Service - API calls for venue management (Owner)
+import { store } from '../store';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
@@ -7,15 +9,7 @@ const fetchAPI = async (endpoint, options = {}) => {
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
-    const rawToken = localStorage.getItem('accessToken');
-    const token = rawToken || (() => {
-      try {
-        const a = JSON.parse(localStorage.getItem('authState'));
-        return a?.token || a?.accessToken || null;
-      } catch (e) {
-        return null;
-      }
-    })();
+    const token = store.getState()?.auth?.token ?? null;
     const fetchOptions = {
       signal: controller.signal,
       ...options,

@@ -1,28 +1,61 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// helper function to load initial state from localStorage
-// This function attempts to load the auth state from localStorage and parse it.
-// chức năng: cố gắng tải trạng thái auth từ localStorage và phân tích nó.
+// Key ít gợi ý, không dùng tên "authState" để không lộ trong localStorage
+const AUTH_STORAGE_KEY = '_fs';
+
+function encodeAuthStorage(payload) {
+  try {
+    const json = JSON.stringify(payload);
+    return btoa(encodeURIComponent(json));
+  } catch {
+    return '';
+  }
+}
+
+function decodeAuthStorage(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    const json = decodeURIComponent(atob(raw));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+// Load auth from localStorage (value đã encode, không hiển thị rõ JSON/token)
 const getInitialState = () => {
-
-  return {
+  const base = {
     user: null,
+    token: null,
     isAuthenticated: false,
-
     profile: null,
     profileLoading: false,
-
     registrationPending: false,
     registrationEmail: null,
     registrationPhone: null,
-
     resetEmail: null,
     resetPending: false,
-
     isLoading: false,
     error: null,
   };
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    const data = raw ? decodeAuthStorage(raw) : null;
+    if (!data) return base;
+    const token = data?.token ?? data?.accessToken ?? null;
+    if (!token) return base;
+    return {
+      ...base,
+      user: data?.user ?? null,
+      token,
+      isAuthenticated: true,
+    };
+  } catch {
+    return base;
+  }
 };
+
+export { AUTH_STORAGE_KEY, encodeAuthStorage };
 
 const initialState = getInitialState();
 
@@ -30,13 +63,13 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Set authenticated credentials
+    // Set authenticated credentials (token optional so getProfile can refresh user without clearing token)
     setCredentials: (state, action) => {
-      state.user = action.payload.user;
+      state.user = action.payload.user ?? state.user;
+      const nextToken = action.payload.token ?? action.payload.accessToken;
+      if (nextToken !== undefined) state.token = nextToken;
       state.isAuthenticated = true;
       state.error = null;
-      
-      // xóa thông tin đăng ký tạm thời nếu có
       state.registrationPending = false;
       state.registrationEmail = null;
       state.registrationPhone = null;
@@ -130,7 +163,6 @@ export const {
   updateProfile,
   setResetEmail,
   clearResetState,
-  restoreAuthFromStorage,
 } = authSlice.actions;
 
 export default authSlice.reducer;
