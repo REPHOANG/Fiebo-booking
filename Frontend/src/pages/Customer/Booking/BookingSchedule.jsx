@@ -226,7 +226,6 @@ const BookingSchedule = () => {
   useEffect(() => {
     if (!venue || !selectedDate) return;
     let mounted = true;
-    const POLL_MS = 180000; // poll every 10s
 
     const fetchAndDispatch = async () => {
         try {
@@ -294,9 +293,9 @@ const BookingSchedule = () => {
         }
     };
 
+    // Call once on mount/when venue or date changes. Polling removed to avoid repeated API calls.
     fetchAndDispatch();
-    const interval = setInterval(fetchAndDispatch, POLL_MS);
-    return () => { mounted = false; clearInterval(interval); };
+    return () => { mounted = false; };
   }, [venue, selectedDate, id, fields, dispatch]);
 
   // Labels = slots + closing time (N+1 labels cho N cột)
@@ -384,10 +383,8 @@ const BookingSchedule = () => {
   }, [selectedSlots, bookedForDate, selectedDate]);
 
   const toggleSlot = (fieldIdx, slotIdx) => {
-    if (!isAuthenticated) {
-      setShowLoginPopup(true);
-      return;
-    }
+    // Allow selecting slots even when the user is not authenticated.
+    // Authentication will be required when pressing the "TIẾP THEO" button.
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);

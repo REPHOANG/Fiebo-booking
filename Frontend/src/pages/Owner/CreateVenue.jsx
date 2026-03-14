@@ -72,11 +72,9 @@ const schema = yup.object({
 // ── Dữ liệu mẫu (thay bằng API khi có) ──
 const SPORT_TYPES = [
   { id: 1, name: "Bóng Đá" },
-  { id: 2, name: "Tennis" },
-  { id: 3, name: "Cầu Lông" },
-  { id: 4, name: "Bóng Rổ" },
-  { id: 5, name: "Bóng Chuyền" },
-  { id: 6, name: "Pickleball" },
+  { id: 2, name: "Bóng Rổ" },
+  { id: 3, name: "Tennis" },
+  { id: 4, name: "Pickleball" },
 ];
 
 const PROVINCES = [

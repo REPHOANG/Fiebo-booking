@@ -57,7 +57,7 @@ api.interceptors.response.use(
     ) {
       localStorage.removeItem("authState");
       // queryClient.removeQueries({ queryKey: ["profile"] });
-      window.location.href = "/";
+      // window.location.href = "/";
     }
 
     return Promise.reject(error);

@@ -292,6 +292,18 @@ const Venues = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
+  const sportParam = searchParams.get("sport");
+  let initialSportFromUrl = null;
+  if (sportParam) {
+    const n = Number(sportParam);
+    if (!Number.isNaN(n)) {
+      initialSportFromUrl = n;
+    } else {
+      // try match by label (case-insensitive, fuzzy)
+      const sp = SPORTS.find((s) => s.label && s.label.toLowerCase().includes(String(sportParam).toLowerCase()));
+      if (sp) initialSportFromUrl = sp.id;
+    }
+  }
 
   const [venues, setVenues] = useState([]);
   const [page, setPage] = useState(1);
@@ -299,7 +311,7 @@ const Venues = () => {
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [inputValue, setInputValue] = useState(initialSearch);
-  const [activeSport, setActiveSport] = useState(null); // null = all
+  const [activeSport, setActiveSport] = useState(initialSportFromUrl); // null = all
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
   const [totalItems, setTotalItems] = useState(0);
