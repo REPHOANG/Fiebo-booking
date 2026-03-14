@@ -68,6 +68,8 @@ namespace Fiebo.Persistence.Repositories
                 .ToListAsync();
 
             return await _context.Venues
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Where(v => venueIds.Contains(v.Id))
                 .Include(v => v.Fields)
                     .ThenInclude(f => f.Images)
@@ -79,6 +81,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Venues
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(v => v.Status == VenueStatus.Active)
                 .OrderByDescending(v =>
                     v.Fields
@@ -96,6 +99,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Venues
                         .AsNoTracking()
+                        .AsSplitQuery()
                         .Where(v => v.Id == venueId && v.Status == VenueStatus.Active)
                         .Include(v => v.Province)
                         .Include(v => v.Ward)

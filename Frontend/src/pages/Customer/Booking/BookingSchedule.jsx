@@ -226,7 +226,7 @@ const BookingSchedule = () => {
   useEffect(() => {
     if (!venue || !selectedDate) return;
     let mounted = true;
-    const POLL_MS = 10000; // poll every 10s
+    const POLL_MS = 180000; // poll every 10s
 
     const fetchAndDispatch = async () => {
         try {

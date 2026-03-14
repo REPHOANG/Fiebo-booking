@@ -1,14 +1,13 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Calendar, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
 import { createBooking } from "../../../services/bookingService";
 import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
-import { setCredentials } from "../../../store/authSlice";
 import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
 import "./BookingConfirmation.css";
 import { toast } from 'react-toastify';
@@ -99,7 +98,6 @@ const BookingConfirmation = () => {
     }
   }, [isAuthenticated, user]);
 
-  const isGuestReady = isAuthenticated && user;
   const displayName = user?.fullName || user?.name || guestName;
   const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
 

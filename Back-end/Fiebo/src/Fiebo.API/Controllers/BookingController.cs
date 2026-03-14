@@ -143,5 +143,37 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpGet("{id}/cancel-preview")]
+        public async Task<IActionResult> GetCancelPreview([FromRoute] int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _bookingService.GetCancelPreviewAsync(id, userId ?? "-1");
+            return Ok(new ApiResponse<string>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xem trước hủy đặt sân thành công.",
+                Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelBooking([FromRoute] int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _bookingService.GetCancelPreviewAsync(id, userId ?? "-1");
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+            await _bookingService.CancelBookingAsync(id, userId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Hủy đặt sân thành công."
+            });
+        }
     }
 }

@@ -353,5 +353,107 @@ namespace Fiebo.Application.Services
                 Items = items
             };
         }
+
+        public async Task<string> GetCancelPreviewAsync(int bookingId, string userId)
+        {
+            var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
+            if(booking == null)
+            {
+                throw new NotFoundException("Booking not found.");
+            }
+            if(booking.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
+            }
+            if(booking.Status != BookingStatus.Booked)
+            {
+                throw new BadRequestException("Only booked booking can be cancelled.");
+            }
+            var earliestDetail = await _unitOfWork.BookingDetails.GetEarliestDetailAsync(bookingId);
+            if (earliestDetail == null || earliestDetail.TimeSlot == null)
+            {
+                throw new NotFoundException("Booking details not found.");
+            }
+            var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
+            var hoursBeforeStart = Math.Floor((startDateTime - DateTime.Now).TotalHours);
+            int refundPercent;
+            if (hoursBeforeStart <= 0)
+            {
+                throw new BadRequestException("Booking has already started.");
+            }
+            if (hoursBeforeStart >= 24)
+            {
+                refundPercent = 100;
+            }
+            else if (hoursBeforeStart >= 12)
+            {
+                refundPercent = 70;
+            }
+            else if (hoursBeforeStart >= 6)
+            {
+                refundPercent = 50;
+            }
+            else
+            {
+                refundPercent = 0;
+            }
+            return $"Bạn đang huỷ đặt sân trước {hoursBeforeStart} giờ so với thời gian bắt đầu. Theo chính sách huỷ, bạn sẽ được hoàn lại {refundPercent}% tổng số tiền đã thanh toán.";
+        }
+
+        public async Task<bool> CancelBookingAsync(int bookingId, string userId)
+        {
+            var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
+            if (booking == null)
+            {
+                throw new NotFoundException("Booking not found.");
+            }
+            if (booking.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
+            }
+            if (booking.Status != BookingStatus.Booked)
+            {
+                throw new BadRequestException("Only booked booking can be cancelled.");
+            }
+            var earliestDetail = await _unitOfWork.BookingDetails.GetEarliestDetailAsync(bookingId);
+            if (earliestDetail == null || earliestDetail.TimeSlot == null)
+            {
+                throw new NotFoundException("Booking details not found.");
+            }
+            var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
+            var hoursBeforeStart = Math.Floor((startDateTime - DateTime.Now).TotalHours);
+            int refundPercent;
+            if (hoursBeforeStart <= 0)
+            {
+                throw new BadRequestException("Booking has already started.");
+            }
+            if (hoursBeforeStart >= 24)
+            {
+                refundPercent = 100;
+            }
+            else if (hoursBeforeStart >= 12)
+            {
+                refundPercent = 70;
+            }
+            else if (hoursBeforeStart >= 6)
+            {
+                refundPercent = 50;
+            }
+            else
+            {
+                refundPercent = 0;
+            }
+            booking.Status = BookingStatus.Cancelled;
+            var wallet = await _unitOfWork.Wallets.GetByUserId(booking.UserId);
+            if(wallet == null)
+            {
+                throw new NotFoundException("Wallet not found for booking user.");
+            }
+            wallet.Balance += booking.TotalPrice * refundPercent / 100;
+            _unitOfWork.Bookings.Update(booking);
+            _unitOfWork.Wallets.Update(wallet);
+            await _unitOfWork.SaveChangesAsync();
+            return true;
+        }
     }
 }

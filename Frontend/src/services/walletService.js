@@ -9,7 +9,7 @@ function getAuthToken() {
     const state = store.getState();
     if (state?.auth?.token) return state.auth.token;
   } catch (_) {}
-  const raw = localStorage.getItem('token');
+  const raw = localStorage.getItem('accessToken');
   if (raw) return raw;
   try {
     const a = JSON.parse(localStorage.getItem('authState') || '{}');
