@@ -21,6 +21,10 @@ namespace Fiebo.API.Controllers
             _walletService = walletService;
         }
 
+        /// <summary>
+        /// Get the current balance of the user's wallet.
+        /// </summary>
+        /// <returns></returns>
         [Authorize]
         [HttpGet("balance")]
         public async Task<ActionResult<decimal>> GetBalance()
@@ -37,6 +41,11 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Get the qr code and bank account information to top up user wallet.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [Authorize]
         [HttpPost("top-up")]
         public async Task<IActionResult> TopUpUserWallet(Application.DTOs.Wallet.TopUpRequest request)
@@ -51,6 +60,12 @@ namespace Fiebo.API.Controllers
 
         }
 
+        /// <summary>
+        /// Strea for notification when user top up the wallet successfully.
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="sse"></param>
+        /// <returns></returns>
         [HttpGet("stream")]
         public async Task Stream([FromQuery]string userId, [FromServices] SseService sse)
         {

@@ -13,17 +13,31 @@ import {
   AlertCircle,
   X,
 } from "lucide-react";
-import { getBookingById, getBookingHistory } from "../../services/bookingService";
+import {
+  cancelBookingApi,
+  getBookingById,
+  getBookingHistory,
+  getCancelBookingPreview,
+} from "../../services/bookingService";
 import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
+import Swal from "sweetalert2";
+import { useMutation } from "@tanstack/react-query";
 
 const formatPrice = (price) =>
-  price != null && price !== "" ? `${Number(price).toLocaleString("vi-VN")} đ` : "—";
+  price != null && price !== ""
+    ? `${Number(price).toLocaleString("vi-VN")} đ`
+    : "—";
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
-  return d.toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const formatTime = (t) => {
@@ -64,7 +78,9 @@ function groupHistoryByBooking(items) {
     if (!row || byId.has(row.bookingId)) continue;
     byId.set(row.bookingId, row);
   }
-  return [...byId.values()].sort((a, b) => new Date(b.bookingDate || 0) - new Date(a.bookingDate || 0));
+  return [...byId.values()].sort(
+    (a, b) => new Date(b.bookingDate || 0) - new Date(a.bookingDate || 0),
+  );
 }
 
 function getTabForStatus(status) {
@@ -131,7 +147,9 @@ const BookingList = () => {
       .finally(() => {
         if (!cancelled) setLoadingDetailPopup(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [detailPopupId, isAuthenticated]);
 
   const closeDetailPopup = () => {
@@ -147,7 +165,10 @@ const BookingList = () => {
     const load = async () => {
       setLoadingList(true);
       try {
-        const res = await getBookingHistory({ pageNumber: 1, pageSize: PAGE_SIZE });
+        const res = await getBookingHistory({
+          pageNumber: 1,
+          pageSize: PAGE_SIZE,
+        });
         const items = res.items || [];
         const grouped = groupHistoryByBooking(items);
         if (!cancelled) {
@@ -165,7 +186,8 @@ const BookingList = () => {
           setListError(
             is401
               ? "Phiên đăng nhập hết hạn hoặc chưa đăng nhập. Vui lòng đăng nhập lại."
-              : (e?.message || "Không tải được danh sách đặt chỗ. Kiểm tra mạng và thử lại.")
+              : e?.message ||
+                  "Không tải được danh sách đặt chỗ. Kiểm tra mạng và thử lại.",
           );
         }
       } finally {
@@ -173,7 +195,9 @@ const BookingList = () => {
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   const handleLoadMore = async () => {
@@ -181,7 +205,10 @@ const BookingList = () => {
     const nextPage = page + 1;
     setLoadingMore(true);
     try {
-      const res = await getBookingHistory({ pageNumber: nextPage, pageSize: PAGE_SIZE });
+      const res = await getBookingHistory({
+        pageNumber: nextPage,
+        pageSize: PAGE_SIZE,
+      });
       const items = res.items || [];
       const merged = [...historyItems, ...items];
       setHistoryItems(merged);
@@ -215,7 +242,10 @@ const BookingList = () => {
       setBooking(data?.data ?? data);
     } catch (err) {
       setBooking(null);
-      if (err?.status === 404 || err?.data?.message?.toLowerCase?.().includes("not found")) {
+      if (
+        err?.status === 404 ||
+        err?.data?.message?.toLowerCase?.().includes("not found")
+      ) {
         setError("Không tìm thấy đặt chỗ với mã này.");
       } else if (err?.status === 401) {
         setError("Bạn cần đăng nhập để xem đặt chỗ.");
@@ -239,7 +269,9 @@ const BookingList = () => {
 
   const handleContinuePayment = () => {
     // TODO: có thể điều hướng sang màn thanh toán sau khi có full flow từ lịch sử
-    alert("Chức năng tiếp tục thanh toán từ lịch sử sẽ được bổ sung sau. Hiện hãy thanh toán từ luồng đặt sân.");
+    alert(
+      "Chức năng tiếp tục thanh toán từ lịch sử sẽ được bổ sung sau. Hiện hãy thanh toán từ luồng đặt sân.",
+    );
   };
 
   const handleCancelBooking = () => {
@@ -253,11 +285,42 @@ const BookingList = () => {
   };
 
   const handleContinuePaymentFromList = (venueId, bookingId) => {
-    navigate(`/venue/${venueId}/booking/payment?bookingId=${bookingId}`, { state: { bookingId } });
+    navigate(`/venue/${venueId}/booking/payment?bookingId=${bookingId}`, {
+      state: { bookingId },
+    });
   };
 
-  const handleCancelFromList = () => {
-    alert("Chức năng hủy đặt chỗ sẽ được bổ sung sau.");
+  const handleCancelFromList = async (bookingId) => {
+    try {
+      const message =
+        (await getCancelBookingPreview(bookingId)) ||
+        "Bạn có chắc muốn hủy đặt chỗ này?";
+
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Xác nhận huỷ đặt sân",
+        text: message,
+        showCancelButton: true,
+        confirmButtonText: "Huỷ đặt sân",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#d33",
+      });
+
+      if (result.isConfirmed) {
+        await cancelBookingApi(bookingId);
+        await Swal.fire({
+          icon: "success",
+          title: "Huỷ đặt sân thành công",
+          text: "Đặt sân của bạn đã được huỷ thành công.",
+        });
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Không thể lấy thông tin huỷ",
+        text: "Vui lòng thử lại sau.",
+      });
+    }
   };
 
   const handleOpenRatingFromList = (bookingId) => {
@@ -272,7 +335,9 @@ const BookingList = () => {
           <AlertCircle size={48} />
           <h2>Vui lòng đăng nhập</h2>
           <p>Bạn cần đăng nhập để xem sân đã đặt.</p>
-          <Link to="/login" className="bl-btn primary">Đăng nhập</Link>
+          <Link to="/login" className="bl-btn primary">
+            Đăng nhập
+          </Link>
         </div>
       </div>
     );
@@ -286,11 +351,18 @@ const BookingList = () => {
       transition={{ duration: 0.3 }}
     >
       <div className="bl-header">
-        <button type="button" className="bl-back" onClick={() => navigate(-1)} aria-label="Quay lại">
+        <button
+          type="button"
+          className="bl-back"
+          onClick={() => navigate(-1)}
+          aria-label="Quay lại"
+        >
           <ArrowLeft size={20} />
         </button>
         <h1 className="bl-title">Sân đã đặt</h1>
-        <p className="bl-subtitle">Danh sách đặt chỗ theo trạng thái, sắp xếp mới nhất trước.</p>
+        <p className="bl-subtitle">
+          Danh sách đặt chỗ theo trạng thái, sắp xếp mới nhất trước.
+        </p>
       </div>
 
       <form className="bl-search" onSubmit={handleSearch}>
@@ -301,7 +373,9 @@ const BookingList = () => {
             inputMode="numeric"
             placeholder="Nhập mã đặt chỗ (VD: 31)"
             value={bookingIdInput}
-            onChange={(e) => setBookingIdInput(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) =>
+              setBookingIdInput(e.target.value.replace(/\D/g, ""))
+            }
             className="bl-search-input"
           />
           <button type="submit" className="bl-search-btn" disabled={loading}>
@@ -342,7 +416,11 @@ const BookingList = () => {
           <AlertCircle size={18} />
           <span>{listError}</span>
           {listError.includes("đăng nhập") && (
-            <Link to="/login" className="bl-btn primary" style={{ marginLeft: 8 }}>
+            <Link
+              to="/login"
+              className="bl-btn primary"
+              style={{ marginLeft: 8 }}
+            >
               Đăng nhập lại
             </Link>
           )}
@@ -372,7 +450,9 @@ const BookingList = () => {
                     {activeTab === "cancelled" && "Chưa có đơn đã hủy."}
                   </p>
                   {activeTab === "all" && list.length === 0 && (
-                    <Link to="/venues" className="bl-btn primary">Khám phá sân</Link>
+                    <Link to="/venues" className="bl-btn primary">
+                      Khám phá sân
+                    </Link>
                   )}
                 </div>
               );
@@ -383,7 +463,11 @@ const BookingList = () => {
                   <div className="bl-badge-row">
                     <span
                       className="bl-list-badge"
-                      data-status={activeTab === "upcoming" ? "upcoming" : (b.status || "").toLowerCase()}
+                      data-status={
+                        activeTab === "upcoming"
+                          ? "upcoming"
+                          : (b.status || "").toLowerCase()
+                      }
                     >
                       {translateStatus(b.status)}
                     </span>
@@ -393,7 +477,9 @@ const BookingList = () => {
                   {(b.address || b.ward || b.province) && (
                     <p className="bl-list-address">
                       <MapPin size={14} />
-                      {[b.address, b.ward, b.province].filter(Boolean).join(", ")}
+                      {[b.address, b.ward, b.province]
+                        .filter(Boolean)
+                        .join(", ")}
                     </p>
                   )}
                   <p className="bl-list-meta">
@@ -405,7 +491,9 @@ const BookingList = () => {
                     <button
                       type="button"
                       className="bl-btn primary bl-btn-sm"
-                      onClick={() => handleContinuePaymentFromList(b.venueId, b.bookingId)}
+                      onClick={() =>
+                        handleContinuePaymentFromList(b.venueId, b.bookingId)
+                      }
                     >
                       Tiếp tục thanh toán
                     </button>
@@ -414,7 +502,7 @@ const BookingList = () => {
                     <button
                       type="button"
                       className="bl-btn danger bl-btn-sm"
-                      onClick={handleCancelFromList}
+                      onClick={() => handleCancelFromList(b.bookingId)}
                     >
                       Hủy
                     </button>
@@ -456,9 +544,19 @@ const BookingList = () => {
 
       {/* Popup chi tiết đặt chỗ */}
       {detailPopupId != null && (
-        <div className="bl-popup-overlay" onClick={closeDetailPopup} role="dialog" aria-modal="true">
+        <div
+          className="bl-popup-overlay"
+          onClick={closeDetailPopup}
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="bl-popup" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="bl-popup-close" onClick={closeDetailPopup} aria-label="Đóng">
+            <button
+              type="button"
+              className="bl-popup-close"
+              onClick={closeDetailPopup}
+              aria-label="Đóng"
+            >
               <X size={24} />
             </button>
             {loadingDetailPopup ? (
@@ -470,36 +568,61 @@ const BookingList = () => {
               <div className="bl-popup-error">
                 <AlertCircle size={32} />
                 <p>Không tải được thông tin đặt chỗ.</p>
-                <button type="button" className="bl-btn primary" onClick={closeDetailPopup}>Đóng</button>
+                <button
+                  type="button"
+                  className="bl-btn primary"
+                  onClick={closeDetailPopup}
+                >
+                  Đóng
+                </button>
               </div>
             ) : (
               <div className="bl-detail-card bl-popup-card">
                 <div className="bl-detail-header">
                   <div className="bl-badge-row">
-                    <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
+                    <span
+                      className="bl-badge"
+                      data-status={(popupBooking.status || "").toLowerCase()}
+                    >
                       {translateStatus(popupBooking.status)}
                     </span>
                   </div>
-                  <div className="bl-popup-code">Mã #{popupBooking.bookingId ?? popupBooking.id}</div>
+                  <div className="bl-popup-code">
+                    Mã #{popupBooking.bookingId ?? popupBooking.id}
+                  </div>
                 </div>
                 <h2 className="bl-venue-name">
                   <MapPin size={18} />
                   {popupBooking.venueName || "—"}
                 </h2>
                 <div className="bl-meta">
-                  <span><Calendar size={16} /> {formatDate(popupBooking.date)}</span>
-                  <span><Receipt size={16} /> {formatPrice(popupBooking.totalPrice)}</span>
+                  <span>
+                    <Calendar size={16} /> {formatDate(popupBooking.date)}
+                  </span>
+                  <span>
+                    <Receipt size={16} /> {formatPrice(popupBooking.totalPrice)}
+                  </span>
                 </div>
                 <div className="bl-contact">
-                  <p><strong>Người đặt:</strong> {popupBooking.fullName ?? popupBooking.fullname ?? "—"}</p>
-                  <p><strong>SĐT:</strong> {popupBooking.phone ?? popupBooking.phoneNumber ?? "—"}</p>
+                  <p>
+                    <strong>Người đặt:</strong>{" "}
+                    {popupBooking.fullName ?? popupBooking.fullname ?? "—"}
+                  </p>
+                  <p>
+                    <strong>SĐT:</strong>{" "}
+                    {popupBooking.phone ?? popupBooking.phoneNumber ?? "—"}
+                  </p>
                   {popupBooking.bookingNote && (
-                    <p><strong>Ghi chú:</strong> {popupBooking.bookingNote}</p>
+                    <p>
+                      <strong>Ghi chú:</strong> {popupBooking.bookingNote}
+                    </p>
                   )}
                 </div>
                 {popupBooking.expiredAt && (
                   <p className="bl-expiry">
-                    <Clock size={14} /> Hết hạn thanh toán: {formatDate(popupBooking.expiredAt)} {formatTime(popupBooking.expiredAt)}
+                    <Clock size={14} /> Hết hạn thanh toán:{" "}
+                    {formatDate(popupBooking.expiredAt)}{" "}
+                    {formatTime(popupBooking.expiredAt)}
                   </p>
                 )}
                 {popupBooking.details && popupBooking.details.length > 0 && (
@@ -508,29 +631,58 @@ const BookingList = () => {
                     <ul>
                       {popupBooking.details.map((slot, i) => (
                         <li key={i}>
-                          {slot.fieldName ?? "Sân"} — {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                          {slot.fieldName ?? "Sân"} —{" "}
+                          {formatTime(slot.startTime)} –{" "}
+                          {formatTime(slot.endTime)}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 <div className="bl-actions">
-                  {((popupBooking.status || "").toLowerCase() === "pending") && (
-                    <button type="button" className="bl-btn primary" onClick={() => handleContinuePaymentFromList(popupBooking.venueId, popupBooking.bookingId ?? popupBooking.id)}>
+                  {(popupBooking.status || "").toLowerCase() === "pending" && (
+                    <button
+                      type="button"
+                      className="bl-btn primary"
+                      onClick={() =>
+                        handleContinuePaymentFromList(
+                          popupBooking.venueId,
+                          popupBooking.bookingId ?? popupBooking.id,
+                        )
+                      }
+                    >
                       Tiếp tục thanh toán
                     </button>
                   )}
-                  {((popupBooking.status || "").toLowerCase() === "booked") && (
-                    <button type="button" className="bl-btn danger" onClick={handleCancelFromList}>
+                  {(popupBooking.status || "").toLowerCase() === "booked" && (
+                    <button
+                      type="button"
+                      className="bl-btn danger"
+                      onClick={() => handleCancelFromList(popupBooking.bookingId)}
+                    >
                       Hủy đặt sân
                     </button>
                   )}
-                  {((popupBooking.status || "").toLowerCase() === "completed") && (
-                    <button type="button" className="bl-btn primary" onClick={() => { handleOpenRatingFromList(popupBooking.bookingId ?? popupBooking.id); closeDetailPopup(); }}>
+                  {(popupBooking.status || "").toLowerCase() ===
+                    "completed" && (
+                    <button
+                      type="button"
+                      className="bl-btn primary"
+                      onClick={() => {
+                        handleOpenRatingFromList(
+                          popupBooking.bookingId ?? popupBooking.id,
+                        );
+                        closeDetailPopup();
+                      }}
+                    >
                       Đánh giá
                     </button>
                   )}
-                  <Link to={`/venue/${popupBooking.venueId}`} className="bl-btn secondary" onClick={closeDetailPopup}>
+                  <Link
+                    to={`/venue/${popupBooking.venueId}`}
+                    className="bl-btn secondary"
+                    onClick={closeDetailPopup}
+                  >
                     Xem sân
                   </Link>
                 </div>
@@ -540,11 +692,16 @@ const BookingList = () => {
         </div>
       )}
 
-      {!loading && !booking && !error && id && !loadingList && list.length === 0 && (
-        <div className="bl-empty-state">
-          <p>Không tìm thấy đặt chỗ với mã này.</p>
-        </div>
-      )}
+      {!loading &&
+        !booking &&
+        !error &&
+        id &&
+        !loadingList &&
+        list.length === 0 && (
+          <div className="bl-empty-state">
+            <p>Không tìm thấy đặt chỗ với mã này.</p>
+          </div>
+        )}
 
       {showRating && (
         <GiveRating
