@@ -1,47 +1,35 @@
 ﻿using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
-using Microsoft.Extensions.Logging;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Moq.AutoMock;
+using Xunit;
 
 namespace Fiebo.Application.Tests.Auth
 {
     public class SendForgotPasswordTests
     {
-        private readonly Mock<IIdentityService> _identityService = new();
-        private readonly Mock<IOtpService> _otpService = new();
-        private readonly Mock<IEmailService> _emailService = new();
-        private readonly Mock<ISmsService> _smsService = new();
-        private readonly Mock<ICacheService> _cacheService = new();
-        private readonly Mock<ILogger<AuthService>> _logger = new();
+        private readonly AutoMocker _mocker;
+        private readonly AuthService _authService;
 
-        private AuthService CreateService()
+        public SendForgotPasswordTests()
         {
-            return new AuthService(
-                _identityService.Object,
-                _otpService.Object,
-                _emailService.Object,
-                _smsService.Object,
-                _cacheService.Object,
-                _logger.Object);
+            _mocker = new AutoMocker();
+            _authService = _mocker.CreateInstance<AuthService>();
         }
 
         [Fact]
         public async Task Should_ReturnFail_WhenAccountNotFound()
         {
-            var service = CreateService();
-
-            _identityService
+            // Arrange
+            _mocker.GetMock<IIdentityService>()
                 .Setup(x => x.GetUserProfileByEmailOrPhoneAsync("test@gmail.com"))
                 .ReturnsAsync((UserProfileResponse?)null);
 
-            var result = await service.SendForgotPasswordAsync("test@gmail.com");
+            // Act
+            var result = await _authService.SendForgotPasswordAsync("test@gmail.com");
 
+            // Assert
             Assert.False(result.IsSuccess);
             Assert.Equal("Email hoặc SĐT không tồn tại!", result.Message);
         }
@@ -49,51 +37,53 @@ namespace Fiebo.Application.Tests.Auth
         [Fact]
         public async Task Should_SendEmail_WhenAccountIsEmail()
         {
-            var service = CreateService();
-
-            _identityService
+            // Arrange
+            _mocker.GetMock<IIdentityService>()
                 .Setup(x => x.GetUserProfileByEmailOrPhoneAsync("test@gmail.com"))
                 .ReturnsAsync(new UserProfileResponse());
 
-            _otpService
+            _mocker.GetMock<IOtpService>()
                 .Setup(x => x.GenerateAndStoreResetOtpAsync("test@gmail.com"))
-                .ReturnsAsync((OtpCode: "123456", ExpireMinutes: 5));
+                .ReturnsAsync(("123456", 5));
 
-            var result = await service.SendForgotPasswordAsync("test@gmail.com");
+            // Act
+            var result = await _authService.SendForgotPasswordAsync("test@gmail.com");
 
+            // Assert
             Assert.True(result.IsSuccess);
 
-            _emailService.Verify(
-                x => x.SendEmailAsync(
+            _mocker.GetMock<IEmailService>()
+                .Verify(x => x.SendEmailAsync(
                     "test@gmail.com",
                     It.IsAny<string>(),
                     It.IsAny<string>()),
-                Times.Once);
+                    Times.Once);
         }
 
         [Fact]
         public async Task Should_SendSms_WhenAccountIsPhone()
         {
-            var service = CreateService();
-
-            _identityService
+            // Arrange
+            _mocker.GetMock<IIdentityService>()
                 .Setup(x => x.GetUserProfileByEmailOrPhoneAsync("0901234567"))
                 .ReturnsAsync(new UserProfileResponse());
 
-            _otpService
+            _mocker.GetMock<IOtpService>()
                 .Setup(x => x.GenerateAndStoreResetOtpAsync("0901234567"))
-                .ReturnsAsync((OtpCode: "123456", ExpireMinutes: 5));
+                .ReturnsAsync(("123456", 5));
 
-            _smsService
+            _mocker.GetMock<ISmsService>()
                 .Setup(x => x.SendSmsAsync("0901234567", It.IsAny<string>()))
                 .ReturnsAsync(new ServiceResponse { IsSuccess = true });
 
-            var result = await service.SendForgotPasswordAsync("0901234567");
+            // Act
+            var result = await _authService.SendForgotPasswordAsync("0901234567");
 
+            // Assert
             Assert.True(result.IsSuccess);
 
-            _smsService.Verify(
-                x => x.SendSmsAsync("0901234567", It.IsAny<string>()),
+            _mocker.GetMock<ISmsService>()
+                .Verify(x => x.SendSmsAsync("0901234567", It.IsAny<string>()),
                 Times.Once);
         }
     }

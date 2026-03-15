@@ -12,7 +12,7 @@ import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
 import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
 import AppRoutes from "./routers/router";
-import { setCredentials } from "./store/authSlice";
+import { setCredentials, setProfileLoading } from "./store/authSlice";
 
 const SPLASH_MIN_MS = 800;
 
@@ -71,44 +71,45 @@ const App = () => {
 
   // Splash = loading cho đến khi restore auth + API khởi tạo xong
   useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
 
-  const init = async () => {
-    console.log("🚀 App initializing...");
+    const init = async () => {
+      console.log("🚀 App initializing...");
+      dispatch(setProfileLoading(true));
 
-    const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
+      const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
 
-    const apiReady = getProfile()
-      .then((profile) => {
-        if (!cancelled && profile) {
-          dispatch(
-            setCredentials({
-              user: profile,
-            })
-          );
+      const apiReady = getProfile()
+        .then((profile) => {
+          if (!cancelled && profile) {
+            dispatch(
+              setCredentials({
+                user: profile,
+              }),
+            );
+          }
+        })
+        .catch(() => {
+          console.log("No valid auth token found, starting as guest.");
+        });
+
+      await Promise.all([minDelay, apiReady]);
+
+      if (!cancelled) {
+        dispatch(setProfileLoading(false));
+        setIsInitialLoading(false);
+        if (!localStorage.getItem("locationPromptAsked")) {
+          setShowLocationPrompt(true);
         }
-      })
-      .catch(() => {
-        console.log("No valid auth token found, starting as guest.");
-      });
-
-    await Promise.all([minDelay, apiReady]);
-
-    if (!cancelled) {
-      setIsInitialLoading(false);
-
-      if (!localStorage.getItem("locationPromptAsked")) {
-        setShowLocationPrompt(true);
       }
-    }
-  };
+    };
 
-  init();
+    init();
 
-  return () => {
-    cancelled = true;
-  };
-}, [dispatch]);
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
 
   const handleLocationConfirm = (coords) => {
     setShowLocationPrompt(false);

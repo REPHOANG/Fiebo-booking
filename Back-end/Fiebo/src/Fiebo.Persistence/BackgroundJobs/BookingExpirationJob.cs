@@ -16,7 +16,7 @@ namespace Fiebo.Persistence.BackgroundJobs
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<BookingExpirationJob> _logger;
 
-        private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
 
         public BookingExpirationJob(
             IServiceScopeFactory scopeFactory,
