@@ -56,6 +56,7 @@ const Login = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
 
   // OTP-specific state
@@ -175,6 +176,10 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
+      if (isOwner) {
+        navigate('/owner', { replace: true });
+        return;
+      }
       const userRole = (response.user?.role || '').toLowerCase();
       navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
 
@@ -235,6 +240,10 @@ const Login = ({ onLoginSuccess }) => {
 
       if (typeof onLoginSuccess === 'function') {
         onLoginSuccess();
+        return;
+      }
+      if (isOwner) {
+        navigate('/owner', { replace: true });
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
@@ -320,7 +329,7 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      navigate('/');
+      navigate(isOwner ? '/owner' : '/', { replace: true });
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập Google thất bại' });
     } finally {
@@ -441,14 +450,26 @@ const Login = ({ onLoginSuccess }) => {
             </div>
 
             <div className="remember-forgot">
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                />
-                <span>Nhớ tài khoản</span>
-              </label>
+              <div className="checkbox-group">
+                <label className="remember-me">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                  />
+                  <span>Nhớ tài khoản</span>
+                </label>
+
+                <label className="remember-me">
+                  <input
+                    type="checkbox"
+                    checked={isOwner}
+                    onChange={e => setIsOwner(e.target.checked)}
+                  />
+                  <span>Chủ sân</span>
+                </label>
+              </div>
+
               <Link to="/forgot-password" className="forgot-link">
                 Quên mật khẩu?
               </Link>
