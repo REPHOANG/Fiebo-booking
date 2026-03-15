@@ -218,10 +218,10 @@ const BookingList = () => {
           title: "Huỷ đặt sân thành công",
         });
       }
-    } catch {
+    } catch (e) {
       Swal.fire({
         icon: "error",
-        title: "Không thể huỷ đặt sân",
+        title: e.data?.message || e.message || "Không thể huỷ đặt sân",
         text: "Vui lòng thử lại sau.",
       });
     }
