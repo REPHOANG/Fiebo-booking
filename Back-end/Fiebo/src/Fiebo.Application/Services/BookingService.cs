@@ -375,7 +375,8 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Booking details not found.");
             }
             var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
-            var hoursBeforeStart = Math.Floor((startDateTime - DateTime.Now).TotalHours);
+            var diffTime = startDateTime - DateTime.Now;
+            var hoursBeforeStart = diffTime.TotalHours;
             int refundPercent;
             if (hoursBeforeStart <= 0)
             {
@@ -397,7 +398,28 @@ namespace Fiebo.Application.Services
             {
                 refundPercent = 0;
             }
-            return $"Bạn đang huỷ đặt sân trước {hoursBeforeStart} giờ so với thời gian bắt đầu. Theo chính sách huỷ, bạn sẽ được hoàn lại {refundPercent}% tổng số tiền đã thanh toán.";
+            var days = diffTime.Days;
+            var hours = diffTime.Hours;
+            var minutes = diffTime.Minutes;
+            string timeText;
+            if (days > 0)
+            {
+                timeText = minutes > 0
+                    ? $"{days} ngày {hours} giờ {minutes} phút"
+                    : $"{days} ngày {hours} giờ";
+            }
+            else if (hours > 0)
+            {
+                timeText = minutes > 0
+                    ? $"{hours} giờ {minutes} phút"
+                    : $"{hours} giờ";
+            }
+            else
+            {
+                timeText = $"{minutes} phút";
+            }
+
+            return $"Bạn đang huỷ đặt sân trước {timeText} so với thời gian bắt đầu. Theo chính sách huỷ, bạn sẽ được hoàn lại {refundPercent}% tổng số tiền đã thanh toán.";
         }
 
         public async Task<bool> CancelBookingAsync(int bookingId, string userId)
@@ -421,7 +443,7 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Booking details not found.");
             }
             var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
-            var hoursBeforeStart = Math.Floor((startDateTime - DateTime.Now).TotalHours);
+            var hoursBeforeStart = (startDateTime - DateTime.Now).TotalHours;
             int refundPercent;
             if (hoursBeforeStart <= 0)
             {
@@ -454,6 +476,93 @@ namespace Fiebo.Application.Services
             _unitOfWork.Wallets.Update(wallet);
             await _unitOfWork.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId)
+        {
+            // 1. Build lock keys for each slot
+            var lockKeys = request.Details
+                .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
+                .ToList();
+
+            // 2. Acquire locks for all slots
+            var acquiredLocks = new List<(string Key, string Value)>();
+
+            try
+            {
+                foreach (var lockKey in lockKeys)
+                {
+                    var lockValue = await _cacheService.AcquireLockAsync(lockKey, LockExpiry);
+
+                    if (lockValue is null)
+                    {
+                        _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
+                        throw new ResourceConflictException("Slot đang được người khác đặt, vui lòng thử lại sau giây lát.");
+                    }
+
+                    acquiredLocks.Add((lockKey, lockValue));
+                }
+
+                // 3. Check slot availability
+                foreach (var item in request.Details)
+                {
+                    var isAvailable = await _unitOfWork.BookingDetails
+                        .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
+
+                    if (!isAvailable)
+                    {
+                        throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+                }
+
+                var booking = new Booking
+                {
+                    UserId = userId,
+                    VenueId = request.VenueId,
+                    Fullname = request.Fullname,
+                    PhoneNumber = request.PhoneNumber,
+                    BookingNote = request.BookingNote,
+                    Status = BookingStatus.Booked
+                };
+
+                _unitOfWork.Bookings.Add(booking);
+
+                decimal totalPrice = 0;
+                var details = new List<BookingDetail>();
+
+                foreach (var item in request.Details)
+                {
+                    var slot = await _unitOfWork.TimeSlots
+                        .GetByIdAsync(item.SlotId);
+
+                    var price = slot!.Price;
+                    totalPrice += price;
+
+                    details.Add(new BookingDetail
+                    {
+                        Booking = booking,
+                        FieldId = item.FieldId,
+                        SlotId = item.SlotId,
+                        BookingDate = request.BookingDate,
+                        Price = price
+                    });
+                }
+
+                _unitOfWork.BookingDetails.AddRange(details);
+                booking.TotalPrice = totalPrice;
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return true;
+            }
+            finally
+            {
+                // 5. Always release all acquired locks
+                foreach (var (key, value) in acquiredLocks)
+                {
+                    await _cacheService.ReleaseLockAsync(key, value);
+                }
+            }
         }
     }
 }

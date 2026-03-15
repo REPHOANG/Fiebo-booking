@@ -55,9 +55,9 @@ api.interceptors.response.use(
       !originalRequest.url.includes("/auth/login") &&
       !originalRequest.url.includes("/auth/refresh-token")
     ) {
-      localStorage.removeItem("authState");
+      localStorage.removeItem("accessToken");
       // queryClient.removeQueries({ queryKey: ["profile"] });
-      window.location.href = "/";
+      // window.location.href = "/";
     }
 
     return Promise.reject(error);

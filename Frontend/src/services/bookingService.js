@@ -169,7 +169,7 @@ export const getCancelBookingPreview = async (id) => {
 
 export const cancelBookingApi = async (id) => {
   const response = api.post(`/api/booking/${id}/cancel`);
-  return response.data.data ?? response;
+  return response.data;
 }
 
 export default {
