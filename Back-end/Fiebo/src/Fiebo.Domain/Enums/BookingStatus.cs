@@ -11,7 +11,8 @@ namespace Fiebo.Domain.Enums
         Pending = 0,
         Booked = 1,
         Completed = 2,
-        Expired = 3,
-        Cancelled = 4,
+        OwnerCancelled = 3,
+        CustomerCancelled = 4,
+        Expired = 5
     }
 }

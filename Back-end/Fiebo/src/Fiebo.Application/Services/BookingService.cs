@@ -134,7 +134,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Booking has already been paid.");
             }
 
-            if (status == BookingStatus.Cancelled)
+            if (status == BookingStatus.CustomerCancelled || status == BookingStatus.OwnerCancelled)
             {
                 throw new BadRequestException("Cancelled booking cannot be paid.");
             }
@@ -238,6 +238,7 @@ namespace Fiebo.Application.Services
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
                     BookingNote = request.BookingNote,
+                    BookingType = BookingType.Online,
                     ExpiredAt = expiredAt,
                     Status = BookingStatus.Pending
                 };
@@ -357,15 +358,15 @@ namespace Fiebo.Application.Services
         public async Task<string> GetCancelPreviewAsync(int bookingId, string userId)
         {
             var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
-            if(booking == null)
+            if (booking == null)
             {
                 throw new NotFoundException("Booking not found.");
             }
-            if(booking.UserId != userId)
+            if (booking.UserId != userId)
             {
                 throw new UnauthorizedAccessException("You are not authorized to view this booking.");
             }
-            if(booking.Status != BookingStatus.Booked)
+            if (booking.Status != BookingStatus.Booked)
             {
                 throw new BadRequestException("Only booked booking can be cancelled.");
             }
@@ -465,9 +466,9 @@ namespace Fiebo.Application.Services
             {
                 refundPercent = 0;
             }
-            booking.Status = BookingStatus.Cancelled;
+            booking.Status = BookingStatus.CustomerCancelled;
             var wallet = await _unitOfWork.Wallets.GetByUserId(booking.UserId);
-            if(wallet == null)
+            if (wallet == null)
             {
                 throw new NotFoundException("Wallet not found for booking user.");
             }
@@ -522,6 +523,7 @@ namespace Fiebo.Application.Services
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
                     BookingNote = request.BookingNote,
+                    BookingType = BookingType.WalkIn,
                     Status = BookingStatus.Booked
                 };
 
