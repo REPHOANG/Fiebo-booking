@@ -788,11 +788,7 @@ const BookingSchedule = () => {
             </div>
           </div>
         )}
-        {selectedSlots.length > 0 && (
-          <span className="bs-bottom-price">
-            Tổng tiền: <strong>{slotSummary.totalPrice > 0 ? `${slotSummary.totalPrice.toLocaleString("vi-VN")} đ` : "--"}</strong>
-          </span>
-        )}
+        
         <button
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
@@ -816,6 +812,11 @@ const BookingSchedule = () => {
         >
           TIẾP THEO
         </button>
+        {selectedSlots.length > 0 && (
+          <span className="bs-bottom-price">
+            Tổng tiền: <strong>{slotSummary.totalPrice > 0 ? `${slotSummary.totalPrice.toLocaleString("vi-VN")} đ` : "--"}</strong>
+          </span>
+        )}
       </div>
 
       {/* Field image tooltip */}

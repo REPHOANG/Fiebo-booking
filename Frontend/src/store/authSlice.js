@@ -22,7 +22,35 @@ function decodeAuthStorage(raw) {
   }
 }
 
-// Load auth from localStorage (value đã encode, không hiển thị rõ JSON/token)
+/** Decode JWT payload (không verify chữ ký). */
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+/** Kiểm tra accessToken đã hết hạn chưa (exp trong JWT là seconds since epoch). */
+export function isTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload || payload.exp == null) return true;
+  const expMs = payload.exp * 1000;
+  const nowMs = Date.now();
+  return expMs < nowMs;
+}
+
+// Load auth from localStorage; nếu token hết hạn thì không restore và xóa storage.
 const getInitialState = () => {
   const base = {
     user: null,
@@ -44,6 +72,11 @@ const getInitialState = () => {
     if (!data) return base;
     const token = data?.token ?? data?.accessToken ?? null;
     if (!token) return base;
+    if (isTokenExpired(token)) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem('accessToken');
+      return base;
+    }
     return {
       ...base,
       user: data?.user ?? null,

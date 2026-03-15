@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
 import { createBooking } from "../../../services/bookingService";
 import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
+import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
@@ -91,13 +92,38 @@ const BookingConfirmation = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Prefill name and phone from authenticated user when available
+  // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
-    if (isAuthenticated && user) {
-      if (!guestName && (user?.fullName || user?.name)) setGuestName(user.fullName || user.name || "");
-      if (!guestPhone && (user?.phone || user?.phoneNumber)) setGuestPhone(user.phone || user.phoneNumber || "");
-    }
-  }, [isAuthenticated, user]);
+    if (!user) return;
+    setGuestName((prev) => prev || user?.fullName || user?.name || "");
+    setGuestPhone((prev) => prev || user?.phone || user?.phoneNumber || "");
+  }, [user]);
+
+  // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
+  // Profile lấy từ DB nên luôn có fullName, phoneNumber nếu user đã cập nhật.
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await getProfile();
+        if (cancelled || !profile) return;
+        const name = (profile.fullName || profile.name || "").toString().trim();
+        const phone = (profile.phoneNumber || profile.phone || "").toString().trim().replace(/\s/g, "");
+        if (name) {
+          setGuestName((prev) => prev || name);
+          setNameError("");
+        }
+        if (phone) {
+          setGuestPhone((prev) => prev || phone);
+          setPhoneError("");
+        }
+      } catch (_) {
+        // ignore (e.g. 401, network)
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   const displayName = user?.fullName || user?.name || guestName;
   const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
@@ -545,7 +571,7 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${nameError ? " error" : ""}`}
                   type="text"
                   placeholder="Nhập họ và tên"
-                  value={guestName}
+                  value={guestName || user?.fullName || user?.name || ""}
                   onChange={(e) => {
                     setGuestName(e.target.value);
                     if (e.target.value && e.target.value.trim().length > 0) setNameError("");
@@ -562,7 +588,7 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
                   placeholder="0912 345 678"
-                  value={guestPhone}
+                  value={guestPhone || user?.phone || user?.phoneNumber || ""}
                   onChange={(e) => {
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
                     if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");

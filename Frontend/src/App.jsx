@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import localforage from "localforage";
 import { BrowserRouter as Router } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,7 +12,8 @@ import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
 import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
 import AppRoutes from "./routers/router";
-import { setCredentials } from "./store/authSlice";
+import store from "./store";
+import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
 const SPLASH_MIN_MS = 800;
 
@@ -32,6 +33,30 @@ const queryClient = new QueryClient({
 });
 const App = () => {
   const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth?.token ?? null);
+
+  // Khi accessToken hết hạn thì tự đăng xuất và xóa storage
+  useEffect(() => {
+    if (!token) return;
+    if (isTokenExpired(token)) {
+      dispatch(logout());
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  }, [token, dispatch]);
+
+  // Kiểm tra token định kỳ (token có thể hết hạn khi user đang dùng app)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentToken = store.getState?.()?.auth?.token ?? null;
+      if (currentToken && isTokenExpired(currentToken)) {
+        dispatch(logout());
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {
