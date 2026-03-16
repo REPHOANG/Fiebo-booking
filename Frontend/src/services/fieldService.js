@@ -1,65 +1,5 @@
 // Field / Venue Service - API calls for field-related endpoints
-import store from '../store';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
-
-const getTokenFromRedux = () => store.getState()?.auth?.token ?? null;
-
-const fetchAPI = async (endpoint, options = {}) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-
-  try {
-    const token = getTokenFromRedux();
-
-    const fetchOpts = {
-      signal: controller.signal,
-      method: options.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-      ...(options.body ? { body: options.body } : {}),
-    };
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOpts);
-
-    clearTimeout(timeoutId);
-
-    const contentType = response.headers.get('content-type');
-    let data = null;
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      throw {
-        status: response.status,
-        message: data?.message || `HTTP Error: ${response.status}`,
-        data,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw { status: 408, message: `Request timeout (${API_TIMEOUT}ms)` };
-    }
-    if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
-      throw {
-        status: 0,
-        message: 'Cannot reach backend. Please check the server or network.',
-        details: error.message,
-      };
-    }
-    throw error;
-  }
-};
+import api from './api';
 
 /**
  * Get nearby fields/venues based on user location
@@ -78,15 +18,11 @@ export const getNearbyFields = async ({
   radiusKm,
   sportTypeId,
 } = {}) => {
-  const params = new URLSearchParams();
-  params.append('userLat', userLat);
-  params.append('userLng', userLng);
-  params.append('limit', limit);
-  if (radiusKm != null) params.append('radiusKm', radiusKm);
-  if (sportTypeId != null) params.append('sportTypeId', sportTypeId);
-
-  const response = await fetchAPI(`/api/Venue/nearby?${params.toString()}`);
-  return response.data; // ApiResponse<List<VenueInfoResponse>> → .data
+  const params = { userLat, userLng, limit };
+  if (radiusKm != null) params.radiusKm = radiusKm;
+  if (sportTypeId != null) params.sportTypeId = sportTypeId;
+  const response = await api.get('/api/Venue/nearby', { params });
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -102,13 +38,10 @@ export const getTopBookingFields = async ({
   userLng = 105.833529,
   limit = 5,
 } = {}) => {
-  const params = new URLSearchParams();
-  params.append('userLat', userLat);
-  params.append('userLng', userLng);
-  params.append('limit', limit);
-
-  const response = await fetchAPI(`/api/Venue/top-booking?${params.toString()}`);
-  return response.data;
+  const response = await api.get('/api/Venue/top-booking', {
+    params: { userLat, userLng, limit },
+  });
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -117,8 +50,8 @@ export const getTopBookingFields = async ({
  * @returns {Promise<Object>} VenueDetailResponse
  */
 export const getVenueDetail = async (venueId) => {
-  const response = await fetchAPI(`/api/Venue/${venueId}/details`);
-  return response.data;
+  const response = await api.get(`/api/Venue/${venueId}/details`);
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -129,11 +62,10 @@ export const getVenueDetail = async (venueId) => {
  * @returns {Promise<Object>} PagedResult<FieldsDetailDTO>
  */
 export const getVenueFields = async (venueId, page = 1, pageSize = 20) => {
-  const params = new URLSearchParams();
-  params.append('page', page);
-  params.append('pageSize', pageSize);
-  const response = await fetchAPI(`/api/Venue/${venueId}/fields?${params.toString()}`);
-  return response.data;
+  const response = await api.get(`/api/Venue/${venueId}/fields`, {
+    params: { page, pageSize },
+  });
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -141,8 +73,10 @@ export const getVenueFields = async (venueId, page = 1, pageSize = 20) => {
  */
 export const getVenueSchedule = async (venueId, date) => {
   const q = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
-  const response = await fetchAPI(`/api/Venue/${venueId}/schedule?date=${q}`);
-  return response.data;
+  const response = await api.get(`/api/Venue/${venueId}/schedule`, {
+    params: { date: q },
+  });
+  return response.data?.data ?? response.data;
 };
 
 // Backwards-compatible alias
@@ -158,12 +92,10 @@ export const getVenueScheduleForDate = getVenueSchedule;
  * @returns {Promise<Object>} PagedResult<ReviewDTO>
  */
 export const getVenueReviews = async (venueId, { page = 1, pageSize = 10, sort } = {}) => {
-  const params = new URLSearchParams();
-  params.append('page', page);
-  params.append('pageSize', pageSize);
-  if (sort) params.append('sort', sort);
-  const response = await fetchAPI(`/api/Venue/${venueId}/reviews?${params.toString()}`);
-  return response.data;
+  const params = { page, pageSize };
+  if (sort) params.sort = sort;
+  const response = await api.get(`/api/Venue/${venueId}/reviews`, { params });
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -191,18 +123,14 @@ export const searchVenues = async ({
   userLat,
   userLng,
 } = {}) => {
-
-  // tìm kiếm sân theo location + date + time + sportTypeId (có phân trang)
-  const params = new URLSearchParams();
-  if (location) params.append('location', location);
-  if (date) params.append('date', date);
-  if (time) params.append('time', time);
-  if (sportTypeId != null) params.append('sportTypeId', sportTypeId);
-  params.append('page', page);
-  params.append('pageSize', pageSize);
-  if (radiusKm != null) params.append('radiusKm', radiusKm);
-  if (userLat != null) params.append('userLat', userLat);
-  if (userLng != null) params.append('userLng', userLng);
-  const response = await fetchAPI(`/api/Venue/search?${params.toString()}`);
-  return response.data;
+  const params = { page, pageSize };
+  if (location) params.location = location;
+  if (date) params.date = date;
+  if (time) params.time = time;
+  if (sportTypeId != null) params.sportTypeId = sportTypeId;
+  if (radiusKm != null) params.radiusKm = radiusKm;
+  if (userLat != null) params.userLat = userLat;
+  if (userLng != null) params.userLng = userLng;
+  const response = await api.get('/api/Venue/search', { params });
+  return response.data?.data ?? response.data;
 };
