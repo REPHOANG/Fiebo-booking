@@ -27,6 +27,9 @@ namespace Fiebo.Persistence.Repositories
         public ITopUpRequestRepository TopUpRequests { get; }
         public IWalletTransactionRepository WalletTransactions { get; }
 
+        public ITicketEventRepository TicketEvents {  get;}
+
+        public ITicketParticipantRepository TicketParticipants {  get;}
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -38,7 +41,9 @@ namespace Fiebo.Persistence.Repositories
             ISportTypeRepository sportTypeRepository,
             ITimeSlotRepository timeSlotRepository,
             ITopUpRequestRepository topUpRequestRepository,
-            IWalletTransactionRepository walletTransactionRepository
+            IWalletTransactionRepository walletTransactionRepository,
+            ITicketEventRepository ticketEventRepository,
+            ITicketParticipantRepository ticketParticipantRepository
             //IReportRepository reportRepository
             )
         {
@@ -54,6 +59,8 @@ namespace Fiebo.Persistence.Repositories
             //Reports = reportRepository;
             TopUpRequests = topUpRequestRepository;
             WalletTransactions = walletTransactionRepository;
+            TicketEvents = ticketEventRepository;
+            TicketParticipants = ticketParticipantRepository;
         }
 
 

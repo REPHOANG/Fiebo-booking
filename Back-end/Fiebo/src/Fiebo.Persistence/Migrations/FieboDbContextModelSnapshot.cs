@@ -382,18 +382,26 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("EventId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Status")
+                    b.Property<string>("Fullname")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int>("TicketAmount")
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
+                    b.Property<int>("TicketQuantity")
                         .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.HasKey("ParticipantId");
 
