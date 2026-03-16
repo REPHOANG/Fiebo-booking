@@ -43,7 +43,6 @@ const Header = () => {
   const handleLogout = () => {
     dispatch(logout());
     localStorage.removeItem('token');
-    localStorage.removeItem('accessToken');
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem('token');
     setUserMenuOpen(false);

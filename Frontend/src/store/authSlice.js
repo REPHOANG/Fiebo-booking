@@ -1,26 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Key ít gợi ý, không dùng tên "authState" để không lộ trong localStorage
-const AUTH_STORAGE_KEY = '_fs';
+// Chỉ lưu accessToken trong localStorage; restore phiên bằng cách decode JWT lấy user.
+export const AUTH_STORAGE_KEY = 'accessToken';
 
-function encodeAuthStorage(payload) {
-  try {
-    const json = JSON.stringify(payload);
-    return btoa(encodeURIComponent(json));
-  } catch {
-    return '';
-  }
-}
-
-function decodeAuthStorage(raw) {
-  if (!raw || typeof raw !== 'string') return null;
-  try {
-    const json = decodeURIComponent(atob(raw));
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
+const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
+const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 
 /** Decode JWT payload (không verify chữ ký). */
 function decodeJwtPayload(token) {
@@ -41,6 +25,19 @@ function decodeJwtPayload(token) {
   }
 }
 
+/** Tạo object user từ payload JWT (để restore khi chỉ có accessToken). */
+function userFromJwtPayload(payload) {
+  if (!payload) return null;
+  return {
+    id: payload.sub ?? payload.userId ?? payload.id ?? 'unknown',
+    email: payload.email ?? '',
+    phone: payload.phone ?? payload.phoneNumber ?? '',
+    name: payload[CLAIM_NAME] ?? payload.name ?? payload.fullName ?? '',
+    role: payload[CLAIM_ROLE] ?? payload.role ?? 'customer',
+    status: payload.status ?? 'active',
+  };
+}
+
 /** Kiểm tra accessToken đã hết hạn chưa (exp trong JWT là seconds since epoch). */
 export function isTokenExpired(token) {
   const payload = decodeJwtPayload(token);
@@ -50,7 +47,7 @@ export function isTokenExpired(token) {
   return expMs < nowMs;
 }
 
-// Load auth from localStorage; nếu token hết hạn thì không restore và xóa storage.
+// Restore auth từ accessToken; nếu token hết hạn thì xóa storage.
 const getInitialState = () => {
   const base = {
     user: null,
@@ -67,20 +64,17 @@ const getInitialState = () => {
     error: null,
   };
   try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    const data = raw ? decodeAuthStorage(raw) : null;
-    if (!data) return base;
-    const token = data?.token ?? data?.accessToken ?? null;
-    if (!token) return base;
-    if (isTokenExpired(token)) {
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!token || isTokenExpired(token)) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem('_fs'); // cleanup key cũ
       return base;
     }
+    const payload = decodeJwtPayload(token);
     return {
       ...base,
-      user: data?.user ?? null,
       token,
+      user: userFromJwtPayload(payload),
       isAuthenticated: true,
     };
   } catch {
@@ -88,17 +82,18 @@ const getInitialState = () => {
   }
 };
 
-/** Đọc auth đã lưu từ storage (đã decode), dùng cho ProtectedRoute và các service lấy token. */
+/** Đọc auth từ storage (token + user từ JWT), dùng cho ProtectedRoute và service lấy token. */
 function getStoredAuth() {
   try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    return raw ? decodeAuthStorage(raw) : null;
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!token) return null;
+    return { token, user: userFromJwtPayload(decodeJwtPayload(token)) };
   } catch {
     return null;
   }
 }
 
-export { AUTH_STORAGE_KEY, encodeAuthStorage, getStoredAuth };
+export { getStoredAuth };
 
 const initialState = getInitialState();
 

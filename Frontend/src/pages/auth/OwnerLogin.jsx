@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials, AUTH_STORAGE_KEY, encodeAuthStorage } from '../../store/authSlice';
+import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
 import { login } from '../../services/authService';
 import { toast } from 'react-toastify';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
@@ -37,8 +37,7 @@ const OwnerLogin = () => {
       const response = await login(payload);
       const token = response.accessToken || response.token;
       dispatch(setCredentials({ user: response.user, token }));
-      localStorage.setItem('accessToken', token);
-      localStorage.setItem(AUTH_STORAGE_KEY, encodeAuthStorage({ user: response.user, token }));
+      localStorage.setItem(AUTH_STORAGE_KEY, token);
       toast.success('Đăng nhập cho chủ sân thành công');
       navigate('/owner');
     } catch (err) {

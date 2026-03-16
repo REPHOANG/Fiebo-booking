@@ -31,7 +31,6 @@ api.interceptors.response.use(
       !error.config?.url?.includes("/auth/refresh-token")
     ) {
       store.dispatch(logout());
-      localStorage.removeItem("accessToken");
       localStorage.removeItem(AUTH_STORAGE_KEY);
     }
     return Promise.reject(error);

@@ -40,7 +40,6 @@ const App = () => {
     if (!token) return;
     if (isTokenExpired(token)) {
       dispatch(logout());
-      localStorage.removeItem("accessToken");
       localStorage.removeItem(AUTH_STORAGE_KEY);
     }
   }, [token, dispatch]);
@@ -51,7 +50,6 @@ const App = () => {
       const currentToken = store.getState?.()?.auth?.token ?? null;
       if (currentToken && isTokenExpired(currentToken)) {
         dispatch(logout());
-        localStorage.removeItem("accessToken");
         localStorage.removeItem(AUTH_STORAGE_KEY);
       }
     }, 60 * 1000);
