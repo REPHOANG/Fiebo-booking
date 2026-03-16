@@ -13,9 +13,11 @@ namespace Fiebo.Domain.Entities
 
         public int EventId { get; set; }
 
-        public int UserId { get; set; }
+        public required string UserId { get; set; }
+        public required string Fullname { get; set; }
+        public required string PhoneNumber { get; set; }
 
-        public int TicketAmount { get; set; }
+        public int TicketQuantity{ get; set; }
 
         public DateTime JoinedAt { get; set; } = DateTime.Now;
 

@@ -27,6 +27,8 @@ namespace Fiebo.Domain.Repositories
 
         //IReportRepository Reports { get; }
         IWalletTransactionRepository WalletTransactions { get; }
+        ITicketEventRepository TicketEvents { get; }
+        ITicketParticipantRepository TicketParticipants { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

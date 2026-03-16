@@ -466,11 +466,8 @@ namespace Fiebo.Persistence.Data
                 entity.Property(e => e.ParticipantId)
                     .ValueGeneratedOnAdd();
 
-                entity.Property(e => e.TicketAmount)
+                entity.Property(e => e.TicketQuantity)
                     .IsRequired();
-
-                entity.Property(e => e.Status)
-                    .HasConversion<string>();
 
                 entity.HasOne(e => e.Event)
                     .WithMany(e => e.Participants)
