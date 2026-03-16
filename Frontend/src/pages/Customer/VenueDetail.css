@@ -747,6 +747,33 @@
   border-radius: 12px;
 }
 
+/* ── Fields count badge (venue header) ── */
+.vd-fields-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #14532d;
+  padding: 4px 10px;
+  background: #ecfdf5; /* soft green */
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* ── Fields count in booking bar (small badge) ── */
+.vd-booking-bar-fields {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  font-weight: 600;
+}
+
 /* ── Sport tag on field card ── */
 .vd-fc-sport-tag {
   display: inline-block;
