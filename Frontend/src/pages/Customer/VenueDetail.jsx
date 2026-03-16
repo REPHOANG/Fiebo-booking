@@ -396,6 +396,7 @@ const VenueDetail = () => {
                 <Star size={14} fill="#f59e0b" stroke="#f59e0b" /> {venue.averageRating?.toFixed(1) || "0.0"}
                 <span className="vd-reviews-count">({venue.ratingCount || 0} đánh giá)</span>
                 <span className="vd-booking-count">{venue.bookingCount || 0} lượt đặt</span>
+                <span className="vd-fields-count">{fields.length} sân</span>
               </div>
               <div className="vd-quick-info">
                 {address && (
@@ -467,6 +468,7 @@ const VenueDetail = () => {
             <span className="vd-booking-bar-time">
               <Clock size={14} /> {formatTime(venue.openTime)} – {formatTime(venue.closeTime)}
             </span>
+            <span className="vd-booking-bar-fields">{fields.length} sân</span>
           </div>
           <button
             className="vd-booking-btn"

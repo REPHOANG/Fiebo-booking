@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { persistQueryClient } from '@tanstack/react-query-persist-client';
-import localforage from 'localforage';
-import { BrowserRouter as Router } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { restoreAuthFromStorage } from './store/authSlice';
-import { getProfile } from './services/authService';
-import LocationPrompt from './components/common/LocationPrompt/LocationPrompt';
-import './components/common/LocationPrompt/LocationPrompt.css';
-import SplashScreen from './components/ui/SplashScreen/SplashScreen';
-import AppRoutes from './routers/router';
+import React, { useState, useEffect, useRef } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import localforage from "localforage";
+import { BrowserRouter as Router } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { getProfile } from "./services/authService";
+import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
+import "./components/common/LocationPrompt/LocationPrompt.css";
+import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
+import AppRoutes from "./routers/router";
+import store from "./store";
+import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
 const SPLASH_MIN_MS = 800;
 
@@ -32,6 +33,28 @@ const queryClient = new QueryClient({
   });
 const App = () => {
   const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth?.token ?? null);
+
+  // Khi accessToken hết hạn thì tự đăng xuất và xóa storage
+  useEffect(() => {
+    if (!token) return;
+    if (isTokenExpired(token)) {
+      dispatch(logout());
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  }, [token, dispatch]);
+
+  // Kiểm tra token định kỳ (token có thể hết hạn khi user đang dùng app)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentToken = store.getState?.()?.auth?.token ?? null;
+      if (currentToken && isTokenExpired(currentToken)) {
+        dispatch(logout());
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {
@@ -68,39 +91,48 @@ const App = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
+  const initRanRef = useRef(false);
 
   // Splash = loading cho đến khi restore auth + API khởi tạo xong
+  // Tránh gọi getProfile 2 lần khi React Strict Mode double-invoke effect (development)
   useEffect(() => {
+    if (initRanRef.current) return;
+    initRanRef.current = true;
+
     let cancelled = false;
     const init = async () => {
-      console.log('🚀 App initializing...');
-      dispatch(restoreAuthFromStorage());
-
-      let token = null;
-      try {
-        const authStr = localStorage.getItem('authState');
-        if (authStr) {
-          const parsed = JSON.parse(authStr);
-          token = parsed?.token ?? parsed?.accessToken;
-        }
-      } catch (_) {}
+      console.log("🚀 App initializing...");
 
       const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
-      const apiReady = token
-        ? getProfile(token).catch(() => null) // xong khi gọi API xong (thành công hoặc lỗi)
-        : Promise.resolve();
+
+      const apiReady = getProfile()
+        .then((profile) => {
+          if (!cancelled && profile) {
+            dispatch(
+              setCredentials({
+                user: profile,
+              })
+            );
+          }
+        })
+      .catch(() => {});
 
       await Promise.all([minDelay, apiReady]);
 
       if (!cancelled) {
         setIsInitialLoading(false);
-        if (!localStorage.getItem('locationPromptAsked')) {
+
+        if (!localStorage.getItem("locationPromptAsked")) {
           setShowLocationPrompt(true);
         }
       }
     };
+
     init();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   const handleLocationConfirm = (coords) => {

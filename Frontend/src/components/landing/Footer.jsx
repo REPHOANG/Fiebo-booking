@@ -55,10 +55,9 @@ const Footer = () => {
           <h3 className="ft-heading">Môn thể thao</h3>
           <ul className="ft-links ft-sports">
             <li><span className="ft-sport-dot" style={{background:'#22c55e'}} /> Bóng đá</li>
-            <li><span className="ft-sport-dot" style={{background:'#f59e0b'}} /> Cầu lông</li>
-            <li><span className="ft-sport-dot" style={{background:'#3b82f6'}} /> Pickleball</li>
             <li><span className="ft-sport-dot" style={{background:'#ef4444'}} /> Bóng rổ</li>
             <li><span className="ft-sport-dot" style={{background:'#a855f7'}} /> Tennis</li>
+            <li><span className="ft-sport-dot" style={{background:'#3b82f6'}} /> Pickleball</li>
           </ul>
         </div>
 

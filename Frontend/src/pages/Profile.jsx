@@ -1,9 +1,9 @@
 // src/pages/Profile.jsx
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { logout, setProfile, updateProfile } from '../store/authSlice';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { useState, useEffect } from "react";
+import {  useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logout, updateProfile, AUTH_STORAGE_KEY } from "../store/authSlice";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
   faEye,
@@ -125,8 +125,11 @@ const Profile = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    toast.success('Đăng xuất thành công!');
-    navigate('/login');
+    localStorage.removeItem('token');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem('token');
+    toast.success("Đăng xuất thành công!");
+    navigate("/login");
   };
 
   const avatarLetter = (profileData.fullName || profileData.email || 'U').charAt(0).toUpperCase();

@@ -76,6 +76,21 @@ const VerifyOTP = () => {
     }
   };
 
+  // Handle paste (allow pasting full OTP from email)
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length > 0) {
+      const newOtp = [...otp];
+      for (let i = 0; i < 6; i++) {
+        newOtp[i] = pasted[i] || '';
+      }
+      setOtp(newOtp);
+      const focusIdx = Math.min(pasted.length, 5);
+      otpRefs.current[focusIdx]?.focus();
+    }
+  };
+
   // Handle OTP submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -145,9 +160,9 @@ const VerifyOTP = () => {
       >
         {/* Header */}
         <div className="verify-otp-header">
-          <h2 className="verify-otp-title">Verify Your Account</h2>
+          <h2 className="verify-otp-title">MÃ XÁC MINH</h2>
           <p className="verify-otp-subtitle">
-            Enter the 6-digit code sent to<br />
+            Nhập mã từ email của bạn<br />
             <strong>{registrationEmail}</strong>
           </p>
         </div>
@@ -155,7 +170,7 @@ const VerifyOTP = () => {
         {/* Form */}
         <form className="verify-otp-form" onSubmit={handleSubmit}>
           {/* OTP Input Fields */}
-          <div className="otp-input-group">
+          <div className="otp-input-group" onPaste={handleOtpPaste}>
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -167,7 +182,7 @@ const VerifyOTP = () => {
                 onKeyDown={e => handleKeyDown(index, e)}
                 className="otp-input"
                 disabled={isLoading}
-                placeholder="0"
+                placeholder=""
               />
             ))}
           </div>
@@ -177,18 +192,18 @@ const VerifyOTP = () => {
             <p className="otp-timer">
               {timeLeft > 0 ? (
                 <>
-                  Code expires in: <span className="timer">{formatTime(timeLeft)}</span>
+                  Mã hết hạn sau: <span className="timer">{formatTime(timeLeft)}</span>
                 </>
               ) : (
                 <>
-                  Code expired.{' '}
+                  Mã đã hết hạn.{' '}
                   <button
                     type="button"
                     onClick={handleResendOTP}
                     disabled={isLoading}
                     className="resend-link"
                   >
-                    Resend OTP
+                    Gửi lại
                   </button>
                 </>
               )}
@@ -207,14 +222,14 @@ const VerifyOTP = () => {
 
         {/* Help Text */}
         <div className="verify-otp-help">
-          <p>Didn't receive the code?</p>
+          <p>Không nhận được mã?</p>
           <button
             type="button"
             onClick={handleResendOTP}
-            disabled={!canResend || isLoading}
-            className="help-link"
+            disabled={timeLeft > 0 || isLoading}
+            className="resend-pill"
           >
-            Send again
+            {timeLeft > 0 ? `Gửi lại sau ${timeLeft}s` : 'Gửi lại'}
           </button>
         </div>
       </motion.div>

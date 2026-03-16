@@ -14,8 +14,11 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import SearchBar from "../../components/common/SearchBar/SearchBar";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
-import { getNearbyFields, getTopBookingFields } from "../../services/fieldService";
+import { logout, AUTH_STORAGE_KEY } from "../../../store/authSlice";
+import {
+  getNearbyFields,
+  getTopBookingFields,
+} from "../../../services/fieldService";
 import "./CustomerHome.css";
 // Header and Footer are provided by Layout; remove local renders to avoid duplicates
 
@@ -154,7 +157,7 @@ const CustomerHome = () => {
   const handleLogout = () => {
     dispatch(logout());
     localStorage.removeItem("token");
-    localStorage.removeItem("authState");
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem("token");
     navigate("/login");
   };

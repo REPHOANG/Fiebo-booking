@@ -165,7 +165,7 @@ const Register = () => {
             {/* Phone (optional) */}
             <div className="input-group">
               <label htmlFor="phone">
-                Số điện thoại <span className="optional-label">(không bắt buộc)</span>
+                Số điện thoại <span className="optional-label"></span>
               </label>
               <input
                 id="phone"

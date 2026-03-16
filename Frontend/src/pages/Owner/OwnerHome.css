@@ -1,0 +1,37 @@
+.owner-home {
+  padding: 20px;
+}
+
+.owner-home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.oh-create-btn {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  background: #0b74ff;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.owner-home-content {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.owner-home-placeholder {
+  margin-top: 12px;
+  padding: 20px;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
+  text-align: center;
+  color: #666;
+}

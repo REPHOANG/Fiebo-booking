@@ -226,16 +226,11 @@ const BookingSchedule = () => {
   useEffect(() => {
     if (!venue || !selectedDate) return;
     let mounted = true;
-    const POLL_MS = 10000; // poll every 10s
 
     const fetchAndDispatch = async () => {
         try {
           const res = await getVenueSchedule(id, selectedDate);
           if (!mounted) return;
-          try {
-            // eslint-disable-next-line no-console
-            console.debug('[BookingSchedule] fetched schedule', { venueId: id, date: selectedDate, schedule: res });
-          } catch (e) {}
           const serverSlots = [];
           (res?.sportTypes || []).forEach((st) => {
             (st.slots || []).forEach((s) => serverSlots.push(s));
@@ -294,9 +289,9 @@ const BookingSchedule = () => {
         }
     };
 
+    // Call once on mount/when venue or date changes. Polling removed to avoid repeated API calls.
     fetchAndDispatch();
-    const interval = setInterval(fetchAndDispatch, POLL_MS);
-    return () => { mounted = false; clearInterval(interval); };
+    return () => { mounted = false; };
   }, [venue, selectedDate, id, fields, dispatch]);
 
   // Labels = slots + closing time (N+1 labels cho N cột)
@@ -373,21 +368,9 @@ const BookingSchedule = () => {
     [selectedSlots]
   );
 
-  // Debug logging to help verify booked vs selected state
-  useEffect(() => {
-    try {
-      // eslint-disable-next-line no-console
-      console.debug('[BookingSchedule] selectedSlots', selectedDate, selectedSlots);
-      // eslint-disable-next-line no-console
-      console.debug('[BookingSchedule] bookedForDate', selectedDate, bookedForDate);
-    } catch (e) {}
-  }, [selectedSlots, bookedForDate, selectedDate]);
-
   const toggleSlot = (fieldIdx, slotIdx) => {
-    if (!isAuthenticated) {
-      setShowLoginPopup(true);
-      return;
-    }
+    // Allow selecting slots even when the user is not authenticated.
+    // Authentication will be required when pressing the "TIẾP THEO" button.
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
@@ -805,11 +788,7 @@ const BookingSchedule = () => {
             </div>
           </div>
         )}
-        {selectedSlots.length > 0 && (
-          <span className="bs-bottom-price">
-            Tổng tiền: <strong>{slotSummary.totalPrice > 0 ? `${slotSummary.totalPrice.toLocaleString("vi-VN")} đ` : "--"}</strong>
-          </span>
-        )}
+        
         <button
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
@@ -833,6 +812,11 @@ const BookingSchedule = () => {
         >
           TIẾP THEO
         </button>
+        {selectedSlots.length > 0 && (
+          <span className="bs-bottom-price">
+            Tổng tiền: <strong>{slotSummary.totalPrice > 0 ? `${slotSummary.totalPrice.toLocaleString("vi-VN")} đ` : "--"}</strong>
+          </span>
+        )}
       </div>
 
       {/* Field image tooltip */}

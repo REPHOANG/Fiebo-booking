@@ -7,6 +7,7 @@ import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
 import BookingPayment from '../pages/Customer/Booking/BookingPayment';
 import Login from '../pages/auth/Login';
 import OwnerLogin from '../pages/auth/OwnerLogin';
+import OwnerHome from '../pages/Owner/OwnerHome';
 import Register from '../pages/auth/Register';
 import Profile from '../pages/Profile';
 import Venues from '../pages/Venues';
@@ -36,6 +37,7 @@ const AppRoutes = () => (
     <Route path="/venue/:id" element={<VenueDetail />} />
 
     {/* Owner routes */}
+    <Route path="/owner" element={<ProtectedRoute element={<OwnerHome />} />} />
     <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
 
     {/* Layout (Header + Footer): home, venues, booking */}

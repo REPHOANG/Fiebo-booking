@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../../store/authSlice';
+import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
 import { login, loginWithGoogle, sendPhoneLoginOtp, verifyPhoneLoginOtp } from '../../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
@@ -56,6 +56,7 @@ const Login = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
 
   // OTP-specific state
@@ -153,7 +154,8 @@ const Login = ({ onLoginSuccess }) => {
     setAlertInfo(null);
     try {
       const response = await login(loginPayload);
-      dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
 
       if (rememberMe) {
         localStorage.setItem('rememberedIdentifier', JSON.stringify({
@@ -163,11 +165,7 @@ const Login = ({ onLoginSuccess }) => {
         localStorage.removeItem('rememberedIdentifier');
       }
 
-      localStorage.setItem('authState', JSON.stringify({
-        user: response.user,
-        token: response.accessToken || response.token,
-        isAuthenticated: true,
-      }));
+      localStorage.setItem(AUTH_STORAGE_KEY, token);
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
         position: 'top-right', autoClose: 3000,
@@ -175,6 +173,10 @@ const Login = ({ onLoginSuccess }) => {
 
       if (typeof onLoginSuccess === 'function') {
         onLoginSuccess();
+        return;
+      }
+      if (isOwner) {
+        navigate('/owner', { replace: true });
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
@@ -226,7 +228,9 @@ const Login = ({ onLoginSuccess }) => {
     setAlertInfo(null);
     try {
       const response = await verifyPhoneLoginOtp(otpPhone, otpCode);
-      dispatch(setCredentials({ user: response.user, token: response.accessToken || response.token }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem(AUTH_STORAGE_KEY, token);
 
       localStorage.setItem('authState', JSON.stringify({
         user: response.user,
@@ -240,6 +244,10 @@ const Login = ({ onLoginSuccess }) => {
 
       if (typeof onLoginSuccess === 'function') {
         onLoginSuccess();
+        return;
+      }
+      if (isOwner) {
+        navigate('/owner', { replace: true });
         return;
       }
       const userRole = (response.user?.role || '').toLowerCase();
@@ -313,10 +321,9 @@ const Login = ({ onLoginSuccess }) => {
       setIsLoading(true);
       setAlertInfo(null);
       const response = await loginWithGoogle(credential);
-      dispatch(setCredentials({
-        user: response.user,
-        token: response.accessToken || response.token
-      }));
+      const token = response.accessToken || response.token;
+      dispatch(setCredentials({ user: response.user, token }));
+      localStorage.setItem(AUTH_STORAGE_KEY, token);
       toast.success('Đăng nhập Google thành công!', {
         position: 'top-right',
         autoClose: 3000,
@@ -325,7 +332,7 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      navigate('/');
+      navigate(isOwner ? '/owner' : '/', { replace: true });
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập Google thất bại' });
     } finally {
@@ -446,14 +453,26 @@ const Login = ({ onLoginSuccess }) => {
             </div>
 
             <div className="remember-forgot">
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                />
-                <span>Nhớ tài khoản</span>
-              </label>
+              <div className="checkbox-group">
+                <label className="remember-me">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                  />
+                  <span>Nhớ tài khoản</span>
+                </label>
+
+                <label className="remember-me">
+                  <input
+                    type="checkbox"
+                    checked={isOwner}
+                    onChange={e => setIsOwner(e.target.checked)}
+                  />
+                  <span>Chủ sân</span>
+                </label>
+              </div>
+
               <Link to="/forgot-password" className="forgot-link">
                 Quên mật khẩu?
               </Link>

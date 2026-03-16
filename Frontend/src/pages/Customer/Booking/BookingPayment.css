@@ -47,6 +47,14 @@
   border-color: #166534;
 }
 
+.bp-back-btn:disabled,
+.bp-topup-btn:disabled,
+.bp-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .bp-header-title {
   flex: 1;
   font-size: 1.25rem;
