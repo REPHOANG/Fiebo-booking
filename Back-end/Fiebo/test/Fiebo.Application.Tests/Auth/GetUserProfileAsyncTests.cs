@@ -2,50 +2,24 @@
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Exceptions;
-using Fiebo.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Moq.AutoMock;
 using Xunit;
 
 namespace Fiebo.Application.Tests.Auth
 {
     public class GetUserProfileAsyncTests
     {
-        private readonly Mock<IIdentityService> _identityServiceMock;
-        private readonly Mock<ITokenService> _tokenServiceMock;
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<ISmsService> _smsServiceMock;
-        private readonly Mock<IOtpService> _otpServiceMock;
-        private readonly Mock<IEmailService> _emailServiceMock;
-        private readonly Mock<IGoogleAuthService> _googleAuthServiceMock;
-        private readonly Mock<ICacheService> _cacheServiceMock;
-        private readonly Mock<ILogger<AuthService>> _loggerMock;
-
+        private readonly AutoMocker _mocker;
         private readonly AuthService _authService;
 
         public GetUserProfileAsyncTests()
         {
-            _identityServiceMock = new Mock<IIdentityService>();
-            _tokenServiceMock = new Mock<ITokenService>();
-            _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _smsServiceMock = new Mock<ISmsService>();
-            _otpServiceMock = new Mock<IOtpService>();
-            _emailServiceMock = new Mock<IEmailService>();
-            _googleAuthServiceMock = new Mock<IGoogleAuthService>();
-            _cacheServiceMock = new Mock<ICacheService>();
-            _loggerMock = new Mock<ILogger<AuthService>>();
+            _mocker = new AutoMocker();
 
-            _authService = new AuthService(
-                _identityServiceMock.Object,
-                _tokenServiceMock.Object,
-                _unitOfWorkMock.Object,
-                _smsServiceMock.Object,
-                _otpServiceMock.Object,
-                _emailServiceMock.Object,
-                _googleAuthServiceMock.Object,
-                _cacheServiceMock.Object,
-                _loggerMock.Object
-            );
+            // Auto inject tất cả dependency
+            _authService = _mocker.CreateInstance<AuthService>();
         }
 
         [Fact]
@@ -64,7 +38,7 @@ namespace Fiebo.Application.Tests.Auth
                 Roles = "Customer"
             };
 
-            _identityServiceMock
+            _mocker.GetMock<IIdentityService>()
                 .Setup(x => x.GetUserProfileAsync(userId))
                 .ReturnsAsync(profile);
 
@@ -83,7 +57,7 @@ namespace Fiebo.Application.Tests.Auth
             // Arrange
             var userId = "user1";
 
-            _identityServiceMock
+            _mocker.GetMock<IIdentityService>()
                 .Setup(x => x.GetUserProfileAsync(userId))
                 .ReturnsAsync((UserProfileResponse?)null);
 

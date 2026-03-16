@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
 
 const ProtectedRoute = ({ element }) => {
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  const user = useSelector((state) => state.auth.user);
+  const { isAuthenticated, user, profileLoading } = useSelector(
+    (state) => state.auth,
+  );
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -12,7 +13,10 @@ const ProtectedRoute = ({ element }) => {
   }, []);
 
   if (!isHydrated) {
-    return <div style={{ display: 'none' }} />;
+    return <div style={{ display: "none" }} />;
+  }
+  if (profileLoading) {
+    return null; // hoặc spinner
   }
 
   if (isAuthenticated && user) {

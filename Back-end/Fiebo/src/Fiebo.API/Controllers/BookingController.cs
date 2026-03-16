@@ -175,5 +175,19 @@ namespace Fiebo.API.Controllers
                 Message = "Hủy đặt sân thành công."
             });
         }
+
+        [Authorize(Roles = AppRoles.FieldStaff + "," + AppRoles.FieldOwner)]
+        [HttpPost("walk-in")]
+        public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            var result = await _bookingService.CreateWalkInBookingAsync(request, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo lịch đặt thành công.",
+            });
+        }        
     }
 }

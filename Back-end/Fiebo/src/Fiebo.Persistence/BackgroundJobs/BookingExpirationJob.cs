@@ -8,8 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace Fiebo.Persistence.BackgroundJobs
 {
     /// <summary>
-    /// Background job that runs every 1 minutes to auto-expire
-    /// Pending bookings that have passed their ExpiredAt deadline.
+    /// Background job that runs every 1 minute to delete
+    /// Pending bookings that have passed their ExpiredAt deadline,
+    /// along with their associated BookingDetail records.
     /// </summary>
     public class BookingExpirationJob : BackgroundService
     {
@@ -34,11 +35,11 @@ namespace Fiebo.Persistence.BackgroundJobs
             {
                 try
                 {
-                    await ExpirePendingBookingsAsync(stoppingToken);
+                    await DeleteExpiredBookingsAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error occurred while expiring pending bookings.");
+                    _logger.LogError(ex, "Error occurred while deleting expired bookings.");
                 }
 
                 await Task.Delay(Interval, stoppingToken);
@@ -47,27 +48,37 @@ namespace Fiebo.Persistence.BackgroundJobs
             _logger.LogInformation("BookingExpirationJob stopped.");
         }
 
-        private async Task ExpirePendingBookingsAsync(CancellationToken cancellationToken)
+        private async Task DeleteExpiredBookingsAsync(CancellationToken cancellationToken)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
 
             var now = DateTime.Now;
 
-            var expiredCount = await context.Bookings
+            // Get IDs of expired pending bookings
+            var expiredBookingIds = await context.Bookings
                 .Where(b =>
                     b.Status == BookingStatus.Pending &&
                     b.ExpiredAt.HasValue &&
                     b.ExpiredAt.Value < now)
-                .ExecuteUpdateAsync(
-                    b => b.SetProperty(x => x.Status, BookingStatus.Expired)
-                          .SetProperty(x => x.UpdatedAt, now),
-                    cancellationToken);
+                .Select(b => b.Id)
+                .ToListAsync(cancellationToken);
 
-            if (expiredCount > 0)
-            {
-                _logger.LogInformation("Auto-expired {Count} pending booking(s).", expiredCount);
-            }
+            if (expiredBookingIds.Count == 0) return;
+
+            // 1. Delete BookingDetails first (child records)
+            var deletedDetails = await context.BookingDetails
+                .Where(bd => expiredBookingIds.Contains(bd.BookingId))
+                .ExecuteDeleteAsync(cancellationToken);
+
+            // 2. Delete Bookings (parent records)
+            var deletedBookings = await context.Bookings
+                .Where(b => expiredBookingIds.Contains(b.Id))
+                .ExecuteDeleteAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Deleted {BookingCount} expired booking(s) and {DetailCount} booking detail(s).",
+                deletedBookings, deletedDetails);
         }
     }
 }

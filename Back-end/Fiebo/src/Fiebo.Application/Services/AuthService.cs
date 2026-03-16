@@ -201,9 +201,9 @@ namespace Fiebo.Application.Services
             return result;
         }
 
-        public Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
+        public async Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
         {
-            var result = _identityService.UpdateUserProfileAsync(userId, request);
+            var result = await _identityService.UpdateUserProfileAsync(userId, request);
             if (result == null)
             {
                 _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
