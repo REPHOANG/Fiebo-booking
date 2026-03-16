@@ -8,7 +8,8 @@ namespace Fiebo.Domain.Enums
 {
     public enum TicketParticipantStatus
     {
-        Joined = 0,
-        Cancelled = 1
+        Pending = 0,
+        Joined = 1,
+        Cancelled = 2
     }
 }
