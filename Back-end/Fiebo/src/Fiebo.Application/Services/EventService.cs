@@ -4,6 +4,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,14 @@ namespace Fiebo.Application.Services
     public class EventService : IEventService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public EventService(IUnitOfWork unitOfWork)
+        private readonly ILogger<EventService> _logger;
+        private readonly ICacheService _cacheService;
+        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
+        public EventService(IUnitOfWork unitOfWork, ILogger<EventService> logger, ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
+            _cacheService = cacheService;
         }
 
         /// <summary>
@@ -42,11 +48,40 @@ namespace Fiebo.Application.Services
                 VenueAddress = address,
                 FieldName = eventDetail.Field.Name,
                 EventDate = eventDetail.EventDate,
+                Description = eventDetail.Description,
                 StartTime = eventDetail.Slot.StartTime,
                 EndTime = eventDetail.Slot.EndTime,
                 TicketPrice = eventDetail.PricePerPerson,
                 TicketQuantity = eventDetail.MaxPlayer,
                 RemainingTicketQuantity = remainingTicketQuantity
+            };
+        }
+
+        public async Task<TicketDetailResponse> GetTicketDetailAsync(int ticketId, string userId)
+        {
+            var participant = await _unitOfWork.TicketParticipants.GetTicketDetailAsync(ticketId);
+            if (participant == null)
+            {
+                throw new NotFoundException("Không tìm thấy vé");
+            }
+            if (participant.UserId != userId)
+            {
+                throw new BadRequestException("Bạn không có quyền xem vé này");
+            }
+            return new TicketDetailResponse
+            {
+                ParticipantId = participant.ParticipantId,
+                Fullname = participant.Fullname,
+                PhoneNumber = participant.PhoneNumber,
+                EventDate = participant.Event.EventDate,
+                FieldName = participant.Event.Field.Name,
+                StartTime = participant.Event.Slot.StartTime,
+                EndTime = participant.Event.Slot.EndTime,
+                TicketQuantity = participant.TicketQuantity,
+                PricePerTicket = participant.PricePerTicket,
+                TotalAmount = participant.TotalPrice,
+                Status = participant.Status.ToString(),
+                ExpiredAt = participant.ExpiredAt
             };
         }
 
@@ -59,34 +94,129 @@ namespace Fiebo.Application.Services
         /// <returns></returns>
         /// <exception cref="NotFoundException"></exception>
         /// <exception cref="BadRequestException"></exception>
-        public async Task<bool> JoinDropInEventAsync(JoinEventRequest request, int eventId, string userId)
+        public async Task<int> JoinDropInEventAsync(JoinEventRequest request, int eventId, string userId)
         {
-            var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
-            if (dropInEvent == null)
+            var lockKey = $"event:lock:{eventId}";
+            string? lockValue = null;
+
+            try
             {
-                throw new NotFoundException("Không tìm thấy sự kiện");
+                // 1. Acquire lock
+                lockValue = await _cacheService.AcquireLockAsync(lockKey, LockExpiry);
+
+                if (lockValue is null)
+                {
+                    _logger.LogWarning("Failed to acquire lock for event {EventId}", eventId);
+                    throw new ResourceConflictException("Sự kiện đang được xử lý, vui lòng thử lại.");
+                }
+
+                // 2. Get event
+                var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
+                if (dropInEvent == null)
+                {
+                    throw new NotFoundException("Không tìm thấy sự kiện");
+                }
+
+                if (dropInEvent.Status != TicketEventStatus.Pending)
+                {
+                    throw new BadRequestException("Sự kiện không có sẵn");
+                }
+
+                // 3. Check slot capacity (fix bug quantity)
+                var currentPlayer = await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId);
+
+                if (currentPlayer + request.TicketQuantity > dropInEvent.MaxPlayer)
+                {
+                    throw new BadRequestException("Số lượng người tham gia sự kiện đã đầy");
+                }
+
+                // 4. Create participant
+                var participant = new TicketParticipant
+                {
+                    EventId = eventId,
+                    UserId = userId,
+                    Fullname = request.Fullname,
+                    PhoneNumber = request.PhoneNumber,
+                    TicketQuantity = request.TicketQuantity,
+                    PricePerTicket = dropInEvent.PricePerPerson,
+                    TotalPrice = request.TicketQuantity * dropInEvent.PricePerPerson,
+                    Status = TicketParticipantStatus.Pending,
+                    ExpiredAt = DateTime.Now.AddMinutes(5)
+                };
+
+                _unitOfWork.TicketParticipants.Add(participant);
+                await _unitOfWork.SaveChangesAsync();
+
+                return participant.ParticipantId;
             }
-            if (dropInEvent.Status != TicketEventStatus.Pending)
+            catch (Exception ex)
             {
-                throw new BadRequestException("Sự kiện không có sẵn");
+                _logger.LogError(ex,
+                    "Error while joining drop-in event with id {EventId} for user {UserId}",
+                    eventId, userId);
+
+                throw new BadRequestException("Không thể tham gia sự kiện. Vui lòng thử lại.");
             }
-            var currentPlayer = await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId);
-            if (currentPlayer >= dropInEvent.MaxPlayer)
+            finally
             {
-                throw new BadRequestException("Số lượng người tham gian sự kiện này đã đầy");
+                // 5. Release lock
+                if (lockValue != null)
+                {
+                    await _cacheService.ReleaseLockAsync(lockKey, lockValue);
+                }
             }
-            var participant = new TicketParticipant
+        }
+
+        public async Task MakeDropInPayment(int ticketId, string userId)
+        {
+            var participant = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId);
+            if (participant == null)
             {
-                EventId = eventId,
-                UserId = userId,
-                Fullname = request.Fullname,
-                PhoneNumber = request.PhoneNumber,
-                TicketQuantity = request.TicketQuantity,
-                Status = TicketParticipantStatus.Pending,
-            };
-            _unitOfWork.TicketParticipants.Add(participant);
-            await _unitOfWork.SaveChangesAsync();
-            return true;
+                throw new NotFoundException("Không tìm thấy vé");
+            }
+            if (participant.UserId != userId)
+            {
+                throw new BadRequestException("Bạn không có quyền thanh toán vé này");
+            }
+            if (participant.Status != TicketParticipantStatus.Pending)
+            {
+                throw new BadRequestException("Vé không hợp lệ để thanh toán");
+            }
+            var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
+            if (wallet == null)
+            {
+                throw new NotFoundException("Không tìm thấy ví của người dùng");
+            }
+            if (wallet.Balance < participant.TotalPrice)
+            {
+                throw new BadRequestException("Số dư trong ví không đủ để thanh toán");
+            }
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+
+                wallet.Balance -= participant.TotalPrice;
+                participant.Status = TicketParticipantStatus.Joined;
+                participant.ExpiredAt = null;
+                _unitOfWork.Wallets.Update(wallet);
+                _unitOfWork.TicketParticipants.Update(participant);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.EventBooking,
+                    Direction = TransactionDirection.Debit,
+                    Amount = participant.TotalPrice,
+                    ReferenceId = participant.ParticipantId
+                });
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Error while processing payment for ticket {TicketId} by user {UserId}", ticketId, userId);
+                throw new BadRequestException("Không thể xử lý thanh toán. Vui lòng thử lại.");
+            }
         }
     }
 }

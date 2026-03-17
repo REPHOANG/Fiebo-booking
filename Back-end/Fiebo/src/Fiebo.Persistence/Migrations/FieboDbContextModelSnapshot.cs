@@ -382,6 +382,9 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("EventId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Fullname")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -393,11 +396,19 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<decimal>("PricePerTicket")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<int>("TicketQuantity")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<string>("UserId")
                         .IsRequired()

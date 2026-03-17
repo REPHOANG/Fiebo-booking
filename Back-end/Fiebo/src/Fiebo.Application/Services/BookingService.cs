@@ -21,7 +21,7 @@ namespace Fiebo.Application.Services
         private readonly ITokenService _tokenService;
         private readonly ICacheService _cacheService;
 
-        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
 
         public BookingService(
             IUnitOfWork unitOfWork,
@@ -104,6 +104,14 @@ namespace Fiebo.Application.Services
 
                 _unitOfWork.Wallets.Update(wallet);
                 _unitOfWork.Bookings.Update(booking);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.Booking,
+                    Direction = TransactionDirection.Debit,
+                    Amount = booking.TotalPrice,
+                    ReferenceId = booking.Id
+                });
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
             }
@@ -146,7 +154,8 @@ namespace Fiebo.Application.Services
 
             throw new BadRequestException("Booking status is not valid for payment.");
         }
-
+        // OTP for booking verification: cancelled
+        #region
         public async Task<ServiceResponse> SendBookingVerifyOtp(string phoneNumber)
         {
             var otpResult = await _otpService.GenerateAndStoreBookingOtpAsync(phoneNumber);
@@ -190,6 +199,7 @@ namespace Fiebo.Application.Services
             }
             return _tokenService.GenerateAccessToken(user!.Id, user.FullName ?? "", user.Roles ?? "", user.Email ?? "");
         }
+        #endregion
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {

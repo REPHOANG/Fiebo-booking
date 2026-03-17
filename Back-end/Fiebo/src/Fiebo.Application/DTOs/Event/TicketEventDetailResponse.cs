@@ -16,6 +16,7 @@ namespace Fiebo.Application.DTOs.Event
         public string FieldName { get; set; } = null!;
 
         public DateOnly EventDate { get; set; }
+        public string? Description { get; set; }
 
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }

@@ -18,10 +18,13 @@ namespace Fiebo.Domain.Entities
         public required string PhoneNumber { get; set; }
 
         public int TicketQuantity{ get; set; }
+        public decimal PricePerTicket { get; set; }
+        public decimal TotalPrice { get; set; }
 
         public DateTime JoinedAt { get; set; } = DateTime.Now;
 
         public TicketParticipantStatus Status { get; set; }
+        public DateTime? ExpiredAt { get; set; }
 
         // Navigation
         public TicketEvent Event { get; set; } = null!;

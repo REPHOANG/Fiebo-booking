@@ -469,6 +469,14 @@ namespace Fiebo.Persistence.Data
                 entity.Property(e => e.TicketQuantity)
                     .IsRequired();
 
+                entity.Property(tp => tp.PricePerTicket)
+                      .HasPrecision(12, 2)
+                      .IsRequired();
+
+                entity.Property(tp => tp.TotalPrice)
+                    .HasPrecision(12, 2)
+                    .IsRequired();
+
                 entity.HasOne(e => e.Event)
                     .WithMany(e => e.Participants)
                     .HasForeignKey(e => e.EventId)
