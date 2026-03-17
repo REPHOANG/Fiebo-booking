@@ -587,5 +587,31 @@ namespace Fiebo.Application.Services
 
             return 0;
         }
+
+        public async Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
+
+            if (booking == null) return null;
+
+            return new OwnerBookingDetailResponse
+            {
+                BookingId = booking.Id,
+                CustomerName = booking.Fullname,
+                PhoneNumber = booking.PhoneNumber,
+                Status = booking.Status.ToString(),
+                BookingNote = booking.BookingNote,
+                TotalPrice = booking.TotalPrice,
+                CreatedAt = booking.CreatedAt,
+                BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
+                {
+                    FieldName = bd.Field?.Name ?? "N/A",
+                    PlayDate = bd.BookingDate,
+                    StartTime = bd.TimeSlot?.StartTime ?? default,
+                    EndTime = bd.TimeSlot?.EndTime ?? default,
+                    Price = bd.Price
+                }).ToList()
+            };
+        }
     }
 }
