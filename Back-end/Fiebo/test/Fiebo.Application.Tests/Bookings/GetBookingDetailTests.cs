@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -42,7 +42,8 @@ namespace Fiebo.Application.Tests.Bookings
                 _loggerMock.Object,
                 _identityServiceMock.Object,
                 _tokenServiceMock.Object,
-                _cacheServiceMock.Object
+                _cacheServiceMock.Object,
+                null!
             );
         }
 

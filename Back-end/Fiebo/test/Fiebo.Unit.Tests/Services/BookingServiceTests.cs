@@ -60,7 +60,8 @@ namespace Fiebo.Unit.Tests.Services
                 _loggerMock.Object,
                 _identityServiceMock.Object,
                 _tokenServiceMock.Object,
-                _cacheServiceMock.Object);
+                _cacheServiceMock.Object,
+                null!);
         }
 
         // ========== Helper Methods ==========

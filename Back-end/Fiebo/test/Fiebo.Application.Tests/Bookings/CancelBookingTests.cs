@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -25,7 +25,7 @@ namespace Fiebo.Application.Tests.Bookings
             _unitOfWork.Setup(x => x.BookingDetails).Returns(_bookingDetailRepo.Object);
             _unitOfWork.Setup(x => x.Wallets).Returns(_walletRepo.Object);
 
-            _service = new BookingService(_unitOfWork.Object, null!, null!, null!, null!, null!, null!);
+            _service = new BookingService(_unitOfWork.Object, null!, null!, null!, null!, null!, null!, null!);
         }
 
         [Fact]
