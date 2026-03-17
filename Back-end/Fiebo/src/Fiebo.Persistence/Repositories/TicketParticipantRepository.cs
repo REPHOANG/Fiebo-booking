@@ -23,5 +23,16 @@ namespace Fiebo.Persistence.Repositories
                 .Where(tp => tp.EventId == eventId)
                 .SumAsync(tp => (int?)tp.TicketQuantity) ?? 0;
         }
+
+        public async Task<TicketParticipant?> GetTicketDetailAsync(int participantId)
+        {
+            return await _context.TicketParticipants
+                .AsNoTracking()
+                .Include(tp => tp.Event)
+                    .ThenInclude(te => te.Field)
+                .Include(tp => tp.Event)
+                    .ThenInclude(te => te.Slot)
+                .FirstOrDefaultAsync(tp => tp.ParticipantId == participantId);
+        }
     }
 }

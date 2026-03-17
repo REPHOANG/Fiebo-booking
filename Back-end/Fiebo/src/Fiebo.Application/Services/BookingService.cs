@@ -20,8 +20,9 @@ namespace Fiebo.Application.Services
         private readonly IIdentityService _identityService;
         private readonly ITokenService _tokenService;
         private readonly ICacheService _cacheService;
+        private readonly INotificationService _notificationService;
 
-        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
 
         public BookingService(
             IUnitOfWork unitOfWork,
@@ -30,7 +31,8 @@ namespace Fiebo.Application.Services
             ILogger<BookingService> logger,
             IIdentityService identityService,
             ITokenService tokenService,
-            ICacheService cacheService
+            ICacheService cacheService,
+            INotificationService notificationService
             )
         {
             _unitOfWork = unitOfWork;
@@ -40,6 +42,7 @@ namespace Fiebo.Application.Services
             _identityService = identityService;
             _tokenService = tokenService;
             _cacheService = cacheService;
+            _notificationService = notificationService;
         }
 
         public async Task<BookingPaymentResponse> MakeBookingPaymentAsync(int bookingId, string userId)
@@ -104,6 +107,14 @@ namespace Fiebo.Application.Services
 
                 _unitOfWork.Wallets.Update(wallet);
                 _unitOfWork.Bookings.Update(booking);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.Booking,
+                    Direction = TransactionDirection.Debit,
+                    Amount = booking.TotalPrice,
+                    ReferenceId = booking.Id
+                });
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
             }
@@ -146,7 +157,8 @@ namespace Fiebo.Application.Services
 
             throw new BadRequestException("Booking status is not valid for payment.");
         }
-
+        // OTP for booking verification: cancelled
+        #region
         public async Task<ServiceResponse> SendBookingVerifyOtp(string phoneNumber)
         {
             var otpResult = await _otpService.GenerateAndStoreBookingOtpAsync(phoneNumber);
@@ -190,6 +202,7 @@ namespace Fiebo.Application.Services
             }
             return _tokenService.GenerateAccessToken(user!.Id, user.FullName ?? "", user.Roles ?? "", user.Email ?? "");
         }
+        #endregion
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
@@ -355,129 +368,10 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task<string> GetCancelPreviewAsync(int bookingId, string userId)
-        {
-            var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
-            if (booking == null)
-            {
-                throw new NotFoundException("Booking not found.");
-            }
-            if (booking.UserId != userId)
-            {
-                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
-            }
-            if (booking.Status != BookingStatus.Booked)
-            {
-                throw new BadRequestException("Only booked booking can be cancelled.");
-            }
-            var earliestDetail = await _unitOfWork.BookingDetails.GetEarliestDetailAsync(bookingId);
-            if (earliestDetail == null || earliestDetail.TimeSlot == null)
-            {
-                throw new NotFoundException("Booking details not found.");
-            }
-            var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
-            var diffTime = startDateTime - DateTime.Now;
-            var hoursBeforeStart = diffTime.TotalHours;
-            int refundPercent;
-            if (hoursBeforeStart <= 0)
-            {
-                throw new BadRequestException("Booking has already started.");
-            }
-            if (hoursBeforeStart >= 24)
-            {
-                refundPercent = 100;
-            }
-            else if (hoursBeforeStart >= 12)
-            {
-                refundPercent = 70;
-            }
-            else if (hoursBeforeStart >= 6)
-            {
-                refundPercent = 50;
-            }
-            else
-            {
-                refundPercent = 0;
-            }
-            var days = diffTime.Days;
-            var hours = diffTime.Hours;
-            var minutes = diffTime.Minutes;
-            string timeText;
-            if (days > 0)
-            {
-                timeText = minutes > 0
-                    ? $"{days} ngày {hours} giờ {minutes} phút"
-                    : $"{days} ngày {hours} giờ";
-            }
-            else if (hours > 0)
-            {
-                timeText = minutes > 0
-                    ? $"{hours} giờ {minutes} phút"
-                    : $"{hours} giờ";
-            }
-            else
-            {
-                timeText = $"{minutes} phút";
-            }
 
-            return $"Bạn đang huỷ đặt sân trước {timeText} so với thời gian bắt đầu. Theo chính sách huỷ, bạn sẽ được hoàn lại {refundPercent}% tổng số tiền đã thanh toán.";
-        }
 
-        public async Task<bool> CancelBookingAsync(int bookingId, string userId)
-        {
-            var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
-            if (booking == null)
-            {
-                throw new NotFoundException("Booking not found.");
-            }
-            if (booking.UserId != userId)
-            {
-                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
-            }
-            if (booking.Status != BookingStatus.Booked)
-            {
-                throw new BadRequestException("Only booked booking can be cancelled.");
-            }
-            var earliestDetail = await _unitOfWork.BookingDetails.GetEarliestDetailAsync(bookingId);
-            if (earliestDetail == null || earliestDetail.TimeSlot == null)
-            {
-                throw new NotFoundException("Booking details not found.");
-            }
-            var startDateTime = earliestDetail.BookingDate.ToDateTime(earliestDetail.TimeSlot.StartTime);
-            var hoursBeforeStart = (startDateTime - DateTime.Now).TotalHours;
-            int refundPercent;
-            if (hoursBeforeStart <= 0)
-            {
-                throw new BadRequestException("Booking has already started.");
-            }
-            if (hoursBeforeStart >= 24)
-            {
-                refundPercent = 100;
-            }
-            else if (hoursBeforeStart >= 12)
-            {
-                refundPercent = 70;
-            }
-            else if (hoursBeforeStart >= 6)
-            {
-                refundPercent = 50;
-            }
-            else
-            {
-                refundPercent = 0;
-            }
-            booking.Status = BookingStatus.CustomerCancelled;
-            var wallet = await _unitOfWork.Wallets.GetByUserId(booking.UserId);
-            if (wallet == null)
-            {
-                throw new NotFoundException("Wallet not found for booking user.");
-            }
-            wallet.Balance += booking.TotalPrice * refundPercent / 100;
-            _unitOfWork.Bookings.Update(booking);
-            _unitOfWork.Wallets.Update(wallet);
-            await _unitOfWork.SaveChangesAsync();
-            return true;
-        }
+
+
 
         public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId)
         {
@@ -565,6 +459,261 @@ namespace Fiebo.Application.Services
                     await _cacheService.ReleaseLockAsync(key, value);
                 }
             }
+        }
+
+        // ================================================================
+        //   Cancel Booking
+        // ================================================================
+
+        public async Task<string> GetCancelPreviewAsync(int bookingId, string userId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Booking not found.");
+
+            if (booking.UserId != userId)
+                throw new UnauthorizedAccessException("You are not authorized to cancel this booking.");
+
+            if (booking.Status != BookingStatus.Booked)
+                throw new BadRequestException("Only booked bookings can be cancelled.");
+
+            var bookingStartTime = GetBookingStartTime(booking);
+
+            if (DateTime.Now >= bookingStartTime)
+                throw new BadRequestException("Cannot cancel a booking after the start time.");
+
+            var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
+            var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
+            var refundAmount = booking.TotalPrice * refundPercentage / 100m;
+
+            return $"Refund {refundPercentage}% — {refundAmount:N0} VND will be returned to your wallet.";
+        }
+
+        public async Task<bool> CancelBookingAsync(int bookingId, string userId)
+        {
+            // 1. Load booking with details (tracked)
+            var booking = (await _unitOfWork.Bookings
+                .FindAsync(b => b.Id == bookingId))
+                .FirstOrDefault();
+
+            if (booking is null)
+                throw new NotFoundException("Booking not found.");
+
+            // BR-25: Only owner can cancel
+            if (booking.UserId != userId)
+                throw new UnauthorizedAccessException("You are not authorized to cancel this booking.");
+
+            // Only Booked status can be cancelled
+            if (booking.Status != BookingStatus.Booked)
+                throw new BadRequestException("Only booked bookings can be cancelled.");
+
+            // Load booking details with TimeSlot for start time calculation
+            var bookingWithDetails = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+            var bookingStartTime = GetBookingStartTime(bookingWithDetails!);
+
+            // BR-26: Can only cancel before start time
+            if (DateTime.Now >= bookingStartTime)
+                throw new BadRequestException("Cannot cancel a booking after the start time.");
+
+            // BR-28: Calculate refund
+            var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
+            var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
+            var refundAmount = booking.TotalPrice * refundPercentage / 100m;
+
+            // BR-27: Refund to wallet within a transaction
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Update booking status
+                booking.Status = BookingStatus.CustomerCancelled;
+                booking.UpdatedAt = DateTime.Now;
+                _unitOfWork.Bookings.Update(booking);
+
+                // Refund to wallet (if refundAmount > 0)
+                if (refundAmount > 0)
+                {
+                    var wallet = (await _unitOfWork.Wallets
+                        .FindAsync(w => w.UserId == userId))
+                        .FirstOrDefault();
+
+                    if (wallet is null)
+                        throw new NotFoundException("Wallet not found.");
+
+                    wallet.Balance += refundAmount;
+                    _unitOfWork.Wallets.Update(wallet);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                _logger.LogInformation(
+                    "Booking {BookingId} cancelled by user {UserId}. Refund: {RefundPercentage}% = {RefundAmount}",
+                    bookingId, userId, refundPercentage, refundAmount);
+
+                return true;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the earliest start time from booking details.
+        /// Combines BookingDate + TimeSlot.StartTime.
+        /// </summary>
+        private static DateTime GetBookingStartTime(Booking booking)
+        {
+            var earliestDetail = booking.BookingDetails
+                .OrderBy(d => d.BookingDate)
+                .ThenBy(d => d.TimeSlot!.StartTime)
+                .First();
+
+            return earliestDetail.BookingDate
+                .ToDateTime(earliestDetail.TimeSlot!.StartTime);
+        }
+
+        /// <summary>
+        /// BR-28 Cancellation refund policy:
+        /// > 24h → 100% | 12-24h → 70% | 6-12h → 50% | less than 6h → 0%
+        /// </summary>
+        private static int CalculateRefundPercentage(double hoursBeforeStart)
+        {
+            if (hoursBeforeStart > 24)
+                return 100;
+            if (hoursBeforeStart >= 12)
+                return 70;
+            if (hoursBeforeStart >= 6)
+                return 50;
+
+            return 0;
+        }
+
+        // ================================================================
+        //   UC-59: Owner Cancel Booking
+        // ================================================================
+
+        public async Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason)
+        {
+            // 1. Load booking with details and venue
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Booking not found.");
+
+            // BR-43: Only the owner of the venue can cancel
+            if (booking.Venue.OwnerId != ownerId)
+                throw new UnauthorizedAccessException("Bạn không có quyền hủy booking này.");
+
+            // E1: Booking must be in Booked status
+            if (booking.Status != BookingStatus.Booked)
+                throw new BadRequestException("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.");
+
+            // BR-44: Can only cancel before the booking start time
+            var bookingStartTime = GetBookingStartTime(booking);
+            if (DateTime.Now >= bookingStartTime)
+                throw new BadRequestException("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.");
+
+            // BR-45: 100% refund
+            var refundAmount = booking.TotalPrice;
+
+            // Reload tracked entity for updates
+            var trackedBooking = (await _unitOfWork.Bookings
+                .FindAsync(b => b.Id == bookingId))
+                .FirstOrDefault()!;
+
+            // E2: Refund transaction with rollback on failure
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Update booking status + reason
+                trackedBooking.Status = BookingStatus.OwnerCancelled;
+                trackedBooking.CancelReason = cancelReason;
+                trackedBooking.UpdatedAt = DateTime.Now;
+                _unitOfWork.Bookings.Update(trackedBooking);
+
+                // BR-46: Refund to customer's wallet
+                if (refundAmount > 0)
+                {
+                    var customerWallet = (await _unitOfWork.Wallets
+                        .FindAsync(w => w.UserId == booking.UserId))
+                        .FirstOrDefault();
+
+                    if (customerWallet is null)
+                        throw new NotFoundException("Customer wallet not found.");
+
+                    customerWallet.Balance += refundAmount;
+                    _unitOfWork.Wallets.Update(customerWallet);
+
+                    // Create refund transaction record
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = customerWallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = booking.Id
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex,
+                    "Refund failed for booking {BookingId} cancelled by owner {OwnerId}",
+                    bookingId, ownerId);
+                throw new BadRequestException("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.");
+            }
+
+            _logger.LogInformation(
+                "Booking {BookingId} cancelled by owner {OwnerId}. Refund 100% = {RefundAmount}. Reason: {Reason}",
+                bookingId, ownerId, refundAmount, cancelReason);
+
+            // Notify the customer
+            try
+            {
+                await _notificationService.NotifyBookingCancelledByOwnerAsync(
+                    booking.UserId, bookingId, cancelReason, refundAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to send cancellation notification for booking {BookingId} to user {UserId}",
+                    bookingId, booking.UserId);
+            }
+
+            return true;
+        }
+
+        public async Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
+
+            if (booking == null) return null;
+
+            return new OwnerBookingDetailResponse
+            {
+                BookingId = booking.Id,
+                CustomerName = booking.Fullname,
+                PhoneNumber = booking.PhoneNumber,
+                Status = booking.Status.ToString(),
+                BookingNote = booking.BookingNote,
+                TotalPrice = booking.TotalPrice,
+                CreatedAt = booking.CreatedAt,
+                BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
+                {
+                    FieldName = bd.Field?.Name ?? "N/A",
+                    PlayDate = bd.BookingDate,
+                    StartTime = bd.TimeSlot?.StartTime ?? default,
+                    EndTime = bd.TimeSlot?.EndTime ?? default,
+                    Price = bd.Price
+                }).ToList()
+            };
         }
     }
 }

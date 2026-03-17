@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +23,19 @@ namespace Fiebo.API.Services
             {
                 type = "wallet_topup",
                 amount
+            });
+
+            await _sseService.SendToUserAsync(userId, payload);
+        }
+
+        public async Task NotifyBookingCancelledByOwnerAsync(string userId, int bookingId, string reason, decimal refundAmount)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "booking_cancelled_by_owner",
+                bookingId,
+                reason,
+                refundAmount
             });
 
             await _sseService.SendToUserAsync(userId, payload);

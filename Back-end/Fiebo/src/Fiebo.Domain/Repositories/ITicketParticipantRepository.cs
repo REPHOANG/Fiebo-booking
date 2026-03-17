@@ -9,6 +9,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface ITicketParticipantRepository : IRepository<TicketParticipant>
     {
-        Task<int> GetCurrentPlayer(int eventId); 
+        Task<int> GetCurrentPlayer(int eventId);
+        Task<TicketParticipant?> GetTicketDetailAsync(int participantId);
     }
 }
