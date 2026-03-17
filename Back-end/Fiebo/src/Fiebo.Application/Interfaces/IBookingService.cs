@@ -15,6 +15,7 @@ namespace Fiebo.Application.Interfaces
         Task<string> GetCancelPreviewAsync(int bookingId, string userId);
         Task<bool> CancelBookingAsync(int bookingId, string userId);
         Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId);
+        Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);
         Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason);
     }
 }
