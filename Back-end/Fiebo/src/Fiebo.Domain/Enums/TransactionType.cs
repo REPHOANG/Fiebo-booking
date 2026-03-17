@@ -11,6 +11,7 @@ namespace Fiebo.Domain.Enums
         TopUp = 0,
         Booking = 1,
         Refund = 2,
-        Withdraw = 3
+        Withdraw = 3,
+        EventBooking = 4,
     }
 }

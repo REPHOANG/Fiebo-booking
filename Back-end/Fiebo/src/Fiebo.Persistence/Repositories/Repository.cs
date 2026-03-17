@@ -39,5 +39,10 @@ namespace Fiebo.Persistence.Repositories
         public void RemoveRange(IEnumerable<T> entities) => _dbSet.RemoveRange(entities);
 
         public void Update(T entity) => _dbSet.Update(entity);
+
+        public async Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _context.Set<T>().SingleOrDefaultAsync(predicate);
+        }
     }
 }
