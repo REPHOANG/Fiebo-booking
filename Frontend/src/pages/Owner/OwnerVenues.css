@@ -1,0 +1,63 @@
+.owner-venues-page {
+  background: #f5f7fb;
+  border-radius: 12px;
+  padding: 20px 20px 24px;
+}
+
+.ov-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ov-header h1 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.ov-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.ov-create-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #139a44;
+  color: #ffffff;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.ov-create-btn:hover {
+  background: #0f7c36;
+  transform: translateY(-1px);
+}
+
+.ov-empty {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+}
+
+.ov-empty p {
+  margin-bottom: 12px;
+  color: #4b5563;
+}
+
+.ov-create-link {
+  color: #139a44;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.ov-create-link:hover {
+  text-decoration: underline;
+}
+

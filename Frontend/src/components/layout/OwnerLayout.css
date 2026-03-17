@@ -1,0 +1,118 @@
+ .owner-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fb;
+}
+
+.owner-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.owner-header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.owner-logo {
+  font-weight: 700;
+  font-size: 18px;
+  color: #139a44;
+}
+
+.owner-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.owner-nav-link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: #64748b;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.owner-nav-link:hover {
+  background: rgba(19, 154, 68, 0.06);
+  color: #139a44;
+}
+
+.owner-nav-link.active {
+  background: rgba(19, 154, 68, 0.12);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.owner-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.owner-user-name {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.owner-home-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.owner-home-btn:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.owner-logout-btn {
+  border: none;
+  outline: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #ef4444;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.owner-logout-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.owner-main {
+  flex: 1;
+  padding: 20px 24px 32px;
+}
+
+@media (max-width: 768px) {
+  .owner-header {
+    padding: 10px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .owner-main {
+    padding: 16px 12px 24px;
+  }
+}
+

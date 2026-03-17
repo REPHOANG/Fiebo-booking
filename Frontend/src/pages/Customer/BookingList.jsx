@@ -312,7 +312,9 @@ const BookingList = () => {
                     <button type="button" className="bl-btn primary bl-btn-sm" onClick={() => handleContinuePaymentFromList(b.venueId, b.bookingId)}>Thanh toán</button>
                   )}
                   {(b.status || "").toLowerCase() === "booked" && (
-                    <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)}>Hủy</button>
+                    <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)} disabled={cancelMutation.isLoading}>
+                      {cancelMutation.isLoading ? 'Đang huỷ...' : 'Hủy'}
+                    </button>
                   )}
                   {(b.status || "").toLowerCase() === "completed" && (
                     <button type="button" className="bl-btn primary bl-btn-sm" onClick={() => handleOpenRatingFromList(b.bookingId)}>Đánh giá</button>
@@ -367,7 +369,9 @@ const BookingList = () => {
                 )}
                 <div className="bl-actions">
                   {(popupBooking.status || "").toLowerCase() === "booked" && (
-                    <button type="button" className="bl-btn danger" onClick={() => handleCancelFromList(popupBooking.bookingId ?? popupBooking.id)}>Hủy đặt sân</button>
+                    <button type="button" className="bl-btn danger" onClick={() => handleCancelFromList(popupBooking.bookingId ?? popupBooking.id)} disabled={cancelMutation.isLoading}>
+                      {cancelMutation.isLoading ? 'Đang huỷ...' : 'Hủy đặt sân'}
+                    </button>
                   )}
                   {(popupBooking.status || "").toLowerCase() === "completed" && (
                     <button type="button" className="bl-btn primary" onClick={() => { handleOpenRatingFromList(popupBooking.bookingId ?? popupBooking.id); closeDetailPopup(); }}>Đánh giá</button>

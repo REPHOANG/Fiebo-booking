@@ -15,7 +15,9 @@ import ForgotPassword from '../pages/auth/ForgotPassword';
 import VerifyOTP from '../pages/auth/VerifyOTP';
 import ProtectedRoute from './ProtectedRoute';
 import CreateVenue from '../pages/Owner/CreateVenue';
+import OwnerVenues from '../pages/Owner/OwnerVenues';
 import Layout from '../components/layout/Layout';
+import OwnerLayout from '../components/layout/OwnerLayout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
@@ -36,9 +38,19 @@ const AppRoutes = () => (
 
     <Route path="/venue/:id" element={<VenueDetail />} />
 
-    {/* Owner routes */}
-    <Route path="/owner" element={<ProtectedRoute element={<OwnerHome />} />} />
-    <Route path="/owner/create-venue" element={<ProtectedRoute element={<CreateVenue />} />} />
+    {/* Owner routes với layout riêng */}
+    <Route
+      element={
+        <ProtectedRoute
+          element={<OwnerLayout />}
+          requiredRole={"FieldOwner"}
+        />
+      }
+    >
+      <Route path="/owner" element={<OwnerHome />} />
+      <Route path="/owner/venues" element={<OwnerVenues />} />
+      <Route path="/owner/create-venue" element={<CreateVenue />} />
+    </Route>
 
     {/* Layout (Header + Footer): home, venues, booking */}
     <Route element={<Layout />}>

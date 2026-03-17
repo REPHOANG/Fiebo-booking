@@ -175,12 +175,16 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      if (isOwner) {
+      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
+      if (roleVal === 'fieldowner' || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
-      const userRole = (response.user?.role || '').toLowerCase();
-      navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
+      if (roleVal === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
+      navigate('/', { replace: true });
 
     } catch (error) {
       const msg = (error?.message || '').toLowerCase();
@@ -240,12 +244,16 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      if (isOwner) {
+      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
+      if (roleVal === 'fieldowner' || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
-      const userRole = (response.user?.role || '').toLowerCase();
-      navigate(userRole === 'admin' ? '/admin' : '/', { replace: true });
+      if (roleVal === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
+      navigate('/', { replace: true });
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Mã OTP không hợp lệ' });
       setOtp(['', '', '', '', '', '']);
@@ -326,7 +334,16 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      navigate(isOwner ? '/owner' : '/', { replace: true });
+      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
+      if (roleVal === 'fieldowner' || isOwner) {
+        navigate('/owner', { replace: true });
+        return;
+      }
+      if (roleVal === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
+      navigate('/', { replace: true });
     } catch (error) {
       setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập Google thất bại' });
     } finally {

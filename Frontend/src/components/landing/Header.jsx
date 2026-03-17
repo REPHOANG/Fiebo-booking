@@ -23,6 +23,10 @@ const Header = () => {
   // Get user from Redux
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
+  const isOwner =
+    (user?.role || user?.roles || "")
+      .toString()
+      .toLowerCase() === "fieldowner";
   
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -137,6 +141,7 @@ const Header = () => {
                   >
                     <Link to="/profile">Hồ sơ</Link>
                     <Link to="/bookings">Sân đã đặt</Link>
+                    {isOwner && <Link to="/owner/venues">Sân của tôi</Link>}
 
                     <div className="dropdown-divider" />
 
