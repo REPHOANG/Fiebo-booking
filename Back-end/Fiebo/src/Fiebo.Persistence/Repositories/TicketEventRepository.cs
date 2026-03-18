@@ -18,17 +18,20 @@ namespace Fiebo.Persistence.Repositories
 
         public async Task<TicketEvent?> GetDropInEventDetailAsync(int eventId)
         {
-            return await _context.TicketEvents
-                .AsNoTracking()
-                .AsSplitQuery()
-                .Include(te => te.Field)
-                    .ThenInclude(f => f.Venue)
-                        .ThenInclude(v => v.Province)
-                .Include(te => te.Field)
-                    .ThenInclude(f => f.Venue)
-                        .ThenInclude(v => v.Ward)
-                .Include(te => te.Slot)
-                .FirstOrDefaultAsync(te => te.EventId == eventId);
+            return await _context.TicketEvents       
+                .AsNoTracking()      
+                .AsSplitQuery()    
+                .Include(te => te.Details)       
+                .ThenInclude(d => d.Field)           
+                .ThenInclude(f => f.Venue)
+                .ThenInclude(v => v!.Province)
+                .Include(te => te.Details)
+                .ThenInclude(d => d.Field)
+                .ThenInclude(f => f.Venue)
+                .ThenInclude(v => v!.Ward)
+                .Include(te => te.Details)
+                .ThenInclude(d => d.Slot)
+                .FirstOrDefaultAsync(te => te.Id == eventId);
         }
     }
 }

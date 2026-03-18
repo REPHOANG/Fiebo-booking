@@ -234,9 +234,6 @@ namespace Fiebo.Persistence.Data
                 entity.Property(e => e.BookingId)
                       .IsRequired();
 
-                entity.Property(e => e.BookingDate)
-                      .IsRequired();
-
                 entity.Property(e => e.FieldId)
                       .IsRequired();
 
@@ -416,9 +413,9 @@ namespace Fiebo.Persistence.Data
             {
                 entity.ToTable("TicketEvent");
 
-                entity.HasKey(e => e.EventId);
+                entity.HasKey(e => e.Id);
 
-                entity.Property(e => e.EventId)
+                entity.Property(e => e.Id)
                     .ValueGeneratedOnAdd();
 
                 entity.Property(e => e.Description)
@@ -441,15 +438,10 @@ namespace Fiebo.Persistence.Data
                     .HasConversion<int>();
 
                 // Relationships
-                entity.HasOne(e => e.Field)
-                    .WithMany()
-                    .HasForeignKey(e => e.FieldId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.Slot)
-                    .WithMany()
-                    .HasForeignKey(e => e.SlotId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(e => e.Details)
+                .WithOne(d => d.Event)        
+                .HasForeignKey(d => d.EventId)        
+                .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(e => e.Participants)
                     .WithOne(p => p.Event)
@@ -461,9 +453,9 @@ namespace Fiebo.Persistence.Data
             {
                 entity.ToTable("TicketParticipant");
 
-                entity.HasKey(e => e.ParticipantId);
+                entity.HasKey(e => e.Id);
 
-                entity.Property(e => e.ParticipantId)
+                entity.Property(e => e.Id)
                     .ValueGeneratedOnAdd();
 
                 entity.Property(e => e.TicketQuantity)
@@ -479,8 +471,32 @@ namespace Fiebo.Persistence.Data
 
                 entity.HasOne(e => e.Event)
                     .WithMany(e => e.Participants)
-                    .HasForeignKey(e => e.EventId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .HasForeignKey(e => e.EventId);
+            });
+
+            // TicketEventDetail
+            modelBuilder.Entity<TicketEventDetail>(entity =>
+            {
+                entity.ToTable("TicketEventDetail");
+
+                entity.HasKey(d => d.Id);
+
+                entity.HasOne(d => d.Event)
+                    .WithMany(e => e.Details)
+                    .HasForeignKey(d => d.EventId);
+
+                entity.HasOne(d => d.Field)
+                    .WithMany()
+                    .HasForeignKey(d => d.FieldId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(d => d.Slot)
+                    .WithMany()
+                    .HasForeignKey(d => d.SlotId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(d => new { d.EventId, d.FieldId, d.SlotId })
+                    .IsUnique();
             });
         }
     }

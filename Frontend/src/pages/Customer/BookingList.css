@@ -215,8 +215,8 @@
 .bl-list-badge[data-status="booked"], .bl-badge[data-status="booked"],
 .bl-list-badge[data-status="upcoming"], .bl-badge[data-status="confirmed"] { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
 .bl-list-badge[data-status="completed"] { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.bl-list-badge[data-status="cancelled"], .bl-badge[data-status="cancelled"],
-.bl-list-badge[data-status="expired"] { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+.bl-list-badge[data-status="customercancelled"], .bl-badge[data-status="cancelled"],
+.bl-list-badge[data-status="ownercancelled"] { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 
 .bl-list-venue {
   font-size: 1.15rem;

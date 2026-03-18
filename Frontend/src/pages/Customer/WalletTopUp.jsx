@@ -127,8 +127,7 @@ const WalletTopUp = () => {
       {showPaymentInstructions ? (
         <div className="wtu-card wtu-payment-card">
           <p className="wtu-payment-intro">
-            Quét mã QR hoặc chuyển khoản theo thông tin bên dưới. Nhớ ghi đúng
-            nội dung chuyển khoản.
+            Quét mã QR hoặc chuyển khoản theo thông tin bên dưới.
           </p>
 
           {paymentInfo.qrImageUrl && (

@@ -10,7 +10,7 @@ namespace Fiebo.Application.DTOs.Wallet
     public class TopUpRequest
     {
         [Required]
-        [Range(10000, 1000000, ErrorMessage = "Amount must be between 10,000 and 1,000,000.")]
+        [Range(10000, 10000000, ErrorMessage = "Amount must be between 10,000 and 10,000,000.")]
         public decimal Amount { get; set; }
     }
 }

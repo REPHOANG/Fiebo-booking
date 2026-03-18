@@ -39,21 +39,30 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy sự kiện");
             }
-            var address = $"{eventDetail.Field.Venue?.AddressDetail}, {eventDetail.Field.Venue?.Ward?.Name}, {eventDetail.Field.Venue?.Province?.Name}";
-            var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
+            var firstDetail = eventDetail.Details.First();
+            var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}"; var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
+
+            var slots = eventDetail.Details
+                .Select(d => new TicketEventSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.Slot.StartTime,
+                    EndTime = d.Slot.EndTime
+                })
+                .OrderBy(s => s.StartTime)
+                .ToList();
+
             return new TicketEventDetailResponse
             {
-                EventId = eventDetail.EventId,
-                VenueName = eventDetail.Field.Venue?.Name ?? "",
+                EventId = eventDetail.Id,
+                VenueName = firstDetail.Field.Venue?.Name ?? "",
                 VenueAddress = address,
-                FieldName = eventDetail.Field.Name,
                 EventDate = eventDetail.EventDate,
                 Description = eventDetail.Description,
-                StartTime = eventDetail.Slot.StartTime,
-                EndTime = eventDetail.Slot.EndTime,
                 TicketPrice = eventDetail.PricePerPerson,
                 TicketQuantity = eventDetail.MaxPlayer,
-                RemainingTicketQuantity = remainingTicketQuantity
+                RemainingTicketQuantity = remainingTicketQuantity,
+                Slots = slots
             };
         }
 
@@ -68,20 +77,28 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Bạn không có quyền xem vé này");
             }
+            var slots = participant.Event.Details
+                .Select(d => new TicketEventSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.Slot.StartTime,
+                    EndTime = d.Slot.EndTime
+                })
+                .OrderBy(s => s.StartTime)
+                .ToList();
+
             return new TicketDetailResponse
             {
-                ParticipantId = participant.ParticipantId,
+                ParticipantId = participant.Id,
                 Fullname = participant.Fullname,
                 PhoneNumber = participant.PhoneNumber,
                 EventDate = participant.Event.EventDate,
-                FieldName = participant.Event.Field.Name,
-                StartTime = participant.Event.Slot.StartTime,
-                EndTime = participant.Event.Slot.EndTime,
                 TicketQuantity = participant.TicketQuantity,
                 PricePerTicket = participant.PricePerTicket,
                 TotalAmount = participant.TotalPrice,
                 Status = participant.Status.ToString(),
-                ExpiredAt = participant.ExpiredAt
+                ExpiredAt = participant.ExpiredAt,
+                Slots = slots
             };
         }
 
@@ -147,15 +164,14 @@ namespace Fiebo.Application.Services
                 _unitOfWork.TicketParticipants.Add(participant);
                 await _unitOfWork.SaveChangesAsync();
 
-                return participant.ParticipantId;
+                return participant.Id;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
                     "Error while joining drop-in event with id {EventId} for user {UserId}",
                     eventId, userId);
-
-                throw new BadRequestException("Không thể tham gia sự kiện. Vui lòng thử lại.");
+                throw;
             }
             finally
             {
@@ -206,7 +222,7 @@ namespace Fiebo.Application.Services
                     TransactionType = TransactionType.EventBooking,
                     Direction = TransactionDirection.Debit,
                     Amount = participant.TotalPrice,
-                    ReferenceId = participant.ParticipantId
+                    ReferenceId = participant.EventId
                 });
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();

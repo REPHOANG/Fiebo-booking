@@ -11,7 +11,5 @@ export const store = configureStore({
   }
 });
 
-// NOTE: Previously we persisted slices to localStorage here.
-// That behavior was removed to avoid duplicating state (Redux is the source of truth).
 
 export default store;

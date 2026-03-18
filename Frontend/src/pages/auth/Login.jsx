@@ -21,36 +21,33 @@ import './Login.css';
 const passwordSchema = yup.object({
   identifier: yup
     .string()
-    .required('Vui lòng nhập email hoặc số điện thoại')
-    .test('email-or-phone', 'Email hoặc số điện thoại không hợp lệ', (val) => {
+    .required("Vui lòng nhập email hoặc số điện thoại")
+    .test("email-or-phone", "Email hoặc số điện thoại không hợp lệ", (val) => {
       if (!val) return false;
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-      const phoneOk = /^[0-9]{9,11}$/.test(val.replace(/\D/g, ''));
+      const phoneOk = /^[0-9]{9,11}$/.test(val.replace(/\D/g, ""));
       return emailOk || phoneOk;
     }),
-  password: yup
-    .string()
-    .required('Vui lòng nhập mật khẩu'),
+  password: yup.string().required("Vui lòng nhập mật khẩu"),
 });
 
 // ── Yup schema for phone OTP login ─────────────────────────────────────────
 const phoneSchema = yup.object({
   phoneNumber: yup
     .string()
-    .required('Vui lòng nhập số điện thoại')
-    .test('is-phone', 'Số điện thoại không hợp lệ', (val) => {
+    .required("Vui lòng nhập số điện thoại")
+    .test("is-phone", "Số điện thoại không hợp lệ", (val) => {
       if (!val) return false;
-      return /^[0-9]{9,11}$/.test(val.replace(/\D/g, ''));
+      return /^[0-9]{9,11}$/.test(val.replace(/\D/g, ""));
     }),
 });
-
 
 const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   // Tab state: 'password' | 'otp'
-  const [loginMethod, setLoginMethod] = useState('password');
+  const [loginMethod, setLoginMethod] = useState("password");
 
   // Shared state
   const [showPassword, setShowPassword] = useState(false);
@@ -61,8 +58,8 @@ const Login = ({ onLoginSuccess }) => {
 
   // OTP-specific state
   const [otpSent, setOtpSent] = useState(false);
-  const [otpPhone, setOtpPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpPhone, setOtpPhone] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpTimeLeft, setOtpTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(false);
   const otpRefs = useRef([]);
@@ -75,7 +72,7 @@ const Login = ({ onLoginSuccess }) => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(passwordSchema),
-    mode: 'onTouched',
+    mode: "onTouched",
   });
 
   // Phone OTP form
@@ -85,19 +82,19 @@ const Login = ({ onLoginSuccess }) => {
     formState: { errors: phoneErrors },
   } = useForm({
     resolver: yupResolver(phoneSchema),
-    mode: 'onTouched',
+    mode: "onTouched",
   });
 
   // Load saved identifier only (không lưu mật khẩu vào localStorage)
   useEffect(() => {
     try {
       // Xóa key cũ có thể chứa mật khẩu
-      localStorage.removeItem('rememberedCredentials');
-      const saved = localStorage.getItem('rememberedIdentifier');
+      localStorage.removeItem("rememberedCredentials");
+      const saved = localStorage.getItem("rememberedIdentifier");
       if (saved) {
         const { identifier } = JSON.parse(saved);
         if (identifier) {
-          setValue('identifier', identifier);
+          setValue("identifier", identifier);
           setRememberMe(true);
         }
       }
@@ -124,8 +121,8 @@ const Login = ({ onLoginSuccess }) => {
   useEffect(() => {
     setAlertInfo(null);
     setOtpSent(false);
-    setOtpPhone('');
-    setOtp(['', '', '', '', '', '']);
+    setOtpPhone("");
+    setOtp(["", "", "", "", "", ""]);
     setOtpTimeLeft(0);
     setCanResend(false);
   }, [loginMethod]);
@@ -133,22 +130,23 @@ const Login = ({ onLoginSuccess }) => {
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
   // Detect if input is email or phone
   const detectIdentifierType = (input) => {
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) return 'email';
-    if (/^[0-9]{9,11}$/.test(input.replace(/\D/g, ''))) return 'phone';
-    return 'unknown';
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) return "email";
+    if (/^[0-9]{9,11}$/.test(input.replace(/\D/g, ""))) return "phone";
+    return "unknown";
   };
 
   // ── Password login handler ────────────────────────────────────────────────
   const onSubmit = async (data) => {
     const idType = detectIdentifierType(data.identifier);
-    const loginPayload = idType === 'email'
-      ? { email: data.identifier, password: data.password }
-      : { phone: data.identifier, password: data.password };
+    const loginPayload =
+      idType === "email"
+        ? { email: data.identifier, password: data.password }
+        : { phone: data.identifier, password: data.password };
 
     setIsLoading(true);
     setAlertInfo(null);
@@ -158,12 +156,23 @@ const Login = ({ onLoginSuccess }) => {
       dispatch(setCredentials({ user: response.user, token }));
 
       if (rememberMe) {
-        localStorage.setItem('rememberedIdentifier', JSON.stringify({
-          identifier: data.identifier,
-        }));
+        localStorage.setItem(
+          "rememberedIdentifier",
+          JSON.stringify({
+            identifier: data.identifier,
+          }),
+        );
       } else {
-        localStorage.removeItem('rememberedIdentifier');
+        localStorage.removeItem("rememberedIdentifier");
       }
+      toast.success(
+        "Đăng nhập thành công! Chào mừng " +
+          (response.user?.name || response.user?.email),
+        {
+          position: "top-right",
+          autoClose: 3000,
+        },
+      );
 
       localStorage.setItem(AUTH_STORAGE_KEY, token);
 
@@ -187,13 +196,22 @@ const Login = ({ onLoginSuccess }) => {
       navigate('/', { replace: true });
 
     } catch (error) {
-      const msg = (error?.message || '').toLowerCase();
-      if (msg.includes('invalid') || msg.includes('credentials')) {
-        setAlertInfo({ type: 'error', message: 'Email/Số điện thoại hoặc mật khẩu không chính xác' });
-      } else if (msg.includes('not found')) {
-        setAlertInfo({ type: 'error', message: 'Tài khoản không tìm thấy. Vui lòng đăng ký' });
+      const msg = (error?.message || "").toLowerCase();
+      if (msg.includes("invalid") || msg.includes("credentials")) {
+        setAlertInfo({
+          type: "error",
+          message: "Email/Số điện thoại hoặc mật khẩu không chính xác",
+        });
+      } else if (msg.includes("not found")) {
+        setAlertInfo({
+          type: "error",
+          message: "Tài khoản không tìm thấy. Vui lòng đăng ký",
+        });
       } else {
-        setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập thất bại' });
+        setAlertInfo({
+          type: "error",
+          message: error.message || "Đăng nhập thất bại",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -210,11 +228,14 @@ const Login = ({ onLoginSuccess }) => {
       setOtpSent(true);
       setOtpTimeLeft(300); // 5 minutes
       setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
-      toast.success('Mã OTP đã được gửi đến số ' + data.phoneNumber);
+      setOtp(["", "", "", "", "", ""]);
+      toast.success("Mã OTP đã được gửi đến số " + data.phoneNumber);
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (error) {
-      setAlertInfo({ type: 'error', message: error.message || 'Không thể gửi mã OTP' });
+      setAlertInfo({
+        type: "error",
+        message: error.message || "Không thể gửi mã OTP",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -222,9 +243,9 @@ const Login = ({ onLoginSuccess }) => {
 
   // ── Verify OTP and login ──────────────────────────────────────────────────
   const onVerifyOtp = async () => {
-    const otpCode = otp.join('');
+    const otpCode = otp.join("");
     if (otpCode.length !== 6) {
-      setAlertInfo({ type: 'error', message: 'Vui lòng nhập đủ 6 chữ số OTP' });
+      setAlertInfo({ type: "error", message: "Vui lòng nhập đủ 6 chữ số OTP" });
       return;
     }
 
@@ -236,11 +257,16 @@ const Login = ({ onLoginSuccess }) => {
       dispatch(setCredentials({ user: response.user, token }));
       localStorage.setItem(AUTH_STORAGE_KEY, token);
 
-      toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.phone), {
-        position: 'top-right', autoClose: 3000,
-      });
+      toast.success(
+        "Đăng nhập thành công! Chào mừng " +
+          (response.user?.name || response.user?.phone),
+        {
+          position: "top-right",
+          autoClose: 3000,
+        },
+      );
 
-      if (typeof onLoginSuccess === 'function') {
+      if (typeof onLoginSuccess === "function") {
         onLoginSuccess();
         return;
       }
@@ -255,8 +281,11 @@ const Login = ({ onLoginSuccess }) => {
       }
       navigate('/', { replace: true });
     } catch (error) {
-      setAlertInfo({ type: 'error', message: error.message || 'Mã OTP không hợp lệ' });
-      setOtp(['', '', '', '', '', '']);
+      setAlertInfo({
+        type: "error",
+        message: error.message || "Mã OTP không hợp lệ",
+      });
+      setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
     } finally {
       setIsLoading(false);
@@ -271,11 +300,11 @@ const Login = ({ onLoginSuccess }) => {
       await sendPhoneLoginOtp(otpPhone);
       setOtpTimeLeft(300);
       setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
+      setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
-      toast.info('Đã gửi lại mã OTP');
+      toast.info("Đã gửi lại mã OTP");
     } catch (error) {
-      toast.error('Không thể gửi lại mã OTP');
+      toast.error("Không thể gửi lại mã OTP");
     } finally {
       setIsLoading(false);
     }
@@ -293,18 +322,21 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
   };
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (pasted.length > 0) {
       const newOtp = [...otp];
       for (let i = 0; i < 6; i++) {
-        newOtp[i] = pasted[i] || '';
+        newOtp[i] = pasted[i] || "";
       }
       setOtp(newOtp);
       const focusIdx = Math.min(pasted.length, 5);
@@ -317,7 +349,7 @@ const Login = ({ onLoginSuccess }) => {
     try {
       const credential = credentialResponse?.credential;
       if (!credential) {
-        setAlertInfo({ type: 'error', message: 'Google credential bị thiếu' });
+        setAlertInfo({ type: "error", message: "Google credential bị thiếu" });
         return;
       }
       setIsLoading(true);
@@ -330,7 +362,7 @@ const Login = ({ onLoginSuccess }) => {
         position: 'top-right',
         autoClose: 3000,
       });
-      if (typeof onLoginSuccess === 'function') {
+      if (typeof onLoginSuccess === "function") {
         onLoginSuccess();
         return;
       }
@@ -345,14 +377,20 @@ const Login = ({ onLoginSuccess }) => {
       }
       navigate('/', { replace: true });
     } catch (error) {
-      setAlertInfo({ type: 'error', message: error.message || 'Đăng nhập Google thất bại' });
+      setAlertInfo({
+        type: "error",
+        message: error.message || "Đăng nhập Google thất bại",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    setAlertInfo({ type: 'error', message: 'Đăng nhập Google bị hủy hoặc thất bại' });
+    setAlertInfo({
+      type: "error",
+      message: "Đăng nhập Google bị hủy hoặc thất bại",
+    });
   };
 
   return (
@@ -370,7 +408,7 @@ const Login = ({ onLoginSuccess }) => {
         <button
           type="button"
           className="back-home-btn"
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           aria-label="Back to Home"
         >
           Quay lại trang chủ
@@ -392,15 +430,15 @@ const Login = ({ onLoginSuccess }) => {
         <div className="login-method-tabs">
           <button
             type="button"
-            className={`method-tab${loginMethod === 'password' ? ' active' : ''}`}
-            onClick={() => setLoginMethod('password')}
+            className={`method-tab${loginMethod === "password" ? " active" : ""}`}
+            onClick={() => setLoginMethod("password")}
           >
             Mật khẩu
           </button>
           <button
             type="button"
-            className={`method-tab${loginMethod === 'otp' ? ' active' : ''}`}
-            onClick={() => setLoginMethod('otp')}
+            className={`method-tab${loginMethod === "otp" ? " active" : ""}`}
+            onClick={() => setLoginMethod("otp")}
           >
             Mã OTP
           </button>
@@ -409,19 +447,19 @@ const Login = ({ onLoginSuccess }) => {
         {/* ── Alert ── */}
         <Collapse in={!!alertInfo}>
           {alertInfo && (
-            <Alert
-              severity={alertInfo.type}
-              
-              sx={{ mb: 2, mt: 1 }}
-            >
+            <Alert severity={alertInfo.type} sx={{ mb: 2, mt: 1 }}>
               {alertInfo.message}
             </Alert>
           )}
         </Collapse>
 
         {/* ═══════════ PASSWORD TAB ═══════════ */}
-        {loginMethod === 'password' && (
-          <form className="login-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+        {loginMethod === "password" && (
+          <form
+            className="login-form"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+          >
             <div className="form-group">
               <div className="input-group">
                 <label htmlFor="identifier">Email hoặc số điện thoại</label>
@@ -429,12 +467,14 @@ const Login = ({ onLoginSuccess }) => {
                   id="identifier"
                   type="text"
                   autoComplete="username"
-                  className={`input-field${errors.identifier ? ' input-error' : ''}`}
+                  className={`input-field${errors.identifier ? " input-error" : ""}`}
                   placeholder="Nhập email hoặc số điện thoại"
                   disabled={isLoading}
-                  {...field('identifier')}
+                  {...field("identifier")}
                 />
-                {errors.identifier && <p className="field-error">{errors.identifier.message}</p>}
+                {errors.identifier && (
+                  <p className="field-error">{errors.identifier.message}</p>
+                )}
               </div>
 
               <div className="input-group">
@@ -442,12 +482,12 @@ const Login = ({ onLoginSuccess }) => {
                 <div className="password-wrapper">
                   <input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
-                    className={`input-field${errors.password ? ' input-error' : ''}`}
+                    className={`input-field${errors.password ? " input-error" : ""}`}
                     placeholder="Nhập mật khẩu của bạn"
                     disabled={isLoading}
-                    {...field('password')}
+                    {...field("password")}
                   />
                   <button
                     type="button"
@@ -459,7 +499,9 @@ const Login = ({ onLoginSuccess }) => {
                     <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                   </button>
                 </div>
-                {errors.password && <p className="field-error">{errors.password.message}</p>}
+                {errors.password && (
+                  <p className="field-error">{errors.password.message}</p>
+                )}
               </div>
             </div>
 
@@ -492,7 +534,7 @@ const Login = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`login-btn ${isLoading ? 'loading' : ''}`}
+              className={`login-btn ${isLoading ? "loading" : ""}`}
             >
               {isLoading ? (
                 <>
@@ -509,7 +551,11 @@ const Login = ({ onLoginSuccess }) => {
             </div>
 
             <div className="google-login">
-              <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} useOneTap={false} />
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+              />
             </div>
 
             <div className="signup-prompt">
@@ -522,11 +568,15 @@ const Login = ({ onLoginSuccess }) => {
         )}
 
         {/* ═══════════ OTP TAB ═══════════ */}
-        {loginMethod === 'otp' && (
+        {loginMethod === "otp" && (
           <>
             {!otpSent ? (
               /* ── Step 1: Enter phone number ── */
-              <form className="login-form" onSubmit={handlePhoneSubmit(onSendOtp)} noValidate>
+              <form
+                className="login-form"
+                onSubmit={handlePhoneSubmit(onSendOtp)}
+                noValidate
+              >
                 <div className="form-group">
                   <div className="input-group">
                     <label htmlFor="phoneNumber">Số điện thoại</label>
@@ -534,13 +584,15 @@ const Login = ({ onLoginSuccess }) => {
                       id="phoneNumber"
                       type="tel"
                       autoComplete="tel"
-                      className={`input-field${phoneErrors.phoneNumber ? ' input-error' : ''}`}
+                      className={`input-field${phoneErrors.phoneNumber ? " input-error" : ""}`}
                       placeholder="Nhập số điện thoại của bạn"
                       disabled={isLoading}
-                      {...phoneField('phoneNumber')}
+                      {...phoneField("phoneNumber")}
                     />
                     {phoneErrors.phoneNumber && (
-                      <p className="field-error">{phoneErrors.phoneNumber.message}</p>
+                      <p className="field-error">
+                        {phoneErrors.phoneNumber.message}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -548,7 +600,7 @@ const Login = ({ onLoginSuccess }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`login-btn ${isLoading ? 'loading' : ''}`}
+                  className={`login-btn ${isLoading ? "loading" : ""}`}
                 >
                   {isLoading ? (
                     <>
@@ -565,7 +617,11 @@ const Login = ({ onLoginSuccess }) => {
                 </div>
 
                 <div className="google-login">
-                  <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} useOneTap={false} />
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap={false}
+                  />
                 </div>
 
                 <div className="signup-prompt">
@@ -580,13 +636,17 @@ const Login = ({ onLoginSuccess }) => {
               <div className="login-form">
                 <div className="otp-login-header">
                   <p className="otp-login-subtitle">
-                    Nhập mã 6 chữ số đã gửi đến<br />
+                    Nhập mã 6 chữ số đã gửi đến
+                    <br />
                     <strong>{otpPhone}</strong>
                   </p>
                   <button
                     type="button"
                     className="change-phone-btn"
-                    onClick={() => { setOtpSent(false); setAlertInfo(null); }}
+                    onClick={() => {
+                      setOtpSent(false);
+                      setAlertInfo(null);
+                    }}
                     disabled={isLoading}
                   >
                     Đổi số
@@ -613,10 +673,15 @@ const Login = ({ onLoginSuccess }) => {
 
                 <div className="otp-login-timer">
                   {otpTimeLeft > 0 ? (
-                    <span>Mã hết hạn sau: <strong className="timer-text">{formatTime(otpTimeLeft)}</strong></span>
+                    <span>
+                      Mã hết hạn sau:{" "}
+                      <strong className="timer-text">
+                        {formatTime(otpTimeLeft)}
+                      </strong>
+                    </span>
                   ) : (
                     <span>
-                      Mã đã hết hạn.{' '}
+                      Mã đã hết hạn.{" "}
                       <button
                         type="button"
                         className="resend-otp-btn"
@@ -633,7 +698,11 @@ const Login = ({ onLoginSuccess }) => {
                       className="resend-otp-btn"
                       onClick={handleResendOtp}
                       disabled={!canResend || isLoading}
-                      style={{ opacity: 0.4, cursor: 'not-allowed', marginLeft: 8 }}
+                      style={{
+                        opacity: 0.4,
+                        cursor: "not-allowed",
+                        marginLeft: 8,
+                      }}
                     >
                       Gửi lại
                     </button>
@@ -642,8 +711,8 @@ const Login = ({ onLoginSuccess }) => {
 
                 <button
                   type="button"
-                  disabled={isLoading || otp.join('').length !== 6}
-                  className={`login-btn ${isLoading ? 'loading' : ''}`}
+                  disabled={isLoading || otp.join("").length !== 6}
+                  className={`login-btn ${isLoading ? "loading" : ""}`}
                   onClick={onVerifyOtp}
                 >
                   {isLoading ? (
