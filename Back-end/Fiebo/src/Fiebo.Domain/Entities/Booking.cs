@@ -12,6 +12,8 @@ namespace Fiebo.Domain.Entities
         public required string UserId { get; set; }
         public required string Fullname { get; set; }
         public required string PhoneNumber { get; set; }
+        public DateOnly BookingDate { get; set; }
+
         public string? BookingNote { get; set; }
         public int VenueId { get; set; }
         public BookingType BookingType { get; set; }

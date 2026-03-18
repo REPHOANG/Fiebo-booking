@@ -30,6 +30,9 @@ namespace Fiebo.Persistence.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateOnly>("BookingDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("BookingNote")
                         .HasColumnType("longtext");
 
@@ -86,9 +89,6 @@ namespace Fiebo.Persistence.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateOnly>("BookingDate")
-                        .HasColumnType("date");
 
                     b.Property<int>("BookingId")
                         .HasColumnType("int");
@@ -324,11 +324,11 @@ namespace Fiebo.Persistence.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
                 {
-                    b.Property<int>("EventId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EventId"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -339,9 +339,6 @@ namespace Fiebo.Persistence.Migrations
 
                     b.Property<DateOnly>("EventDate")
                         .HasColumnType("date");
-
-                    b.Property<int>("FieldId")
-                        .HasColumnType("int");
 
                     b.Property<int>("MaxPlayer")
                         .HasColumnType("int");
@@ -356,28 +353,50 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<decimal>("PricePerPerson")
                         .HasColumnType("decimal(12,2)");
 
-                    b.Property<int>("SlotId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.HasKey("EventId");
+                    b.HasKey("Id");
+
+                    b.ToTable("TicketEvent", (string)null);
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.TicketEventDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FieldId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SlotId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("FieldId");
 
                     b.HasIndex("SlotId");
 
-                    b.ToTable("TicketEvent", (string)null);
+                    b.HasIndex("EventId", "FieldId", "SlotId")
+                        .IsUnique();
+
+                    b.ToTable("TicketEventDetail", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketParticipant", b =>
                 {
-                    b.Property<int>("ParticipantId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ParticipantId"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("EventId")
                         .HasColumnType("int");
@@ -414,7 +433,7 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.HasKey("ParticipantId");
+                    b.HasKey("Id");
 
                     b.HasIndex("EventId");
 
@@ -953,8 +972,14 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("Review");
                 });
 
-            modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
+            modelBuilder.Entity("Fiebo.Domain.Entities.TicketEventDetail", b =>
                 {
+                    b.HasOne("Fiebo.Domain.Entities.TicketEvent", "Event")
+                        .WithMany("Details")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Fiebo.Domain.Entities.Field", "Field")
                         .WithMany()
                         .HasForeignKey("FieldId")
@@ -966,6 +991,8 @@ namespace Fiebo.Persistence.Migrations
                         .HasForeignKey("SlotId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Event");
 
                     b.Navigation("Field");
 
@@ -1149,6 +1176,8 @@ namespace Fiebo.Persistence.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
                 {
+                    b.Navigation("Details");
+
                     b.Navigation("Participants");
                 });
 

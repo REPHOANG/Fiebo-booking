@@ -247,6 +247,7 @@ namespace Fiebo.Application.Services
                     VenueId = request.VenueId,
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
+                    BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.Online,
                     ExpiredAt = expiredAt,
@@ -271,7 +272,6 @@ namespace Fiebo.Application.Services
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        BookingDate = request.BookingDate,
                         Price = price
                     });
                 }
@@ -320,7 +320,7 @@ namespace Fiebo.Application.Services
                 ExpiredAt = booking.ExpiredAt,
                 VenueId = booking.VenueId,
                 VenueName = booking.Venue.Name,
-                Date = booking.BookingDetails.First().BookingDate,
+                Date = booking.BookingDate,
                 TotalPrice = booking.TotalPrice,
                 Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
                 {
@@ -413,6 +413,7 @@ namespace Fiebo.Application.Services
                     VenueId = request.VenueId,
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
+                    BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.WalkIn,
                     Status = BookingStatus.Booked
@@ -436,7 +437,6 @@ namespace Fiebo.Application.Services
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        BookingDate = request.BookingDate,
                         Price = price
                     });
                 }
@@ -572,11 +572,10 @@ namespace Fiebo.Application.Services
         private static DateTime GetBookingStartTime(Booking booking)
         {
             var earliestDetail = booking.BookingDetails
-                .OrderBy(d => d.BookingDate)
-                .ThenBy(d => d.TimeSlot!.StartTime)
+                .OrderBy(d => d.TimeSlot!.StartTime)
                 .First();
 
-            return earliestDetail.BookingDate
+            return booking.BookingDate
                 .ToDateTime(earliestDetail.TimeSlot!.StartTime);
         }
 

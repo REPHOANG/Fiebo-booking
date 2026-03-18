@@ -25,9 +25,6 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Nếu lỗi 401 và là lỗi hết hạn
-
-
-    // Các lỗi khác
     if (
       error.response &&
       error.response.status === 401 &&

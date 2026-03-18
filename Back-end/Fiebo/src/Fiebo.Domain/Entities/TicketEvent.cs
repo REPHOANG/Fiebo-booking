@@ -9,11 +9,7 @@ namespace Fiebo.Domain.Entities
 {
     public class TicketEvent
     {
-        public int EventId { get; set; }
-
-        public int FieldId { get; set; }
-        public int SlotId { get; set; }
-
+        public int Id { get; set; }
         public string? Description { get; set; }
 
         public DateOnly EventDate { get; set; }
@@ -30,9 +26,7 @@ namespace Fiebo.Domain.Entities
         public TicketEventStatus Status { get; set; }
 
         // Navigation
-        public Field Field { get; set; } = null!;
-        public TimeSlot Slot { get; set; } = null!;
-
+        public ICollection<TicketEventDetail> Details { get; set; } = [];
         public ICollection<TicketParticipant> Participants { get; set; } = [];
     }
 }

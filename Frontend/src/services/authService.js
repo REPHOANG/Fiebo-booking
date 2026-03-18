@@ -240,18 +240,7 @@ export const loginWithGoogle = async (credential) => {
       throw { message: 'No token in Google login response' };
     }
 
-    // Decode JWT to extract user info
-    const decodedToken = decodeJWT(token);
-
     return {
-      user: {
-        id: decodedToken?.sub || decodedToken?.userId || 'unknown',
-        email: decodedToken?.email || '',
-        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || '',
-        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
-        status: decodedToken?.status || 'active',
-      },
-      accessToken: token,
       token: token,
     };
   } catch (error) {

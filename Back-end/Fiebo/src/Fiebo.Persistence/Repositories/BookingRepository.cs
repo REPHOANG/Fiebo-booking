@@ -26,23 +26,23 @@ namespace Fiebo.Persistence.Repositories
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Field)
                         .ThenInclude(f => f.Venue)
-                            .ThenInclude(v => v.Province)
+                            .ThenInclude(v => v!.Province)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Field)
                         .ThenInclude(f => f.Venue)
-                            .ThenInclude(v => v.Ward)
+                            .ThenInclude(v => v!.Ward)
                 .Where(b => b.UserId == userId);
 
             if (parameters.FromDate.HasValue)
             {
                 var fromDateOnly = DateOnly.FromDateTime(parameters.FromDate.Value);
-                query = query.Where(b => b.BookingDetails.Any(bd => bd.BookingDate >= fromDateOnly));
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.Booking.BookingDate >= fromDateOnly));
             }
 
             if (parameters.ToDate.HasValue)
             {
                 var toDateOnly = DateOnly.FromDateTime(parameters.ToDate.Value);
-                query = query.Where(b => b.BookingDetails.Any(bd => bd.BookingDate <= toDateOnly));
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.Booking.BookingDate <= toDateOnly));
             }
 
             var totalItems = await query.CountAsync();
