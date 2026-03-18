@@ -1,0 +1,83 @@
+.pay-page {
+  padding: 20px;
+}
+
+.pay-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  padding: 18px;
+  max-width: 560px;
+}
+
+.pay-title {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.pay-sub {
+  margin: 0 0 16px 0;
+  color: #64748b;
+}
+
+.pay-form {
+  display: grid;
+  gap: 10px;
+}
+
+.pay-label {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.pay-select {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.pay-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pay-primary {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #139a44;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.pay-primary:hover {
+  background: #0f7c36;
+  transform: translateY(-1px);
+}
+
+.pay-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pay-secondary {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.pay-secondary:hover {
+  background: #d1d5db;
+}
+

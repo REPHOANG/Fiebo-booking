@@ -1,10 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Heart, Share2, TrendingUp } from "lucide-react";
+import BookingTypeModal from "../../../components/common/BookingTypeModal/BookingTypeModal";
+import { useState } from "react";
 
 // ── Venue card component ──
 export const VenueCard = ({ venue, isAuthenticated }) => {
   const navigate = useNavigate();
+  const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
   return (
     <div
       className="ch-venue-card"
@@ -49,16 +52,27 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
             <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
           </p>
         </div>
-        <button
-          className="ch-book-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isAuthenticated) navigate("/login");
-            else navigate(`/venue/${venue.id}`);
-          }}
-        >
-          ĐẶT LỊCH
-        </button>
+        <>
+          <button
+            className="ch-book-btn"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isAuthenticated) navigate("/login");
+              else setShowBookingTypeModal(true);
+            }}
+          >
+            ĐẶT LỊCH
+          </button>
+          <BookingTypeModal
+            open={showBookingTypeModal}
+            onClose={() => setShowBookingTypeModal(false)}
+            venueId={venue.id}
+            onSelectRegular={() => { /* no-op; BookingSchedule will handle draft */ }}
+            onSelectEvent={() => { /* no-op */ }}
+          />
+        </>
       </div>
     </div>
   );

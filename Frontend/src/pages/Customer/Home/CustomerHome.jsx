@@ -159,10 +159,13 @@ const CustomerHome = () => {
             ) : (
               nearbyVenues.map((v) => {
                 const venue = mapVenue(v);
-                return <VenueCard key={venue.id} 
-                venue={venue} 
-                isAuthenticated={isAuthenticated}
-                navigate={navigate} />;
+                return (
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    isAuthenticated={isAuthenticated}
+                  />
+                );
               })
             )}
           </div>
@@ -188,7 +191,13 @@ const CustomerHome = () => {
             ) : (
               popularVenues.map((v) => {
                 const venue = mapVenue(v);
-                return <VenueCard key={venue.id} venue={venue} />;
+                return (
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    isAuthenticated={isAuthenticated}
+                  />
+                );
               })
             )}
           </div>

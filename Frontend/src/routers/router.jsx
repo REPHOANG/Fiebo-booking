@@ -5,6 +5,7 @@ import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
 import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
 import BookingPayment from '../pages/Customer/Booking/BookingPayment';
+import EventBooking from '../pages/Customer/Booking/EventBooking';
 import Login from '../pages/auth/Login';
 import OwnerLogin from '../pages/auth/OwnerLogin';
 import OwnerHome from '../pages/Owner/OwnerHome';
@@ -16,6 +17,9 @@ import VerifyOTP from '../pages/auth/VerifyOTP';
 import ProtectedRoute from './ProtectedRoute';
 import CreateVenue from '../pages/Owner/CreateVenue';
 import OwnerVenues from '../pages/Owner/OwnerVenues';
+import EventDetail from '../pages/Event/EventDetail';
+import EventTicketDetail from '../pages/Event/EventTicketDetail';
+import EventTicketPayment from '../pages/Event/EventTicketPayment';
 import Layout from '../components/layout/Layout';
 import OwnerLayout from '../components/layout/OwnerLayout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
@@ -38,6 +42,11 @@ const AppRoutes = () => (
 
     <Route path="/venue/:id" element={<VenueDetail />} />
 
+    {/* Event routes (require login) */}
+    <Route path="/event/:id" element={<ProtectedRoute element={<EventDetail />} />} />
+    <Route path="/event/ticket/:id" element={<ProtectedRoute element={<EventTicketDetail />} />} />
+    <Route path="/event/ticket/:id/payment" element={<ProtectedRoute element={<EventTicketPayment />} />} />
+
     {/* Owner routes với layout riêng */}
     <Route
       element={
@@ -56,6 +65,7 @@ const AppRoutes = () => (
     <Route element={<Layout />}>
       <Route path="/" element={<CustomerHome />} />
       <Route path="/venue/:id/booking" element={<BookingSchedule />} />
+      <Route path="/venue/:id/social-session" element={<ProtectedRoute element={<EventBooking />} />} />
       <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
       <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
       <Route path="/wallet/top-up" element={<ProtectedRoute element={<WalletTopUp />} />} />

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/landing/Header";
+import BookingTypeModal from "../../components/common/BookingTypeModal/BookingTypeModal";
 import { getVenueDetail, getVenueFields, getVenueReviews } from "../../services/fieldService";
 import "./VenueDetail.css";
 import { clearDraft } from '../../store/bookingDraftSlice';
@@ -302,6 +303,7 @@ const VenueDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
 
   // Fetch venue detail + fields + reviews on mount
   useEffect(() => {
@@ -473,8 +475,8 @@ const VenueDetail = () => {
           <button
             className="vd-booking-btn"
             onClick={() => {
-              try { dispatch(clearDraft(String(id))); } catch (e) {}
-              navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`, { state: { forceReload: true } });
+              if (!isAuthenticated) { navigate('/login'); return; }
+              setShowBookingTypeModal(true);
             }}
           >
             <Calendar size={18} />
@@ -484,6 +486,13 @@ const VenueDetail = () => {
       </div>
 
       {/* <Footer /> */}
+      <BookingTypeModal
+        open={showBookingTypeModal}
+        onClose={() => setShowBookingTypeModal(false)}
+        venueId={id}
+        onSelectRegular={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
+        onSelectEvent={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
+      />
     </div>
   );
 };
