@@ -1,0 +1,355 @@
+.ev-screen {
+  min-height: 100%;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 60%);
+  padding: 18px 16px 120px;
+}
+
+.ev-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 14px;
+  background: radial-gradient(800px 180px at 50% 0%, rgba(34, 197, 94, 0.22), transparent 60%);
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+
+.ev-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ev-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ev-search {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.ev-search input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ev-filter {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ev-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ev-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.ev-image {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.ev-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.02);
+}
+
+.ev-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.ev-badge {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ev-badge.event {
+  background: rgba(236, 253, 245, 0.92);
+  border-color: rgba(16, 185, 129, 0.20);
+  color: #065f46;
+}
+
+.ev-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.ev-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.50);
+  background: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ev-body {
+  padding: 12px 12px 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.ev-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ev-name {
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  font-size: 14px;
+}
+
+.ev-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.ev-subline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ev-price-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.60);
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ev-joined-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  font-size: 12px;
+  font-weight: 800;
+  color: #065f46;
+}
+
+.ev-sessions {
+  display: grid;
+  gap: 8px;
+}
+
+.ev-session {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ev-session-left {
+  display: grid;
+  gap: 2px;
+}
+
+.ev-session-time {
+  font-weight: 900;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.ev-session-level {
+  font-size: 12px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.ev-session-right {
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+
+.ev-session-date {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  opacity: 0.75;
+}
+
+.ev-session-join {
+  font-size: 12px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.ev-book {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+}
+
+.ev-loading {
+  grid-column: 1 / -1;
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.ev-bottom-space {
+  height: 10px;
+}
+
+@media (max-width: 1100px) {
+  .ev-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ev-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.events-page {
+  padding: 18px 16px 30px;
+}
+
+.events-hero {
+  background: linear-gradient(135deg, rgba(19, 154, 68, 0.12), rgba(59, 130, 246, 0.10));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
+  padding: 18px 16px;
+  margin-bottom: 14px;
+}
+
+.events-hero h1 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.events-hero p {
+  margin: 0;
+  color: #475569;
+}
+
+.events-list {
+  display: grid;
+  gap: 12px;
+}
+
+.events-card {
+  text-decoration: none;
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.events-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
+}
+
+.events-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.events-title {
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.events-date {
+  font-weight: 700;
+  color: #0f172a;
+  opacity: 0.8;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.events-sub {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+

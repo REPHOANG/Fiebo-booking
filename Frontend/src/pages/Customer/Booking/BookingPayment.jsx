@@ -558,7 +558,7 @@ const BookingPayment = () => {
               </button>
               <button
                 className="bp-back-link secondary"
-                onClick={() => navigate(`/venue/${id}/booking`)}
+                onClick={() => navigate(`/venue/${id}?book=1`)}
               >
                 Đặt sân mới
               </button>

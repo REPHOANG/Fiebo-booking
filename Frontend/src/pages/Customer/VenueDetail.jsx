@@ -292,6 +292,7 @@ const VenueDetail = () => {
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
   const prefillTime = searchParams.get('time') || '';
+  const openBookingModal = searchParams.get('book') === '1';
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [venue, setVenue] = useState(null);
@@ -330,6 +331,13 @@ const VenueDetail = () => {
     };
     fetchData();
   }, [id]);
+
+  // Open booking type modal when navigated with ?book=1
+  useEffect(() => {
+    if (!openBookingModal) return;
+    if (!isAuthenticated) return;
+    setShowBookingTypeModal(true);
+  }, [openBookingModal, isAuthenticated]);
 
   // Load more reviews
   const loadMoreReviews = async () => {

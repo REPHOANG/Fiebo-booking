@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { getEventById, joinEvent } from "../../services/eventService";
 import "./EventDetail.css";
@@ -13,6 +14,10 @@ const EventDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [event, setEvent] = useState(null);
   const [error, setError] = useState(null);
+  const user = useSelector((s) => s.auth?.user);
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [ticketQuantity, setTicketQuantity] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,11 +39,40 @@ const EventDetail = () => {
     };
   }, [eventId]);
 
+  useEffect(() => {
+    // Prefill from profile when available
+    const nextName = user?.name || user?.fullName || "";
+    const nextPhone = user?.phone || user?.phoneNumber || "";
+    if (nextName && !fullName) setFullName(nextName);
+    if (nextPhone && !phoneNumber) setPhoneNumber(nextPhone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const handleJoin = async () => {
     if (!eventId) return;
     setSubmitting(true);
     try {
-      const result = await joinEvent(eventId);
+      const qty = Number(ticketQuantity);
+      const payload = {
+        fullName: String(fullName || "").trim(),
+        phoneNumber: String(phoneNumber || "").trim(),
+        ticketQuantity: Number.isFinite(qty) ? qty : 1,
+      };
+
+      if (!payload.fullName) {
+        toast.warning("Vui lòng nhập họ tên");
+        return;
+      }
+      if (!payload.phoneNumber) {
+        toast.warning("Vui lòng nhập số điện thoại");
+        return;
+      }
+      if (!payload.ticketQuantity || payload.ticketQuantity < 1) {
+        toast.warning("Số lượng vé phải >= 1");
+        return;
+      }
+
+      const result = await joinEvent(eventId, payload);
       const ticketId = result?.ticketId ?? result?.id ?? result?.data?.ticketId;
       toast.success("Tham gia sự kiện thành công!");
       if (ticketId) {
@@ -66,9 +100,39 @@ const EventDetail = () => {
             </div>
           </div>
           <div className="event-actions">
-            <button className="event-primary" onClick={handleJoin} disabled={submitting}>
-              {submitting ? "Đang xử lý..." : "Tham gia (Join)"}
-            </button>
+            <div className="event-join">
+              <div className="event-form">
+                <div className="event-field">
+                  <label>Họ tên</label>
+                  <input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Nguyễn Văn A"
+                  />
+                </div>
+                <div className="event-field">
+                  <label>Số điện thoại</label>
+                  <input
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="09xxxxxxxx"
+                  />
+                </div>
+                <div className="event-field">
+                  <label>Số lượng vé</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={ticketQuantity}
+                    onChange={(e) => setTicketQuantity(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button className="event-primary" onClick={handleJoin} disabled={submitting}>
+                {submitting ? "Đang xử lý..." : "Tham gia (Join)"}
+              </button>
+            </div>
             <Link className="event-secondary" to="/">
               Về trang chủ
             </Link>

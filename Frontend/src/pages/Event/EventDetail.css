@@ -38,6 +38,44 @@
   gap: 10px;
 }
 
+.event-join {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.event-form {
+  display: grid;
+  grid-template-columns: 220px 180px 130px;
+  gap: 10px;
+  align-items: end;
+}
+
+.event-field {
+  display: grid;
+  gap: 6px;
+}
+
+.event-field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.event-field input {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.event-field input:focus {
+  border-color: rgba(19, 154, 68, 0.35);
+  box-shadow: 0 0 0 4px rgba(19, 154, 68, 0.10);
+}
+
 .event-primary {
   border: none;
   border-radius: 999px;
@@ -94,6 +132,10 @@
   .event-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+  .event-form {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 }
 

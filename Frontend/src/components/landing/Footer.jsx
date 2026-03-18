@@ -45,7 +45,7 @@ const Footer = () => {
           <ul className="ft-links">
             <li><Link to="/"><ChevronRight size={14} /> Trang chủ</Link></li>
             <li><Link to="/venues"><ChevronRight size={14} /> Danh sách sân</Link></li>
-            <li><Link to="/about"><ChevronRight size={14} /> Về chúng tôi</Link></li>
+            <li><Link to="/events"><ChevronRight size={14} /> Sự kiện</Link></li>
             <li><Link to="/faq"><ChevronRight size={14} /> Câu hỏi thường gặp</Link></li>
           </ul>
         </div>

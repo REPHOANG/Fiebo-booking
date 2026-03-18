@@ -92,7 +92,7 @@ const Header = () => {
             <NavLink to="/map">Bản đồ</NavLink>
             <NavLink to="/discover">Khám phá</NavLink>
             <NavLink to="/featured">Nổi bật</NavLink>
-            <NavLink to="/about">About</NavLink>
+            <NavLink to="/events">Sự kiện</NavLink>
             <NavLink to="/contact">Contact</NavLink>
           </nav>
         </div>
@@ -217,7 +217,7 @@ const Header = () => {
         <nav className="menu-mobile">
           <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
           <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
-          <Link to="/about" onClick={() => setIsMenuOpen(false)}>Về chúng tôi</Link>
+          <Link to="/events" onClick={() => setIsMenuOpen(false)}>Sự kiện</Link>
           <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link>
         </nav>
       )}
