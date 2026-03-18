@@ -176,6 +176,28 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// UC-59: Field Owner cancels a customer's booking with 100% refund.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("{id}/owner-cancel")]
+        public async Task<IActionResult> OwnerCancelBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            await _bookingService.OwnerCancelBookingAsync(id, ownerId, request.CancelReason);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Hủy lịch đặt thành công. Hệ thống đã hoàn tiền cho khách hàng."
+            });
+        }
+
         [Authorize(Roles = AppRoles.FieldStaff + "," + AppRoles.FieldOwner)]
         [HttpPost("walk-in")]
         public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)

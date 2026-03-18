@@ -20,6 +20,7 @@ namespace Fiebo.Application.Services
         private readonly IIdentityService _identityService;
         private readonly ITokenService _tokenService;
         private readonly ICacheService _cacheService;
+        private readonly INotificationService _notificationService;
 
         private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
 
@@ -30,7 +31,8 @@ namespace Fiebo.Application.Services
             ILogger<BookingService> logger,
             IIdentityService identityService,
             ITokenService tokenService,
-            ICacheService cacheService
+            ICacheService cacheService,
+            INotificationService notificationService
             )
         {
             _unitOfWork = unitOfWork;
@@ -40,6 +42,7 @@ namespace Fiebo.Application.Services
             _identityService = identityService;
             _tokenService = tokenService;
             _cacheService = cacheService;
+            _notificationService = notificationService;
         }
 
         public async Task<BookingPaymentResponse> MakeBookingPaymentAsync(int bookingId, string userId)
@@ -593,6 +596,131 @@ namespace Fiebo.Application.Services
                 return 50;
 
             return 0;
+        }
+
+        // ================================================================
+        //   UC-59: Owner Cancel Booking
+        // ================================================================
+
+        public async Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason)
+        {
+            // 1. Load booking with details and venue
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Booking not found.");
+
+            // BR-43: Only the owner of the venue can cancel
+            if (booking.Venue.OwnerId != ownerId)
+                throw new UnauthorizedAccessException("Bạn không có quyền hủy booking này.");
+
+            // E1: Booking must be in Booked status
+            if (booking.Status != BookingStatus.Booked)
+                throw new BadRequestException("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.");
+
+            // BR-44: Can only cancel before the booking start time
+            var bookingStartTime = GetBookingStartTime(booking);
+            if (DateTime.Now >= bookingStartTime)
+                throw new BadRequestException("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.");
+
+            // BR-45: 100% refund
+            var refundAmount = booking.TotalPrice;
+
+            // Reload tracked entity for updates
+            var trackedBooking = (await _unitOfWork.Bookings
+                .FindAsync(b => b.Id == bookingId))
+                .FirstOrDefault()!;
+
+            // E2: Refund transaction with rollback on failure
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // Update booking status + reason
+                trackedBooking.Status = BookingStatus.OwnerCancelled;
+                trackedBooking.CancelReason = cancelReason;
+                trackedBooking.UpdatedAt = DateTime.Now;
+                _unitOfWork.Bookings.Update(trackedBooking);
+
+                // BR-46: Refund to customer's wallet
+                if (refundAmount > 0)
+                {
+                    var customerWallet = (await _unitOfWork.Wallets
+                        .FindAsync(w => w.UserId == booking.UserId))
+                        .FirstOrDefault();
+
+                    if (customerWallet is null)
+                        throw new NotFoundException("Customer wallet not found.");
+
+                    customerWallet.Balance += refundAmount;
+                    _unitOfWork.Wallets.Update(customerWallet);
+
+                    // Create refund transaction record
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = customerWallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = booking.Id
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex,
+                    "Refund failed for booking {BookingId} cancelled by owner {OwnerId}",
+                    bookingId, ownerId);
+                throw new BadRequestException("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.");
+            }
+
+            _logger.LogInformation(
+                "Booking {BookingId} cancelled by owner {OwnerId}. Refund 100% = {RefundAmount}. Reason: {Reason}",
+                bookingId, ownerId, refundAmount, cancelReason);
+
+            // Notify the customer
+            try
+            {
+                await _notificationService.NotifyBookingCancelledByOwnerAsync(
+                    booking.UserId, bookingId, cancelReason, refundAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to send cancellation notification for booking {BookingId} to user {UserId}",
+                    bookingId, booking.UserId);
+            }
+
+            return true;
+        }
+
+        public async Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
+
+            if (booking == null) return null;
+
+            return new OwnerBookingDetailResponse
+            {
+                BookingId = booking.Id,
+                CustomerName = booking.Fullname,
+                PhoneNumber = booking.PhoneNumber,
+                Status = booking.Status.ToString(),
+                BookingNote = booking.BookingNote,
+                TotalPrice = booking.TotalPrice,
+                CreatedAt = booking.CreatedAt,
+                BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
+                {
+                    FieldName = bd.Field?.Name ?? "N/A",
+                    PlayDate = bd.BookingDate,
+                    StartTime = bd.TimeSlot?.StartTime ?? default,
+                    EndTime = bd.TimeSlot?.EndTime ?? default,
+                    Price = bd.Price
+                }).ToList()
+            };
         }
     }
 }
