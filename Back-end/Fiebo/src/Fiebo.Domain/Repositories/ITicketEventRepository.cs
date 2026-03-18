@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +10,6 @@ namespace Fiebo.Domain.Repositories
     public interface ITicketEventRepository : IRepository<TicketEvent>
     {
         Task<TicketEvent?> GetDropInEventDetailAsync(int eventId);
+        Task<List<TicketEvent>> GetPendingEventsAsync();
     }
 }

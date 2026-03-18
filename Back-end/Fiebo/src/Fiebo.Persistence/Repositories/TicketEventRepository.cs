@@ -1,12 +1,8 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Persistence.Repositories
 {
@@ -32,6 +28,22 @@ namespace Fiebo.Persistence.Repositories
                 .Include(te => te.Details)
                 .ThenInclude(d => d.Slot)
                 .FirstOrDefaultAsync(te => te.Id == eventId);
+        }
+
+        public async Task<List<TicketEvent>> GetPendingEventsAsync()
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(te => te.Status == TicketEventStatus.Pending)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Field)
+                        .ThenInclude(f => f.Venue)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(te => te.Participants)
+                .OrderBy(te => te.EventDate)
+                .ToListAsync();
         }
     }
 }

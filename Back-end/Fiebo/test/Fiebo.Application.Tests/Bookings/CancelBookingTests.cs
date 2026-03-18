@@ -77,7 +77,6 @@ namespace Fiebo.Application.Tests.Bookings
 
             var detail = new BookingDetail
             {
-                BookingDate = DateOnly.FromDateTime(DateTime.Now.AddDays(2)),
                 TimeSlot = new TimeSlot
                 {
                     StartTime = new TimeOnly(8, 0, 0)
@@ -99,7 +98,7 @@ namespace Fiebo.Application.Tests.Bookings
             var result = await _service.CancelBookingAsync(1, "user1");
 
             Assert.True(result);
-            Assert.Equal(BookingStatus.Cancelled, booking.Status);
+            Assert.Equal(BookingStatus.CustomerCancelled, booking.Status);
 
             _bookingRepo.Verify(x => x.Update(booking), Times.Once);
             _walletRepo.Verify(x => x.Update(wallet), Times.Once);

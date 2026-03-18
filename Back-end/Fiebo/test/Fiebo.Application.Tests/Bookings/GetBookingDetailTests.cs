@@ -96,11 +96,11 @@ namespace Fiebo.Application.Tests.Bookings
                     OwnerId = "owner1"
                 },
                 TotalPrice = 500000,
+                BookingDate = new DateOnly(2026,1,1),
                 BookingDetails = new List<BookingDetail>
                 {
                     new BookingDetail
                     {
-                        BookingDate = new DateOnly(2026,1,1),
                         Field = new Field
                         {
                             Name = "Field A"

@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Services;
+using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
@@ -41,7 +41,7 @@ namespace Fiebo.Application.Tests.Wallets
                 Id = 1,
                 UserId = "user1",
                 Balance = 500,
-                WalletTransactions = [],
+                Transactions = [],
                 TopUpRequests = []
             };
 

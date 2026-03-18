@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Event;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -18,6 +18,23 @@ namespace Fiebo.API.Controllers
         public EventController(IEventService eventService)
         {
             _eventService = eventService;
+        }
+
+        /// <summary>
+        /// Get list of available drop-in events (Pending status).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetDropInEventList()
+        {
+            var events = await _eventService.GetDropInEventListAsync();
+            return Ok(new ApiResponse<List<DropInEventListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = events.Count > 0
+                    ? "Lấy danh sách sự kiện thành công."
+                    : "Hiện tại chưa có sự kiện nào.",
+                Data = events
+            });
         }
 
         /// <summary>

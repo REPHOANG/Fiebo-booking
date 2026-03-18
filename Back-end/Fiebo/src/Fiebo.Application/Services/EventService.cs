@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.Event;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
@@ -24,6 +24,36 @@ namespace Fiebo.Application.Services
             _unitOfWork = unitOfWork;
             _logger = logger;
             _cacheService = cacheService;
+        }
+
+        public async Task<List<DropInEventListItemResponse>> GetDropInEventListAsync()
+        {
+            var events = await _unitOfWork.TicketEvents.GetPendingEventsAsync();
+
+            return events.Select(e =>
+            {
+                var firstDetail = e.Details.FirstOrDefault();
+                var currentPlayer = e.Participants
+                    .Sum(p => p.TicketQuantity);
+
+                return new DropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
         }
 
         /// <summary>
