@@ -26,6 +26,90 @@ namespace Fiebo.Application.Services
             _cacheService = cacheService;
         }
 
+        public async Task<int> CreateDropInEventAsync(CreateDropInEventRequest request, string userId)
+        {
+            if (request.Details.Count == 0)
+                throw new BadRequestException("Phải chọn ít nhất một sân và khung giờ.");
+
+            // BR-33: MinPlayer > 0, MaxPlayer >= MinPlayer
+            if (request.MinPlayer <= 0)
+                throw new BadRequestException("Số người tối thiểu phải lớn hơn 0.");
+
+            if (request.MaxPlayer < request.MinPlayer)
+                throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
+
+            // Verify all fields exist and belong to a venue owned by this user
+            int? venueId = null;
+            foreach (var detail in request.Details)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(detail.FieldId);
+                if (field == null)
+                    throw new NotFoundException($"Không tìm thấy sân với ID {detail.FieldId}.");
+
+                var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
+                if (venue == null || venue.OwnerId != userId)
+                    throw new UnauthorizedAccessException("Bạn không có quyền tạo sự kiện cho sân này.");
+
+                if (venueId == null)
+                    venueId = venue.Id;
+                else if (venueId != venue.Id)
+                    throw new BadRequestException("Tất cả sân phải thuộc cùng một cơ sở.");
+
+                var slot = await _unitOfWork.TimeSlots.GetByIdAsync(detail.SlotId);
+                if (slot == null)
+                    throw new NotFoundException($"Không tìm thấy khung giờ với ID {detail.SlotId}.");
+            }
+
+            // BR-34: Check slot availability (no booking or event overlap)
+            foreach (var detail in request.Details)
+            {
+                var bookingAvailable = await _unitOfWork.BookingDetails
+                    .IsSlotAvailable(detail.SlotId, detail.FieldId, request.EventDate);
+
+                if (!bookingAvailable)
+                    throw new ResourceConflictException(
+                        $"Sân và khung giờ (FieldId={detail.FieldId}, SlotId={detail.SlotId}) đã được đặt cho ngày {request.EventDate}.");
+
+                var eventUsed = await _unitOfWork.TicketEvents
+                    .IsSlotUsedByEventAsync(detail.FieldId, detail.SlotId, request.EventDate);
+
+                if (eventUsed)
+                    throw new ResourceConflictException(
+                        $"Sân và khung giờ (FieldId={detail.FieldId}, SlotId={detail.SlotId}) đã có sự kiện khác vào ngày {request.EventDate}.");
+            }
+
+            var ticketEvent = new TicketEvent
+            {
+                EventDate = request.EventDate,
+                PricePerPerson = request.PricePerPerson,
+                MinPlayer = request.MinPlayer,
+                MaxPlayer = request.MaxPlayer,
+                Description = request.Description,
+                OwnerId = userId,
+                Status = TicketEventStatus.Pending
+            };
+
+            _unitOfWork.TicketEvents.Add(ticketEvent);
+
+            foreach (var detail in request.Details)
+            {
+                ticketEvent.Details.Add(new TicketEventDetail
+                {
+                    FieldId = detail.FieldId,
+                    SlotId = detail.SlotId,
+                    Event = ticketEvent
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Drop-in event {EventId} created by {UserId} on {EventDate} with {DetailCount} slot(s)",
+                ticketEvent.Id, userId, request.EventDate, request.Details.Count);
+
+            return ticketEvent.Id;
+        }
+
         public async Task<List<DropInEventListItemResponse>> GetDropInEventListAsync()
         {
             var events = await _unitOfWork.TicketEvents.GetPendingEventsAsync();

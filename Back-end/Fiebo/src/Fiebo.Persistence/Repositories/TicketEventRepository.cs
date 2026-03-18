@@ -45,5 +45,15 @@ namespace Fiebo.Persistence.Repositories
                 .OrderBy(te => te.EventDate)
                 .ToListAsync();
         }
+
+        public async Task<bool> IsSlotUsedByEventAsync(int fieldId, int slotId, DateOnly eventDate)
+        {
+            return await _context.Set<TicketEventDetail>()
+                .AnyAsync(d =>
+                    d.FieldId == fieldId &&
+                    d.SlotId == slotId &&
+                    d.Event.EventDate == eventDate &&
+                    (d.Event.Status == TicketEventStatus.Pending || d.Event.Status == TicketEventStatus.Ongoing));
+        }
     }
 }

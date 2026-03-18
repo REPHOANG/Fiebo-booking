@@ -21,6 +21,29 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
+        /// UC-62: Create a new drop-in event for a specific field.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [HttpPost]
+        public async Task<IActionResult> CreateDropInEvent([FromBody] CreateDropInEventRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var eventId = await _eventService.CreateDropInEventAsync(request, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sự kiện thành công.",
+                Data = new { EventId = eventId }
+            });
+        }
+
+        /// <summary>
         /// Get list of available drop-in events (Pending status).
         /// </summary>
         [HttpGet]
