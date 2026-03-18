@@ -539,6 +539,14 @@ namespace Fiebo.Application.Services
 
                     wallet.Balance += refundAmount;
                     _unitOfWork.Wallets.Update(wallet);
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = booking.Id
+                    });
                 }
 
                 await _unitOfWork.SaveChangesAsync();

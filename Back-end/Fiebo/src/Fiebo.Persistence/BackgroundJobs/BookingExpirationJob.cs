@@ -60,7 +60,7 @@ namespace Fiebo.Persistence.BackgroundJobs
                 .Where(b =>
                     b.Status == BookingStatus.Pending &&
                     b.ExpiredAt.HasValue &&
-                    b.ExpiredAt.Value < now)
+                    b.ExpiredAt.Value <= now)
                 .Select(b => b.Id)
                 .ToListAsync(cancellationToken);
 
