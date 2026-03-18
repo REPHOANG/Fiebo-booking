@@ -732,6 +732,36 @@
   gap: 16px;
 }
 
+/* Mobile: move left/right to top row, button on bottom row */
+@media (max-width: 520px) {
+  .bs-bottom-bar {
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .bs-bottom-bar > .bs-bottom-info {
+    order: 1;
+    margin-bottom: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .bs-bottom-bar > .bs-bottom-price {
+    order: 2;
+    margin: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .bs-bottom-bar > .bs-next-btn {
+    order: 3;
+    width: 100%;
+    max-width: none;
+    margin: 6px 0 0;
+  }
+}
+
 /* ── Top row: info left, price right ───────────────────────── */
 .bs-bottom-bar > .bs-bottom-info,
 .bs-bottom-bar > .bs-bottom-price {

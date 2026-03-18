@@ -333,15 +333,12 @@ const BookingSchedule = () => {
     [selectedDate, lockedBefore]
   );
 
+  const EMPTY_BOOKED = useMemo(() => [], []);
+
   // Raw booked slots for this venue/date (stable reference from Redux)
-  const rawBookedForDate = useSelector((s) => {
-    try {
-      const venueMap = s.bookedSlots && s.bookedSlots[id] ? s.bookedSlots[id] : {};
-      return venueMap[selectedDate] || [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const rawBookedForDate = useSelector(
+    (s) => s.bookedSlots?.[id]?.[selectedDate] ?? EMPTY_BOOKED
+  );
   // Memoize filtered list so selector doesn't return new reference every time
   const bookedForDate = useMemo(() => {
     const now = Date.now();

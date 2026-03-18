@@ -206,10 +206,8 @@ const Header = () => {
 
         {/* Mobile Toggle */}
        
+      <LoginPopup open={loginPopupOpen} onClose={() => setLoginPopupOpen(false)} />
       </div>
-
-      {/* Mobile Menu */}
-  
     </header>
   );
 };

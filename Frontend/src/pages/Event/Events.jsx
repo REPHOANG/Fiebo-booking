@@ -85,10 +85,7 @@ const Events = () => {
 
   const openBookingPopup = (venueId) => {
     if (!venueId) return;
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
+    // Cho phép xem lịch trước; chỉ yêu cầu đăng nhập khi bấm "TIẾP THEO" ở BookingSchedule
     setSelectedVenueId(String(venueId));
     setShowBookingTypeModal(true);
   };

@@ -47,9 +47,9 @@ export function isTokenExpired(token) {
   return expMs < nowMs;
 }
 
-// Restore auth từ accessToken; nếu token hết hạn thì xóa storage.
+// Initial auth state (do NOT read from localStorage) — keep auth in-memory only
 const getInitialState = () => {
-  const base = {
+  return {
     user: null,
     token: null,
     isAuthenticated: false,
@@ -63,31 +63,13 @@ const getInitialState = () => {
     isLoading: false,
     error: null,
   };
-  try {
-    const token = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!token || isTokenExpired(token)) {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem('_fs'); // cleanup key cũ
-      return base;
-    }
-    const payload = decodeJwtPayload(token);
-    return {
-      ...base,
-      token,
-      user: userFromJwtPayload(payload),
-      isAuthenticated: true,
-    };
-  } catch {
-    return base;
-  }
 };
 
 /** Đọc auth từ storage (token + user từ JWT), dùng cho ProtectedRoute và service lấy token. */
 function getStoredAuth() {
   try {
-    const token = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!token) return null;
-    return { token, user: userFromJwtPayload(decodeJwtPayload(token)) };
+    // Persistence disabled — no localStorage access
+    return null;
   } catch {
     return null;
   }
@@ -132,7 +114,6 @@ const authSlice = createSlice({
 
     // Logout
     logout: (state) => {
-      localStorage.removeItem('accessToken');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;

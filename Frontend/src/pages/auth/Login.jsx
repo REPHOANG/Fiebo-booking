@@ -612,18 +612,6 @@ const Login = ({ onLoginSuccess }) => {
                   )}
                 </button>
 
-                <div className="login-divider">
-                  <span>hoặc</span>
-                </div>
-
-                <div className="google-login">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                    useOneTap={false}
-                  />
-                </div>
-
                 <div className="signup-prompt">
                   <span>Chưa có tài khoản? </span>
                   <Link to="/register" className="signup-link">

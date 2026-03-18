@@ -59,8 +59,7 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (!isAuthenticated) navigate("/login");
-              else setShowBookingTypeModal(true);
+              setShowBookingTypeModal(true);
             }}
           >
             ĐẶT LỊCH

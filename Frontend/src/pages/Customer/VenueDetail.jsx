@@ -335,7 +335,6 @@ const VenueDetail = () => {
   // Open booking type modal when navigated with ?book=1
   useEffect(() => {
     if (!openBookingModal) return;
-    if (!isAuthenticated) return;
     setShowBookingTypeModal(true);
   }, [openBookingModal, isAuthenticated]);
 
@@ -483,7 +482,6 @@ const VenueDetail = () => {
           <button
             className="vd-booking-btn"
             onClick={() => {
-              if (!isAuthenticated) { navigate('/login'); return; }
               setShowBookingTypeModal(true);
             }}
           >

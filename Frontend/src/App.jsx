@@ -93,7 +93,7 @@ const App = () => {
   const [location, setLocation] = useState(null);
   const initRanRef = useRef(false);
 
-  // Splash = loading cho đến khi restore auth + API khởi tạo xong
+
   // Tránh gọi getProfile 2 lần khi React Strict Mode double-invoke effect (development)
   useEffect(() => {
     if (initRanRef.current) return;
