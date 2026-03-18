@@ -22,38 +22,11 @@ const OwnerLayout = () => {
 
   return (
     <div className="owner-layout">
-      <header className="owner-header">
-        <div className="owner-header-left">
-          <span className="owner-logo">Fiebo Owner</span>
-          <nav className="owner-nav">
-            <NavLink
-              to="/owner"
-              end
-              className={({ isActive }) =>
-                `owner-nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              Tổng quan
-            </NavLink>
-            <NavLink
-              to="/owner/venues"
-              className={({ isActive }) =>
-                `owner-nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              Sân của tôi
-            </NavLink>
-            <NavLink
-              to="/owner/create-venue"
-              className={({ isActive }) =>
-                `owner-nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              Tạo cơ sở
-            </NavLink>
-          </nav>
-        </div>
-        <div className="owner-header-right">
+      <aside className="owner-sidebar">
+        <div className="owner-sidebar-top">
+          <div className="owner-sidebar-brand">
+            <span className="owner-logo">Fiebo Owner</span>
+          </div>
           <Link to="/" className="owner-home-btn">
             Về trang khách
           </Link>
@@ -64,13 +37,63 @@ const OwnerLayout = () => {
               </span>
             </div>
           )}
+        </div>
+
+        <nav className="owner-sidebar-nav">
+          <NavLink
+            to="/owner"
+            end
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Tổng quan
+          </NavLink>
+          <NavLink
+            to="/owner/venues"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Sân của tôi
+          </NavLink>
+          <NavLink
+            to="/owner/create-venue"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Tạo cơ sở
+          </NavLink>
+
+          <div className="owner-sidebar-divider" />
+
+          <NavLink
+            to="/owner/events/create"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Tạo sự kiện
+          </NavLink>
+          <NavLink
+            to="/owner/events"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Danh sách sự kiện
+          </NavLink>
+        </nav>
+
+        <div className="owner-sidebar-footer">
           <button className="owner-logout-btn" onClick={handleLogout}>
             Đăng xuất
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="owner-main">
+      <main className="owner-content">
         <Outlet />
       </main>
     </div>
