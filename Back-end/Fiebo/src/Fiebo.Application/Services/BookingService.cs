@@ -715,7 +715,7 @@ namespace Fiebo.Application.Services
                 BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
                 {
                     FieldName = bd.Field?.Name ?? "N/A",
-                    PlayDate = bd.BookingDate,
+                    PlayDate = bd.Booking.BookingDate,
                     StartTime = bd.TimeSlot?.StartTime ?? default,
                     EndTime = bd.TimeSlot?.EndTime ?? default,
                     Price = bd.Price
