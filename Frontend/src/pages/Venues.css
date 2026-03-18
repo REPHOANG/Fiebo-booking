@@ -9,6 +9,12 @@
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 60%);
 }
 
+/* Prevent horizontal scrolling on small devices */
+.venues-screen,
+.venues-page {
+  overflow-x: hidden;
+}
+
 /* ── Page header ─────────────────────────────────────────────── */
 .venues-page {
   max-width: 1280px;
@@ -379,7 +385,7 @@
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .venues-page {
-    padding: 20px 14px 100px;
+    padding: 20px 14px 180px;
   }
 
   .venues-hero h1 {
@@ -403,6 +409,14 @@
   .venues-stats {
     gap: 20px;
   }
+}
+
+/* Additional mobile tweaks */
+@media (max-width: 480px) {
+  .venue-image { height: 140px; }
+  .venue-info { padding: 16px; min-height: 140px; }
+  .venue-info h3 { font-size: 1rem; }
+  .venue-info .book-btn { padding: 10px 0; border-radius: 12px; }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {

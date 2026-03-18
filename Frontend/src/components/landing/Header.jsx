@@ -205,23 +205,11 @@ const Header = () => {
         </div>
 
         {/* Mobile Toggle */}
-        <div className="menu-toggle">
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <XIcon size={24} /> : <MenuIcon size={24} />}
-          </button>
-        </div>
+       
       </div>
 
       {/* Mobile Menu */}
-      {isMenuOpen && (
-        <nav className="menu-mobile">
-          <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
-          <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
-          <Link to="/events" onClick={() => setIsMenuOpen(false)}>Sự kiện</Link>
-          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link>
-        </nav>
-      )}
-      <LoginPopup open={loginPopupOpen} onClose={() => setLoginPopupOpen(false)} />
+  
     </header>
   );
 };
