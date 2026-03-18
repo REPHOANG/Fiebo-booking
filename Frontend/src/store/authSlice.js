@@ -1,11 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// helper function to load initial state from localStorage
-// This function attempts to load the auth state from localStorage and parse it.
-// chức năng: cố gắng tải trạng thái auth từ localStorage và phân tích nó.
-const getInitialState = () => {
-
-  return {
+const initialState = {
     user: null,
     isAuthenticated: false,
 
@@ -22,9 +17,6 @@ const getInitialState = () => {
     isLoading: false,
     error: null,
   };
-};
-
-const initialState = getInitialState();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -35,8 +27,6 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.isAuthenticated = true;
       state.error = null;
-      
-      // xóa thông tin đăng ký tạm thời nếu có
       state.registrationPending = false;
       state.registrationEmail = null;
       state.registrationPhone = null;
@@ -61,6 +51,7 @@ const authSlice = createSlice({
 
     // Logout
     logout: (state) => {
+      localStorage.removeItem('accessToken');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
@@ -130,7 +121,6 @@ export const {
   updateProfile,
   setResetEmail,
   clearResetState,
-  restoreAuthFromStorage,
 } = authSlice.actions;
 
 export default authSlice.reducer;

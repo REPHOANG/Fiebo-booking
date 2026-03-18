@@ -9,7 +9,7 @@ namespace Fiebo.Domain.Entities
 {
     public class TicketParticipant
     {
-        public int ParticipantId { get; set; }
+        public int Id { get; set; }
 
         public int EventId { get; set; }
 

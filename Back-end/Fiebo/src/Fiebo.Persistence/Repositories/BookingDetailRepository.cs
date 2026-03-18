@@ -63,7 +63,7 @@ namespace Fiebo.Persistence.Repositories
                 .AnyAsync(bd =>
                     bd.SlotId == slotId &&
                     bd.FieldId == fieldId &&
-                    bd.BookingDate == bookingDate &&
+                    bd.Booking.BookingDate == bookingDate &&
                     (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked));
         }
 

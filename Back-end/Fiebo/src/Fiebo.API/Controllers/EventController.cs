@@ -21,7 +21,8 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Join a drop-in event.
+        /// Join drop in event
+        /// </summary>
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>

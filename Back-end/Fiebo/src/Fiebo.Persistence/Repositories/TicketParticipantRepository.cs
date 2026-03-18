@@ -29,10 +29,12 @@ namespace Fiebo.Persistence.Repositories
             return await _context.TicketParticipants
                 .AsNoTracking()
                 .Include(tp => tp.Event)
-                    .ThenInclude(te => te.Field)
+                    .ThenInclude(te => te.Details)
+                    .ThenInclude(d => d.Field)
                 .Include(tp => tp.Event)
-                    .ThenInclude(te => te.Slot)
-                .FirstOrDefaultAsync(tp => tp.ParticipantId == participantId);
+                .ThenInclude(te => te.Details)
+                    .ThenInclude(d => d.Slot)
+                .FirstOrDefaultAsync(tp => tp.Id == participantId);
         }
     }
 }

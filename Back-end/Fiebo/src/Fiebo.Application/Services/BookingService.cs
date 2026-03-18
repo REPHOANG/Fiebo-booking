@@ -250,6 +250,7 @@ namespace Fiebo.Application.Services
                     VenueId = request.VenueId,
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
+                    BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.Online,
                     ExpiredAt = expiredAt,
@@ -274,7 +275,6 @@ namespace Fiebo.Application.Services
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        BookingDate = request.BookingDate,
                         Price = price
                     });
                 }
@@ -323,7 +323,7 @@ namespace Fiebo.Application.Services
                 ExpiredAt = booking.ExpiredAt,
                 VenueId = booking.VenueId,
                 VenueName = booking.Venue.Name,
-                Date = booking.BookingDetails.First().BookingDate,
+                Date = booking.BookingDate,
                 TotalPrice = booking.TotalPrice,
                 Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
                 {
@@ -416,6 +416,7 @@ namespace Fiebo.Application.Services
                     VenueId = request.VenueId,
                     Fullname = request.Fullname,
                     PhoneNumber = request.PhoneNumber,
+                    BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.WalkIn,
                     Status = BookingStatus.Booked
@@ -439,7 +440,6 @@ namespace Fiebo.Application.Services
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        BookingDate = request.BookingDate,
                         Price = price
                     });
                 }
@@ -542,6 +542,14 @@ namespace Fiebo.Application.Services
 
                     wallet.Balance += refundAmount;
                     _unitOfWork.Wallets.Update(wallet);
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = booking.Id
+                    });
                 }
 
                 await _unitOfWork.SaveChangesAsync();
@@ -567,11 +575,10 @@ namespace Fiebo.Application.Services
         private static DateTime GetBookingStartTime(Booking booking)
         {
             var earliestDetail = booking.BookingDetails
-                .OrderBy(d => d.BookingDate)
-                .ThenBy(d => d.TimeSlot!.StartTime)
+                .OrderBy(d => d.TimeSlot!.StartTime)
                 .First();
 
-            return earliestDetail.BookingDate
+            return booking.BookingDate
                 .ToDateTime(earliestDetail.TimeSlot!.StartTime);
         }
 
@@ -708,7 +715,7 @@ namespace Fiebo.Application.Services
                 BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
                 {
                     FieldName = bd.Field?.Name ?? "N/A",
-                    PlayDate = bd.BookingDate,
+                    PlayDate = bd.Booking.BookingDate,
                     StartTime = bd.TimeSlot?.StartTime ?? default,
                     EndTime = bd.TimeSlot?.EndTime ?? default,
                     Price = bd.Price

@@ -50,7 +50,11 @@ const TABS = [
   { key: "pending", label: "Chờ thanh toán", statuses: ["Pending"] },
   { key: "upcoming", label: "Sắp tới", statuses: ["Booked"] },
   { key: "completed", label: "Hoàn thành", statuses: ["Completed"] },
-  { key: "cancelled", label: "Đã hủy", statuses: ["Cancelled", "Expired"] },
+  {
+    key: "cancelled",
+    label: "Đã hủy",
+    statuses: ["CustomerCancelled", "OwnerCancelled"],
+  },
 ];
 
 function normHistoryItem(it) {
@@ -85,7 +89,7 @@ function getTabForStatus(status) {
   if (s === "pending") return "pending";
   if (s === "booked") return "upcoming";
   if (s === "completed") return "completed";
-  if (s === "cancelled" || s === "expired") return "cancelled";
+  if (s === "customercancelled" || s === "ownercancelled") return "cancelled";
   return null;
 }
 
@@ -94,7 +98,8 @@ function translateStatus(status) {
   if (s === "pending") return "Chờ thanh toán";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
-  if (s === "cancelled") return "Đã hủy";
+  if (s === "customercancelled") return "Đã hủy (khách)";
+  if (s === "ownercancelled") return "Đã hủy (chủ sân)";
   if (s === "expired") return "Hết hạn";
   return status || "—";
 }
@@ -125,10 +130,13 @@ const BookingList = () => {
         prev.map((item) =>
           (item.bookingId ?? item.BookingId) === bookingId
             ? { ...item, status: "Cancelled", Status: "Cancelled" }
-            : item
-        )
+            : item,
+        ),
       );
-      if (popupBooking && (popupBooking.bookingId ?? popupBooking.id) === bookingId) {
+      if (
+        popupBooking &&
+        (popupBooking.bookingId ?? popupBooking.id) === bookingId
+      ) {
         setPopupBooking((prev) => ({ ...prev, status: "Cancelled" }));
       }
       queryClient.invalidateQueries({ queryKey: ["bookingHistory"] });
@@ -181,7 +189,7 @@ const BookingList = () => {
       });
       const items = res.items || [];
       setHistoryItems((prev) => [...prev, ...items]);
-      setTotalItems(res.totalItems ?? (historyItems.length + items.length));
+      setTotalItems(res.totalItems ?? historyItems.length + items.length);
       setPage(nextPage);
     } catch (e) {
     } finally {
@@ -250,7 +258,9 @@ const BookingList = () => {
       .finally(() => {
         if (!cancelled) setLoadingDetailPopup(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [detailPopupId]);
 
   return (
@@ -293,38 +303,78 @@ const BookingList = () => {
                 ? list
                 : list.filter((b) => getTabForStatus(b.status) === activeTab);
             if (filtered.length === 0) {
-              return <div className="bl-empty-state"><p>Không có dữ liệu đơn hàng.</p></div>;
+              return (
+                <div className="bl-empty-state">
+                  <p>Không có dữ liệu đơn hàng.</p>
+                </div>
+              );
             }
             return filtered.map((b) => (
               <div key={b.bookingId} className="bl-list-item">
                 <div className="bl-list-info">
                   <div className="bl-badge-row">
-                    <span className="bl-list-badge" data-status={(b.status || "").toLowerCase()}>
+                    <span
+                      className="bl-list-badge"
+                      data-status={(b.status || "").toLowerCase()}
+                    >
                       {translateStatus(b.status)}
                     </span>
                     <span className="bl-list-id">Mã #{b.bookingId}</span>
                   </div>
                   <h3 className="bl-list-venue">{b.venueName || "—"}</h3>
-                  <p className="bl-list-meta"><Calendar size={14} /> {formatDate(b.bookingDate)}</p>
+                  <p className="bl-list-meta">
+                    <Calendar size={14} /> {formatDate(b.bookingDate)}
+                  </p>
                 </div>
                 <div className="bl-list-actions">
                   {(b.status || "").toLowerCase() === "pending" && (
-                    <button type="button" className="bl-btn primary bl-btn-sm" onClick={() => handleContinuePaymentFromList(b.venueId, b.bookingId)}>Thanh toán</button>
+                    <button
+                      type="button"
+                      className="bl-btn primary bl-btn-sm"
+                      onClick={() =>
+                        handleContinuePaymentFromList(b.venueId, b.bookingId)
+                      }
+                    >
+                      Thanh toán
+                    </button>
                   )}
                   {(b.status || "").toLowerCase() === "booked" && (
-                    <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)}>Hủy</button>
+                    <button
+                      type="button"
+                      className="bl-btn danger bl-btn-sm"
+                      onClick={() => handleCancelFromList(b.bookingId)}
+                    >
+                      Hủy
+                    </button>
                   )}
                   {(b.status || "").toLowerCase() === "completed" && (
-                    <button type="button" className="bl-btn primary bl-btn-sm" onClick={() => handleOpenRatingFromList(b.bookingId)}>Đánh giá</button>
+                    <button
+                      type="button"
+                      className="bl-btn primary bl-btn-sm"
+                      onClick={() => handleOpenRatingFromList(b.bookingId)}
+                    >
+                      Đánh giá
+                    </button>
                   )}
-                  <button type="button" className="bl-btn secondary bl-btn-sm" onClick={() => setDetailPopupId(b.bookingId)}>Xem chi tiết</button>
+                  <button
+                    type="button"
+                    className="bl-btn secondary bl-btn-sm"
+                    onClick={() => setDetailPopupId(b.bookingId)}
+                  >
+                    Xem chi tiết
+                  </button>
                 </div>
               </div>
             ));
           })()}
           {historyItems.length < totalItems && (
             <div className="bl-load-more">
-              <button type="button" className="bl-btn outline bl-load-btn" onClick={handleLoadMore} disabled={loadingMore}>
+              <button
+                type="button"
+                className="bl-btn outline bl-load-btn"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
                 {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
               </button>
             </div>
@@ -335,51 +385,121 @@ const BookingList = () => {
       {detailPopupId != null && (
         <div className="bl-popup-overlay" onClick={closeDetailPopup}>
           <div className="bl-popup" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="bl-popup-close" onClick={closeDetailPopup}><X size={24} /></button>
+            <button
+              type="button"
+              className="bl-popup-close"
+              onClick={closeDetailPopup}
+            >
+              <X size={24} />
+            </button>
             {loadingDetailPopup ? (
-              <div className="bl-popup-loading"><Loader2 size={32} className="spin" /></div>
+              <div className="bl-popup-loading">
+                <Loader2 size={32} className="spin" />
+              </div>
             ) : popupBooking ? (
               <div className="bl-detail-card bl-popup-card">
                 <div className="bl-detail-header">
-                  <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
+                  <span
+                    className="bl-badge"
+                    data-status={(popupBooking.status || "").toLowerCase()}
+                  >
                     {translateStatus(popupBooking.status)}
                   </span>
-                  <div className="bl-popup-code">Mã #{popupBooking.bookingId ?? popupBooking.id}</div>
+                  <div className="bl-popup-code">
+                    Mã #{popupBooking.bookingId ?? popupBooking.id}
+                  </div>
                 </div>
-                <h2 className="bl-venue-name"><MapPin size={18} /> {popupBooking.venueName || "—"}</h2>
+                <h2 className="bl-venue-name">
+                  <MapPin size={18} /> {popupBooking.venueName || "—"}
+                </h2>
                 <div className="bl-meta">
-                  <span><Calendar size={16} /> {formatDate(popupBooking.date || popupBooking.bookingDate)}</span>
-                  <span><Receipt size={16} /> {formatPrice(popupBooking.totalPrice)}</span>
+                  <span>
+                    <Calendar size={16} />{" "}
+                    {formatDate(popupBooking.date || popupBooking.bookingDate)}
+                  </span>
+                  <span>
+                    <Receipt size={16} /> {formatPrice(popupBooking.totalPrice)}
+                  </span>
                 </div>
                 <div className="bl-contact">
-                  <p><strong>Người đặt:</strong> {popupBooking.fullName ?? popupBooking.fullname ?? popupBooking.customerName ?? "—"}</p>
-                  <p><strong>SĐT:</strong> {popupBooking.phone ?? popupBooking.phoneNumber ?? popupBooking.customerPhone ?? "—"}</p>
+                  <p>
+                    <strong>Người đặt:</strong>{" "}
+                    {popupBooking.fullName ??
+                      popupBooking.fullname ??
+                      popupBooking.customerName ??
+                      "—"}
+                  </p>
+                  <p>
+                    <strong>SĐT:</strong>{" "}
+                    {popupBooking.phone ??
+                      popupBooking.phoneNumber ??
+                      popupBooking.customerPhone ??
+                      "—"}
+                  </p>
                 </div>
                 {popupBooking.details && (
                   <div className="bl-slots">
                     <h3>Khung giờ đã đặt</h3>
                     <ul>
                       {popupBooking.details.map((slot, i) => (
-                        <li key={i}>{slot.fieldName ?? "Sân"} — {formatTime(slot.startTime)} – {formatTime(slot.endTime)}</li>
+                        <li key={i}>
+                          {slot.fieldName ?? "Sân"} —{" "}
+                          {formatTime(slot.startTime)} –{" "}
+                          {formatTime(slot.endTime)}
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 <div className="bl-actions">
                   {(popupBooking.status || "").toLowerCase() === "booked" && (
-                    <button type="button" className="bl-btn danger" onClick={() => handleCancelFromList(popupBooking.bookingId ?? popupBooking.id)}>Hủy đặt sân</button>
+                    <button
+                      type="button"
+                      className="bl-btn danger"
+                      onClick={() =>
+                        handleCancelFromList(
+                          popupBooking.bookingId ?? popupBooking.id,
+                        )
+                      }
+                    >
+                      Hủy đặt sân
+                    </button>
                   )}
-                  {(popupBooking.status || "").toLowerCase() === "completed" && (
-                    <button type="button" className="bl-btn primary" onClick={() => { handleOpenRatingFromList(popupBooking.bookingId ?? popupBooking.id); closeDetailPopup(); }}>Đánh giá</button>
+                  {(popupBooking.status || "").toLowerCase() ===
+                    "completed" && (
+                    <button
+                      type="button"
+                      className="bl-btn primary"
+                      onClick={() => {
+                        handleOpenRatingFromList(
+                          popupBooking.bookingId ?? popupBooking.id,
+                        );
+                        closeDetailPopup();
+                      }}
+                    >
+                      Đánh giá
+                    </button>
                   )}
-                  <Link to={`/venue/${popupBooking.venueId}`} className="bl-btn secondary" onClick={closeDetailPopup}>Xem sân</Link>
+                  <Link
+                    to={`/venue/${popupBooking.venueId}`}
+                    className="bl-btn secondary"
+                    onClick={closeDetailPopup}
+                  >
+                    Xem sân
+                  </Link>
                 </div>
               </div>
             ) : null}
           </div>
         </div>
       )}
-      {showRating && <GiveRating open={showRating} bookingId={ratingBookingId} handleClose={() => setShowRating(false)} />}
+      {showRating && (
+        <GiveRating
+          open={showRating}
+          bookingId={ratingBookingId}
+          handleClose={() => setShowRating(false)}
+        />
+      )}
     </motion.div>
   );
 };

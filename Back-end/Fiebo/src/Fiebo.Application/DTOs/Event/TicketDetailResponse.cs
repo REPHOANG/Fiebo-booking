@@ -12,10 +12,8 @@ namespace Fiebo.Application.DTOs.Event
         public string Fullname { get; set; } = null!; 
         public string PhoneNumber { get; set; } = null!;
 
-        public DateOnly EventDate { get; set; }      
-        public string FieldName { get; set; } = null!;
-        public TimeOnly StartTime { get; set; }
-        public TimeOnly EndTime { get; set; }
+        public DateOnly EventDate { get; set; }
+        public List<TicketEventSlotResponse> Slots { get; set; } = [];
 
         public int TicketQuantity { get; set; } 
         public decimal PricePerTicket { get; set; }
