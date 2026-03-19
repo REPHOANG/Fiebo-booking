@@ -59,6 +59,7 @@ namespace Fiebo.Application.Tests.Bookings
                 UserId = customerId,
                 Fullname = "Nguyen Van A",
                 PhoneNumber = "0901234567",
+                BookingDate = DateOnly.FromDateTime(DateTime.Now.AddDays(daysFromNow)),
                 VenueId = 10,
                 Status = status,
                 TotalPrice = totalPrice,
@@ -75,7 +76,6 @@ namespace Fiebo.Application.Tests.Bookings
                     {
                         Id = 1,
                         BookingId = 1,
-                        BookingDate = DateOnly.FromDateTime(DateTime.Now.AddDays(daysFromNow)),
                         FieldId = 1,
                         SlotId = 1,
                         Price = totalPrice,

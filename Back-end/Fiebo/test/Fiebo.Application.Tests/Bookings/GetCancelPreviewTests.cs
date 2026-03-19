@@ -61,7 +61,7 @@ namespace Fiebo.Application.Tests.Bookings
             {
                 Id = 1,
                 UserId = "user1",
-                Status = BookingStatus.Cancelled,
+                Status = BookingStatus.CustomerCancelled,
                 Fullname = "John Doe",
                 PhoneNumber = "1234567890",
             };
@@ -87,7 +87,6 @@ namespace Fiebo.Application.Tests.Bookings
 
             var detail = new BookingDetail
             {
-                BookingDate = DateOnly.FromDateTime(DateTime.Now.AddDays(2)),
                 TimeSlot = new TimeSlot
                 {
                     StartTime = new TimeOnly(8, 0, 0)

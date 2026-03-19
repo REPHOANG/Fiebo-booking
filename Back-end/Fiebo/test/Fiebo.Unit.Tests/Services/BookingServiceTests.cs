@@ -23,7 +23,7 @@ namespace Fiebo.Unit.Tests.Services
         private readonly Mock<ICacheService> _cacheServiceMock;
 
         private readonly Mock<IBookingRepository> _bookingRepoMock;
-        private readonly Mock<IRepository<Wallet>> _walletRepoMock;
+        private readonly Mock<IWalletRepository> _walletRepoMock;
         private readonly Mock<IBookingDetailRepository> _bookingDetailRepoMock;
         private readonly Mock<ITimeSlotRepository> _timeSlotRepoMock;
 
@@ -40,7 +40,7 @@ namespace Fiebo.Unit.Tests.Services
             _cacheServiceMock = new Mock<ICacheService>();
 
             _bookingRepoMock = new Mock<IBookingRepository>();
-            _walletRepoMock = new Mock<IRepository<Wallet>>();
+            _walletRepoMock = new Mock<IWalletRepository>();
             _bookingDetailRepoMock = new Mock<IBookingDetailRepository>();
             _timeSlotRepoMock = new Mock<ITimeSlotRepository>();
 
@@ -152,7 +152,7 @@ namespace Fiebo.Unit.Tests.Services
         [Theory]
         [InlineData(BookingStatus.Booked)]
         [InlineData(BookingStatus.Completed)]
-        [InlineData(BookingStatus.Cancelled)]
+        [InlineData(BookingStatus.CustomerCancelled)]
         [InlineData(BookingStatus.Expired)]
         public async Task MakeBookingPayment_InvalidStatus_ThrowsBadRequest(BookingStatus status)
         {
