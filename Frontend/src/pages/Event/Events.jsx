@@ -3,92 +3,88 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
+import { getEventList } from "../../services/eventService";
 import { searchVenues } from "../../services/fieldService";
-import { mapVenue } from "../../utils/helperFunction";
-import BookingTypeModal from "../../components/common/BookingTypeModal/BookingTypeModal";
 import "./Events.css";
 
-const mockSessions = [
-  { id: 19388, time: "14:00 - 18:00", date: "18/03/2026", price: "60.000 đ/vé", joined: "4/16", level: "1.5 → 3.5" },
-  { id: 19417, time: "22:00 - 24:00", date: "18/03/2026", price: "50.000 đ/vé", joined: "3/16", level: "1.5 → 3.5" },
-];
+const formatDate = (dateStr) => {
+  const s = String(dateStr || "").slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return s || "—";
+  return `${d}/${m}/${y}`;
+};
 
-const MOCK_VENUES = [
-  {
-    id: 1,
-    name: "AIKO HỒ TÙNG MẬU",
-    image: "https://placehold.co/900x600/png?text=AIKO+Venue",
-    rating: 4.9,
-    badges: ["Đơn ngày", "Sự kiện"],
-    price: "70.000 đ/vé",
-    joined: "0/8",
-    sessions: [
-      { id: 19388, time: "14:00 - 18:00", date: "18/03/2026", joined: "4/16", level: "1.5 → 3.5" },
-      { id: 19416, time: "08:00 - 12:00", date: "19/03/2026", joined: "0/16", level: "1.5 → 3.5" },
-    ],
-  },
-  {
-    id: 2,
-    name: "MÂY Pickleball Rooftop Court",
-    image: "https://placehold.co/900x600/png?text=May+Pickleball",
-    rating: 5.0,
-    badges: ["Đơn ngày", "Sự kiện"],
-    price: "70.000 đ/vé",
-    joined: "0/8",
-    sessions: [
-      { id: 19417, time: "22:00 - 24:00", date: "18/03/2026", joined: "3/16", level: "1.5 → 3.5" },
-      { id: 19415, time: "14:00 - 18:00", date: "19/03/2026", joined: "0/16", level: "1.5 → 3.5" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Paradise Pickleball Club",
-    image: "https://placehold.co/900x600/png?text=Paradise+Club",
-    rating: 4.9,
-    badges: ["Đơn ngày", "Sự kiện"],
-    price: "70.000 đ/vé",
-    joined: "0/16",
-    sessions: [
-      { id: 19414, time: "20:00 - 23:00", date: "19/03/2026", joined: "0/16", level: "2.0 → 3.5" },
-    ],
-  },
-];
+const formatTime = (t) => {
+  const s = String(t || "").trim();
+  return s.length >= 5 ? s.slice(0, 5) : s;
+};
+
+const formatPrice = (n) => {
+  const x = Number(n || 0);
+  return `${x.toLocaleString("vi-VN")} đ/vé`;
+};
 
 const Events = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const isAuthenticated = useSelector((s) => s.auth?.isAuthenticated);
-  const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
-  const [selectedVenueId, setSelectedVenueId] = useState(null);
 
-  const { data: venues = [], isLoading } = useQuery({
-    queryKey: ["events-venues", query],
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["dropin-events"],
     queryFn: async () => {
-      const res = await searchVenues({ location: query || undefined, page: 1, pageSize: 12 });
-      const items = res?.items ?? res?.Items ?? res ?? [];
-      return Array.isArray(items) ? items.map(mapVenue) : [];
+      const res = await getEventList();
+      return Array.isArray(res) ? res : [];
     },
     staleTime: 60 * 1000,
   });
 
   const cards = useMemo(() => {
-    const fromApi = (venues || []).map((v, idx) => ({
-      ...v,
-      badges: ["Đơn ngày", "Sự kiện"],
-      rating: Number(v.rating ?? 4.8),
-      sessions: idx % 2 === 0 ? mockSessions : mockSessions.slice(0, 1),
-      price: idx % 2 === 0 ? "70.000 đ/vé" : "60.000 đ/vé",
-      joined: idx % 2 === 0 ? "0/8" : "0/16",
-    }));
-    return fromApi.length ? fromApi : MOCK_VENUES;
-  }, [venues]);
+    const mapByVenue = new Map();
+    const keyword = String(query || "").trim().toLowerCase();
 
-  const openBookingPopup = (venueId) => {
-    if (!venueId) return;
-    // Cho phép xem lịch trước; chỉ yêu cầu đăng nhập khi bấm "TIẾP THEO" ở BookingSchedule
-    setSelectedVenueId(String(venueId));
-    setShowBookingTypeModal(true);
-  };
+    for (const e of events || []) {
+      const venueName = e?.venueName || "Sân";
+      const venueId = e?.venueId ?? e?.VenueId ?? null;
+      if (keyword && !venueName.toLowerCase().includes(keyword)) continue;
+
+      const slots = Array.isArray(e?.slots) ? e.slots : [];
+      const first = slots[0];
+      const last = slots[slots.length - 1];
+      const capacity = Number(e?.ticketQuantity ?? e?.TicketQuantity ?? 0);
+      const remaining = Number(e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity ?? capacity);
+      const joined = Math.max(0, capacity - remaining);
+      const joinLabel = capacity > 0 ? `${joined}/${capacity}` : (remaining > 0 ? `Còn ${remaining} vé` : "Hết vé");
+
+      const session = {
+        id: e?.eventId,
+        time:
+          first && last
+            ? `${formatTime(first?.startTime)} - ${formatTime(last?.endTime)}`
+            : "—",
+        date: formatDate(e?.eventDate),
+        joined: joinLabel,
+        level: "Drop-in",
+      };
+
+      if (!mapByVenue.has(venueName)) {
+        mapByVenue.set(venueName, {
+          id: venueName,
+          venueId,
+          name: venueName,
+          image: `https://placehold.co/900x600/png?text=${encodeURIComponent(venueName)}`,
+          badges: ["Đơn ngày", "Sự kiện"],
+          rating: 0,
+          price: formatPrice(e?.ticketPrice ?? e?.TicketPrice),
+          joined: joinLabel,
+          sessions: [session],
+        });
+      } else {
+        mapByVenue.get(venueName).sessions.push(session);
+      }
+    }
+
+    return Array.from(mapByVenue.values());
+  }, [events, query]);
 
   const openEventRegister = (eventId) => {
     if (!isAuthenticated) {
@@ -96,6 +92,36 @@ const Events = () => {
       return;
     }
     navigate(`/event/${eventId}/register`);
+  };
+
+  const openVenueEvents = async (venueId, venueName) => {
+    if (venueId) {
+      navigate(`/venue/${venueId}/social-session`);
+      return;
+    }
+
+    // Fallback: API /api/Event có thể chưa trả venueId, nên tìm theo tên sân.
+    const keyword = String(venueName || "").trim();
+    if (!keyword) return;
+    try {
+      const res = await searchVenues({
+        location: keyword,
+        page: 1,
+        pageSize: 10,
+      });
+      const items = res?.items ?? res?.Items ?? [];
+      const match = (Array.isArray(items) ? items : []).find(
+        (it) => String(it?.name || it?.venueName || "").trim().toLowerCase() === keyword.toLowerCase(),
+      );
+      const resolvedVenueId = match?.id ?? match?.venueId ?? match?.VenueId;
+      if (resolvedVenueId) {
+        navigate(`/venue/${resolvedVenueId}/social-session`);
+        return;
+      }
+      window.alert("Không tìm thấy mã sân để mở danh sách sự kiện.");
+    } catch {
+      window.alert("Không mở được danh sách sự kiện của sân này. Vui lòng thử lại.");
+    }
   };
 
   return (
@@ -120,7 +146,14 @@ const Events = () => {
         ) : (
           cards.map((v) => (
             <div key={v.id} className="ev-card">
-              <div className="ev-image" onClick={() => navigate(`/venue/${v.id}`)} role="button" tabIndex={0}>
+                <div
+                  className="ev-image"
+                  onClick={() => {
+                    if (v.venueId) navigate(`/venue/${v.venueId}`);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                 <img src={v.image} alt={v.name} />
                 <div className="ev-badges">
                   {v.badges?.map((b) => (
@@ -154,7 +187,7 @@ const Events = () => {
                 </div>
 
                 <div className="ev-sessions">
-                  {v.sessions?.map((s) => (
+                  {(v.sessions || []).slice(0, 3).map((s) => (
                     <button
                       key={s.id}
                       type="button"
@@ -172,8 +205,21 @@ const Events = () => {
                     </button>
                   ))}
                 </div>
+                {(v.sessions || []).length > 3 && (
+                  <button
+                    type="button"
+                    className="ev-expand"
+                    onClick={() => openVenueEvents(v.venueId, v.name)}
+                  >
+                    {`Xem thêm ${(v.sessions || []).length - 3} sự kiện`}
+                  </button>
+                )}
 
-                <button className="ev-book" type="button" onClick={() => openBookingPopup(v.id)}>
+                <button
+                  className="ev-book"
+                  type="button"
+                  onClick={() => openVenueEvents(v.venueId, v.name)}
+                >
                   ĐẶT LỊCH
                 </button>
               </div>
@@ -183,14 +229,6 @@ const Events = () => {
       </div>
 
       <div className="ev-bottom-space" />
-
-      <BookingTypeModal
-        open={showBookingTypeModal}
-        onClose={() => setShowBookingTypeModal(false)}
-        venueId={selectedVenueId}
-        onSelectRegular={() => {}}
-        onSelectEvent={() => {}}
-      />
     </div>
   );
 };
