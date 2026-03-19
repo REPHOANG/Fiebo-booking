@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
@@ -347,6 +348,46 @@ namespace Fiebo.Application.Services
                 _logger.LogError(ex, "Error while processing payment for ticket {TicketId} by user {UserId}", ticketId, userId);
                 throw new BadRequestException("Không thể xử lý thanh toán. Vui lòng thử lại.");
             }
+        }
+
+        public async Task<OwnerTicketEventDetailResponse?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
+        {
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
+
+            if (ticketEvent == null) return null;
+
+            // Logic kiểm tra: Nếu mảng Participants có bất kỳ ai thì không cho sửa
+            bool hasParticipants = ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled);
+
+            return new OwnerTicketEventDetailResponse
+            {
+                Id = ticketEvent.Id,
+                Description = ticketEvent.Description,
+                EventDate = ticketEvent.EventDate,
+                MinPlayer = ticketEvent.MinPlayer,
+                MaxPlayer = ticketEvent.MaxPlayer,
+                PricePerPerson = ticketEvent.PricePerPerson,
+                Status = ticketEvent.Status.ToString(),
+
+                // Nút Edit sẽ ẩn nếu IsEditable = false
+                IsEditable = !hasParticipants,
+
+                Slots = ticketEvent.Details.Select(d => new EventSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.Slot.StartTime,
+                    EndTime = d.Slot.EndTime
+                }).ToList(),
+
+                Participants = ticketEvent.Participants.Select(p => new ParticipantResponse
+                {
+                    Fullname = p.Fullname,
+                    PhoneNumber = p.PhoneNumber,
+                    TicketQuantity = p.TicketQuantity,
+                    Status = p.Status.ToString(),
+                    JoinedAt = p.JoinedAt
+                }).ToList()
+            };
         }
     }
 }
