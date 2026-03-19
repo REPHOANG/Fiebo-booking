@@ -67,6 +67,9 @@ const schema = yup.object({
     .string()
     .oneOf([yup.ref('password')], 'Mật khẩu xác nhận không khớp')
     .required('Vui lòng xác nhận mật khẩu'),
+  agreeTerms: yup
+    .boolean()
+    .oneOf([true], 'Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật'),
 });
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -80,11 +83,14 @@ const Register = () => {
   const {
     register: field,
     handleSubmit,
-    formState: { errors },
+    watch,
+    formState: { errors, isSubmitted, submitCount },
   } = useForm({
     resolver: yupResolver(schema),
     mode: 'onTouched',
   });
+
+  const agreeChecked = watch('agreeTerms', false);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -250,7 +256,12 @@ const Register = () => {
           </div>
 
           <div className="terms-agreement">
-            <input type="checkbox" id="terms" required disabled={isLoading} />
+            <input
+              type="checkbox"
+              id="terms"
+              disabled={isLoading}
+              {...field('agreeTerms')}
+            />
             <label htmlFor="terms">
               Tôi đồng ý với{' '}
               <Link to="/terms" className="terms-link">Điều khoản dịch vụ</Link>
@@ -258,6 +269,9 @@ const Register = () => {
               <Link to="/privacy" className="terms-link">Chính sách bảo mật</Link>
             </label>
           </div>
+          { (errors.agreeTerms && (isSubmitted || submitCount > 0)) && (
+            <p className="field-error">{errors.agreeTerms.message}</p>
+          )}
 
           <button
             type="submit"

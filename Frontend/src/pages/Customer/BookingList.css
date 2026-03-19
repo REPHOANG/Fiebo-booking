@@ -1,8 +1,8 @@
 /* ============ BẢNG MÀU & BIẾN CSS ============ */
 :root {
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --primary: #667eea;
+  --primary-hover: #556fe0;
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #5b7df0 100%);
   --text-main: #0f172a;
   --text-muted: #64748b;
   --bg-body: #f8fafc;

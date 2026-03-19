@@ -53,12 +53,13 @@
   margin-bottom: 24px;
 }
 
-/* Main container */
+/* Main container — 80% width mặc định */
 .vd-main {
-  max-width: 1280px;
+  width: 80%;
+  max-width: 1400px;
   margin: 0 auto;
   /* Add top padding to avoid overlap with sticky header */
-  padding: 50px 100px 70px;
+  padding: 50px 24px 70px;
   /* Prevent page-level scrolling; columns will handle scroll internally on desktop */
   overflow: hidden;
 }
@@ -673,8 +674,16 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .vd-main {
+    width: 95%;
+    max-width: none;
+  }
+}
+
 @media (max-width: 640px) {
   .vd-main {
+    width: 100%;
     padding: 16px 12px 80px;
   }
   .vd-info-section,

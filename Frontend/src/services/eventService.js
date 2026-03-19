@@ -2,9 +2,9 @@ import api from "./api";
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
-/** POST /api/Event - Tạo sự kiện drop-in (Owner) */
+/** POST /api/Owner/event - Tạo sự kiện drop-in (Owner) */
 export const createEvent = async (payload) => {
-  const response = await api.post("/api/Event", payload);
+  const response = await api.post("/api/Owner/event", payload);
   return unwrap(response);
 };
 
@@ -14,15 +14,15 @@ export const getEventList = async () => {
   return unwrap(response);
 };
 
-/** GET /api/Event/owner/{id} - Chi tiết sự kiện cho Owner (kèm danh sách người tham gia) */
+/** GET /api/Owner/event/{id} - Chi tiết sự kiện cho Owner (kèm danh sách người tham gia) */
 export const getEventOwner = async (eventId) => {
-  const response = await api.get(`/api/Event/owner/${eventId}`);
+  const response = await api.get(`/api/Owner/event/${eventId}`);
   return unwrap(response);
 };
 
-/** PUT /api/Event/owner/{id} - Cập nhật sự kiện (chỉ khi chưa có người tham gia) */
+/** PUT /api/Owner/event/{id} - Cập nhật sự kiện (chỉ khi chưa có người tham gia) */
 export const updateEventOwner = async (eventId, payload) => {
-  const response = await api.put(`/api/Event/owner/${eventId}`, payload);
+  const response = await api.put(`/api/Owner/event/${eventId}`, payload);
   return unwrap(response);
 };
 

@@ -8,7 +8,7 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
-import { login, loginWithGoogle, sendPhoneLoginOtp, verifyPhoneLoginOtp } from '../../services/authService';
+import { login, loginWithGoogle } from '../../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -31,38 +31,21 @@ const passwordSchema = yup.object({
   password: yup.string().required("Vui lòng nhập mật khẩu"),
 });
 
-// ── Yup schema for phone OTP login ─────────────────────────────────────────
-const phoneSchema = yup.object({
-  phoneNumber: yup
-    .string()
-    .required("Vui lòng nhập số điện thoại")
-    .test("is-phone", "Số điện thoại không hợp lệ", (val) => {
-      if (!val) return false;
-      return /^[0-9]{9,11}$/.test(val.replace(/\D/g, ""));
-    }),
-});
+// (Phone OTP removed)
 
 const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Tab state: 'password' | 'otp'
-  const [loginMethod, setLoginMethod] = useState("password");
-
   // Shared state
+  // Login uses password method only (OTP removed)
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
 
-  // OTP-specific state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpPhone, setOtpPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [otpTimeLeft, setOtpTimeLeft] = useState(0);
-  const [canResend, setCanResend] = useState(false);
-  const otpRefs = useRef([]);
+  // OTP removed: no phone-login state
 
   // Password login form
   const {
@@ -75,15 +58,7 @@ const Login = ({ onLoginSuccess }) => {
     mode: "onTouched",
   });
 
-  // Phone OTP form
-  const {
-    register: phoneField,
-    handleSubmit: handlePhoneSubmit,
-    formState: { errors: phoneErrors },
-  } = useForm({
-    resolver: yupResolver(phoneSchema),
-    mode: "onTouched",
-  });
+  // (phone OTP form removed)
 
   // Load saved identifier only (không lưu mật khẩu vào localStorage)
   useEffect(() => {
@@ -101,31 +76,7 @@ const Login = ({ onLoginSuccess }) => {
     } catch (_) {}
   }, [setValue]);
 
-  // OTP countdown timer
-  useEffect(() => {
-    if (otpTimeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setOtpTimeLeft((prev) => {
-        if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [otpTimeLeft]);
-
-  // Reset OTP state when switching tabs
-  useEffect(() => {
-    setAlertInfo(null);
-    setOtpSent(false);
-    setOtpPhone("");
-    setOtp(["", "", "", "", "", ""]);
-    setOtpTimeLeft(0);
-    setCanResend(false);
-  }, [loginMethod]);
+  // OTP logic removed
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -218,131 +169,7 @@ const Login = ({ onLoginSuccess }) => {
     }
   };
 
-  // ── Send OTP to phone ─────────────────────────────────────────────────────
-  const onSendOtp = async (data) => {
-    setIsLoading(true);
-    setAlertInfo(null);
-    try {
-      await sendPhoneLoginOtp(data.phoneNumber);
-      setOtpPhone(data.phoneNumber);
-      setOtpSent(true);
-      setOtpTimeLeft(300); // 5 minutes
-      setCanResend(false);
-      setOtp(["", "", "", "", "", ""]);
-      toast.success("Mã OTP đã được gửi đến số " + data.phoneNumber);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (error) {
-      setAlertInfo({
-        type: "error",
-        message: error.message || "Không thể gửi mã OTP",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ── Verify OTP and login ──────────────────────────────────────────────────
-  const onVerifyOtp = async () => {
-    const otpCode = otp.join("");
-    if (otpCode.length !== 6) {
-      setAlertInfo({ type: "error", message: "Vui lòng nhập đủ 6 chữ số OTP" });
-      return;
-    }
-
-    setIsLoading(true);
-    setAlertInfo(null);
-    try {
-      const response = await verifyPhoneLoginOtp(otpPhone, otpCode);
-      const token = response.accessToken || response.token;
-      dispatch(setCredentials({ user: response.user, token }));
-      localStorage.setItem(AUTH_STORAGE_KEY, token);
-
-      toast.success(
-        "Đăng nhập thành công! Chào mừng " +
-          (response.user?.name || response.user?.phone),
-        {
-          position: "top-right",
-          autoClose: 3000,
-        },
-      );
-
-      if (typeof onLoginSuccess === "function") {
-        onLoginSuccess();
-        return;
-      }
-      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
-      if (roleVal === 'fieldowner' || isOwner) {
-        navigate('/owner', { replace: true });
-        return;
-      }
-      if (roleVal === 'admin') {
-        navigate('/admin', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
-    } catch (error) {
-      setAlertInfo({
-        type: "error",
-        message: error.message || "Mã OTP không hợp lệ",
-      });
-      setOtp(["", "", "", "", "", ""]);
-      otpRefs.current[0]?.focus();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ── Resend OTP ────────────────────────────────────────────────────────────
-  const handleResendOtp = async () => {
-    if (!canResend || !otpPhone) return;
-    setIsLoading(true);
-    try {
-      await sendPhoneLoginOtp(otpPhone);
-      setOtpTimeLeft(300);
-      setCanResend(false);
-      setOtp(["", "", "", "", "", ""]);
-      otpRefs.current[0]?.focus();
-      toast.info("Đã gửi lại mã OTP");
-    } catch (error) {
-      toast.error("Không thể gửi lại mã OTP");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ── OTP input handlers ────────────────────────────────────────────────────
-  const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
-    if (pasted.length > 0) {
-      const newOtp = [...otp];
-      for (let i = 0; i < 6; i++) {
-        newOtp[i] = pasted[i] || "";
-      }
-      setOtp(newOtp);
-      const focusIdx = Math.min(pasted.length, 5);
-      otpRefs.current[focusIdx]?.focus();
-    }
-  };
+  // OTP code removed - login only supports password + Google
 
   // ── Google login ──────────────────────────────────────────────────────────
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -413,36 +240,12 @@ const Login = ({ onLoginSuccess }) => {
         >
           Quay lại trang chủ
         </button>
-        <a
-          className="owner-toggle-btn"
-          href="/owner/login"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open owner login in new tab"
-        >
-          Chủ sân
-        </a>
+        {/* owner top-right button removed per request */}
         <div className="login-header">
           <img src={fieboLogo} alt="Fiebo Logo" className="login-logo" />
         </div>
 
-        {/* ── Login Method Tabs ── */}
-        <div className="login-method-tabs">
-          <button
-            type="button"
-            className={`method-tab${loginMethod === "password" ? " active" : ""}`}
-            onClick={() => setLoginMethod("password")}
-          >
-            Mật khẩu
-          </button>
-          <button
-            type="button"
-            className={`method-tab${loginMethod === "otp" ? " active" : ""}`}
-            onClick={() => setLoginMethod("otp")}
-          >
-            Mã OTP
-          </button>
-        </div>
+        {/* Login uses password only (OTP removed) */}
 
         {/* ── Alert ── */}
         <Collapse in={!!alertInfo}>
@@ -453,8 +256,7 @@ const Login = ({ onLoginSuccess }) => {
           )}
         </Collapse>
 
-        {/* ═══════════ PASSWORD TAB ═══════════ */}
-        {loginMethod === "password" && (
+        {/* ═══════════ PASSWORD FORM ═══════════ */}
           <form
             className="login-form"
             onSubmit={handleSubmit(onSubmit)}
@@ -565,164 +367,8 @@ const Login = ({ onLoginSuccess }) => {
               </Link>
             </div>
           </form>
-        )}
 
-        {/* ═══════════ OTP TAB ═══════════ */}
-        {loginMethod === "otp" && (
-          <>
-            {!otpSent ? (
-              /* ── Step 1: Enter phone number ── */
-              <form
-                className="login-form"
-                onSubmit={handlePhoneSubmit(onSendOtp)}
-                noValidate
-              >
-                <div className="form-group">
-                  <div className="input-group">
-                    <label htmlFor="phoneNumber">Số điện thoại</label>
-                    <input
-                      id="phoneNumber"
-                      type="tel"
-                      autoComplete="tel"
-                      className={`input-field${phoneErrors.phoneNumber ? " input-error" : ""}`}
-                      placeholder="Nhập số điện thoại của bạn"
-                      disabled={isLoading}
-                      {...phoneField("phoneNumber")}
-                    />
-                    {phoneErrors.phoneNumber && (
-                      <p className="field-error">
-                        {phoneErrors.phoneNumber.message}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`login-btn ${isLoading ? "loading" : ""}`}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="spinner"></div>
-                      <span>Đang gửi mã OTP...</span>
-                    </>
-                  ) : (
-                    "Gửi mã OTP"
-                  )}
-                </button>
-
-                <div className="signup-prompt">
-                  <span>Chưa có tài khoản? </span>
-                  <Link to="/register" className="signup-link">
-                    Đăng ký tại đây
-                  </Link>
-                </div>
-              </form>
-            ) : (
-              /* ── Step 2: Enter OTP code ── */
-              <div className="login-form">
-                <div className="otp-login-header">
-                  <p className="otp-login-subtitle">
-                    Nhập mã 6 chữ số đã gửi đến
-                    <br />
-                    <strong>{otpPhone}</strong>
-                  </p>
-                  <button
-                    type="button"
-                    className="change-phone-btn"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setAlertInfo(null);
-                    }}
-                    disabled={isLoading}
-                  >
-                    Đổi số
-                  </button>
-                </div>
-
-                <div className="otp-login-input-group" onPaste={handleOtpPaste}>
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (otpRefs.current[index] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength="1"
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="otp-login-input"
-                      disabled={isLoading}
-                      placeholder="0"
-                    />
-                  ))}
-                </div>
-
-                <div className="otp-login-timer">
-                  {otpTimeLeft > 0 ? (
-                    <span>
-                      Mã hết hạn sau:{" "}
-                      <strong className="timer-text">
-                        {formatTime(otpTimeLeft)}
-                      </strong>
-                    </span>
-                  ) : (
-                    <span>
-                      Mã đã hết hạn.{" "}
-                      <button
-                        type="button"
-                        className="resend-otp-btn"
-                        onClick={handleResendOtp}
-                        disabled={isLoading}
-                      >
-                        Gửi lại
-                      </button>
-                    </span>
-                  )}
-                  {otpTimeLeft > 0 && canResend === false && (
-                    <button
-                      type="button"
-                      className="resend-otp-btn"
-                      onClick={handleResendOtp}
-                      disabled={!canResend || isLoading}
-                      style={{
-                        opacity: 0.4,
-                        cursor: "not-allowed",
-                        marginLeft: 8,
-                      }}
-                    >
-                      Gửi lại
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  disabled={isLoading || otp.join("").length !== 6}
-                  className={`login-btn ${isLoading ? "loading" : ""}`}
-                  onClick={onVerifyOtp}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="spinner"></div>
-                      <span>Đang xác thực...</span>
-                    </>
-                  ) : (
-                    "Xác nhận đăng nhập"
-                  )}
-                </button>
-
-                <div className="signup-prompt">
-                  <span>Chưa có tài khoản? </span>
-                  <Link to="/register" className="signup-link">
-                    Đăng ký tại đây
-                  </Link>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {/* OTP login removed */}
       </motion.div>
     </div>
   );
