@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Wallet;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -63,7 +63,7 @@ namespace Fiebo.Application.Tests.Wallets
                 UserId = "user1",
                 Balance = 0,
                 CreatedDate = DateTime.UtcNow,
-                WalletTransactions = [],
+                Transactions = [],
                 TopUpRequests = []
             };
 

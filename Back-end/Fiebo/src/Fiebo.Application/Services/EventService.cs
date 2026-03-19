@@ -1,4 +1,5 @@
-﻿using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
@@ -24,6 +25,120 @@ namespace Fiebo.Application.Services
             _unitOfWork = unitOfWork;
             _logger = logger;
             _cacheService = cacheService;
+        }
+
+        public async Task<int> CreateDropInEventAsync(CreateDropInEventRequest request, string userId)
+        {
+            if (request.Details.Count == 0)
+                throw new BadRequestException("Phải chọn ít nhất một sân và khung giờ.");
+
+            // BR-33: MinPlayer > 0, MaxPlayer >= MinPlayer
+            if (request.MinPlayer <= 0)
+                throw new BadRequestException("Số người tối thiểu phải lớn hơn 0.");
+
+            if (request.MaxPlayer < request.MinPlayer)
+                throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
+
+            // Verify all fields exist and belong to a venue owned by this user
+            int? venueId = null;
+            foreach (var detail in request.Details)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(detail.FieldId);
+                if (field == null)
+                    throw new NotFoundException($"Không tìm thấy sân với ID {detail.FieldId}.");
+
+                var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
+                if (venue == null || venue.OwnerId != userId)
+                    throw new UnauthorizedAccessException("Bạn không có quyền tạo sự kiện cho sân này.");
+
+                if (venueId == null)
+                    venueId = venue.Id;
+                else if (venueId != venue.Id)
+                    throw new BadRequestException("Tất cả sân phải thuộc cùng một cơ sở.");
+
+                var slot = await _unitOfWork.TimeSlots.GetByIdAsync(detail.SlotId);
+                if (slot == null)
+                    throw new NotFoundException($"Không tìm thấy khung giờ với ID {detail.SlotId}.");
+            }
+
+            // BR-34: Check slot availability (no booking or event overlap)
+            foreach (var detail in request.Details)
+            {
+                var bookingAvailable = await _unitOfWork.BookingDetails
+                    .IsSlotAvailable(detail.SlotId, detail.FieldId, request.EventDate);
+
+                if (!bookingAvailable)
+                    throw new ResourceConflictException(
+                        $"Sân và khung giờ (FieldId={detail.FieldId}, SlotId={detail.SlotId}) đã được đặt cho ngày {request.EventDate}.");
+
+                var eventUsed = await _unitOfWork.TicketEvents
+                    .IsSlotUsedByEventAsync(detail.FieldId, detail.SlotId, request.EventDate);
+
+                if (eventUsed)
+                    throw new ResourceConflictException(
+                        $"Sân và khung giờ (FieldId={detail.FieldId}, SlotId={detail.SlotId}) đã có sự kiện khác vào ngày {request.EventDate}.");
+            }
+
+            var ticketEvent = new TicketEvent
+            {
+                EventDate = request.EventDate,
+                PricePerPerson = request.PricePerPerson,
+                MinPlayer = request.MinPlayer,
+                MaxPlayer = request.MaxPlayer,
+                Description = request.Description,
+                OwnerId = userId,
+                Status = TicketEventStatus.Pending
+            };
+
+            _unitOfWork.TicketEvents.Add(ticketEvent);
+
+            foreach (var detail in request.Details)
+            {
+                ticketEvent.Details.Add(new TicketEventDetail
+                {
+                    FieldId = detail.FieldId,
+                    SlotId = detail.SlotId,
+                    Event = ticketEvent
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Drop-in event {EventId} created by {UserId} on {EventDate} with {DetailCount} slot(s)",
+                ticketEvent.Id, userId, request.EventDate, request.Details.Count);
+
+            return ticketEvent.Id;
+        }
+
+        public async Task<List<DropInEventListItemResponse>> GetDropInEventListAsync()
+        {
+            var events = await _unitOfWork.TicketEvents.GetPendingEventsAsync();
+
+            return events.Select(e =>
+            {
+                var firstDetail = e.Details.FirstOrDefault();
+                var currentPlayer = e.Participants
+                    .Sum(p => p.TicketQuantity);
+
+                return new DropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
         }
 
         /// <summary>
@@ -233,6 +348,69 @@ namespace Fiebo.Application.Services
                 _logger.LogError(ex, "Error while processing payment for ticket {TicketId} by user {UserId}", ticketId, userId);
                 throw new BadRequestException("Không thể xử lý thanh toán. Vui lòng thử lại.");
             }
+        }
+
+        public async Task<OwnerTicketEventDetailResponse?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
+        {
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
+
+            if (ticketEvent == null) return null;
+
+            // Logic kiểm tra: Nếu mảng Participants có bất kỳ ai thì không cho sửa
+            bool hasParticipants = ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled);
+
+            return new OwnerTicketEventDetailResponse
+            {
+                Id = ticketEvent.Id,
+                Description = ticketEvent.Description,
+                EventDate = ticketEvent.EventDate,
+                MinPlayer = ticketEvent.MinPlayer,
+                MaxPlayer = ticketEvent.MaxPlayer,
+                PricePerPerson = ticketEvent.PricePerPerson,
+                Status = ticketEvent.Status.ToString(),
+
+                // Nút Edit sẽ ẩn nếu IsEditable = false
+                IsEditable = !hasParticipants,
+
+                Slots = ticketEvent.Details.Select(d => new EventSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.Slot.StartTime,
+                    EndTime = d.Slot.EndTime
+                }).ToList(),
+
+                Participants = ticketEvent.Participants.Select(p => new ParticipantResponse
+                {
+                    Fullname = p.Fullname,
+                    PhoneNumber = p.PhoneNumber,
+                    TicketQuantity = p.TicketQuantity,
+                    Status = p.Status.ToString(),
+                    JoinedAt = p.JoinedAt
+                }).ToList()
+            };
+        }
+
+        public async Task UpdateDropInEventAsync(int eventId, UpdateDropInEventRequest request, string ownerId)
+        {
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
+
+            if (ticketEvent == null)
+            {
+                throw new Exception("Sự kiện không tồn tại hoặc bạn không có quyền.");
+            }
+
+            if (ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled))
+            {
+                throw new Exception("Không thể chỉnh sửa vì đã có người chơi đăng ký tham gia.");
+            }
+
+            ticketEvent.Description = request.Description;
+            ticketEvent.MinPlayer = request.MinPlayer;
+            ticketEvent.MaxPlayer = request.MaxPlayer;
+            ticketEvent.PricePerPerson = request.PricePerPerson;
+
+            _unitOfWork.TicketEvents.Update(ticketEvent);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

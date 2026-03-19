@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Wallet;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -133,7 +133,7 @@ namespace Fiebo.Application.Tests.Wallets
                 Id = 10,
                 UserId = "user1",
                 Balance = 500,
-                WalletTransactions = new List<WalletTransaction>(),
+                Transactions = new List<WalletTransaction>(),
                 TopUpRequests = new List<Domain.Entities.TopUpRequest>()
             };
 
@@ -190,7 +190,7 @@ namespace Fiebo.Application.Tests.Wallets
                 Id = 10,
                 UserId = "user1",
                 Balance = 0,
-                WalletTransactions = new List<WalletTransaction>(),
+                Transactions = new List<WalletTransaction>(),
                 TopUpRequests = new List<Domain.Entities.TopUpRequest>()
             };
 

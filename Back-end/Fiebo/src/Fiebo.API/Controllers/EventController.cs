@@ -1,5 +1,6 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -18,6 +19,46 @@ namespace Fiebo.API.Controllers
         public EventController(IEventService eventService)
         {
             _eventService = eventService;
+        }
+
+        /// <summary>
+        /// UC-62: Create a new drop-in event for a specific field.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [HttpPost]
+        public async Task<IActionResult> CreateDropInEvent([FromBody] CreateDropInEventRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var eventId = await _eventService.CreateDropInEventAsync(request, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sự kiện thành công.",
+                Data = new { EventId = eventId }
+            });
+        }
+
+        /// <summary>
+        /// Get list of available drop-in events (Pending status).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetDropInEventList()
+        {
+            var events = await _eventService.GetDropInEventListAsync();
+            return Ok(new ApiResponse<List<DropInEventListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = events.Count > 0
+                    ? "Lấy danh sách sự kiện thành công."
+                    : "Hiện tại chưa có sự kiện nào.",
+                Data = events
+            });
         }
 
         /// <summary>
@@ -95,6 +136,69 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Thanh toán vé thành công.",
             });
+        }
+
+        /// <summary>
+        /// Get detailed info of a drop-in event for the Owner (including player list).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("owner/{id:int}")] 
+        public async Task<IActionResult> GetOwnerEventDetail([FromRoute] int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _eventService.GetEventDetailForOwnerAsync(id, ownerId);
+
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Sự kiện không tồn tại hoặc bạn không có quyền truy cập."
+                });
+            }
+
+            return Ok(new ApiResponse<OwnerTicketEventDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải chi tiết sự kiện cho chủ sân thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Update drop-in event details. 
+        /// Only allowed if NO participants have joined.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("owner/{id:int}")]
+        public async Task<IActionResult> UpdateOwnerEvent([FromRoute] int id, [FromBody] UpdateDropInEventRequest request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            try
+            {
+                await _eventService.UpdateDropInEventAsync(id, request, ownerId!);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Cập nhật thông tin sự kiện thành công."
+                });
+            }
+            catch (Exception ex)
+            {
+                // Trả về lỗi nếu có người đăng ký (Logic ở Service ném ra)
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = ex.Message
+                });
+            }
         }
     }
 }
