@@ -96,5 +96,24 @@ namespace Fiebo.API.Controllers
                 Message = "Thanh toán vé thành công.",
             });
         }
+
+        /// <summary>
+        /// Edit drop-in event by event id when there is no player join the event. Only field owner can perform this action.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateEvent([FromRoute] int id, [FromBody] UpdateEventRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            await _eventService.UpdateDropInEventAsync(id, request, userId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật sự kiện thành công.",
+            });
+        }
     }
 }

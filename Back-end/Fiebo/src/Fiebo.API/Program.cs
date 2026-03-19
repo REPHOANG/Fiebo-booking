@@ -92,6 +92,7 @@ builder.Services.AddScoped<ITopUpRequestRepository, TopUpRequestRepository>();
 builder.Services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
 builder.Services.AddScoped<ITicketEventRepository, TicketEventRepository>();
 builder.Services.AddScoped<ITicketParticipantRepository, TicketParticipantRepository>();
+builder.Services.AddScoped<ITicketEventDetailRepository, TicketEventDetailRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
