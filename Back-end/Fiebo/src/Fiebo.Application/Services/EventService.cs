@@ -412,5 +412,38 @@ namespace Fiebo.Application.Services
             _unitOfWork.TicketEvents.Update(ticketEvent);
             await _unitOfWork.SaveChangesAsync();
         }
+
+        public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string ownerId)
+        {
+            var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
+            if (dropInEvent == null)
+            {
+                throw new NotFoundException("Không tìm thấy sự kiện");
+            }
+            var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(eventId);
+            if(earliestSlot == null)
+            {
+                throw new BadRequestException("Sự kiện không có slot");
+            }
+            if(dropInEvent.OwnerId != ownerId)
+            {
+                throw new BadRequestException("Bạn không có quyền chỉnh sửa sự kiện này");
+            }
+            if(dropInEvent.Status != TicketEventStatus.Pending)
+            {
+                throw new BadRequestException("Chỉ sự kiện với trạng thái đang chờ mới có thể sửa");
+            }
+            var currentPlayer = await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId);
+            if(currentPlayer > 0)
+            {
+                throw new BadRequestException("Không thể chỉnh sửa sự kiện khi đã có người đăng kí");
+            }
+
+            dropInEvent.PricePerPerson = request.PricePerPerson;
+            dropInEvent.MinPlayer = request.MinPlayer;
+            dropInEvent.MaxPlayer = request.MaxPlayer;
+            dropInEvent.Description = request.Description;
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 }
