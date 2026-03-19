@@ -1,5 +1,6 @@
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -134,6 +135,38 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Thanh toán vé thành công.",
+            });
+        }
+
+        /// <summary>
+        /// Get detailed info of a drop-in event for the Owner (including player list).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("owner/{id:int}")] 
+        public async Task<IActionResult> GetOwnerEventDetail([FromRoute] int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _eventService.GetEventDetailForOwnerAsync(id, ownerId);
+
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Sự kiện không tồn tại hoặc bạn không có quyền truy cập."
+                });
+            }
+
+            return Ok(new ApiResponse<OwnerTicketEventDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải chi tiết sự kiện cho chủ sân thành công.",
+                Data = result
             });
         }
     }

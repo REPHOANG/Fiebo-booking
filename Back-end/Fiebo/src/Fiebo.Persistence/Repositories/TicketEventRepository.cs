@@ -55,5 +55,18 @@ namespace Fiebo.Persistence.Repositories
                     d.Event.EventDate == eventDate &&
                     (d.Event.Status == TicketEventStatus.Pending || d.Event.Status == TicketEventStatus.Ongoing));
         }
+
+        public async Task<TicketEvent?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Field)
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(e => e.Participants)
+                // Ki?m tra ?úng EventId và ?úng ch? s? h?u
+                .FirstOrDefaultAsync(e => e.Id == eventId && e.OwnerId == ownerId);
+        }
     }
 }
