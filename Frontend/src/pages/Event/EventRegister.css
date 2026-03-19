@@ -224,6 +224,22 @@
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
 }
 
+/* ── Hold hint ───────────────────────────────────────────────── */
+.er-hold-hint {
+  margin: 0 0 12px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.er-hold-hint strong {
+  font-weight: 800;
+}
+
 /* ── Sticky bottom ───────────────────────────────────────────── */
 .er-bottom {
   position: fixed;

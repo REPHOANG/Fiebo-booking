@@ -7,6 +7,7 @@ import { getVenueDetail, getVenueFields } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { getVenueSchedule } from '../../../services/fieldService';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
+import { getEventList } from "../../../services/eventService";
 import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
 import "./BookingSchedule.css";
 
@@ -33,6 +34,8 @@ const normalizeSlotTime = (t) => {
   const [h, m] = part.split(":").map((n) => parseInt(n, 10) || 0);
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
+
+const normalizeText = (v) => String(v || "").trim().toLowerCase();
 
 /** Generate time slots: stepMinutes = 60 (mỗi slot 1 tiếng) */
 const generateSlots = (openTime, closeTime, stepMinutes = 60) => {
@@ -120,6 +123,7 @@ const BookingSchedule = () => {
   const [tempDate, setTempDate] = useState(null);
   const calendarRef = useRef(null);
   const [venueSchedule, setVenueSchedule] = useState(null);
+  const [eventSlots, setEventSlots] = useState([]); // [{ fieldIdx, slotIdx }]
   // Cập nhật mỗi phút để slot "đã qua" (Khoá) được tính lại khi đang xem ngày hôm nay
   const [timeTick, setTimeTick] = useState(() => Date.now());
   useEffect(() => {
@@ -294,6 +298,60 @@ const BookingSchedule = () => {
     return () => { mounted = false; };
   }, [venue, selectedDate, id, fields, dispatch]);
 
+  // Fetch event slots (drop-in events) for this venue + date, then map to grid indices
+  useEffect(() => {
+    if (!venue?.name || !selectedDate || !slots?.length || !fields?.length) {
+      setEventSlots([]);
+      return;
+    }
+    let mounted = true;
+
+    const loadEventSlots = async () => {
+      try {
+        const all = await getEventList();
+        const list = Array.isArray(all) ? all : [];
+        const venueNameKey = normalizeText(venue.name);
+        const dateKey = String(selectedDate).slice(0, 10);
+
+        const filtered = list.filter(
+          (e) =>
+            normalizeText(e?.venueName) === venueNameKey &&
+            String(e?.eventDate).slice(0, 10) === dateKey
+        );
+
+        const mapped = [];
+        filtered.forEach((e) => {
+          (e?.slots || []).forEach((s) => {
+            const fieldName = String(s?.fieldName || "").trim();
+            const startLabel = normalizeSlotTime(s?.startTime);
+            const fieldIdx = fields.findIndex((f) => String(f?.name || "").trim() === fieldName);
+            const slotIdx = slots.findIndex((sl) => sl?.label === startLabel);
+            if (fieldIdx >= 0 && slotIdx >= 0) mapped.push({ fieldIdx, slotIdx });
+          });
+        });
+
+        // Deduplicate
+        const seen = new Set();
+        const unique = mapped.filter((x) => {
+          const key = `${x.fieldIdx}_${x.slotIdx}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        if (mounted) setEventSlots(unique);
+      } catch (e) {
+        // If event list fails, don't block booking UI
+        if (mounted) setEventSlots([]);
+      }
+    };
+
+    loadEventSlots();
+    return () => {
+      mounted = false;
+    };
+  }, [venue?.name, selectedDate, slots, fields]);
+
   // Labels = slots + closing time (N+1 labels cho N cột)
   const timeLabels = useMemo(() => {
     if (!slots.length) return [];
@@ -350,6 +408,11 @@ const BookingSchedule = () => {
     [bookedForDate]
   );
 
+  const isEvent = useCallback(
+    (fieldIdx, slotIdx) => eventSlots.some((e) => Number(e.fieldIdx) === Number(fieldIdx) && Number(e.slotIdx) === Number(slotIdx)),
+    [eventSlots]
+  );
+
   // If a slot becomes booked (e.g., after confirm/payment), remove it from current selection
   useEffect(() => {
     if (!selectedSlots || !selectedSlots.length) return;
@@ -358,6 +421,15 @@ const BookingSchedule = () => {
       setSelectedSlots(remaining);
     }
   }, [bookedForDate]);
+
+  // If a slot becomes event, remove it from current selection
+  useEffect(() => {
+    if (!selectedSlots || !selectedSlots.length) return;
+    const remaining = selectedSlots.filter((s) => !isEvent(s.fieldIdx, s.slotIdx));
+    if (remaining.length !== selectedSlots.length) {
+      setSelectedSlots(remaining);
+    }
+  }, [eventSlots]);
 
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>
@@ -368,7 +440,7 @@ const BookingSchedule = () => {
   const toggleSlot = (fieldIdx, slotIdx) => {
     // Allow selecting slots even when the user is not authenticated.
     // Authentication will be required when pressing the "TIẾP THEO" button.
-    if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx)) return;
+    if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx) || isEvent(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
       if (exists) return prev.filter((s) => !(s.fieldIdx === fieldIdx && s.slotIdx === slotIdx));
@@ -379,6 +451,7 @@ const BookingSchedule = () => {
   const getCellClass = (fieldIdx, slotIdx) => {
     if (isLocked(slotIdx)) return "bs-cell locked";
     if (isBooked(fieldIdx, slotIdx)) return "bs-cell booked";
+    if (isEvent(fieldIdx, slotIdx)) return "bs-cell event";
     if (isSelected(fieldIdx, slotIdx)) return "bs-cell selected";
     return "bs-cell available";
   };

@@ -65,6 +65,14 @@ const OwnerLayout = () => {
           >
             Tạo cơ sở
           </NavLink>
+          <NavLink
+            to="/owner/bookings"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Đơn đặt sân
+          </NavLink>
 
           <div className="owner-sidebar-divider" />
 

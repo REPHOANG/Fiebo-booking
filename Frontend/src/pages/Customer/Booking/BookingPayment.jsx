@@ -413,7 +413,7 @@ const BookingPayment = () => {
     if (!isEnough || paying || expired) {
       if (!isEnough)
         alert(
-          "Số dư không đủ. Vui lòng nạp thêm vào ví hoặc chọn phương thức khác.",
+          "Số dư không đủ. Vui lòng nạp thêm vào ví.",
         );
       return;
     }

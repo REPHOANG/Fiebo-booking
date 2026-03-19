@@ -1,0 +1,145 @@
+.obd-page .owner-home-content {
+  max-width: 720px;
+}
+
+.obd-back {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.obd-back:hover {
+  color: #139a44;
+}
+
+.obd-loading {
+  margin: 0;
+  color: #6b7280;
+}
+
+.obd-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.obd-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.obd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.obd-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.obd-badge[data-status="pending"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.obd-badge[data-status="booked"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.obd-badge[data-status="completed"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.obd-badge[data-status="customercancelled"],
+.obd-badge[data-status="ownercancelled"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.obd-section {
+  margin-bottom: 20px;
+}
+
+.obd-section h3 {
+  font-size: 14px;
+  margin: 0 0 10px 0;
+  color: #374151;
+}
+
+.obd-info {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.obd-info li {
+  margin-bottom: 4px;
+}
+
+.obd-empty {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.obd-table-wrap {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.obd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.obd-table th,
+.obd-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.obd-table th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}
+
+.obd-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.obd-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.obd-total strong {
+  color: #166534;
+}

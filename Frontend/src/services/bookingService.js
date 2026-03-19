@@ -63,6 +63,15 @@ export const getCancelBookingPreview = async (id) => {
   return response.data?.data ?? response.data;
 };
 
+/**
+ * Chi tiết đơn đặt sân cho chủ sân (GET /api/owner/booking/{id}).
+ * Cần đăng nhập role FieldOwner.
+ */
+export const getOwnerBookingDetail = async (bookingId) => {
+  const response = await api.get(`/api/owner/booking/${bookingId}`);
+  return response.data?.data ?? response.data ?? response;
+};
+
 export const cancelBookingApi = async (id) => {
   const response = await api.post(`/api/booking/${id}/cancel`);
   return response.data?.data ?? response.data;

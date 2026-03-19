@@ -47,12 +47,32 @@ export function isTokenExpired(token) {
   return expMs < nowMs;
 }
 
-// Initial auth state (do NOT read from localStorage) — keep auth in-memory only
+/** Đọc auth từ storage (token + user từ JWT), dùng cho restore sau reload. */
+function getStoredAuth() {
+  try {
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!token) return null;
+    if (isTokenExpired(token)) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    const payload = decodeJwtPayload(token);
+    const user = userFromJwtPayload(payload);
+    if (!user) return null;
+
+    return { token, user };
+  } catch {
+    return null;
+  }
+}
+
 const getInitialState = () => {
+  const stored = getStoredAuth();
   return {
-    user: null,
-    token: null,
-    isAuthenticated: false,
+    user: stored?.user ?? null,
+    token: stored?.token ?? null,
+    isAuthenticated: Boolean(stored?.token && stored?.user),
     profile: null,
     profileLoading: false,
     registrationPending: false,
@@ -64,16 +84,6 @@ const getInitialState = () => {
     error: null,
   };
 };
-
-/** Đọc auth từ storage (token + user từ JWT), dùng cho ProtectedRoute và service lấy token. */
-function getStoredAuth() {
-  try {
-    // Persistence disabled — no localStorage access
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 export { getStoredAuth };
 

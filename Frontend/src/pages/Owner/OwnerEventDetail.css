@@ -1,0 +1,181 @@
+.oed-page .owner-home-content {
+  max-width: 720px;
+}
+
+.oed-back {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.oed-back:hover {
+  color: #139a44;
+}
+
+.oed-loading {
+  margin: 0;
+  color: #6b7280;
+}
+
+.oed-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.oed-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.oed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.oed-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.oed-editable {
+  color: #059669;
+  font-size: 13px;
+}
+
+.oed-desc {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.oed-info {
+  margin: 0 0 16px 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.oed-info li {
+  margin-bottom: 4px;
+}
+
+.oed-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  margin-right: 8px;
+  margin-bottom: 8px;
+}
+
+.oed-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.oed-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+.oed-btn.primary {
+  background: #139a44;
+  color: #fff;
+}
+
+.oed-btn.primary:hover:not(:disabled) {
+  background: #0f7c36;
+}
+
+.oed-btn.link {
+  background: transparent;
+  color: #6b7280;
+}
+
+.oed-card h4 {
+  font-size: 14px;
+  margin: 16px 0 8px 0;
+  color: #374151;
+}
+
+.oed-slots {
+  margin: 0 0 16px 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.oed-empty {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.oed-edit-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.oed-edit-form label input,
+.oed-edit-form label textarea {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.oed-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 320px;
+}
+
+.oed-edit-actions {
+  margin-top: 16px;
+}
+
+.oed-table-wrap {
+  overflow: auto;
+  margin-top: 8px;
+}
+
+.oed-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.oed-table th,
+.oed-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.oed-table th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}

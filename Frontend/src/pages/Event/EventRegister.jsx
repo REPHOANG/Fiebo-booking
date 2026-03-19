@@ -28,6 +28,15 @@ const EventRegister = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [note, setNote] = useState("");
 
+  // Số người tối đa = sức chứa sự kiện (từ API: ticketQuantity). Mặc định số vé = số người tối đa.
+  const maxPlayer = Number(
+    event?.ticketQuantity ?? event?.TicketQuantity ?? event?.maxPlayer ?? 0
+  );
+  const remaining = Number(
+    event?.remainingTicketQuantity ?? event?.RemainingTicketQuantity ?? maxPlayer
+  );
+  const maxSelectable = Math.max(1, remaining);
+
   useEffect(() => {
     const nextName = user?.name || user?.fullName || "";
     const nextPhone = user?.phone || user?.phoneNumber || "";
@@ -65,13 +74,21 @@ const EventRegister = () => {
     };
   }, [eventId]);
 
+  // Chỉ giới hạn số lượng đã chọn không vượt quá số vé còn lại (mặc định giữ 0)
+  useEffect(() => {
+    if (event && maxSelectable >= 1) {
+      setTicketQuantity((prev) => Math.min(prev, maxSelectable));
+    }
+  }, [event?.id, maxSelectable]);
+
   const pricePerTicket = Number(
     event?.pricePerTicket ?? event?.ticketPrice ?? event?.price ?? 0
   );
   const total = Math.max(0, Number(ticketQuantity) || 0) * (Number.isFinite(pricePerTicket) ? pricePerTicket : 0);
 
   const dec = () => setTicketQuantity((q) => Math.max(0, Number(q) - 1));
-  const inc = () => setTicketQuantity((q) => Math.min(999, Number(q) + 1));
+  const inc = () =>
+    setTicketQuantity((q) => Math.min(maxSelectable, Number(q) + 1));
 
   const submit = async () => {
     if (!eventId) return;
@@ -97,20 +114,26 @@ const EventRegister = () => {
 
     setSubmitting(true);
     try {
+      // Gọi API giữ chỗ (tạo vé pending), sau đó chuyển sang thanh toán
       const res = await joinEvent(eventId, {
         fullName: payload.fullName,
         phoneNumber: payload.phoneNumber,
         ticketQuantity: payload.ticketQuantity,
       });
-      const ticketId = res?.ticketId ?? res?.id ?? res?.data?.ticketId;
-      toast.success("Đăng ký thành công!");
+      const ticketId =
+        res?.ticketParticipantId ??
+        res?.TicketParticipantId ??
+        res?.ticketId ??
+        res?.id;
       if (ticketId) {
-        navigate(`/event/ticket/${ticketId}`, { replace: true });
+        toast.success("Đã giữ chỗ. Vui lòng thanh toán trong thời gian quy định.");
+        navigate(`/event/ticket/${ticketId}/payment`, { replace: true });
       } else {
+        toast.success("Đăng ký thành công.");
         navigate(`/event/${eventId}`, { replace: true });
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Đăng ký thất bại");
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Giữ chỗ thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -215,6 +238,11 @@ const EventRegister = () => {
         </div>
       </section>
 
+      {/* Hint: đăng ký = giữ chỗ */}
+      <p className="er-hold-hint">
+        Bấm <strong>Đăng ký</strong> để giữ chỗ. Sau đó bạn sẽ chuyển sang bước thanh toán để xác nhận.
+      </p>
+
       {/* Sticky bottom bar */}
       <div className="er-bottom">
         <div className="er-bottom-inner">
@@ -223,7 +251,7 @@ const EventRegister = () => {
             <strong>{total ? toVnd(total) : "0 đ"}</strong>
           </div>
           <button className="er-submit" type="button" onClick={submit} disabled={submitting}>
-            {submitting ? "ĐANG XỬ LÝ..." : "ĐĂNG KÝ"}
+            {submitting ? "ĐANG GIỮ CHỖ..." : "ĐĂNG KÝ (GIỮ CHỖ)"}
           </button>
         </div>
       </div>

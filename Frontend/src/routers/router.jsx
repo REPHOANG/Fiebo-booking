@@ -18,6 +18,9 @@ import CreateVenue from '../pages/Owner/CreateVenue';
 import OwnerVenues from '../pages/Owner/OwnerVenues';
 import OwnerEvents from '../pages/Owner/OwnerEvents';
 import CreateEvent from '../pages/Owner/CreateEvent';
+import OwnerEventDetail from '../pages/Owner/OwnerEventDetail';
+import OwnerBookings from '../pages/Owner/OwnerBookings';
+import OwnerBookingDetail from '../pages/Owner/OwnerBookingDetail';
 import EventDetail from '../pages/Event/EventDetail';
 import EventRegister from '../pages/Event/EventRegister';
 import EventTicketDetail from '../pages/Event/EventTicketDetail';
@@ -64,8 +67,11 @@ const AppRoutes = () => (
       <Route path="/owner" element={<OwnerHome />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
       <Route path="/owner/create-venue" element={<CreateVenue />} />
+    <Route path="/owner/bookings" element={<OwnerBookings />} />
+    <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />
     <Route path="/owner/events" element={<OwnerEvents />} />
     <Route path="/owner/events/create" element={<CreateEvent />} />
+    <Route path="/owner/events/:id" element={<OwnerEventDetail />} />
     </Route>
 
     {/* Layout (Header + Footer): home, venues, booking */}

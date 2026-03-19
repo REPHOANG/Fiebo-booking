@@ -1,0 +1,72 @@
+.owner-bookings-page .owner-home-content {
+  max-width: 480px;
+}
+
+.ob-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.ob-desc {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.ob-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ob-form input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.ob-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 8px;
+}
+
+.ob-btn.primary {
+  background: #139a44;
+  color: #fff;
+}
+
+.ob-btn.primary:hover:not(:disabled) {
+  background: #0f7c36;
+}
+
+.ob-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ob-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.ob-link:hover {
+  color: #139a44;
+}
