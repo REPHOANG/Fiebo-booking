@@ -169,5 +169,36 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Update drop-in event details. 
+        /// Only allowed if NO participants have joined.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("owner/{id:int}")]
+        public async Task<IActionResult> UpdateOwnerEvent([FromRoute] int id, [FromBody] UpdateDropInEventRequest request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            try
+            {
+                await _eventService.UpdateDropInEventAsync(id, request, ownerId!);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Cập nhật thông tin sự kiện thành công."
+                });
+            }
+            catch (Exception ex)
+            {
+                // Trả về lỗi nếu có người đăng ký (Logic ở Service ném ra)
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }
