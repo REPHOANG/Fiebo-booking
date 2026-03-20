@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
@@ -6,6 +6,7 @@ using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using static System.Net.WebRequestMethods;
 
 namespace Fiebo.Application.Services
@@ -148,7 +149,23 @@ namespace Fiebo.Application.Services
 
         public async Task<string> LoginAsync(LoginRequest request)
         {
-            var authResult = await _identityService.AuthenticateAsync(request.EmailOrPhone, request.Password);
+            if (string.IsNullOrWhiteSpace(request.EmailOrPhone) || string.IsNullOrWhiteSpace(request.Password))
+                throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+
+            var input = request.EmailOrPhone.Trim();
+
+            if (input.Contains("@"))
+            {
+                if (!Regex.IsMatch(input, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                    throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+            }
+            else
+            {
+                if (!Regex.IsMatch(input, @"^0\d{9,10}$"))
+                    throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+            }
+
+            var authResult = await _identityService.AuthenticateAsync(input, request.Password);
 
             if (!authResult.IsSuccess)
                 throw new UnauthorizedException("Sai tài khoản hoặc mật khẩu!");
@@ -161,6 +178,7 @@ namespace Fiebo.Application.Services
 
             var token = _tokenService.GenerateAccessToken(authResult.UserId, authResult.FullName, authResult.Role, authResult.Email);
 
+            _logger.LogInformation("Đăng nhập thành công: {Account}", input);
             return token;
         }
 
