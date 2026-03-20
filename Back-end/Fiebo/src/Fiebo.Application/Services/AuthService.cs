@@ -251,7 +251,7 @@ namespace Fiebo.Application.Services
             {
                 var subject = "Fiebo - Đặt lại mật khẩu";
                 var emailBody = $@"
-<div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
 
     <h2 style='color: #2c3e50; text-align: center;'>
         Đặt lại mật khẩu Fiebo
