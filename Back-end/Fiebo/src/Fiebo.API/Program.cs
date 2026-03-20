@@ -113,6 +113,8 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IQrPaymentService, QrPaymentService>();
 builder.Services.AddHostedService<BookingExpirationJob>();
+builder.Services.AddHostedService<TicketExpireJob>();
+builder.Services.AddHostedService<BookingCompleteJob>();
 builder.Services.AddSingleton<SseService>();
 builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
