@@ -45,5 +45,21 @@ namespace Fiebo.Persistence.Repositories
                 .OrderBy(te => te.EventDate)
                 .ToListAsync();
         }
+
+        public async Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId)
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(te => te.OwnerId == ownerId)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Field)
+                        .ThenInclude(f => f.Venue)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(te => te.Participants)
+                .OrderByDescending(te => te.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace Fiebo.Application.Interfaces
         Task<TicketEventDetailResponse> GetDropInEventDetailAsync(int eventId);
         Task<TicketDetailResponse> GetTicketDetailAsync(int ticketId, string userId);
         Task MakeDropInPayment(int ticketId, string userId);
+        Task<List<OwnerDropInEventListItemResponse>> GetOwnerEventListAsync(string ownerId);
     }
 }
