@@ -40,31 +40,31 @@ namespace Fiebo.Persistence.BackgroundJobs
         }
 
         private async Task Run(CancellationToken token)
-{
-    using var scope = _scopeFactory.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
 
-    var now = DateTime.Now;
-    var today = DateOnly.FromDateTime(now);
-    var currentTime = TimeOnly.FromDateTime(now);
+            var now = DateTime.Now;
+            var today = DateOnly.FromDateTime(now);
+            var currentTime = TimeOnly.FromDateTime(now);
 
-    var affected = await db.Bookings
-        .Where(b => b.Status == BookingStatus.Booked)
-        .Where(b =>
-            !b.BookingDetails.Any(d =>
-                b.BookingDate > today ||
-                (b.BookingDate == today &&
-                 d.TimeSlot!.EndTime > currentTime)
-            )
-        )
-        .ExecuteUpdateAsync(setters => setters
-            .SetProperty(b => b.Status, BookingStatus.Completed),
-            token);
+            var affected = await db.Bookings
+                .Where(b => b.Status == BookingStatus.Booked)
+                .Where(b =>
+                    !b.BookingDetails.Any(d =>
+                        b.BookingDate > today ||
+                        (b.BookingDate == today &&
+                         d.TimeSlot!.EndTime > currentTime)
+                    )
+                )
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(b => b.Status, BookingStatus.Completed),
+                    token);
 
-    if (affected > 0)
-    {
-        _logger.LogInformation("Completed {Count} bookings", affected);
-    }
-}
+            if (affected > 0)
+            {
+                _logger.LogInformation("Completed {Count} bookings", affected);
+            }
+        }
     }
 }
