@@ -499,6 +499,17 @@ namespace Fiebo.Persistence.Data
                 entity.HasIndex(d => new { d.EventId, d.FieldId, d.SlotId })
                     .IsUnique();
             });
+
+            // VenueStaff
+            modelBuilder.Entity<VenueStaff>(entity =>
+            {
+                entity.HasKey(vs => vs.Id);
+
+                entity.HasOne(vs => vs.Venue)
+                      .WithMany(v => v.VenueStaffs)
+                      .HasForeignKey(vs => vs.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }
