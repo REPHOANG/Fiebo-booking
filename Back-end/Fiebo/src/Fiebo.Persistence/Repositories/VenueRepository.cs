@@ -285,5 +285,17 @@ namespace Fiebo.Persistence.Repositories
                 v.Longitude >= userLng - lngRange &&
                 v.Longitude <= userLng + lngRange);
         }
+
+        public async Task<List<Venue>> GetVenuesByOwnerAsync(string ownerId)
+        {
+            return await _context.Venues
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(v => v.OwnerId == ownerId)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .Include(v => v.Fields)
+                .ToListAsync();
+        }
     }
 }

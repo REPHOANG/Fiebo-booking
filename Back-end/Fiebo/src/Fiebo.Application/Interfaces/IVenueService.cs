@@ -27,5 +27,7 @@ namespace Fiebo.Application.Interfaces
         Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
     SearchFieldsRequest request);
         Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date);
+        Task<List<OwnerVenueListResponse>> GetVenuesByOwnerAsync(string ownerId);
+        Task DeactivateVenueAsync(int venueId, string ownerId);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,19 @@ namespace Fiebo.Persistence.Repositories
                 .Include(d => d.Slot)
                 .OrderBy(d => d.Slot.StartTime)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<List<TicketEventDetail>> GetEventsByVenueAndDateAsync(int venueId, DateOnly date)
+        {
+            return await _context.TicketEventDetails
+                .AsNoTracking()
+                .Include(e => e.Event)
+                .Include(e => e.Field)
+                .Where(e => e.Event.EventDate == date
+                            && e.Field.VenueId == venueId
+                            && (e.Event.Status == TicketEventStatus.Pending
+                            || e.Event.Status == TicketEventStatus.Ongoing))
+                .ToListAsync();
         }
     }
 }

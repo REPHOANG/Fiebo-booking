@@ -59,15 +59,6 @@ namespace Fiebo.API.Controllers
 
             var result = await _eventService.GetEventDetailForOwnerAsync(id, ownerId);
 
-            if (result == null)
-            {
-                return NotFound(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status404NotFound,
-                    Message = "Sự kiện không tồn tại hoặc bạn không có quyền truy cập."
-                });
-            }
-
             return Ok(new ApiResponse<OwnerTicketEventDetailResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
