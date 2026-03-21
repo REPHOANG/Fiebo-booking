@@ -143,3 +143,23 @@
 .obd-total strong {
   color: #166534;
 }
+
+.obd-cancel-btn {
+  margin-left: auto;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obd-cancel-btn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.obd-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

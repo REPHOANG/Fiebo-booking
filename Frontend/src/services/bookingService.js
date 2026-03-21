@@ -77,6 +77,19 @@ export const cancelBookingApi = async (id) => {
   return response.data?.data ?? response.data;
 };
 
+/**
+ * UC-59: Field Owner cancels a customer's booking with 100% refund.
+ * Endpoint: POST /api/Booking/{id}/owner-cancel
+ * @param {number|string} id
+ * @param {string} cancelReason
+ */
+export const ownerCancelBookingApi = async (id, cancelReason) => {
+  const response = await api.post(`/api/Booking/${id}/owner-cancel`, {
+    cancelReason: String(cancelReason || ""),
+  });
+  return response.data?.data ?? response.data ?? response;
+};
+
 export default {
   createBooking,
   payBooking,

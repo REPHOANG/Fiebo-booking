@@ -39,7 +39,9 @@ const OwnerBookings = () => {
               Xem chi tiết
             </button>
           </form>
-          <Link to="/owner" className="ob-link">← Về tổng quan</Link>
+          <Link to="/owner" className="ob-link">
+            ← Về tổng quan
+          </Link>
         </div>
       </div>
     </div>

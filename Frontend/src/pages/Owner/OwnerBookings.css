@@ -59,6 +59,103 @@
   cursor: not-allowed;
 }
 
+.ob-btn.secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.ob-btn.secondary:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.ob-btn.outline {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.ob-btn.outline:hover:not(:disabled) {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.ob-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ob-booking-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.ob-booking-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ob-booking-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ob-booking-badge[data-status="pending"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ob-booking-badge[data-status="booked"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ob-booking-badge[data-status="completed"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.ob-booking-badge[data-status="customercancelled"],
+.ob-booking-badge[data-status="ownercancelled"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.ob-booking-id {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ob-booking-venue {
+  margin-top: 8px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ob-booking-meta {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.ob-booking-actions {
+  display: flex;
+  align-items: flex-start;
+}
+
 .ob-link {
   display: inline-block;
   margin-top: 16px;

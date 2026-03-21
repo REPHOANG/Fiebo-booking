@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
-import { getOwnerBookingDetail } from "../../services/bookingService";
+import { toast } from "react-toastify";
+import {
+  getOwnerBookingDetail,
+  ownerCancelBookingApi,
+} from "../../services/bookingService";
 import "./OwnerBookingDetail.css";
 
 const formatPrice = (n) => {
@@ -37,27 +41,27 @@ const OwnerBookingDetail = () => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
+  const fetchDetail = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await getOwnerBookingDetail(id);
+      setDetail(data);
+    } catch (e) {
+      setDetail(null);
+      setError(
+        e?.response?.data?.message || e?.message || "Không tải được chi tiết đơn.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    let mounted = true;
-    const fetchDetail = async () => {
-      if (!id) return;
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getOwnerBookingDetail(id);
-        if (mounted) setDetail(data);
-      } catch (e) {
-        if (mounted) {
-          setDetail(null);
-          setError(e?.response?.data?.message || e?.message || "Không tải được chi tiết đơn.");
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
     fetchDetail();
-    return () => { mounted = false; };
   }, [id]);
 
   if (loading) {
@@ -85,6 +89,39 @@ const OwnerBookingDetail = () => {
 
   const d = detail || {};
   const items = d.bookedItems ?? d.BookedItems ?? [];
+  const bookingId = d.bookingId ?? id;
+  const statusKey = String(d.status || "").toLowerCase();
+  const canCancel = statusKey === "pending" || statusKey === "booked";
+
+  const handleOwnerCancel = async () => {
+    if (!bookingId) return;
+    if (!canCancel) return;
+
+    const reason =
+      window.prompt("Nhập lý do hủy đặt sân:", "Hủy lịch do không thể sắp xếp được sân");
+    if (!reason || !String(reason).trim()) {
+      toast.warning("Lý do hủy không được để trống");
+      return;
+    }
+
+    const ok = window.confirm(
+      "Xác nhận hủy đặt sân này? Hệ thống sẽ hoàn tiền 100% cho khách hàng.",
+    );
+    if (!ok) return;
+
+    setCancelling(true);
+    try {
+      await ownerCancelBookingApi(bookingId, reason);
+      toast.success("Đã hủy đặt sân thành công");
+      await fetchDetail();
+    } catch (e) {
+      toast.error(
+        e?.response?.data?.message ?? e?.message ?? "Không thể hủy đặt sân",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="owner-home obd-page">
@@ -100,6 +137,17 @@ const OwnerBookingDetail = () => {
               {translateStatus(d.status)}
             </span>
             <span>Đặt lúc: {d.createdAt ? new Date(d.createdAt).toLocaleString("vi-VN") : "—"}</span>
+
+            {canCancel && (
+              <button
+                type="button"
+                className="obd-cancel-btn"
+                onClick={handleOwnerCancel}
+                disabled={cancelling}
+              >
+                {cancelling ? "Đang hủy..." : "Hủy đặt sân"}
+              </button>
+            )}
           </div>
 
           <div className="obd-section">
