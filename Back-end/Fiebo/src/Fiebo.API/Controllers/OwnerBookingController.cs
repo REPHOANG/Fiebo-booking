@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -45,6 +45,26 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải chi tiết đơn hàng thành công.",
+                Data = result
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetBookingList([FromQuery] OwnerBookingFilter filter)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetBookingListForOwnerAsync(ownerId, filter);
+
+            return Ok(new ApiResponse<List<OwnerBookingListResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải danh sách đơn hàng thành công.",
                 Data = result
             });
         }

@@ -1,0 +1,44 @@
+name: Fiebo Backend CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - 'Back-end/Fiebo/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'Back-end/Fiebo/**'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Back-end/Fiebo
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Fiebo.sln
+
+      - name: Build solution
+        run: dotnet build Fiebo.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test Fiebo.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: Back-end/Fiebo/**/TestResults/*.trx

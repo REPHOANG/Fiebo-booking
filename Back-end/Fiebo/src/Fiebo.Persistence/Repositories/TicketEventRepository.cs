@@ -65,8 +65,23 @@ namespace Fiebo.Persistence.Repositories
                 .Include(e => e.Details)
                     .ThenInclude(d => d.Slot)
                 .Include(e => e.Participants)
-                // Ki?m tra ?úng EventId và ?úng ch? s? h?u
+                // Ki?m tra ?ï¿½ng EventId vï¿½ ?ï¿½ng ch? s? h?u
                 .FirstOrDefaultAsync(e => e.Id == eventId && e.OwnerId == ownerId);
+        }
+        public async Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId)
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(te => te.OwnerId == ownerId)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Field)
+                        .ThenInclude(f => f.Venue)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(te => te.Participants)
+                .OrderByDescending(te => te.CreatedAt)
+                .ToListAsync();
         }
     }
 }
