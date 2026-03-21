@@ -279,6 +279,11 @@ namespace Fiebo.Application.Services
 
         public async Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
             var sportTypes = await _unitOfWork.Fields.GetSportTypesByVenueAsync(venueId);
 
             var slots = await _unitOfWork.TimeSlots
@@ -374,13 +379,27 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if(venue.OwnerId != ownerId)
+            if (venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền tắt sân này");
             }
             venue.Status = VenueStatus.Inactive;
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId, DateOnly date)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if(venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem lịch sân này");
+            }
+            return await GetVenueSchedule(venueId, date);
         }
     }
 }
