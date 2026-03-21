@@ -67,6 +67,7 @@ namespace Fiebo.Persistence.Repositories
                 .Include(e => e.Participants)
                 // Ki?m tra ?�ng EventId v� ?�ng ch? s? h?u
                 .FirstOrDefaultAsync(e => e.Id == eventId && e.OwnerId == ownerId);
+        }
         public async Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId)
         {
             return await _context.TicketEvents
