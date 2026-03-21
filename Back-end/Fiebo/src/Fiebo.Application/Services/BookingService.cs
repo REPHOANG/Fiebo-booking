@@ -229,7 +229,7 @@ namespace Fiebo.Application.Services
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -238,6 +238,14 @@ namespace Fiebo.Application.Services
                     if (!isAvailable)
                     {
                         throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        throw new ResourceConflictException("Slot đã được sử dụng cho sự kiện ghép kèo. Vui lòng chọn slot khác.");
                     }
                 }
 
@@ -398,7 +406,7 @@ namespace Fiebo.Application.Services
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -407,6 +415,14 @@ namespace Fiebo.Application.Services
                     if (!isAvailable)
                     {
                         throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        throw new ResourceConflictException("Slot đã được sử dụng cho sự kiện ghép kèo. Vui lòng chọn slot khác.");
                     }
                 }
 
