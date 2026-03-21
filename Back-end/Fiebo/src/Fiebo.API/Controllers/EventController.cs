@@ -117,6 +117,28 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        
+        /// <summary>
+        /// Get drop-in event list for the current owner.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("owner")]
+        public async Task<IActionResult> GetOwnerEventList()
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var events = await _eventService.GetOwnerEventListAsync(ownerId);
+
+            return Ok(new ApiResponse<List<OwnerDropInEventListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải danh sách sự kiện thành công.",
+                Data = events
+            });
+        }
     }
 }

@@ -444,6 +444,36 @@ namespace Fiebo.Application.Services
             dropInEvent.MaxPlayer = request.MaxPlayer;
             dropInEvent.Description = request.Description;
             await _unitOfWork.SaveChangesAsync();
+        public async Task<List<OwnerDropInEventListItemResponse>> GetOwnerEventListAsync(string ownerId)
+        {
+            var events = await _unitOfWork.TicketEvents.GetOwnerEventListAsync(ownerId);
+
+            return events.Select(e =>
+            {
+                var firstDetail = e.Details.FirstOrDefault();
+                var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
+
+                return new OwnerDropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    TotalTicketQuantity = e.MaxPlayer,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Status = e.Status.ToString(),
+                    CreatedAt = e.CreatedAt,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
         }
     }
 }
