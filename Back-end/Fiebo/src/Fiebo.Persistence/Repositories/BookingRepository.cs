@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Booking;
+using Fiebo.Application.DTOs.Booking;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -90,6 +90,52 @@ namespace Fiebo.Persistence.Repositories
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.TimeSlot)
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.Venue.OwnerId == ownerId);
+        }
+
+        public async Task<List<Booking>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
+        {
+            var query = _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Field)
+                .Where(b => b.Venue.OwnerId == ownerId);
+
+            if (parameters.BookingId.HasValue)
+            {
+                query = query.Where(b => b.Id == parameters.BookingId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.VenueName))
+            {
+                query = query.Where(b => b.Venue.Name.Contains(parameters.VenueName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.FieldName))
+            {
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.Field.Name.Contains(parameters.FieldName)));
+            }
+
+            if (parameters.FromDate.HasValue)
+            {
+                var fromDateOnly = DateOnly.FromDateTime(parameters.FromDate.Value);
+                query = query.Where(b => b.BookingDate >= fromDateOnly);
+            }
+
+            if (parameters.ToDate.HasValue)
+            {
+                var toDateOnly = DateOnly.FromDateTime(parameters.ToDate.Value);
+                query = query.Where(b => b.BookingDate <= toDateOnly);
+            }
+
+            if (parameters.Status.HasValue)
+            {
+                query = query.Where(b => b.Status == parameters.Status.Value);
+            }
+
+            return await query
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
         }
     }
 }
