@@ -228,5 +228,24 @@ namespace Fiebo.API.Controllers
                 Message = "Vô hiệu hoá sân thành công"
             });
         }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{id}/schedule")]
+        public async Task<IActionResult> GetOwnerVenueSchedule([FromRoute] int id, [FromQuery] DateOnly date)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetOwnerVenueScheduleAsync(id, ownerId, date);
+            return Ok(new ApiResponse<VenueSlotsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
     }
 }
