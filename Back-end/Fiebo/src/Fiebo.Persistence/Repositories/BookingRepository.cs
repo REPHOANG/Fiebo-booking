@@ -92,7 +92,7 @@ namespace Fiebo.Persistence.Repositories
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.Venue.OwnerId == ownerId);
         }
 
-        public async Task<List<Booking>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
+        public async Task<List<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters)
         {
             var query = _context.Bookings
                 .AsNoTracking()

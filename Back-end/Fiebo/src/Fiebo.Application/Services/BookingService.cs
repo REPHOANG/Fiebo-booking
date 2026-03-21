@@ -725,7 +725,16 @@ namespace Fiebo.Application.Services
 
         public async Task<List<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
         {
-            var result = await _unitOfWork.Bookings.GetBookingListForOwnerAsync(ownerId, parameters);
+            var domainFilter = new Fiebo.Domain.Shared.OwnerBookingHistoryFilter
+            {
+                BookingId = parameters.BookingId,
+                VenueName = parameters.VenueName,
+                FieldName = parameters.FieldName,
+                FromDate = parameters.FromDate,
+                ToDate = parameters.ToDate,
+                Status = parameters.Status
+            };
+            var result = await _unitOfWork.Bookings.GetBookingListForOwnerAsync(ownerId, domainFilter);
 
             return result.Select(b => new OwnerBookingListResponse
             {
