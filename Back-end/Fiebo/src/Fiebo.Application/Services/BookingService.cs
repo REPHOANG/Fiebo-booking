@@ -229,7 +229,7 @@ namespace Fiebo.Application.Services
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -238,6 +238,14 @@ namespace Fiebo.Application.Services
                     if (!isAvailable)
                     {
                         throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        throw new ResourceConflictException("Slot đã được sử dụng cho sự kiện ghép kèo. Vui lòng chọn slot khác.");
                     }
                 }
 
@@ -398,7 +406,7 @@ namespace Fiebo.Application.Services
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -407,6 +415,14 @@ namespace Fiebo.Application.Services
                     if (!isAvailable)
                     {
                         throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        throw new ResourceConflictException("Slot đã được sử dụng cho sự kiện ghép kèo. Vui lòng chọn slot khác.");
                     }
                 }
 
@@ -721,6 +737,33 @@ namespace Fiebo.Application.Services
                     Price = bd.Price
                 }).ToList()
             };
+        }
+
+        public async Task<List<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
+        {
+            var domainFilter = new Fiebo.Domain.Shared.OwnerBookingHistoryFilter
+            {
+                BookingId = parameters.BookingId,
+                VenueName = parameters.VenueName,
+                FieldName = parameters.FieldName,
+                FromDate = parameters.FromDate,
+                ToDate = parameters.ToDate,
+                Status = parameters.Status
+            };
+            var result = await _unitOfWork.Bookings.GetBookingListForOwnerAsync(ownerId, domainFilter);
+
+            return result.Select(b => new OwnerBookingListResponse
+            {
+                BookingId = b.Id,
+                CustomerName = b.Fullname,
+                PhoneNumber = b.PhoneNumber,
+                BookingDate = b.BookingDate,
+                VenueName = b.Venue?.Name ?? "N/A",
+                FieldNames = b.BookingDetails.Select(bd => bd.Field?.Name ?? "N/A").Distinct().ToList(),
+                TotalPrice = b.TotalPrice,
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt
+            }).ToList();
         }
     }
 }
