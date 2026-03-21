@@ -21,6 +21,28 @@ const formatTime = (t) => {
   return s.length >= 5 ? s.slice(0, 5) : s;
 };
 
+const translateStatus = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "pending") return "Đang chờ";
+  if (s === "scheduled") return "Đã lên lịch";
+  if (s === "active") return "Đang diễn ra";
+  if (s === "completed") return "Hoàn thành";
+  if (s === "cancelled" || s === "canceled") return "Đã hủy";
+  if (s === "draft") return "Bản nháp";
+  return status || "—";
+};
+
+const translateParticipantStatus = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "pending") return "Chờ";
+  if (s === "pendingpayment" || s === "pending_payment") return "Chờ thanh toán";
+  if (s === "confirmed" || s === "paid") return "Đã xác nhận";
+  if (s === "cancelled" || s === "canceled") return "Đã hủy";
+  if (s === "used") return "Đã sử dụng";
+  if (s === "refunded") return "Đã hoàn tiền";
+  return status || "—";
+};
+
 const OwnerEventDetail = () => {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
@@ -120,7 +142,9 @@ const OwnerEventDetail = () => {
 
         <div className="oed-card">
           <div className="oed-meta">
-            <span className="oed-badge">{d.status ?? "Pending"}</span>
+            <span className="oed-badge" data-status={(d.status || "").toLowerCase()}>
+              {translateStatus(d.status)}
+            </span>
             <span>Ngày: {formatDate(d.eventDate)}</span>
             {d.isEditable && <span className="oed-editable">Có thể sửa</span>}
           </div>
@@ -217,7 +241,7 @@ const OwnerEventDetail = () => {
                       <td>{p.fullname ?? p.fullName}</td>
                       <td>{p.phoneNumber ?? p.phone}</td>
                       <td>{p.ticketQuantity ?? 0}</td>
-                      <td>{p.status ?? "—"}</td>
+                      <td>{translateParticipantStatus(p.status)}</td>
                       <td>{p.joinedAt ? new Date(p.joinedAt).toLocaleString("vi-VN") : "—"}</td>
                     </tr>
                   ))}

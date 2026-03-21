@@ -17,6 +17,24 @@ const normalizeTime = (t) => {
   return part.length === 5 ? part : part.slice(0, 5);
 };
 
+/** Ghép ngày (YYYY-MM-DD) + giờ bắt đầu slot → Date theo giờ máy người dùng */
+function parseLocalSlotStart(isoDate, startTime) {
+  const dateStr = String(isoDate || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const t = normalizeTime(startTime);
+  if (!t) return null;
+  const [hh, mm] = t.split(":").map((n) => Number(n));
+  return new Date(y, mo - 1, d, hh || 0, mm || 0, 0, 0);
+}
+
+/** Slot đã bắt đầu hoặc đã hết (so với hiện tại) → không cho tạo sự kiện */
+function isSlotStartInPast(eventDateStr, startTime) {
+  const slotStart = parseLocalSlotStart(eventDateStr, startTime);
+  if (!slotStart || Number.isNaN(slotStart.getTime())) return false;
+  return slotStart.getTime() <= Date.now();
+}
+
 /** Set các key "fieldName_startTime" đang bị chiếm bởi sự kiện (từ danh sách event theo venue+ngày) */
 function getEventOccupiedKeys(eventList, venueName, dateStr) {
   const keys = new Set();
@@ -35,13 +53,15 @@ function getEventOccupiedKeys(eventList, venueName, dateStr) {
 }
 
 /**
- * Trả về tất cả slot theo từng sân, mỗi slot có status: 'available' | 'booked' | 'event'
+ * Trả về tất cả slot theo từng sân, mỗi slot có status: 'available' | 'booked' | 'event' | 'past'
  * - booked: từ schedule field.unavailableSlots (đã có người đặt sân)
  * - event: từ danh sách sự kiện cùng venue+ngày (slot đã nằm trong sự kiện khác)
+ * - past: khung giờ đã qua (so với thời điểm hiện tại, cùng ngày hoặc ngày trong quá khứ)
  */
-function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys) {
+function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
   const groups = [];
   if (!schedule?.sportTypes?.length) return groups;
+  const dateKey = String(eventDateStr || "").slice(0, 10);
   for (const st of schedule.sportTypes) {
     const slots = st.slots || [];
     const fields = st.fields || [];
@@ -58,6 +78,7 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys) {
         let status = "available";
         if (unavailableSet.has(slotId)) status = "booked";
         else if (eventOccupiedKeys.has(timeKey)) status = "event";
+        else if (dateKey && isSlotStartInPast(dateKey, startTime)) status = "past";
         list.push({
           fieldId,
           slotId,
@@ -90,6 +111,8 @@ const CreateEvent = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedFieldId, setExpandedFieldId] = useState(null);
+  /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
+  const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
@@ -97,10 +120,10 @@ const CreateEvent = () => {
     [eventListForDate, venue?.name, venue?.venueName, eventDate],
   );
 
-  /** Tất cả slot theo sân, mỗi slot có status: available | booked | event */
+  /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
   const slotsByFieldWithStatus = useMemo(
-    () => getSlotsByFieldWithStatus(schedule, eventOccupiedKeys),
-    [schedule, eventOccupiedKeys],
+    () => getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate),
+    [schedule, eventOccupiedKeys, eventDate, pastSlotsTick],
   );
 
   /** Chỉ các slot available (để submit) */
@@ -178,7 +201,30 @@ const CreateEvent = () => {
     return () => { mounted = false; };
   }, [schedule, venue, eventDate]);
 
+  /** Cập nhật khóa slot "đã qua" theo thời gian thực khi chọn đúng ngày hôm nay */
+  useEffect(() => {
+    const dateStr = String(eventDate || "").slice(0, 10);
+    if (!dateStr || !schedule?.sportTypes?.length) return;
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (dateStr !== todayStr) return;
+    const id = setInterval(() => setPastSlotsTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [eventDate, schedule]);
+
+  /** Bỏ chọn các khung vừa chuyển sang trạng thái không còn chọn được (vd. đã qua) */
+  useEffect(() => {
+    const allowed = new Set(
+      availableSlots.map((s) => `${s.fieldId}-${s.slotId}`),
+    );
+    setSelectedDetails((prev) => {
+      const next = prev.filter((d) => allowed.has(`${d.fieldId}-${d.slotId}`));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [availableSlots]);
+
   const toggleSlot = (item) => {
+    if (item.status !== "available") return;
     const key = `${item.fieldId}-${item.slotId}`;
     setSelectedDetails((prev) => {
       const has = prev.some((d) => `${d.fieldId}-${d.slotId}` === key);
@@ -309,6 +355,7 @@ const CreateEvent = () => {
               <h3>Chọn khung giờ (ít nhất 1)</h3>
               <div className="ce-legend">
                 <span className="ce-legend-item available">Trống</span>
+                <span className="ce-legend-item past">Đã qua</span>
                 <span className="ce-legend-item booked">Đã đặt</span>
                 <span className="ce-legend-item event">Sự kiện</span>
               </div>
@@ -347,7 +394,9 @@ const CreateEvent = () => {
                               onClick={() => !disabled && toggleSlot(item)}
                               disabled={disabled}
                               title={
-                                item.status === "booked"
+                                item.status === "past"
+                                  ? "Khung giờ đã qua, không thể tạo sự kiện"
+                                  : item.status === "booked"
                                   ? "Đã có người đặt sân"
                                   : item.status === "event"
                                   ? "Đã nằm trong sự kiện khác"
@@ -357,6 +406,7 @@ const CreateEvent = () => {
                               <span className="ce-compact-time">
                                 {normalizeTime(item.startTime)} - {normalizeTime(item.endTime)}
                               </span>
+                              {item.status === "past" && <span className="ce-compact-tag">Đã qua</span>}
                               {item.status === "booked" && <span className="ce-compact-tag">Đã đặt</span>}
                               {item.status === "event" && <span className="ce-compact-tag">Sự kiện</span>}
                             </button>

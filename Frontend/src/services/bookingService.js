@@ -64,6 +64,17 @@ export const getCancelBookingPreview = async (id) => {
 };
 
 /**
+ * Danh sách đơn đặt sân của chủ sân (GET /api/owner/booking).
+ * Query (OwnerBookingFilter): bookingId?, venueName?, fieldName?, fromDate?, toDate?, status? (enum số hoặc tên).
+ * Cần đăng nhập role FieldOwner.
+ */
+export const getOwnerBookingList = async (params = {}) => {
+  const response = await api.get('/api/owner/booking', { params });
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
+};
+
+/**
  * Chi tiết đơn đặt sân cho chủ sân (GET /api/owner/booking/{id}).
  * Cần đăng nhập role FieldOwner.
  */
@@ -95,4 +106,7 @@ export default {
   payBooking,
   getBookingById,
   getBookingHistory,
+  getOwnerBookingList,
+  getOwnerBookingDetail,
+  ownerCancelBookingApi,
 };

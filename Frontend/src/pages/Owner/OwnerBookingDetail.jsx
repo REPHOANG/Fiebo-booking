@@ -36,12 +36,24 @@ const translateStatus = (status) => {
   return status || "—";
 };
 
+/** Lý do hủy cố định (gửi lên API dạng chuỗi) */
+const OWNER_CANCEL_REASONS = [
+  "Không thể sắp xếp được sân",
+  "Sân bảo trì / sửa chữa",
+  "Điều kiện thời tiết không tổ chức được",
+  "Trùng lịch / đặt nhầm",
+  "Sự cố kỹ thuật tại cơ sở",
+  "Yêu cầu từ ban quản lý / cơ quan",
+];
+
 const OwnerBookingDetail = () => {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const fetchDetail = useCallback(async () => {
     if (!id) return;
@@ -63,6 +75,18 @@ const OwnerBookingDetail = () => {
   useEffect(() => {
     fetchDetail();
   }, [id]);
+
+  useEffect(() => {
+    if (!cancelModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setCancelModalOpen(false);
+        setCancelReason("");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cancelModalOpen]);
 
   if (loading) {
     return (
@@ -93,26 +117,32 @@ const OwnerBookingDetail = () => {
   const statusKey = String(d.status || "").toLowerCase();
   const canCancel = statusKey === "pending" || statusKey === "booked";
 
-  const handleOwnerCancel = async () => {
-    if (!bookingId) return;
+  const openCancelModal = () => {
     if (!canCancel) return;
+    setCancelReason("");
+    setCancelModalOpen(true);
+  };
 
-    const reason =
-      window.prompt("Nhập lý do hủy đặt sân:", "Hủy lịch do không thể sắp xếp được sân");
-    if (!reason || !String(reason).trim()) {
-      toast.warning("Lý do hủy không được để trống");
+  const closeCancelModal = () => {
+    if (cancelling) return;
+    setCancelModalOpen(false);
+    setCancelReason("");
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!bookingId || !canCancel) return;
+    const reason = String(cancelReason || "").trim();
+    if (!reason) {
+      toast.warning("Vui lòng chọn lý do hủy");
       return;
     }
-
-    const ok = window.confirm(
-      "Xác nhận hủy đặt sân này? Hệ thống sẽ hoàn tiền 100% cho khách hàng.",
-    );
-    if (!ok) return;
 
     setCancelling(true);
     try {
       await ownerCancelBookingApi(bookingId, reason);
       toast.success("Đã hủy đặt sân thành công");
+      setCancelModalOpen(false);
+      setCancelReason("");
       await fetchDetail();
     } catch (e) {
       toast.error(
@@ -142,10 +172,10 @@ const OwnerBookingDetail = () => {
               <button
                 type="button"
                 className="obd-cancel-btn"
-                onClick={handleOwnerCancel}
+                onClick={openCancelModal}
                 disabled={cancelling}
               >
-                {cancelling ? "Đang hủy..." : "Hủy đặt sân"}
+                Hủy đặt sân
               </button>
             )}
           </div>
@@ -195,6 +225,61 @@ const OwnerBookingDetail = () => {
           </div>
         </div>
       </div>
+
+      {cancelModalOpen && (
+        <div
+          className="obd-modal-backdrop"
+          role="presentation"
+          onClick={closeCancelModal}
+        >
+          <div
+            className="obd-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="obd-cancel-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="obd-cancel-title">Hủy đặt sân</h3>
+            <p className="obd-modal-desc">
+              Chọn lý do hủy. Sau khi xác nhận, hệ thống sẽ hoàn tiền 100% cho khách
+              hàng (theo quy định).
+            </p>
+            <fieldset className="obd-cancel-reasons">
+              <legend className="obd-sr-only">Lý do hủy</legend>
+              {OWNER_CANCEL_REASONS.map((label) => (
+                <label key={label} className="obd-reason-row">
+                  <input
+                    type="radio"
+                    name="ownerCancelReason"
+                    value={label}
+                    checked={cancelReason === label}
+                    onChange={() => setCancelReason(label)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="obd-modal-actions">
+              <button
+                type="button"
+                className="obd-modal-btn obd-modal-btn-secondary"
+                onClick={closeCancelModal}
+                disabled={cancelling}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="obd-modal-btn obd-modal-btn-primary"
+                onClick={handleConfirmCancel}
+                disabled={cancelling}
+              >
+                {cancelling ? "Đang xử lý…" : "Xác nhận"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
