@@ -13,6 +13,7 @@ import "./components/common/LocationPrompt/LocationPrompt.css";
 import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
 import AppRoutes from "./routers/router";
 import { setCredentials, setProfileLoading } from "./store/authSlice";
+import LoadingPage from "./components/ui/Loading/LoadingPage";
 
 const SPLASH_MIN_MS = 800;
 
@@ -65,20 +66,16 @@ const App = () => {
 
     persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
   }, [queryClient]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
 
-  // Splash = loading cho đến khi restore auth + API khởi tạo xong
+
   useEffect(() => {
     let cancelled = false;
 
     const init = async () => {
       console.log("🚀 App initializing...");
       dispatch(setProfileLoading(true));
-
-      const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
-
       const apiReady = getProfile()
         .then((profile) => {
           if (!cancelled && profile) {
@@ -93,11 +90,10 @@ const App = () => {
           console.log("No valid auth token found, starting as guest.");
         });
 
-      await Promise.all([minDelay, apiReady]);
+      await Promise.all([apiReady]);
 
       if (!cancelled) {
         dispatch(setProfileLoading(false));
-        setIsInitialLoading(false);
         if (!localStorage.getItem("locationPromptAsked")) {
           setShowLocationPrompt(true);
         }
@@ -127,7 +123,6 @@ const App = () => {
       }
     >
       <QueryClientProvider client={queryClient}>
-        <SplashScreen isVisible={isInitialLoading} />
         {showLocationPrompt && (
           <LocationPrompt onConfirm={handleLocationConfirm} />
         )}

@@ -26,5 +26,6 @@ namespace Fiebo.Domain.Repositories
             int page,
             int pageSize,
             double? radiusKm);
+        Task<List<Venue>> GetVenuesByOwnerAsync(string ownerId);
     }
 }

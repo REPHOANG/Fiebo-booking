@@ -18,6 +18,8 @@ import Layout from '../components/layout/Layout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
+import LoadingPage from '../components/ui/Loading/LoadingPage';
+import ErrorPage from '../components/ui/Error/ErrorPage';
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -50,6 +52,8 @@ const AppRoutes = () => (
       <Route path="/venues" element={<Venues />} />
       <Route path="/admin" element={<div>Admin Page</div>} />
     </Route>
+      <Route path="/loading" element={<ErrorPage/>} />
+
   </Routes>
 );
 
