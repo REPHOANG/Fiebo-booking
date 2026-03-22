@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getEventList } from "../../services/eventService";
+import { getEventListOwner } from "../../services/eventService";
 import "./OwnerEvents.css";
 
 const formatPrice = (n) => {
@@ -25,7 +25,7 @@ const OwnerEvents = () => {
     let mounted = true;
     const fetchList = async () => {
       try {
-        const data = await getEventList();
+        const data = await getEventListOwner();
         if (mounted && Array.isArray(data)) setList(data);
         else if (mounted) setList([]);
       } catch (e) {

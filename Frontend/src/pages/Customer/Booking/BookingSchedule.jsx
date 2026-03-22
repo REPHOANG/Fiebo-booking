@@ -123,7 +123,12 @@ const BookingSchedule = () => {
   const [tempDate, setTempDate] = useState(null);
   const calendarRef = useRef(null);
   const [venueSchedule, setVenueSchedule] = useState(null);
-  const [eventSlots, setEventSlots] = useState([]); // [{ fieldIdx, slotIdx }]
+  /** Slot sự kiện từ GET list Event (theo tên sân + ngày) */
+  const [listEventSlots, setListEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
+  /** Slot bị chặn bởi sự kiện từ API lịch (unavailableSlots có eventId) */
+  const [scheduleEventSlots, setScheduleEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
+  /** Danh sách drop-in event (cùng sân + ngày) — dùng RemainingTicketQuantity để tô vàng/tím */
+  const [dropInEventsForVenueDate, setDropInEventsForVenueDate] = useState([]);
   // Cập nhật mỗi phút để slot "đã qua" (Khoá) được tính lại khi đang xem ngày hôm nay
   const [timeTick, setTimeTick] = useState(() => Date.now());
   useEffect(() => {
@@ -264,6 +269,7 @@ const BookingSchedule = () => {
           });
 
           const booked = [];
+          const scheduleEvents = [];
           (res?.sportTypes || []).forEach((st) => {
             const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
             (st.fields || []).forEach((f) => {
@@ -275,21 +281,31 @@ const BookingSchedule = () => {
               );
               if (fieldIdx < 0) return;
               (f.unavailableSlots || []).forEach((us) => {
-                const slotIdx = startToIdx[us.slotId];
-                if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
+                const slotIdx = startToIdx[us.slotId ?? us.SlotId];
+                if (slotIdx == null || slotIdx < 0) return;
+                const eid = us.eventId ?? us.EventId;
+                if (eid != null && eid !== '') {
+                  const n = Number(eid);
+                  if (!Number.isNaN(n)) scheduleEvents.push({ fieldIdx, slotIdx, eventId: n });
+                } else {
+                  booked.push({ fieldIdx, slotIdx });
+                }
               });
             });
           });
 
           if (mounted) {
             setVenueSchedule(res);
-            // Nguồn sự thật: database qua API — thay thế toàn bộ slot "đã đặt" cho venue+date (kể cả khi booked rỗng)
+            setScheduleEventSlots(scheduleEvents);
+            // Chỉ slot "đã đặt" (không gắn sự kiện) — slot có eventId hiển thị riêng + click xem chi tiết
             try {
               dispatch(setBookedSlotsFromServer({ venueId: String(id), date: selectedDate, slots: booked }));
             } catch (e) {}
           }
         } catch (e) {
-          // ignore fetch errors
+          if (mounted) {
+            setScheduleEventSlots([]);
+          }
         }
     };
 
@@ -301,7 +317,8 @@ const BookingSchedule = () => {
   // Fetch event slots (drop-in events) for this venue + date, then map to grid indices
   useEffect(() => {
     if (!venue?.name || !selectedDate || !slots?.length || !fields?.length) {
-      setEventSlots([]);
+      setListEventSlots([]);
+      setDropInEventsForVenueDate([]);
       return;
     }
     let mounted = true;
@@ -321,28 +338,42 @@ const BookingSchedule = () => {
 
         const mapped = [];
         filtered.forEach((e) => {
+          const evId = e?.eventId ?? e?.EventId;
           (e?.slots || []).forEach((s) => {
             const fieldName = String(s?.fieldName || "").trim();
             const startLabel = normalizeSlotTime(s?.startTime);
             const fieldIdx = fields.findIndex((f) => String(f?.name || "").trim() === fieldName);
             const slotIdx = slots.findIndex((sl) => sl?.label === startLabel);
-            if (fieldIdx >= 0 && slotIdx >= 0) mapped.push({ fieldIdx, slotIdx });
+            if (fieldIdx >= 0 && slotIdx >= 0) {
+              const n = evId != null && evId !== '' ? Number(evId) : NaN;
+              mapped.push({
+                fieldIdx,
+                slotIdx,
+                eventId: Number.isNaN(n) ? undefined : n,
+              });
+            }
           });
         });
 
-        // Deduplicate
-        const seen = new Set();
-        const unique = mapped.filter((x) => {
+        // Deduplicate (ưu tiên bản có eventId)
+        const seen = new Map();
+        mapped.forEach((x) => {
           const key = `${x.fieldIdx}_${x.slotIdx}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
+          const prev = seen.get(key);
+          if (!prev || (x.eventId != null && prev.eventId == null)) seen.set(key, x);
         });
+        const unique = Array.from(seen.values());
 
-        if (mounted) setEventSlots(unique);
+        if (mounted) {
+          setListEventSlots(unique);
+          setDropInEventsForVenueDate(filtered);
+        }
       } catch (e) {
         // If event list fails, don't block booking UI
-        if (mounted) setEventSlots([]);
+        if (mounted) {
+          setListEventSlots([]);
+          setDropInEventsForVenueDate([]);
+        }
       }
     };
 
@@ -403,14 +434,56 @@ const BookingSchedule = () => {
     return rawBookedForDate.filter((e) => !e.expiresAt || e.expiresAt > now);
   }, [rawBookedForDate]);
 
+  const eventBlocks = useMemo(() => {
+    const keys = new Set();
+    scheduleEventSlots.forEach((x) => keys.add(`${x.fieldIdx}_${x.slotIdx}`));
+    listEventSlots.forEach((x) => keys.add(`${x.fieldIdx}_${x.slotIdx}`));
+    return keys;
+  }, [scheduleEventSlots, listEventSlots]);
+
+  const eventIdByCell = useMemo(() => {
+    const m = new Map();
+    scheduleEventSlots.forEach((x) => {
+      if (x.eventId != null && !Number.isNaN(Number(x.eventId))) {
+        m.set(`${x.fieldIdx}_${x.slotIdx}`, Number(x.eventId));
+      }
+    });
+    listEventSlots.forEach((x) => {
+      const k = `${x.fieldIdx}_${x.slotIdx}`;
+      if (!m.has(k) && x.eventId != null && !Number.isNaN(Number(x.eventId))) {
+        m.set(k, Number(x.eventId));
+      }
+    });
+    return m;
+  }, [scheduleEventSlots, listEventSlots]);
+
+  const getEventIdForCell = useCallback(
+    (fieldIdx, slotIdx) => eventIdByCell.get(`${fieldIdx}_${slotIdx}`) ?? null,
+    [eventIdByCell]
+  );
+
+  /** eventId → vé còn lại (GET /api/Event list). 0 = đã đầy → tím; >0 hoặc chưa có = vàng */
+  const remainingByEventId = useMemo(() => {
+    const m = new Map();
+    dropInEventsForVenueDate.forEach((e) => {
+      const eid = e?.eventId ?? e?.EventId;
+      if (eid == null || eid === "") return;
+      const rem = e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity;
+      if (rem != null && !Number.isNaN(Number(rem))) {
+        m.set(Number(eid), Number(rem));
+      }
+    });
+    return m;
+  }, [dropInEventsForVenueDate]);
+
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
     [bookedForDate]
   );
 
-  const isEvent = useCallback(
-    (fieldIdx, slotIdx) => eventSlots.some((e) => Number(e.fieldIdx) === Number(fieldIdx) && Number(e.slotIdx) === Number(slotIdx)),
-    [eventSlots]
+  const isEventBlock = useCallback(
+    (fieldIdx, slotIdx) => eventBlocks.has(`${fieldIdx}_${slotIdx}`),
+    [eventBlocks]
   );
 
   // If a slot becomes booked (e.g., after confirm/payment), remove it from current selection
@@ -425,11 +498,11 @@ const BookingSchedule = () => {
   // If a slot becomes event, remove it from current selection
   useEffect(() => {
     if (!selectedSlots || !selectedSlots.length) return;
-    const remaining = selectedSlots.filter((s) => !isEvent(s.fieldIdx, s.slotIdx));
+    const remaining = selectedSlots.filter((s) => !isEventBlock(s.fieldIdx, s.slotIdx));
     if (remaining.length !== selectedSlots.length) {
       setSelectedSlots(remaining);
     }
-  }, [eventSlots]);
+  }, [eventBlocks]);
 
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>
@@ -440,7 +513,7 @@ const BookingSchedule = () => {
   const toggleSlot = (fieldIdx, slotIdx) => {
     // Allow selecting slots even when the user is not authenticated.
     // Authentication will be required when pressing the "TIẾP THEO" button.
-    if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx) || isEvent(fieldIdx, slotIdx)) return;
+    if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx) || isEventBlock(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
       if (exists) return prev.filter((s) => !(s.fieldIdx === fieldIdx && s.slotIdx === slotIdx));
@@ -450,10 +523,51 @@ const BookingSchedule = () => {
 
   const getCellClass = (fieldIdx, slotIdx) => {
     if (isLocked(slotIdx)) return "bs-cell locked";
+    const evId = getEventIdForCell(fieldIdx, slotIdx);
+    if (evId != null) {
+      const rem = remainingByEventId.get(evId);
+      if (rem === 0) return "bs-cell event-linked";
+      return "bs-cell event";
+    }
+    if (isEventBlock(fieldIdx, slotIdx)) return "bs-cell event";
     if (isBooked(fieldIdx, slotIdx)) return "bs-cell booked";
-    if (isEvent(fieldIdx, slotIdx)) return "bs-cell event";
     if (isSelected(fieldIdx, slotIdx)) return "bs-cell selected";
     return "bs-cell available";
+  };
+
+  /** Cùng một eventId trên một hàng: nối các ô liền kề thành một thanh */
+  const getEventRunExtraClass = useCallback(
+    (fieldIdx, slotIdx) => {
+      const evId = getEventIdForCell(fieldIdx, slotIdx);
+      if (evId == null) return "";
+      const prev = slotIdx > 0 ? getEventIdForCell(fieldIdx, slotIdx - 1) : null;
+      const next =
+        slotIdx < slots.length - 1 ? getEventIdForCell(fieldIdx, slotIdx + 1) : null;
+      const samePrev = prev === evId;
+      const sameNext = next === evId;
+      if (!samePrev && !sameNext) return "bs-event-run-single";
+      if (!samePrev && sameNext) return "bs-event-run-start";
+      if (samePrev && sameNext) return "bs-event-run-mid";
+      if (samePrev && !sameNext) return "bs-event-run-end";
+      return "";
+    },
+    [getEventIdForCell, slots.length]
+  );
+
+  const handleCellClick = (fieldIdx, slotIdx) => {
+    const evId = getEventIdForCell(fieldIdx, slotIdx);
+    if (evId != null) {
+      navigate(`/event/${evId}`, {
+        state: {
+          bookingScheduleReturn: {
+            venueId: id,
+            date: selectedDate,
+          },
+        },
+      });
+      return;
+    }
+    toggleSlot(fieldIdx, slotIdx);
   };
 
   // Group fields by sportType for visual separation
@@ -715,7 +829,10 @@ const BookingSchedule = () => {
             <span className="bs-legend-box locked" /> Khoá
           </div>
           <div className="bs-legend-item">
-            <span className="bs-legend-box event" /> Sự kiện
+            <span className="bs-legend-box event" /> Sự kiện (còn chỗ)
+          </div>
+          <div className="bs-legend-item">
+            <span className="bs-legend-box event-linked" /> Sự kiện (đã đầy)
           </div>
         </div>
 
@@ -811,13 +928,25 @@ const BookingSchedule = () => {
                       >
                         <span className="bs-field-name">{field.name}</span>
                       </div>
-                      {slots.map((_, si) => (
+                      {slots.map((_, si) => {
+                        const eid = getEventIdForCell(field.originalIdx, si);
+                        const rem = eid != null ? remainingByEventId.get(eid) : undefined;
+                        return (
                         <div
                           key={si}
-                          className={getCellClass(field.originalIdx, si)}
-                          onClick={() => toggleSlot(field.originalIdx, si)}
+                          className={`${getCellClass(field.originalIdx, si)} ${getEventRunExtraClass(field.originalIdx, si)}`.trim()}
+                          onClick={() => handleCellClick(field.originalIdx, si)}
+                          role={eid != null ? "link" : "button"}
+                          data-event-nav={eid != null ? "true" : undefined}
+                          title={
+                            eid != null
+                              ? rem === 0
+                                ? "Sự kiện đã đầy — xem chi tiết"
+                                : "Sự kiện còn chỗ — xem chi tiết"
+                              : undefined
+                          }
                         />
-                      ))}
+                      );})}
                       <div />
                     </React.Fragment>
                   ))}

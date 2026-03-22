@@ -63,13 +63,16 @@ export const getCancelBookingPreview = async (id) => {
   return response.data?.data ?? response.data;
 };
 
+/** Danh sách: GET `/api/owner/bookings` (số nhiều). Chi tiết: GET `/api/owner/booking/{id}`. */
+export const OWNER_BOOKINGS_LIST_PATH = '/api/owner/bookings';
+
 /**
- * Danh sách đơn đặt sân của chủ sân (GET /api/owner/booking).
+ * Danh sách đơn đặt sân của chủ sân (GET /api/owner/bookings).
  * Query (OwnerBookingFilter): bookingId?, venueName?, fieldName?, fromDate?, toDate?, status? (enum số hoặc tên).
  * Cần đăng nhập role FieldOwner.
  */
 export const getOwnerBookingList = async (params = {}) => {
-  const response = await api.get('/api/owner/booking', { params });
+  const response = await api.get(OWNER_BOOKINGS_LIST_PATH, { params });
   const data = response.data?.data ?? response.data;
   return Array.isArray(data) ? data : [];
 };

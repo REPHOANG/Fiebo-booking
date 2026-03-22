@@ -14,6 +14,13 @@ export const getEventList = async () => {
   return unwrap(response);
 };
 
+/** GET /api/owner/events - Danh sách sự kiện (Owner) */
+export  const getEventListOwner = async () => {
+  const response = await api.get("/api/owner/events");
+  return unwrap(response);
+};
+
+
 /** GET /api/Owner/event/{id} - Chi tiết sự kiện cho Owner (kèm danh sách người tham gia) */
 export const getEventOwner = async (eventId) => {
   const response = await api.get(`/api/Owner/event/${eventId}`);

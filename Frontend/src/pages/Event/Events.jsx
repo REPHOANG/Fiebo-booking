@@ -6,23 +6,9 @@ import { useSelector } from "react-redux";
 import { getEventList } from "../../services/eventService";
 import { searchVenues } from "../../services/fieldService";
 import "./Events.css";
+import { formatDate, formatPrice, formatTime } from "../../utils/helperFunction";
 
-const formatDate = (dateStr) => {
-  const s = String(dateStr || "").slice(0, 10);
-  const [y, m, d] = s.split("-");
-  if (!y || !m || !d) return s || "—";
-  return `${d}/${m}/${y}`;
-};
 
-const formatTime = (t) => {
-  const s = String(t || "").trim();
-  return s.length >= 5 ? s.slice(0, 5) : s;
-};
-
-const formatPrice = (n) => {
-  const x = Number(n || 0);
-  return `${x.toLocaleString("vi-VN")} đ/vé`;
-};
 
 const Events = () => {
   const navigate = useNavigate();
@@ -91,7 +77,7 @@ const Events = () => {
       navigate("/login");
       return;
     }
-    navigate(`/event/${eventId}/register`);
+    navigate(`/event/${eventId}`);
   };
 
   const openVenueEvents = async (venueId, venueName) => {

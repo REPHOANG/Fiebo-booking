@@ -102,7 +102,7 @@ const EventList = () => {
   }, [venueId]);
 
   const openEvent = (eventId) => {
-    navigate(`/event/${eventId}/register`);
+    navigate(`/event/${eventId}`);
   };
 
   return (
