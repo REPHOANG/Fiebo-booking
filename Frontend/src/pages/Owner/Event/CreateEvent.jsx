@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getVenueDetail, getVenueSchedule } from "../../services/fieldService";
-import { createEvent, getEventList } from "../../services/eventService";
+import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
+import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
 
 const formatPrice = (n) => {
