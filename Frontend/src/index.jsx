@@ -6,6 +6,8 @@ import App from './App';
 import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+// Remove legacy keys that are no longer used
+
 root.render(
   <React.StrictMode>
     <Provider store={store}>

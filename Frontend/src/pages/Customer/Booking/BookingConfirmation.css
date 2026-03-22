@@ -46,6 +46,12 @@
   border-color: #2563eb;
 }
 
+.bc-back-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .bc-header-title {
   flex: 1;
   font-size: 1.25rem;
@@ -711,24 +717,33 @@
   transition: opacity 0.3s;
 }
 
-.bc-confirm-btn:hover:not(.disabled) {
+.bc-confirm-btn:hover:not(.disabled):not(.loading) {
   transform: translateY(-2px);
   box-shadow: 0 8px 28px rgba(22, 101, 52, 0.35);
 }
 
-.bc-confirm-btn:hover:not(.disabled)::before {
+.bc-confirm-btn:hover:not(.disabled):not(.loading)::before {
   opacity: 1;
 }
 
-.bc-confirm-btn:active:not(.disabled) {
+.bc-confirm-btn:active:not(.disabled):not(.loading) {
   transform: translateY(-1px);
 }
 
-.bc-confirm-btn.disabled {
-  opacity: 0.4;
+.bc-confirm-btn.disabled,
+.bc-confirm-btn.loading {
+  opacity: 0.75;
   cursor: not-allowed;
+  pointer-events: none;
+}
+
+.bc-confirm-btn.disabled {
   background: #94a3b8;
   box-shadow: none;
+}
+
+.bc-confirm-btn.loading {
+  background: linear-gradient(135deg, #166534, #15803d);
 }
 
 /* ── Empty State ─────────────────────────────────────────────── */

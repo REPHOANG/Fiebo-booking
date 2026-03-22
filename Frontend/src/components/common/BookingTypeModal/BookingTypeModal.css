@@ -1,0 +1,81 @@
+.btm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+.btm-panel {
+  width: 720px;
+  max-width: calc(100% - 32px);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.2);
+}
+.btm-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.btm-title {
+  margin: 0 0 12px 0;
+  text-align: center;
+  font-size: 18px;
+}
+.btm-options {
+  display: flex;
+  gap: 14px;
+  flex-direction: column;
+}
+.btm-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 10px;
+  min-height: 92px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btm-regular {
+  background: #ecffef;
+  border: 1px solid rgba(34,197,94,0.12);
+}
+.btm-event {
+  background: #fff0fb;
+  border: 1px solid rgba(219,39,119,0.12);
+}
+.btm-option-body { flex: 1; padding-right: 12px }
+.btm-desc { margin: 6px 0 0; color: #555; font-size: 13px }
+.btm-go {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(0,0,0,0.06);
+}
+.btm-go:focus { outline: none; box-shadow: none; }
+.btm-event .btm-go { background: #f3e6ff }
+.btm-panel:focus { outline: none; }
+.btm-new {
+  background: #ff4da6;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  margin-left: 8px;
+}
+
+@media (min-width: 700px) {
+  .btm-options { flex-direction: column; }
+}

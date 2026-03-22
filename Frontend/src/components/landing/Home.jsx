@@ -22,9 +22,7 @@ const Home = () => {
     { id: 1, name: "Bóng Đá", icon: "⚽" },
     { id: 2, name: "Bóng Rổ", icon: "🏀" },
     { id: 3, name: "Tennis", icon: "🎾" },
-    { id: 4, name: "Cầu Lông", icon: "🏸" },
-    { id: 5, name: "Bóng Chuyền", icon: "🏐" },
-    { id: 6, name: "Squash", icon: "🎯" },
+    { id: 4, name: "Pickleball", icon: "🥏" },
   ];
 
   const featuredVenues = [
@@ -52,19 +50,30 @@ const Home = () => {
     },
     {
       id: 3,
-      name: "Sân Cầu Lông Pro",
+      name: "Sân Bóng Rổ Elite",
       location: "Quận 3, TP.HCM",
       image:
-        "https://images.unsplash.com/photo-1546519638-68711109d298?w=800",
+        "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800",
       rating: 4.7,
       reviews: 182,
       price: "300.000đ/giờ",
-      sport: "Cầu Lông",
+      sport: "Bóng Rổ",
+    },
+    {
+      id: 4,
+      name: "Sân Pickleball Central",
+      location: "Quận 7, TP.HCM",
+      image:
+        "https://images.unsplash.com/photo-1605902711622-cfb43c44367e?w=800",
+      rating: 4.6,
+      reviews: 89,
+      price: "250.000đ/giờ",
+      sport: "Pickleball",
     },
   ];
 
   const handleSearch = () => {
-    console.log(searchData);
+    // TODO: wire to search/navigation when ready
   };
 
   return (

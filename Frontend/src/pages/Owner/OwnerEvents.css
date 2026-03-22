@@ -1,0 +1,93 @@
+.owner-events-page .owner-home-content {
+  max-width: 100%;
+}
+
+.oe-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.oe-loading {
+  color: #6b7280;
+  margin: 0;
+}
+
+.oe-empty {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+}
+
+.oe-empty p {
+  margin-bottom: 12px;
+  color: #4b5563;
+}
+
+.oe-create-link {
+  color: #139a44;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.oe-create-link:hover {
+  text-decoration: underline;
+}
+
+.oe-table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: auto;
+}
+
+.oe-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.oe-table th,
+.oe-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.oe-table th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}
+
+.oe-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.oe-slots-cell {
+  max-width: 220px;
+}
+
+.oe-slot-tag {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.oe-link {
+  color: #139a44;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.oe-link:hover {
+  text-decoration: underline;
+}
