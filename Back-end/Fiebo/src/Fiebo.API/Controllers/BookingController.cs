@@ -210,6 +210,71 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tạo lịch đặt thành công.",
             });
-        }        
+        }
+
+        /// <summary>
+        /// Get booking detail for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/booking/{id:int}")]
+        public async Task<IActionResult> GetBookingDetail([FromRoute] int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetBookingDetailForOwnerAsync(id, ownerId);
+
+            if (result == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Message = "Đơn hàng không tồn tại hoặc bạn không có quyền sở hữu đơn hàng này."
+                });
+            }
+
+            return Ok(new ApiResponse<OwnerBookingDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải chi tiết đơn hàng thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Get booking list for owner
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/bookings")]
+        public async Task<IActionResult> GetBookingList([FromQuery] OwnerBookingFilter filter)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetBookingListForOwnerAsync(ownerId, filter);
+
+            return Ok(new ApiResponse<List<OwnerBookingListResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải danh sách đơn hàng thành công.",
+                Data = result
+            });
+        }
     }
 }

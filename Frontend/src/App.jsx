@@ -88,7 +88,6 @@ const App = () => {
 
     persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
   }, [queryClient]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
   const initRanRef = useRef(false);
@@ -117,7 +116,7 @@ const App = () => {
         })
       .catch(() => {});
 
-      await Promise.all([minDelay, apiReady]);
+      await Promise.all([apiReady]);
 
       if (!cancelled) {
         setIsInitialLoading(false);
@@ -151,7 +150,6 @@ const App = () => {
       }
     >
       <QueryClientProvider client={queryClient}>
-        <SplashScreen isVisible={isInitialLoading} />
         {showLocationPrompt && (
           <LocationPrompt onConfirm={handleLocationConfirm} />
         )}

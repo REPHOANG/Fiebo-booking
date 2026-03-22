@@ -717,7 +717,10 @@ namespace Fiebo.Application.Services
         {
             var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
 
-            if (booking == null) return null;
+            if (booking == null)
+            {
+                throw new NotFoundException("Sự kiện không tồn tại hoặc bạn không có quyền truy cập.");
+            }
 
             return new OwnerBookingDetailResponse
             {

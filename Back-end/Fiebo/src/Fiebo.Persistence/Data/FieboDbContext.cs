@@ -35,6 +35,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<TicketEvent> TicketEvents { get; set; }
         public DbSet<TicketParticipant> TicketParticipants { get; set; }
         public DbSet<TicketEventDetail> TicketEventDetails { get; set; }
+        public DbSet<VenueStaff> VenueStaff {  get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

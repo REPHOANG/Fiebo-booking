@@ -2,9 +2,12 @@
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Fiebo.API.Controllers
 {
@@ -185,6 +188,62 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Search venues successfully",
+                Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venues")]
+        public async Task<IActionResult> GetOwnerVenues()
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetVenuesByOwnerAsync(ownerId);
+            return Ok(new ApiResponse<List<OwnerVenueListResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Get owner's venues successfully",
+                Data = [.. result]
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPatch]
+        [Route("/api/owner/venues/{id}")]
+        public async Task<IActionResult> DeactivateVenue([FromRoute] int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            await _venueService.DeactivateVenueAsync(id, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Vô hiệu hoá sân thành công"
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{id}/schedule")]
+        public async Task<IActionResult> GetOwnerVenueSchedule([FromRoute] int id, [FromQuery] DateOnly date)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetOwnerVenueScheduleAsync(id, ownerId, date);
+            return Ok(new ApiResponse<VenueSlotsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
                 Data = result
             });
         }

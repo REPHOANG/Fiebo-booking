@@ -2,8 +2,11 @@
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Enums;
+using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace Fiebo.Application.Services
 {
@@ -76,10 +79,7 @@ namespace Fiebo.Application.Services
                         BookingCount = bookingMap.GetValueOrDefault(v.Id, 0),
                         Rating = ratingMap.GetValueOrDefault(v.Id, 0),
 
-                        ThumbnailUrl = v.Fields
-                            .SelectMany(f => f.Images)
-                            .Select(i => i.ImageUrl)
-                            .FirstOrDefault(),
+                        ThumbnailUrl = v.ThumbnailUrl,
 
                         DistanceKm = Math.Round(distanceKm, 2)
                     };
@@ -144,10 +144,7 @@ namespace Fiebo.Application.Services
                     Rating = rating,
                     BookingCount = bookingCount,
 
-                    ThumbnailUrl = v.Fields
-                        .SelectMany(f => f.Images)
-                        .Select(i => i.ImageUrl)
-                        .FirstOrDefault(),
+                    ThumbnailUrl = v.ThumbnailUrl,
 
                     DistanceKm = Math.Round(distanceKm, 2)
                 };
@@ -265,10 +262,7 @@ namespace Fiebo.Application.Services
                         CloseTime = v.CloseTime,
                         BookingCount = bookingMap.GetValueOrDefault(v.Id, 0),
                         Rating = Math.Round(ratingMap.GetValueOrDefault(v.Id, 0), 1),
-                        ThumbnailUrl = v.Fields
-                            .SelectMany(f => f.Images)
-                            .Select(i => i.ImageUrl)
-                            .FirstOrDefault(),
+                        ThumbnailUrl = v.ThumbnailUrl,
                         DistanceKm = Math.Round(distanceKm, 2)
                     };
                 })
@@ -285,6 +279,11 @@ namespace Fiebo.Application.Services
 
         public async Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
             var sportTypes = await _unitOfWork.Fields.GetSportTypesByVenueAsync(venueId);
 
             var slots = await _unitOfWork.TimeSlots
@@ -292,6 +291,12 @@ namespace Fiebo.Application.Services
 
             var fields = await _unitOfWork.Fields.GetFieldsWithBookingsAsync(venueId, date);
 
+            var events = await _unitOfWork.TicketEventsDetails
+                .GetEventsByVenueAndDateAsync(venueId, date);
+
+            var eventsByField = events
+                .GroupBy(e => e.FieldId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
             var result = new VenueSlotsResponse
             {
@@ -318,21 +323,83 @@ namespace Fiebo.Application.Services
                     SportTypeId = sportType.Id,
                     SportTypeName = sportType.Name,
                     Slots = sportSlots,
-                    Fields = [.. fields.Select(field => new FieldSlotResponse
+                    Fields = [.. fields.Select(field =>
+            {
+                var bookingSlots = field.BookingDetails
+                    .Select(bd => new UnavailableSlotResponse
                     {
-                        FieldId = field.Id,
-                        FieldName = field.Name,
-                        UnavailableSlots = [.. field.BookingDetails
-                        .Select(bd => new UnavailableSlotResponse
-                        {
-                            SlotId = bd.SlotId,
-                            Status = bd.Booking.Status.ToString()
-                        })]
-                    })]
+                        EventId = null,
+                        SlotId = bd.SlotId,
+                        Status = bd.Booking.Status.ToString()
+                    });
+
+                var eventSlots = eventsByField.TryGetValue(field.Id, out var fieldEvents)
+                    ? fieldEvents.Select(e => new UnavailableSlotResponse
+                    {
+                        EventId = e.Event.Id,
+                        SlotId = e.SlotId,
+                        Status = e.Event.Status.ToString()
+                    })
+                    : Enumerable.Empty<UnavailableSlotResponse>();
+
+                return new FieldSlotResponse
+                {
+                    FieldId = field.Id,
+                    FieldName = field.Name,
+                    UnavailableSlots = [..
+                        bookingSlots.Concat(eventSlots)
+                    ]
+                };
+            })]
                 });
             }
 
             return result;
+        }
+
+        public async Task<List<OwnerVenueListResponse>> GetVenuesByOwnerAsync(string ownerId)
+        {
+            var venues = await _unitOfWork.Venues.GetVenuesByOwnerAsync(ownerId);
+            return [.. venues.Select(v => new OwnerVenueListResponse
+            {
+                VenueId = v.Id,
+                Name = v.Name,
+                ThumbnailUrl = v?.ThumbnailUrl ?? "",
+                Province = v.Province?.Name ?? "",
+                Ward = v.Ward?.Name ?? "",
+                Status = v.Status.ToString(),
+                TotalFields = v.Fields.Count
+            })];
+        }
+
+        public async Task DeactivateVenueAsync(int venueId, string ownerId)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền tắt sân này");
+            }
+            venue.Status = VenueStatus.Inactive;
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId, DateOnly date)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if(venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem lịch sân này");
+            }
+            return await GetVenueSchedule(venueId, date);
         }
     }
 }
