@@ -85,6 +85,7 @@ namespace Fiebo.Application.Services
                     Amount = topUpRequest.Amount,
                     Direction = TransactionDirection.Credit,
                     TransactionType = TransactionType.TopUp,
+                    ReferenceId = topUpRequest.Id
                 });
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();

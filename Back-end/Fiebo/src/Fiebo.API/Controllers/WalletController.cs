@@ -75,7 +75,7 @@ namespace Fiebo.API.Controllers
             sse.AddClient(userId, Response); await Task.Delay(-1);
         }
 
-        [Authorize(Roles = AppRoles.Customer)]
+        [Authorize(Roles = AppRoles.Customer + "," + AppRoles.FieldOwner)]
         [HttpGet("transactions")]
         public async Task<IActionResult> GetTransactions(
             [FromQuery] DateTime? from,

@@ -32,8 +32,9 @@ import OwnerLayout from '../components/layout/OwnerLayout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
-import LoadingPage from '../components/ui/Loading/LoadingPage';
-import ErrorPage from '../components/ui/Error/ErrorPage';
+import Wallet from '../pages/Customer/Wallet/Wallet';
+import WalletTransactionHistory from '../pages/Customer/Wallet/WalletTransactionHistory';
+
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -89,9 +90,8 @@ const AppRoutes = () => (
       <Route path="/bookings/:id" element={<ProtectedRoute element={<BookingList />} />} />
       <Route path="/venues" element={<Venues />} />
       <Route path="/admin" element={<div>Admin Page</div>} />
+      <Route path="/wallet" element={<ProtectedRoute element={<Wallet />} />} />
     </Route>
-      <Route path="/loading" element={<ErrorPage/>} />
-
   </Routes>
 );
 
