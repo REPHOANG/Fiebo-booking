@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
@@ -244,6 +244,40 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-41: Get all fields under a specific venue for the Field Owner.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
+
+            if (result.Count == 0)
+            {
+                return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Chưa có sân nào được tạo trong cơ sở này.",
+                    Data = result
+                });
+            }
+
+            return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách sân thành công.",
                 Data = result
             });
         }

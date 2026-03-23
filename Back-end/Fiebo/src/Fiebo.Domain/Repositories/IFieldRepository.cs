@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
@@ -13,5 +13,6 @@ namespace Fiebo.Domain.Repositories
         Task<PagedResult<Field>> GetFieldsByVenue(int venueId, int page, int pageSize);
         Task<List<SportType>> GetSportTypesByVenueAsync(int venueId);
         Task<List<Field>> GetFieldsWithBookingsAsync(int venueId, DateOnly date);
+        Task<List<Field>> GetAllFieldsByVenueAsync(int venueId);
     }
 }
