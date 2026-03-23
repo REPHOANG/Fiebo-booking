@@ -18,3 +18,16 @@ export const formatTime = (t) => {
       rating: v.rating,
       bookings: v.bookingCount || 0,
     });
+
+    export const formatDate = (dateStr) => {
+  const s = String(dateStr || "").slice(0, 10);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return s || "—";
+  return `${d}/${m}/${y}`;
+};
+
+
+export const formatPrice = (n) => {
+  const x = Number(n || 0);
+  return `${x.toLocaleString("vi-VN")} đ/vé`;
+};

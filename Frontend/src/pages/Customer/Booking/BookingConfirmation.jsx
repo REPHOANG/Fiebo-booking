@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
 import { createBooking } from "../../../services/bookingService";
 import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
+import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
 import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
@@ -89,14 +90,40 @@ const BookingConfirmation = () => {
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Prefill name and phone from authenticated user when available
+  // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
-    if (isAuthenticated && user) {
-      if (!guestName && (user?.fullName || user?.name)) setGuestName(user.fullName || user.name || "");
-      if (!guestPhone && (user?.phone || user?.phoneNumber)) setGuestPhone(user.phone || user.phoneNumber || "");
-    }
-  }, [isAuthenticated, user]);
+    if (!user) return;
+    setGuestName((prev) => prev || user?.fullName || user?.name || "");
+    setGuestPhone((prev) => prev || user?.phone || user?.phoneNumber || "");
+  }, [user]);
+
+  // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
+  // Profile lấy từ DB nên luôn có fullName, phoneNumber nếu user đã cập nhật.
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await getProfile();
+        if (cancelled || !profile) return;
+        const name = (profile.fullName || profile.name || "").toString().trim();
+        const phone = (profile.phoneNumber || profile.phone || "").toString().trim().replace(/\s/g, "");
+        if (name) {
+          setGuestName((prev) => prev || name);
+          setNameError("");
+        }
+        if (phone) {
+          setGuestPhone((prev) => prev || phone);
+          setPhoneError("");
+        }
+      } catch (_) {
+        // ignore (e.g. 401, network)
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   const displayName = user?.fullName || user?.name || guestName;
   const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
@@ -223,6 +250,8 @@ const BookingConfirmation = () => {
         toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
         return;
       }
+      setIsSubmitting(true);
+      try {
       // Note: removed optimistic slot locking here. Slots will be reserved
       // only after server confirms booking (see below). We still clear draft.
       try {
@@ -302,9 +331,6 @@ const BookingConfirmation = () => {
           // Nếu refetch lỗi vẫn gửi createBooking; backend sẽ check DB và trả 409 nếu conflict
         }
 
-        // eslint-disable-next-line no-console
-        console.debug('[BookingConfirmation] sending booking payload', payload);
-
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
@@ -317,7 +343,6 @@ const BookingConfirmation = () => {
           : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
         try {
-          console.debug('[BookingConfirmation] server created booking', { bookingId, venueId: String(venue?.id), date: selectedDate, ttlSeconds: ttl, expireAt });
           dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
         } catch (e) {}
 
@@ -337,11 +362,6 @@ const BookingConfirmation = () => {
           },
         });
       } catch (err) {
-        // Log full response for 400 to debug backend validation/constraints
-        if (err?.status === 400 && err?.data) {
-          console.error('[BookingConfirmation] 400 response body:', err.data);
-        }
-        console.warn('Create booking failed', err);
         if (err && err.status === 401) {
           toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
           return;
@@ -370,6 +390,9 @@ const BookingConfirmation = () => {
             totalPrice,
           },
         });
+      }
+      } finally {
+        setIsSubmitting(false);
       }
     })();
   };
@@ -450,7 +473,12 @@ const BookingConfirmation = () => {
     <div className="bc-main">
       {/* Header */}
       <div className="bc-header">
-        <button className="bc-back-btn" onClick={() => navigate(-1)}>
+        <button
+          className="bc-back-btn"
+          onClick={() => navigate(-1)}
+          disabled={isSubmitting}
+          aria-disabled={isSubmitting}
+        >
           <ArrowLeft size={20} />
         </button>
         <h1 className="bc-header-title">Xác nhận đặt sân</h1>
@@ -543,7 +571,7 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${nameError ? " error" : ""}`}
                   type="text"
                   placeholder="Nhập họ và tên"
-                  value={guestName}
+                  value={guestName || user?.fullName || user?.name || ""}
                   onChange={(e) => {
                     setGuestName(e.target.value);
                     if (e.target.value && e.target.value.trim().length > 0) setNameError("");
@@ -560,7 +588,7 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
                   placeholder="0912 345 678"
-                  value={guestPhone}
+                  value={guestPhone || user?.phone || user?.phoneNumber || ""}
                   onChange={(e) => {
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
                     if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");
@@ -629,11 +657,11 @@ const BookingConfirmation = () => {
           <span className="bc-bottom-amount">{formatPrice(totalPrice)}</span>
         </div>
         <button
-          className={`bc-confirm-btn${!canConfirm ? " disabled" : ""}`}
-          disabled={!canConfirm}
+          className={`bc-confirm-btn${!canConfirm || isSubmitting ? " disabled" : ""}${isSubmitting ? " loading" : ""}`}
+          disabled={!canConfirm || isSubmitting}
           onClick={handleConfirmBooking}
         >
-          XÁC NHẬN ĐẶT SÂN
+          {isSubmitting ? "Đang xử lý..." : "XÁC NHẬN ĐẶT SÂN"}
         </button>
       </div>
     </div>

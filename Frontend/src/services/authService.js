@@ -1,169 +1,78 @@
 // Frontend Authentication Service - Connected to Backend API
-import api from "./api";
+import api from './api';
 
-// Default fallback for local development (use env var when available)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 10000;
+// .NET ClaimTypes URIs used by backend
+const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
+const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 
-// Helper function to make API requests
-const fetchAPI = async (endpoint, options = {}) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-
+const decodeJWT = (token) => {
   try {
-    // Build fetch options safely so headers are merged instead of overwritten
-    const customOptions = { ...options };
-    delete customOptions.headers;
-    const fetchOptions = {
-      signal: controller.signal,
-      ...customOptions,
-      method: customOptions.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-    };
-
-    console.log('➡️ Fetching:', `${API_BASE_URL}${endpoint}`, fetchOptions.method);
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
-
-    clearTimeout(timeoutId);
-
-    const contentType = response.headers.get('content-type');
-    let data = null;
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      throw {
-        status: response.status,
-        message: data?.message || `HTTP Error: ${response.status}`,
-        data: data,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw {
-        status: 408,
-        message: `Request timeout (${API_TIMEOUT}ms)`,
-      };
-    }
-
-    // Normalize network/fetch errors (e.g. connection refused / CORS / DNS)
-    if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
-      throw {
-        status: 0,
-        message: 'Cannot reach backend. Please check the server or network.',
-        details: error.message,
-      };
-    }
-
-    throw error;
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
   }
 };
+
+const getErrorPayload = (error) => ({
+  status: error.response?.status,
+  message: error.response?.data?.message ?? error.message,
+  data: error.response?.data,
+});
 
 // Register new user - returns pending state waiting for OTP verification
 export const register = async (data) => {
   try {
-    console.log('Sending to backend:', {
+    const response = await api.post('/api/auth/register', {
       fullName: data.fullName,
       email: data.email,
       phoneNumber: data.phoneNumber,
-      password: '****',
-      confirmPassword: '****',
+      password: data.password,
+      confirmPassword: data.confirmPassword,
       dateOfBirth: data.dateOfBirth,
     });
-
-    const response = await fetchAPI('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        fullName: data.fullName,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-        dateOfBirth: data.dateOfBirth,
-      }),
-    });
-
+    const res = response.data;
     return {
       success: true,
-      message: response.message,
+      message: res.message,
       email: data.email,
       phone: data.phoneNumber,
-      // No user object or token yet - pending OTP verification
     };
   } catch (error) {
-    // Extract detailed error message from backend validation
-    let errorMessage = error.message || 'Registration failed';
-    
-    if (error.data?.errors) {
-      // Handle validation errors object
-      const errors = Object.values(error.data.errors);
-      if (Array.isArray(errors) && errors.length > 0) {
-        errorMessage = errors[0];
-      }
-    } else if (error.data?.message) {
-      errorMessage = error.data.message;
-    }
-    
-    console.error('Backend error:', error.data || error);
-    throw {
-      message: errorMessage,
-      details: errorMessage,
-    };
+    const payload = getErrorPayload(error);
+    let errorMessage = payload.message || 'Registration failed';
+    if (payload.data?.errors) {
+      const errors = Object.values(payload.data.errors);
+      if (Array.isArray(errors) && errors.length > 0) errorMessage = errors[0];
+    } else if (payload.data?.message) errorMessage = payload.data.message;
+    throw { message: errorMessage, details: errorMessage };
   }
 };
 
 // Verify OTP and activate account
 export const verifyOTP = async (email, otp) => {
   try {
-    const response = await fetchAPI('/api/Auth/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: email,
-        otpCode: otp,
-      }),
-    });
-
+    const response = await api.post('/api/Auth/verify-otp', { email, otpCode: otp });
+    const res = response.data;
     return {
       success: true,
-      message: response.message,
-      statusCode: response.statusCode || 200,
+      message: res.message,
+      statusCode: res.statusCode || 200,
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.message || 'OTP verification failed',
-      details: error.data?.message || error.message,
-      status: error.status,
+      message: payload.message || 'OTP verification failed',
+      details: payload.data?.message ?? payload.message,
+      status: payload.status,
     };
-  }
-};
-
-// .NET ClaimTypes URIs used by backend
-const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
-const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
-
-// Helper function to decode JWT token
-const decodeJWT = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Failed to decode JWT:', error);
-    return null;
   }
 };
 
@@ -171,119 +80,96 @@ const decodeJWT = (token) => {
 export const login = async (credentials) => {
   try {
     const emailOrPhone = credentials.email || credentials.phone;
-    const payload = {
-      emailOrPhone: emailOrPhone,
+    const response = await api.post('/api/auth/login', {
+      emailOrPhone,
       password: credentials.password,
-    };
-
-    console.log('🔗 Calling /api/auth/login with:', payload);
-    const response = await fetchAPI('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(payload),
     });
+    const res = response.data;
+    const token = res.data ?? res.accessToken ?? res.token ?? res.jwtToken;
+    if (!token) throw { message: 'No token in response' };
 
-    console.log('📦 Raw response from backend:', response);
-
-    // Backend returns token in 'data' field, also check other common locations
-    const token = response.data || response.accessToken || response.token || response.jwtToken;
-    if (!token) {
-      console.error('❌ No token found in response:', response);
-      throw { message: 'No token in response' };
-    }
-
-    console.log('✅ Token extracted:', token.substring(0, 20) + '...');
-
-    // Decode JWT to extract user info
     const decodedToken = decodeJWT(token);
-    console.log('🔐 Decoded token:', decodedToken);
-
-    const result = {
+    return {
       user: {
-        id: decodedToken?.sub || decodedToken?.userId || decodedToken?.id || 'unknown',
-        email: decodedToken?.email || credentials.email || 'user@example.com',
-        phone: decodedToken?.phone || decodedToken?.phoneNumber || credentials.phone || '',
-        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || decodedToken?.username || credentials.email?.split('@')[0] || 'User',
-        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
-        status: decodedToken?.status || 'active',
+        id: decodedToken?.sub ?? decodedToken?.userId ?? decodedToken?.id ?? 'unknown',
+        email: decodedToken?.email ?? credentials.email ?? 'user@example.com',
+        phone: decodedToken?.phone ?? decodedToken?.phoneNumber ?? credentials.phone ?? '',
+        name:
+          decodedToken?.[CLAIM_NAME] ??
+          decodedToken?.name ??
+          decodedToken?.fullName ??
+          decodedToken?.username ??
+          credentials.email?.split('@')[0] ??
+          'User',
+        role: decodedToken?.[CLAIM_ROLE] ?? decodedToken?.role ?? 'customer',
+        status: decodedToken?.status ?? 'active',
       },
       accessToken: token,
-      token: token,
-      expiresIn: response.expiresIn,
+      token,
+      expiresIn: res.expiresIn,
     };
-    
-    console.log('✅ Processed login result:', result);
-    return result;
   } catch (error) {
-    const errorMsg = error.data?.message || error.message || 'Login failed';
-    
-    if (error.status === 401) {
-      throw { message: 'Invalid credentials' };
-    } else if (error.status === 404) {
-      throw { message: 'User not found' };
-    }
-    
-    throw { message: errorMsg };
+    const payload = getErrorPayload(error);
+    if (payload.status === 401) throw { message: 'Invalid credentials' };
+    if (payload.status === 404) throw { message: 'User not found' };
+    throw { message: payload.data?.message ?? payload.message ?? 'Login failed' };
   }
 };
 
 // Login with Google OAuth
 export const loginWithGoogle = async (credential) => {
   try {
-    const response = await fetchAPI('/api/auth/google-login', {
-      method: 'POST',
-      body: JSON.stringify({ idToken: credential }),
-    });
+    const response = await api.post('/api/auth/google-login', { idToken: credential });
+    const res = response.data;
+    const token = res.data ?? res.accessToken ?? res.token;
+    if (!token) throw { message: 'No token in Google login response' };
 
-    // Backend returns token in 'data' field (same as normal login)
-    const token = response.data || response.accessToken || response.token;
-    if (!token) {
-      throw { message: 'No token in Google login response' };
-    }
-
+    const decodedToken = decodeJWT(token);
     return {
-      token: token,
+      user: {
+        id: decodedToken?.sub ?? decodedToken?.userId ?? 'unknown',
+        email: decodedToken?.email ?? '',
+        name:
+          decodedToken?.[CLAIM_NAME] ??
+          decodedToken?.name ??
+          decodedToken?.fullName ??
+          '',
+        role: decodedToken?.[CLAIM_ROLE] ?? decodedToken?.role ?? 'customer',
+        status: decodedToken?.status ?? 'active',
+      },
+      accessToken: token,
+      token,
     };
   } catch (error) {
-    console.error('❌ Google login error:', error.data || error);
-    throw {
-      message: error.data?.message || error.message || 'Google login failed',
-    };
+    const payload = getErrorPayload(error);
+    throw { message: payload.data?.message ?? payload.message ?? 'Google login failed' };
   }
 };
 
 // Refresh access token using refresh token
 export const refreshToken = async (token) => {
   try {
-    const response = await fetchAPI('/api/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ refreshToken: token }),
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await api.post('/api/auth/refresh', { refreshToken: token }, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-
+    const res = response.data;
     return {
-      accessToken: response.accessToken || response.token,
-      expiresIn: response.expiresIn,
+      accessToken: res.accessToken ?? res.token,
+      expiresIn: res.expiresIn,
     };
   } catch (error) {
-    throw { message: error.message || 'Token refresh failed' };
+    throw { message: getErrorPayload(error).message ?? 'Token refresh failed' };
   }
 };
 
 // Logout (optional - could also just clear local state)
 export const logout = async (token) => {
   try {
-    await fetchAPI('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    await api.post('/api/auth/logout', {}, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     return { success: true };
-  } catch (error) {
-    // Logout failures are non-critical
-    console.warn('Logout warning:', error.message);
+  } catch {
     return { success: true };
   }
 };
@@ -292,49 +178,38 @@ export const logout = async (token) => {
 export const getProfile = async () => {
   try {
     const response = await api.get('/api/auth/profile');
-    return response.data.data;
-  } catch (error) {
-    console.error('Failed to fetch profile:', error.response?.data || error.message || error);
+    return response.data?.data ?? response.data;
+  } catch {
+    return undefined;
   }
 };
 
 // Update user profile
 export const updateProfile = async (profileData) => {
   try {
-    // Backend expects DateOnly? for dateOfBirth
     const payload = {
       fullName: profileData.fullName ?? null,
       phoneNumber:
-        profileData.phoneNumber && String(profileData.phoneNumber).trim() !== ""
+        profileData.phoneNumber && String(profileData.phoneNumber).trim() !== ''
           ? profileData.phoneNumber
           : null,
       dateOfBirth:
-        profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ""
+        profileData.dateOfBirth && String(profileData.dateOfBirth).trim() !== ''
           ? profileData.dateOfBirth.trim().slice(0, 10)
           : null,
     };
-
-    const response = await api.put("/api/auth/profile", payload);
-
-    const data = response.data?.data || response.data;
-
+    const response = await api.put('/api/auth/profile', payload);
+    const data = response.data?.data ?? response.data;
     return {
       success: true,
-      message: data.message,
-      user: data.user || payload,
+      message: data?.message,
+      user: data?.user ?? payload,
     };
   } catch (error) {
-    console.error(
-      "Failed to update profile:",
-      error.response?.data || error.message || error
-    );
-
+    const payload = getErrorPayload(error);
     throw {
-      message:
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update profile",
-      status: error.response?.status,
+      message: payload.data?.message ?? payload.message ?? 'Failed to update profile',
+      status: payload.status,
     };
   }
 };
@@ -342,47 +217,32 @@ export const updateProfile = async (profileData) => {
 // Change password
 export const changePassword = async (passwordData) => {
   try {
-    const { data } = await api.post("/api/auth/change-password", {
+    const { data } = await api.post('/api/auth/change-password', {
       currentPassword: passwordData.currentPassword,
       newPassword: passwordData.newPassword,
       confirmPassword: passwordData.confirmPassword,
     });
-
-    return {
-      success: true,
-      message: data?.message,
-    };
+    return { success: true, message: data?.message };
   } catch (error) {
-    const status = error.response?.status;
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to change password";
-
-    if (status === 401) {
-      throw { message: "Current password is incorrect" };
-    }
-
-    throw { message };
+    const payload = getErrorPayload(error);
+    if (payload.status === 401) throw { message: 'Current password is incorrect' };
+    throw { message: payload.data?.message ?? payload.message ?? 'Failed to change password' };
   }
 };
 
 // Request password reset (forgot-password)
 export const requestPasswordReset = async (email) => {
   try {
-    const response = await fetchAPI('/api/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ account: email }),
-    });
-
+    const response = await api.post('/api/auth/forgot-password', { account: email });
     return {
       success: true,
-      message: response.message || 'Reset link sent to your email',
+      message: response.data?.message ?? 'Reset link sent to your email',
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.data?.message || error.message || 'Failed to request password reset',
-      status: error.status,
+      message: payload.data?.message ?? payload.message ?? 'Failed to request password reset',
+      status: payload.status,
     };
   }
 };
@@ -390,45 +250,39 @@ export const requestPasswordReset = async (email) => {
 // Verify reset OTP
 export const verifyResetOTP = async (email, otp) => {
   try {
-    const response = await fetchAPI('/api/auth/verify-reset-otp', {
-      method: 'POST',
-      body: JSON.stringify({
-        account: email,
-        otpCode: otp,
-      }),
+    const response = await api.post('/api/auth/verify-reset-otp', {
+      account: email,
+      otpCode: otp,
     });
-
+    const res = response.data;
     return {
       success: true,
-      message: response.message,
-      resetToken: response.data?.resetToken || response.data?.token || response.resetToken || response.token,
+      message: res.message,
+      resetToken:
+        res.data?.resetToken ?? res.data?.token ?? res.resetToken ?? res.token,
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.data?.message || error.message || 'OTP verification failed',
-      status: error.status,
+      message: payload.data?.message ?? payload.message ?? 'OTP verification failed',
+      status: payload.status,
     };
   }
 };
 
-// ── Phone + OTP Login ───────────────────────────────────────────────────────
-
 // Step 1: Send OTP to phone number for login
 export const sendPhoneLoginOtp = async (phoneNumber) => {
   try {
-    const response = await fetchAPI('/api/auth/phone-login', {
-      method: 'POST',
-      body: JSON.stringify({ phoneNumber }),
-    });
-
+    const response = await api.post('/api/auth/phone-login', { phoneNumber });
     return {
       success: true,
-      message: response.message || 'OTP đã được gửi đến số điện thoại của bạn',
+      message: response.data?.message ?? 'OTP đã được gửi đến số điện thoại của bạn',
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.data?.message || error.message || 'Không thể gửi mã OTP',
-      status: error.status,
+      message: payload.data?.message ?? payload.message ?? 'Không thể gửi mã OTP',
+      status: payload.status,
     };
   }
 };
@@ -436,34 +290,36 @@ export const sendPhoneLoginOtp = async (phoneNumber) => {
 // Step 2: Verify OTP and get JWT token
 export const verifyPhoneLoginOtp = async (phoneNumber, otpCode) => {
   try {
-    const response = await fetchAPI('/api/auth/phone-login/verify', {
-      method: 'POST',
-      body: JSON.stringify({ phoneNumber, otpCode }),
+    const response = await api.post('/api/auth/phone-login/verify', {
+      phoneNumber,
+      otpCode,
     });
-
-    const token = response.data || response.accessToken || response.token;
-    if (!token) {
-      throw { message: 'No token in response' };
-    }
+    const res = response.data;
+    const token = res.data ?? res.accessToken ?? res.token;
+    if (!token) throw { message: 'No token in response' };
 
     const decodedToken = decodeJWT(token);
-
     return {
       user: {
-        id: decodedToken?.sub || decodedToken?.userId || decodedToken?.id || 'unknown',
-        email: decodedToken?.email || '',
-        phone: decodedToken?.phone || decodedToken?.phoneNumber || phoneNumber,
-        name: decodedToken?.[CLAIM_NAME] || decodedToken?.name || decodedToken?.fullName || 'User',
-        role: decodedToken?.[CLAIM_ROLE] || decodedToken?.role || 'customer',
-        status: decodedToken?.status || 'active',
+        id: decodedToken?.sub ?? decodedToken?.userId ?? decodedToken?.id ?? 'unknown',
+        email: decodedToken?.email ?? '',
+        phone: decodedToken?.phone ?? decodedToken?.phoneNumber ?? phoneNumber,
+        name:
+          decodedToken?.[CLAIM_NAME] ??
+          decodedToken?.name ??
+          decodedToken?.fullName ??
+          'User',
+        role: decodedToken?.[CLAIM_ROLE] ?? decodedToken?.role ?? 'customer',
+        status: decodedToken?.status ?? 'active',
       },
       accessToken: token,
-      token: token,
+      token,
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.data?.message || error.message || 'Xác thực OTP thất bại',
-      status: error.status,
+      message: payload.data?.message ?? payload.message ?? 'Xác thực OTP thất bại',
+      status: payload.status,
     };
   }
 };
@@ -471,22 +327,19 @@ export const verifyPhoneLoginOtp = async (phoneNumber, otpCode) => {
 // Reset password
 export const resetPassword = async (resetPasswordData) => {
   try {
-    const response = await fetchAPI('/api/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({
-        resetToken: resetPasswordData.resetToken,
-        newPassword: resetPasswordData.newPassword,
-      }),
+    const response = await api.post('/api/auth/reset-password', {
+      resetToken: resetPasswordData.resetToken,
+      newPassword: resetPasswordData.newPassword,
     });
-
     return {
       success: true,
-      message: response.message || 'Password reset successfully',
+      message: response.data?.message ?? 'Password reset successfully',
     };
   } catch (error) {
+    const payload = getErrorPayload(error);
     throw {
-      message: error.data?.message || error.message || 'Failed to reset password',
-      status: error.status,
+      message: payload.data?.message ?? payload.message ?? 'Failed to reset password',
+      status: payload.status,
     };
   }
 };

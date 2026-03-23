@@ -1,0 +1,8 @@
+/* fallback backgrounds.css for build tools that resolve to /styles */
+:root {
+  --app-bg-gradient: linear-gradient(135deg, #f6fbff 0%, #edf7f1 40%, #e8f5ff 70%, #f3f7ff 100%);
+}
+
+.app-background {
+  background: var(--app-bg-gradient);
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import Login from '../../../pages/auth/Login';
 import './LoginPopup.css';
 
@@ -9,7 +10,7 @@ import './LoginPopup.css';
 const LoginPopup = ({ open, onClose }) => {
   if (!open) return null;
 
-  return (
+  const modal = (
     <div
       className="login-popup-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -32,6 +33,8 @@ const LoginPopup = ({ open, onClose }) => {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default LoginPopup;

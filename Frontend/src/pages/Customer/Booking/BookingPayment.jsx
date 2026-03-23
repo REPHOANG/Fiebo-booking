@@ -165,18 +165,6 @@ const BookingPayment = () => {
       ) {
         const ttl = Number(bs.reservationTtl ?? 300);
         try {
-          // Add to local bookedSlots so UI reflects chosen slots while on payment screen
-          // This does not call server reserve — backend currently exposes only createBooking + payment.
-          // eslint-disable-next-line no-console
-          console.debug(
-            "[BookingPayment] marking local booked slots on mount",
-            {
-              venueId: String(bs.venue.id),
-              date: bs.selectedDate,
-              slots: bs.selectedSlots,
-              ttlSeconds: ttl,
-            },
-          );
           dispatch(
             addBookedSlots({
               venueId: String(bs.venue.id),
@@ -192,7 +180,6 @@ const BookingPayment = () => {
     } catch (e) {}
   }, [location.state, dispatch]);
 
-  // Wallet balance (TODO: fetch from API)
   const [walletBalance, setWalletBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -426,7 +413,7 @@ const BookingPayment = () => {
     if (!isEnough || paying || expired) {
       if (!isEnough)
         alert(
-          "Số dư không đủ. Vui lòng nạp thêm vào ví hoặc chọn phương thức khác.",
+          "Số dư không đủ. Vui lòng nạp thêm vào ví.",
         );
       return;
     }
@@ -444,9 +431,7 @@ const BookingPayment = () => {
       try {
         await callPaymentWebhook(bookingId, { paymentMethod: "wallet" });
       } catch (webErr) {
-        // non-fatal: log and continue
-        // eslint-disable-next-line no-console
-        console.warn("Payment webhook call failed", webErr);
+        // non-fatal: continue
       }
       setPaymentDone(true);
       try {
@@ -524,8 +509,7 @@ const BookingPayment = () => {
       try {
         await callPaymentWebhook(reservationId, { paymentMethod: "wallet" });
       } catch (webErr) {
-        // eslint-disable-next-line no-console
-        console.warn("Payment webhook call failed", webErr);
+        // non-fatal
       }
       setPaymentDone(true);
       try {
@@ -533,7 +517,6 @@ const BookingPayment = () => {
         if (id) sessionStorage.removeItem(PAYMENT_VENUE_SESSION_KEY(id));
       } catch (_) {}
     } catch (err) {
-      console.error("Pay after expired failed", err);
       alert(
         err?.message ||
           "Không thể thanh toán. Đơn có thể đã bị hủy hoặc hết hạn.",
@@ -575,7 +558,7 @@ const BookingPayment = () => {
               </button>
               <button
                 className="bp-back-link secondary"
-                onClick={() => navigate(`/venue/${id}/booking`)}
+                onClick={() => navigate(`/venue/${id}?book=1`)}
               >
                 Đặt sân mới
               </button>
@@ -591,7 +574,12 @@ const BookingPayment = () => {
       <div className="bp-main">
         {/* Header */}
         <div className="bp-header">
-          <button className="bp-back-btn" onClick={() => navigate(-1)}>
+          <button
+            className="bp-back-btn"
+            onClick={() => navigate(-1)}
+            disabled={paying}
+            aria-disabled={paying}
+          >
             <ArrowLeft size={20} />
           </button>
           <h1 className="bp-header-title">Thanh toán</h1>
@@ -670,7 +658,12 @@ const BookingPayment = () => {
               )}
 
               {!loadingBalance && (
-                <button className="bp-topup-btn" onClick={handleTopUp}>
+                <button
+                  className="bp-topup-btn"
+                  onClick={handleTopUp}
+                  disabled={paying}
+                  aria-disabled={paying}
+                >
                   <Plus size={18} />
                   Nạp tiền vào ví
                 </button>
@@ -708,6 +701,8 @@ const BookingPayment = () => {
                     },
                   })
                 }
+                disabled={paying}
+                aria-disabled={paying}
               >
                 Đăng nhập
               </button>

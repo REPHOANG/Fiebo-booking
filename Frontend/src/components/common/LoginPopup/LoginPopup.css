@@ -27,7 +27,8 @@
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  /* allow close button to sit outside the modal corner without being clipped */
+  overflow: visible;
   animation: lpSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -46,7 +47,8 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  z-index: 10;
+  /* ensure it's above modal and any other sticky headers */
+  z-index: 10001;
   width: 34px;
   height: 34px;
   display: flex;

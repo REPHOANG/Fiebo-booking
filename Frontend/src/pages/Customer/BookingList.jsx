@@ -339,12 +339,8 @@ const BookingList = () => {
                     </button>
                   )}
                   {(b.status || "").toLowerCase() === "booked" && (
-                    <button
-                      type="button"
-                      className="bl-btn danger bl-btn-sm"
-                      onClick={() => handleCancelFromList(b.bookingId)}
-                    >
-                      Hủy
+                    <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)} disabled={cancelMutation.isLoading}>
+                      {cancelMutation.isLoading ? 'Đang huỷ...' : 'Hủy'}
                     </button>
                   )}
                   {(b.status || "").toLowerCase() === "completed" && (
@@ -453,16 +449,8 @@ const BookingList = () => {
                 )}
                 <div className="bl-actions">
                   {(popupBooking.status || "").toLowerCase() === "booked" && (
-                    <button
-                      type="button"
-                      className="bl-btn danger"
-                      onClick={() =>
-                        handleCancelFromList(
-                          popupBooking.bookingId ?? popupBooking.id,
-                        )
-                      }
-                    >
-                      Hủy đặt sân
+                    <button type="button" className="bl-btn danger" onClick={() => handleCancelFromList(popupBooking.bookingId ?? popupBooking.id)} disabled={cancelMutation.isLoading}>
+                      {cancelMutation.isLoading ? 'Đang huỷ...' : 'Hủy đặt sân'}
                     </button>
                   )}
                   {(popupBooking.status || "").toLowerCase() ===

@@ -1,0 +1,223 @@
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useSelector } from "react-redux";
+import { getEventList } from "../../services/eventService";
+import { searchVenues } from "../../services/fieldService";
+import "./Events.css";
+import { formatDate, formatPrice, formatTime } from "../../utils/helperFunction";
+
+
+
+const Events = () => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const isAuthenticated = useSelector((s) => s.auth?.isAuthenticated);
+
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["dropin-events"],
+    queryFn: async () => {
+      const res = await getEventList();
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const cards = useMemo(() => {
+    const mapByVenue = new Map();
+    const keyword = String(query || "").trim().toLowerCase();
+
+    for (const e of events || []) {
+      const venueName = e?.venueName || "Sân";
+      const venueId = e?.venueId ?? e?.VenueId ?? null;
+      if (keyword && !venueName.toLowerCase().includes(keyword)) continue;
+
+      const slots = Array.isArray(e?.slots) ? e.slots : [];
+      const first = slots[0];
+      const last = slots[slots.length - 1];
+      const capacity = Number(e?.ticketQuantity ?? e?.TicketQuantity ?? 0);
+      const remaining = Number(e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity ?? capacity);
+      const joined = Math.max(0, capacity - remaining);
+      const joinLabel = capacity > 0 ? `${joined}/${capacity}` : (remaining > 0 ? `Còn ${remaining} vé` : "Hết vé");
+
+      const session = {
+        id: e?.eventId,
+        time:
+          first && last
+            ? `${formatTime(first?.startTime)} - ${formatTime(last?.endTime)}`
+            : "—",
+        date: formatDate(e?.eventDate),
+        joined: joinLabel,
+        level: "Drop-in",
+      };
+
+      if (!mapByVenue.has(venueName)) {
+        mapByVenue.set(venueName, {
+          id: venueName,
+          venueId,
+          name: venueName,
+          image: `https://placehold.co/900x600/png?text=${encodeURIComponent(venueName)}`,
+          badges: ["Đơn ngày", "Sự kiện"],
+          rating: 0,
+          price: formatPrice(e?.ticketPrice ?? e?.TicketPrice),
+          joined: joinLabel,
+          sessions: [session],
+        });
+      } else {
+        mapByVenue.get(venueName).sessions.push(session);
+      }
+    }
+
+    return Array.from(mapByVenue.values());
+  }, [events, query]);
+
+  const openEventRegister = (eventId) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    navigate(`/event/${eventId}`);
+  };
+
+  const openVenueEvents = async (venueId, venueName) => {
+    if (venueId) {
+      navigate(`/venue/${venueId}/social-session`);
+      return;
+    }
+
+    // Fallback: API /api/Event có thể chưa trả venueId, nên tìm theo tên sân.
+    const keyword = String(venueName || "").trim();
+    if (!keyword) return;
+    try {
+      const res = await searchVenues({
+        location: keyword,
+        page: 1,
+        pageSize: 10,
+      });
+      const items = res?.items ?? res?.Items ?? [];
+      const match = (Array.isArray(items) ? items : []).find(
+        (it) => String(it?.name || it?.venueName || "").trim().toLowerCase() === keyword.toLowerCase(),
+      );
+      const resolvedVenueId = match?.id ?? match?.venueId ?? match?.VenueId;
+      if (resolvedVenueId) {
+        navigate(`/venue/${resolvedVenueId}/social-session`);
+        return;
+      }
+      window.alert("Không tìm thấy mã sân để mở danh sách sự kiện.");
+    } catch {
+      window.alert("Không mở được danh sách sự kiện của sân này. Vui lòng thử lại.");
+    }
+  };
+
+  return (
+    <div className="ev-screen">
+
+      <div className="ev-toolbar">
+        <div className="ev-search">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nhập tên sân, địa chỉ"
+          />
+        </div>
+        <button className="ev-filter" type="button" aria-label="Filters">
+          <SlidersHorizontal size={18} />
+        </button>
+      </div>
+
+      <div className="ev-grid">
+        {isLoading ? (
+          <div className="ev-loading">Đang tải...</div>
+        ) : (
+          cards.map((v) => (
+            <div key={v.id} className="ev-card">
+                <div
+                  className="ev-image"
+                  onClick={() => {
+                    if (v.venueId) navigate(`/venue/${v.venueId}`);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                <img src={v.image} alt={v.name} />
+                <div className="ev-badges">
+                  {v.badges?.map((b) => (
+                    <span key={b} className={`ev-badge ${b === "Sự kiện" ? "event" : ""}`}>
+                      {b}
+                    </span>
+                  ))}
+                </div>
+                <div className="ev-actions">
+                  <button type="button" className="ev-icon-btn" onClick={(e) => e.stopPropagation()} aria-label="Favorite">
+                    <Heart size={18} />
+                  </button>
+                  <button type="button" className="ev-icon-btn" onClick={(e) => e.stopPropagation()} aria-label="Share">
+                    <Share2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="ev-body">
+                <div className="ev-head">
+                  <div className="ev-name">{v.name}</div>
+                  <div className="ev-rating">
+                    <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
+                    <span>{(v.rating || 0).toFixed(1)}</span>
+                  </div>
+                </div>
+
+                <div className="ev-subline">
+                  <span className="ev-price-pill">{v.price}</span>
+                  <span className="ev-joined-pill">{v.joined}</span>
+                </div>
+
+                <div className="ev-sessions">
+                  {(v.sessions || []).slice(0, 3).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className="ev-session"
+                      onClick={() => openEventRegister(s.id)}
+                    >
+                      <div className="ev-session-left">
+                        <div className="ev-session-time">{s.time}</div>
+                        <div className="ev-session-level">{s.level}</div>
+                      </div>
+                      <div className="ev-session-right">
+                        <div className="ev-session-date">{s.date}</div>
+                        <div className="ev-session-join">{s.joined}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {(v.sessions || []).length > 3 && (
+                  <button
+                    type="button"
+                    className="ev-expand"
+                    onClick={() => openVenueEvents(v.venueId, v.name)}
+                  >
+                    {`Xem thêm ${(v.sessions || []).length - 3} sự kiện`}
+                  </button>
+                )}
+
+                <button
+                  className="ev-book"
+                  type="button"
+                  onClick={() => openVenueEvents(v.venueId, v.name)}
+                >
+                  ĐẶT LỊCH
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="ev-bottom-space" />
+    </div>
+  );
+};
+
+export default Events;
+

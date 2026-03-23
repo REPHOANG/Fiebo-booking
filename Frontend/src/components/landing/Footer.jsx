@@ -45,7 +45,7 @@ const Footer = () => {
           <ul className="ft-links">
             <li><Link to="/"><ChevronRight size={14} /> Trang chủ</Link></li>
             <li><Link to="/venues"><ChevronRight size={14} /> Danh sách sân</Link></li>
-            <li><Link to="/about"><ChevronRight size={14} /> Về chúng tôi</Link></li>
+            <li><Link to="/events"><ChevronRight size={14} /> Sự kiện</Link></li>
             <li><Link to="/faq"><ChevronRight size={14} /> Câu hỏi thường gặp</Link></li>
           </ul>
         </div>
@@ -55,10 +55,9 @@ const Footer = () => {
           <h3 className="ft-heading">Môn thể thao</h3>
           <ul className="ft-links ft-sports">
             <li><span className="ft-sport-dot" style={{background:'#22c55e'}} /> Bóng đá</li>
-            <li><span className="ft-sport-dot" style={{background:'#f59e0b'}} /> Cầu lông</li>
-            <li><span className="ft-sport-dot" style={{background:'#3b82f6'}} /> Pickleball</li>
             <li><span className="ft-sport-dot" style={{background:'#ef4444'}} /> Bóng rổ</li>
             <li><span className="ft-sport-dot" style={{background:'#a855f7'}} /> Tennis</li>
+            <li><span className="ft-sport-dot" style={{background:'#3b82f6'}} /> Pickleball</li>
           </ul>
         </div>
 
