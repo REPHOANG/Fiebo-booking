@@ -68,6 +68,8 @@ const AppRoutes = () => (
     >
       <Route path="/owner" element={<OwnerHome />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
+      <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />
+      <Route path="/owner/venues/:id/offline-booking/confirm" element={<BookingConfirmation />} />
       <Route path="/owner/create-venue" element={<CreateVenue />} />
     <Route path="/owner/bookings" element={<OwnerBookings />} />
     <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />

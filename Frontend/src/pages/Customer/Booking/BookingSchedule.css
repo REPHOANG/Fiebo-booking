@@ -707,6 +707,26 @@
   cursor: not-allowed;
 }
 
+/* Cùng trạng thái booked liền kề: nối lại thành 1 khối để nhìn dễ phân biệt */
+.bs-cell.booked.bs-book-run-start,
+.bs-cell.booked.bs-book-run-mid {
+  border-right: none;
+}
+
+.bs-cell.booked.bs-book-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
 .bs-cell.locked {
   background: #9ca3af;
   cursor: default;

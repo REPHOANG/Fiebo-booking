@@ -1,5 +1,6 @@
 .create-event-page .owner-home-content {
-  max-width: 640px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .create-event-form {
@@ -50,12 +51,15 @@
 }
 
 .ce-row label input,
+.ce-row label select,
 .ce-full input,
 .ce-full textarea {
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ce-full {
@@ -285,10 +289,28 @@
 
 .ce-field-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
+}
+
+.ce-field-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ce-field-sport {
+  font-size: 12px;
+  font-weight: 800;
+  color: #166534;
+  background: rgba(187, 247, 208, 0.5);
+  border: 1px solid rgba(22, 101, 52, 0.18);
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: fit-content;
 }
 
 .ce-field-right {

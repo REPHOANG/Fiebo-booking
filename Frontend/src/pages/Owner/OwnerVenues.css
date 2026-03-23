@@ -173,6 +173,20 @@
   background: #fef2f2;
 }
 
+.ov-btn--offline {
+  background: #fff;
+  border-color: #139a44;
+  color: #139a44;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ov-btn--offline:hover {
+  background: #ecfdf5;
+}
+
 .ov-schedule {
   border-top: 1px solid #e5e7eb;
   padding: 14px 16px 16px;

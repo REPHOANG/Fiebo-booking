@@ -183,6 +183,30 @@
   color: #1d4ed8;
 }
 
+.es-tag-status {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.20);
+}
+
+.es-tag-status--soldout {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.es-tag-status--started {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.es-tag-status--upcoming {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.20);
+}
+
 .es-tag-info {
   background: rgba(15, 23, 42, 0.05);
   padding: 6px 8px;

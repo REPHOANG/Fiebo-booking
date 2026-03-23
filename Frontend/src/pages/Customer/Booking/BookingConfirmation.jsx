@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
-import { createBooking } from "../../../services/bookingService";
+import { createBooking, createWalkInBooking } from "../../../services/bookingService";
 import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
 import { getProfile } from "../../../services/authService";
@@ -83,6 +83,11 @@ const BookingConfirmation = () => {
   const [guestPhone, setGuestPhone] = useState("");
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
+  // Tách prefill user và user tự edit:
+  // - Khi user đã nhập/xóa, không tự động override lại giá trị cũ.
+  const didEditNameRef = useRef(false);
+  const didEditPhoneRef = useRef(false);
+
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [nameError, setNameError] = useState("");
@@ -95,8 +100,8 @@ const BookingConfirmation = () => {
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
     if (!user) return;
-    setGuestName((prev) => prev || user?.fullName || user?.name || "");
-    setGuestPhone((prev) => prev || user?.phone || user?.phoneNumber || "");
+    if (!didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
+    if (!didEditPhoneRef.current) setGuestPhone(user?.phone || user?.phoneNumber || "");
   }, [user]);
 
   // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
@@ -111,11 +116,11 @@ const BookingConfirmation = () => {
         const name = (profile.fullName || profile.name || "").toString().trim();
         const phone = (profile.phoneNumber || profile.phone || "").toString().trim().replace(/\s/g, "");
         if (name) {
-          setGuestName((prev) => prev || name);
+          if (!didEditNameRef.current) setGuestName(name);
           setNameError("");
         }
         if (phone) {
-          setGuestPhone((prev) => prev || phone);
+          if (!didEditPhoneRef.current) setGuestPhone(phone);
           setPhoneError("");
         }
       } catch (_) {
@@ -125,8 +130,8 @@ const BookingConfirmation = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
-  const displayName = user?.fullName || user?.name || guestName;
-  const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
+  const displayName = guestName;
+  const displayPhone = guestPhone;
 
   // Form-level validation: require fullname and phone
   const isFormValid = Boolean((displayName || "").toString().trim() && (displayPhone || "").toString().trim());
@@ -210,7 +215,16 @@ const BookingConfirmation = () => {
     );
   }
 
-  const { venue, fields, selectedDate, selectedSlots, slots, slotSummary, venueSchedule } = bookingState;
+  const {
+    venue,
+    fields,
+    selectedDate,
+    selectedSlots,
+    slots,
+    slotSummary,
+    venueSchedule,
+    walkIn: isWalkInBooking,
+  } = bookingState;
 
   // Format the date nicely
   const formattedDate = useMemo(() => {
@@ -250,6 +264,93 @@ const BookingConfirmation = () => {
         toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
         return;
       }
+
+      if (isWalkInBooking) {
+        setIsSubmitting(true);
+        try {
+          try {
+            dispatch(clearDraft(String(venue?.id)));
+          } catch (e) {}
+
+          let schedule = localSchedule || venueSchedule;
+          if (!schedule && venue?.id && selectedDate) {
+            const res = await getVenueSchedule(venue.id, selectedDate);
+            schedule = res;
+            setLocalSchedule(res);
+          }
+          let details = buildDetailsFromSchedule(schedule, fields, slots, selectedSlots);
+
+          if (details.length === 0 && selectedSlots.length > 0) {
+            try {
+              const refreshed = await getVenueSchedule(venue.id, selectedDate);
+              setLocalSchedule(refreshed);
+              details = buildDetailsFromSchedule(refreshed, fields, slots, selectedSlots);
+            } catch (e) {
+              // ignore
+            }
+            if (details.length === 0) {
+              toast.error("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+              return;
+            }
+          }
+
+          const seen = new Set();
+          const uniqueDetails = details.filter((d) => {
+            const key = `${d.fieldId}-${d.slotId}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+
+          const fullname = (displayName || guestName || "").trim();
+          const phoneNumber = (displayPhone || guestPhone || "").trim();
+          const payload = {
+            venueId: Number(venue?.id),
+            bookingDate: selectedDate,
+            fullname,
+            phoneNumber,
+            ...((bookingNote || "").trim() && { bookingNote: (bookingNote || "").trim() }),
+            details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
+          };
+
+          if (!payload.details.length) {
+            toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
+            return;
+          }
+
+          try {
+            const freshSchedule = await getVenueSchedule(venue.id, selectedDate);
+            setLocalSchedule(freshSchedule);
+            const unavailableKeys = getUnavailableKeysFromSchedule(freshSchedule);
+            const hasConflict = uniqueDetails.some((d) =>
+              unavailableKeys.has(`${Number(d.fieldId)}_${Number(d.slotId)}`)
+            );
+            if (hasConflict) {
+              toast.error(
+                "Một hoặc nhiều khung giờ đã được đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác."
+              );
+              return;
+            }
+          } catch (e) {
+            // vẫn gửi API; backend sẽ kiểm tra
+          }
+
+          await createWalkInBooking(payload);
+          toast.success("Đã tạo lịch đặt offline thành công.");
+          navigate("/owner/bookings", { replace: true });
+        } catch (err) {
+          const msg =
+            err?.response?.data?.message ||
+            err?.data?.message ||
+            err?.message ||
+            "Không thể tạo đặt chỗ offline.";
+          toast.error(msg);
+        } finally {
+          setIsSubmitting(false);
+        }
+        return;
+      }
+
       setIsSubmitting(true);
       try {
       // Note: removed optimistic slot locking here. Slots will be reserved
@@ -475,16 +576,25 @@ const BookingConfirmation = () => {
       <div className="bc-header">
         <button
           className="bc-back-btn"
-          onClick={() => navigate(-1)}
+          onClick={() =>
+            isWalkInBooking && venue?.id
+              ? navigate(`/owner/venues/${venue.id}/offline-booking`)
+              : navigate(-1)
+          }
           disabled={isSubmitting}
           aria-disabled={isSubmitting}
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="bc-header-title">Xác nhận đặt sân</h1>
+        <h1 className="bc-header-title">
+          {isWalkInBooking ? "Xác nhận đặt sân offline" : "Xác nhận đặt sân"}
+        </h1>
         <div className="bc-header-spacer" />
       </div>
 
+      <div className="bc-layout">
+        {/* Left column: venue, date, booking details, summary */}
+        <div className="bc-left">
       {/* Venue info */}
       <div className="bc-section">
         <div className="bc-section-header">
@@ -545,6 +655,10 @@ const BookingConfirmation = () => {
         </div>
       </div>
 
+        </div>
+
+        {/* Right column: customer info */}
+        <div className="bc-right">
       {/* Customer info */}
       <div className="bc-section">
         <div className="bc-section-header">
@@ -571,8 +685,9 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${nameError ? " error" : ""}`}
                   type="text"
                   placeholder="Nhập họ và tên"
-                  value={guestName || user?.fullName || user?.name || ""}
+                  value={guestName}
                   onChange={(e) => {
+                    didEditNameRef.current = true;
                     setGuestName(e.target.value);
                     if (e.target.value && e.target.value.trim().length > 0) setNameError("");
                   }}
@@ -588,8 +703,9 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
                   placeholder="0912 345 678"
-                  value={guestPhone || user?.phone || user?.phoneNumber || ""}
+                  value={guestPhone}
                   onChange={(e) => {
+                    didEditPhoneRef.current = true;
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
                     if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");
                   }}
@@ -628,6 +744,8 @@ const BookingConfirmation = () => {
           )}
         </div>
       </div>
+        </div>
+      </div>
 
       {/* Price summary */}
       <div className="bc-summary">
@@ -661,7 +779,11 @@ const BookingConfirmation = () => {
           disabled={!canConfirm || isSubmitting}
           onClick={handleConfirmBooking}
         >
-          {isSubmitting ? "Đang xử lý..." : "XÁC NHẬN ĐẶT SÂN"}
+          {isSubmitting
+            ? "Đang xử lý..."
+            : isWalkInBooking
+              ? "HOÀN TẤT ĐẶT OFFLINE"
+              : "XÁC NHẬN ĐẶT SÂN"}
         </button>
       </div>
     </div>

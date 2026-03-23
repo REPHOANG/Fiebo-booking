@@ -181,6 +181,14 @@ const OwnerVenues = () => {
                         {scheduleOpenId === id ? "Ẩn lịch" : "Xem lịch"}
                       </button>
                       {canDeactivate ? (
+                        <Link
+                          to={`/owner/venues/${id}/offline-booking`}
+                          className="ov-btn ov-btn--offline"
+                        >
+                          Đặt sân offline
+                        </Link>
+                      ) : null}
+                      {canDeactivate ? (
                         <button
                           type="button"
                           className="ov-btn ov-btn--danger"

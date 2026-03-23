@@ -12,6 +12,15 @@ export const createBooking = async (payload) => {
 };
 
 /**
+ * Đặt sân offline / walk-in (chủ sân hoặc nhân viên).
+ * POST /api/Booking/walk-in — cùng payload CreateBookingRequest, trạng thái Booked ngay.
+ */
+export const createWalkInBooking = async (payload) => {
+  const response = await api.post('/api/Booking/walk-in', payload);
+  return response.data?.data ?? response.data ?? response;
+};
+
+/**
  * Thanh toán đặt chỗ bằng ví (Complete booking payment using customer's wallet).
  * @param {number|string} bookingId
  * @param {Object} payload e.g. { paymentMethod: 'wallet' }
@@ -106,6 +115,7 @@ export const ownerCancelBookingApi = async (id, cancelReason) => {
 
 export default {
   createBooking,
+  createWalkInBooking,
   payBooking,
   getBookingById,
   getBookingHistory,

@@ -8,6 +8,14 @@ import "./EventList.css";
 const avatars = ["🧑‍🦱", "🧔", "👩‍🦰", "👨‍🦲", "👩‍🦱", "🧑‍🦳"];
 
 const normalize = (s) => String(s || "").trim().toLowerCase();
+const pick = (obj, ...keys) => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return undefined;
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
   const raw = String(dateStr).slice(0, 10);
@@ -22,6 +30,29 @@ const formatTime = (t) => {
 const formatPrice = (n) => `${Math.round(Number(n || 0) / 1000)}k/Vé`;
 const getJoined = (capacity, remaining) =>
   Math.max(0, Number(capacity || 0) - Number(remaining || 0));
+
+/** Parse "YYYY-MM-DD" + "HH:mm[:ss]" → Date (theo giờ local máy người dùng) */
+const parseLocalSlotStart = (eventDateStr, startTime) => {
+  const dateStr = String(eventDateStr || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const t = String(startTime || "").trim();
+  if (!t) return null;
+  const [hhRaw, mmRaw] = t.split(":");
+  const hh = Number(hhRaw);
+  const mm = Number(mmRaw || 0);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return new Date(y, mo - 1, d, hh, mm, 0, 0);
+};
+
+const getEventStatus = ({ eventDate, firstStartTime, remaining }) => {
+  const rem = Number(remaining ?? 0);
+  if (rem <= 0) return "Hết vé";
+
+  const startDt = parseLocalSlotStart(eventDate, firstStartTime);
+  const started = startDt ? startDt.getTime() <= Date.now() : false;
+  return started ? "Đã bắt đầu" : "Sắp diễn ra";
+};
 
 const EventList = () => {
   const navigate = useNavigate();
@@ -66,6 +97,24 @@ const EventList = () => {
           const remaining = Number(
             e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity ?? capacity
           );
+          const sport =
+            pick(e, "sportTypeName", "SportTypeName") ??
+            pick(first, "sportTypeName", "SportTypeName", "sportType", "SportType", "sportName") ??
+            "—";
+
+          const status = getEventStatus({
+            eventDate: e?.eventDate ?? e?.EventDate,
+            firstStartTime: first?.startTime ?? first?.StartTime,
+            remaining,
+          });
+
+          const statusClass =
+            status === "Hết vé"
+              ? "es-tag-status--soldout"
+              : status === "Đã bắt đầu"
+                ? "es-tag-status--started"
+                : "es-tag-status--upcoming";
+
           return {
             id: e.eventId,
             title: "[Xé vé] - Xé vé",
@@ -75,8 +124,9 @@ const EventList = () => {
                 ? `${formatTime(first.startTime)} - ${formatTime(last.endTime)}`
                 : "",
             fields: slots.map((s) => s.fieldName).join(" - "),
-            // sport: "Pickleball",
-           
+            sport,
+            status,
+            statusClass,
             joined: getJoined(capacity, remaining),
             capacity,
             remaining: Math.max(0, remaining),
@@ -164,7 +214,7 @@ const EventList = () => {
               <span className="es-tag es-tag-sport">
                 <span className="es-tag-dot" /> {s.sport}
               </span>
-              <span className="es-tag es-tag-level">{s.level}</span>
+              <span className={`es-tag es-tag-status ${s.statusClass}`}>{s.status}</span>
               <span className="es-tag es-tag-info">
                 <Info size={14} />
               </span>

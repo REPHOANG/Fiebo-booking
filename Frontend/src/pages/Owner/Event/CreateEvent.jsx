@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
+import { getOwnerVenues } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
 
@@ -15,6 +16,14 @@ const normalizeTime = (t) => {
   const s = String(t).trim();
   const part = s.split(":")[0] + ":" + (s.split(":")[1] || "00");
   return part.length === 5 ? part : part.slice(0, 5);
+};
+
+const pick = (obj, ...keys) => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return undefined;
 };
 
 /** Ghép ngày (YYYY-MM-DD) + giờ bắt đầu slot → Date theo giờ máy người dùng */
@@ -63,6 +72,11 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
   if (!schedule?.sportTypes?.length) return groups;
   const dateKey = String(eventDateStr || "").slice(0, 10);
   for (const st of schedule.sportTypes) {
+    const sportTypeName =
+      pick(st, "sportTypeName", "SportTypeName") ??
+      pick(st, "sportType", "SportType") ??
+      pick(st, "sportName", "SportName") ??
+      "";
     const slots = st.slots || [];
     const fields = st.fields || [];
     for (const field of fields) {
@@ -88,7 +102,7 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
           status,
         });
       }
-      groups.push({ fieldId, fieldName, slots: list });
+      groups.push({ fieldId, fieldName, sportTypeName, slots: list });
     }
   }
   return groups.sort((a, b) => (a.fieldName || "").localeCompare(b.fieldName || ""));
@@ -97,6 +111,8 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
 const CreateEvent = () => {
   const navigate = useNavigate();
   const [venueId, setVenueId] = useState("");
+  const [venues, setVenues] = useState([]);
+  const [loadingVenues, setLoadingVenues] = useState(false);
   const [eventDate, setEventDate] = useState("");
   const [venue, setVenue] = useState(null);
   const [schedule, setSchedule] = useState(null);
@@ -114,10 +130,14 @@ const CreateEvent = () => {
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
   const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
+  const venueDisplayName =
+    venue?.name ?? venue?.venueName ?? venue?.Name ?? venue?.VenueName;
+
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
-    () => getEventOccupiedKeys(eventListForDate, venue?.name ?? venue?.venueName, eventDate),
-    [eventListForDate, venue?.name, venue?.venueName, eventDate],
+    () =>
+      getEventOccupiedKeys(eventListForDate, venueDisplayName, eventDate),
+    [eventListForDate, venueDisplayName, eventDate],
   );
 
   /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
@@ -137,10 +157,58 @@ const CreateEvent = () => {
     return out;
   }, [slotsByFieldWithStatus]);
 
+  const loadVenues = async () => {
+    setLoadingVenues(true);
+    setError("");
+    try {
+      const list = await getOwnerVenues();
+      setVenues(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách cơ sở.");
+      setVenues([]);
+    } finally {
+      setLoadingVenues(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!mounted) return;
+      await loadVenues();
+    })();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleVenueSelect = (nextVenueId) => {
+    setVenueId(nextVenueId);
+    setError("");
+    setSchedule(null);
+    setEventListForDate([]);
+    setSelectedDetails([]);
+    setExpandedFieldId(null);
+    const id = Number(nextVenueId);
+    if (!id) {
+      setVenue(null);
+      return;
+    }
+    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
+    if (!match) {
+      setVenue(null);
+      return;
+    }
+    const normalizedName =
+      pick(match, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
+    setVenue({ ...match, name: normalizedName });
+  };
+
   const loadVenue = async () => {
     const id = Number(venueId);
     if (!id) {
-      setError("Vui lòng nhập mã cơ sở.");
+      setError("Vui lòng chọn cơ sở.");
       return;
     }
     setError("");
@@ -163,7 +231,7 @@ const CreateEvent = () => {
   const loadSchedule = async () => {
     const id = Number(venueId);
     if (!id || !eventDate) {
-      setError("Vui lòng chọn mã cơ sở và ngày sự kiện.");
+      setError("Vui lòng chọn cơ sở và ngày sự kiện.");
       return;
     }
     setError("");
@@ -311,22 +379,37 @@ const CreateEvent = () => {
             <h3>Cơ sở &amp; ngày</h3>
             <div className="ce-row">
               <label>
-                Mã cơ sở (Venue ID)
-                <input
-                  type="number"
-                  min={1}
+                Cơ sở (Venue)
+                <select
                   value={venueId}
-                  onChange={(e) => setVenueId(e.target.value)}
-                  placeholder="VD: 1"
-                />
+                  onChange={(e) => handleVenueSelect(e.target.value)}
+                  disabled={loadingVenues || venues.length === 0}
+                >
+                  <option value="">{loadingVenues ? "Đang tải..." : "Chọn cơ sở"}</option>
+                  {venues.map((v) => {
+                    const id = pick(v, "venueId", "VenueId", "id");
+                    if (!id) return null;
+                    const name = pick(v, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
+                    return (
+                      <option key={id} value={String(id)}>
+                        {name}
+                      </option>
+                    );
+                  })}
+                </select>
               </label>
-              <button type="button" className="ce-btn secondary" onClick={loadVenue} disabled={loadingVenue}>
+              <button
+                type="button"
+                className="ce-btn secondary"
+                onClick={loadVenue}
+                disabled={loadingVenue || !venueId}
+              >
                 {loadingVenue ? "Đang tải…" : "Tải thông tin"}
               </button>
             </div>
             {venue && (
               <p className="ce-venue-name">
-                Cơ sở: <strong>{venue.name ?? venue.venueName}</strong>
+                Cơ sở: <strong>{venueDisplayName}</strong>
               </p>
             )}
             <div className="ce-row">
@@ -363,7 +446,12 @@ const CreateEvent = () => {
                 {slotsByFieldWithStatus.map((group) => (
                   <div key={group.fieldId} className="ce-field-block">
                     <div className="ce-field-head">
-                      <h4 className="ce-field-title">{group.fieldName}</h4>
+                      <div className="ce-field-left">
+                        {group.sportTypeName ? (
+                          <div className="ce-field-sport">{group.sportTypeName}</div>
+                        ) : null}
+                        <h4 className="ce-field-title">{group.fieldName}</h4>
+                      </div>
                       <div className="ce-field-right">
                         <span className="ce-field-meta">
                           {group.slots.filter((s) => s.status === "available").length} trống /{" "}

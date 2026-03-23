@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -91,6 +91,11 @@ const isSameDay = (y1, m1, d1, y2, m2, d2) =>
 const BookingSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOwnerOffline =
+    location.pathname.includes("/owner/venues/") &&
+    location.pathname.includes("/offline-booking") &&
+    !location.pathname.includes("/offline-booking/confirm");
   const gridRef = useRef(null);
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
@@ -104,6 +109,7 @@ const BookingSchedule = () => {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [selectedSlots, setSelectedSlots] = useState([]); // [{fieldIdx, slotIdx}]
   const initialMount = useRef(true);
+  const didHydrateDraftRef = useRef(false);
   const dispatch = useDispatch();
   const draft = useSelector((s) => s.bookingDrafts?.[id]);
   const { isAuthenticated } = useSelector((state) => state.auth || {});
@@ -175,9 +181,14 @@ const BookingSchedule = () => {
 
   // Load persisted draft (from Redux) on mount
   useEffect(() => {
-    if (draft) {
-      if (draft.selectedDate) setSelectedDate(draft.selectedDate);
-      if (Array.isArray(draft.selectedSlots) && draft.selectedSlots.length) setSelectedSlots(draft.selectedSlots);
+    if (!draft || didHydrateDraftRef.current) return;
+    didHydrateDraftRef.current = true;
+
+    if (draft.selectedDate && draft.selectedDate !== selectedDate) {
+      setSelectedDate(draft.selectedDate);
+    }
+    if (Array.isArray(draft.selectedSlots) && draft.selectedSlots.length) {
+      setSelectedSlots(draft.selectedSlots);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft]);
@@ -288,7 +299,23 @@ const BookingSchedule = () => {
                   const n = Number(eid);
                   if (!Number.isNaN(n)) scheduleEvents.push({ fieldIdx, slotIdx, eventId: n });
                 } else {
-                  booked.push({ fieldIdx, slotIdx });
+                  // Nếu API có trả bookingId/reservationId cho unavailableSlots thì lưu lại để phân biệt các booking gần nhau
+                  const bookingIdRaw =
+                    us.bookingId ??
+                    us.BookingId ??
+                    us.bookingID ??
+                    us.reservationId ??
+                    us.ReservationId ??
+                    us.booking_id ??
+                    null;
+                  const bookingId =
+                    bookingIdRaw != null && bookingIdRaw !== ""
+                      ? (() => {
+                          const n = Number(bookingIdRaw);
+                          return Number.isNaN(n) ? String(bookingIdRaw) : n;
+                        })()
+                      : null;
+                  booked.push({ fieldIdx, slotIdx, bookingId });
                 }
               });
             });
@@ -410,9 +437,12 @@ const BookingSchedule = () => {
     if (idx >= 0) {
       // approximate scroll: slot index * zoomLevel
       const colWidth = Math.max(50, zoomLevel);
-      gridRef.current.scrollLeft = Math.max(0, idx * colWidth - 100);
+      // Keep "locked/past" region in view (especially when prefillTime is around "now").
+      // If lockedBefore = k, then slots[0..k] are past/locked; we shift so that at least that region remains visible.
+      const pastSlotsVisible = Math.max(0, (lockedBefore ?? -1) + 1);
+      gridRef.current.scrollLeft = Math.max(0, idx * colWidth - pastSlotsVisible * colWidth);
     }
-  }, [prefillTime, slots, zoomLevel]);
+  }, [prefillTime, slots, zoomLevel, lockedBefore]);
 
   const isLocked = useCallback(
     (slotIdx) => {
@@ -479,6 +509,21 @@ const BookingSchedule = () => {
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
     [bookedForDate]
+  );
+
+  const bookedIdByCell = useMemo(() => {
+    const m = new Map();
+    bookedForDate.forEach((b) => {
+      const bid = b?.bookingId ?? b?.BookingId ?? null;
+      if (bid == null || bid === "") return;
+      m.set(`${Number(b.fieldIdx)}_${Number(b.slotIdx)}`, bid);
+    });
+    return m;
+  }, [bookedForDate]);
+
+  const getBookedIdForCell = useCallback(
+    (fieldIdx, slotIdx) => bookedIdByCell.get(`${Number(fieldIdx)}_${Number(slotIdx)}`) ?? null,
+    [bookedIdByCell]
   );
 
   const isEventBlock = useCallback(
@@ -552,6 +597,42 @@ const BookingSchedule = () => {
       return "";
     },
     [getEventIdForCell, slots.length]
+  );
+
+  /** Cùng trạng thái booked liền kề theo trục thời gian: nối các ô booked thành 1 khối */
+  const getBookedRunExtraClass = useCallback(
+    (fieldIdx, slotIdx) => {
+      if (!isBooked(fieldIdx, slotIdx)) return "";
+      const curId = getBookedIdForCell(fieldIdx, slotIdx);
+
+      // If we have bookingId, use it to split different bookings even when they are adjacent.
+      if (curId != null) {
+        const prevId =
+          slotIdx > 0 ? getBookedIdForCell(fieldIdx, slotIdx - 1) : null;
+        const nextId =
+          slotIdx < slots.length - 1 ? getBookedIdForCell(fieldIdx, slotIdx + 1) : null;
+
+        const samePrev = prevId != null && prevId === curId;
+        const sameNext = nextId != null && nextId === curId;
+
+        if (!samePrev && !sameNext) return "bs-book-run-single";
+        if (!samePrev && sameNext) return "bs-book-run-start";
+        if (samePrev && sameNext) return "bs-book-run-mid";
+        if (samePrev && !sameNext) return "bs-book-run-end";
+        return "";
+      }
+
+      // Fallback: no bookingId => keep old behavior: merge by adjacency.
+      const prevBooked = slotIdx > 0 ? isBooked(fieldIdx, slotIdx - 1) : false;
+      const nextBooked = slotIdx < slots.length - 1 ? isBooked(fieldIdx, slotIdx + 1) : false;
+
+      if (!prevBooked && !nextBooked) return "bs-book-run-single";
+      if (!prevBooked && nextBooked) return "bs-book-run-start";
+      if (prevBooked && nextBooked) return "bs-book-run-mid";
+      if (prevBooked && !nextBooked) return "bs-book-run-end";
+      return "";
+    },
+    [isBooked, slots.length, getBookedIdForCell]
   );
 
   const handleCellClick = (fieldIdx, slotIdx) => {
@@ -688,7 +769,12 @@ const BookingSchedule = () => {
       <div className="bs-error">
         <h2>Không thể tải lịch sân</h2>
         <p>{error || "Sân không tồn tại."}</p>
-        <button onClick={() => navigate(-1)} className="bs-back-link">← Quay lại</button>
+        <button
+          onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+          className="bs-back-link"
+        >
+          ← Quay lại
+        </button>
       </div>
     );
   }
@@ -703,10 +789,15 @@ const BookingSchedule = () => {
       <div className="bs-main">
         {/* Top bar */}
         <div className="bs-topbar">
-          <button className="bs-back" onClick={() => navigate(-1)}>
+          <button
+            className="bs-back"
+            onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+          >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="bs-title">Đặt lịch ngày trực quan</h1>
+          <h1 className="bs-title">
+            {isOwnerOffline ? "Đặt sân offline" : "Đặt lịch ngày trực quan"}
+          </h1>
           <div className="bs-date-picker" ref={calendarRef}>
             <span
               className="bs-date-display"
@@ -934,7 +1025,7 @@ const BookingSchedule = () => {
                         return (
                         <div
                           key={si}
-                          className={`${getCellClass(field.originalIdx, si)} ${getEventRunExtraClass(field.originalIdx, si)}`.trim()}
+                          className={`${getCellClass(field.originalIdx, si)} ${getEventRunExtraClass(field.originalIdx, si)} ${getBookedRunExtraClass(field.originalIdx, si)}`.trim()}
                           onClick={() => handleCellClick(field.originalIdx, si)}
                           role={eid != null ? "link" : "button"}
                           data-event-nav={eid != null ? "true" : undefined}
@@ -992,8 +1083,23 @@ const BookingSchedule = () => {
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}
           onClick={() => {
-            if (!isAuthenticated) {
+            if (!isOwnerOffline && !isAuthenticated) {
               setShowLoginPopup(true);
+              return;
+            }
+            if (isOwnerOffline) {
+              navigate(`/owner/venues/${id}/offline-booking/confirm`, {
+                state: {
+                  venue,
+                  fields,
+                  selectedDate,
+                  selectedSlots,
+                  slots,
+                  slotSummary,
+                  venueSchedule,
+                  walkIn: true,
+                },
+              });
               return;
             }
             navigate(`/venue/${id}/booking/confirm`, {
