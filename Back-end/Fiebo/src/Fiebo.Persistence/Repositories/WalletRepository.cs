@@ -1,5 +1,6 @@
 ﻿using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using System;

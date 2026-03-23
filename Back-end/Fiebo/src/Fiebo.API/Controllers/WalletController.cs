@@ -2,7 +2,9 @@
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -67,10 +69,30 @@ namespace Fiebo.API.Controllers
         /// <param name="sse"></param>
         /// <returns></returns>
         [HttpGet("stream")]
-        public async Task Stream([FromQuery]string userId, [FromServices] SseService sse)
+        public async Task Stream([FromQuery] string userId, [FromServices] SseService sse)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");
             sse.AddClient(userId, Response); await Task.Delay(-1);
+        }
+
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpGet("transactions")]
+        public async Task<IActionResult> GetTransactions(
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10
+            )
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var transactions = await _walletService
+                .GetWalletTransactionsAsync(userId!, page, pageSize, from, to);
+            return Ok(new ApiResponse<PagedResult<WalletTransactionResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sử giao dịch thành công.",
+                Data = transactions
+            });
         }
     }
 }
