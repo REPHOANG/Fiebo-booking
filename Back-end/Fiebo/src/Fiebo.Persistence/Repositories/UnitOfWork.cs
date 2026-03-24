@@ -32,6 +32,7 @@ namespace Fiebo.Persistence.Repositories
         public ITicketParticipantRepository TicketParticipants {  get;}
 
         public ITicketEventDetailRepository TicketEventsDetails { get; }
+        public IVenueStaffRepository VenueStaffs { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -46,7 +47,8 @@ namespace Fiebo.Persistence.Repositories
             IWalletTransactionRepository walletTransactionRepository,
             ITicketEventRepository ticketEventRepository,
             ITicketParticipantRepository ticketParticipantRepository,
-            ITicketEventDetailRepository ticketEventDetailRepository
+            ITicketEventDetailRepository ticketEventDetailRepository,
+            IVenueStaffRepository venueStaffRepository
             //IReportRepository reportRepository
             )
         {
@@ -65,6 +67,7 @@ namespace Fiebo.Persistence.Repositories
             TicketEvents = ticketEventRepository;
             TicketParticipants = ticketParticipantRepository;
             TicketEventsDetails = ticketEventDetailRepository;
+            VenueStaffs = venueStaffRepository;
         }
 
 
