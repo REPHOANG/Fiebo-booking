@@ -281,5 +281,32 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// UC-44: Change the status of a specific field (Active/Inactive).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [HttpPatch]
+        [Route("/api/owner/venue/{venueId}/fields/{fieldId}/status")]
+        public async Task<IActionResult> ChangeFieldStatus(
+            [FromRoute] int venueId,
+            [FromRoute] int fieldId,
+            [FromBody] ChangeFieldStatusRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var newStatus = Enum.Parse<Domain.Enums.FieldStatus>(request.Status);
+            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, newStatus, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái sân thành công."
+            });
+        }
     }
 }

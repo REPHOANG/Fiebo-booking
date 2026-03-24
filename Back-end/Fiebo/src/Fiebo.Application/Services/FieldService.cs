@@ -1,7 +1,7 @@
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.SportType;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -87,6 +87,46 @@ namespace Fiebo.Application.Services
                     MaxPrice = priceRange.Max
                 };
             }).ToList();
+        }
+
+        public async Task ChangeFieldStatusAsync(int venueId, int fieldId, FieldStatus newStatus, string userId)
+        {
+            // BR-55: Verify venue exists and belongs to the current user
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != userId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền thay đổi trạng thái sân trong cơ sở này.");
+            }
+
+            var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+            if (field == null || field.VenueId != venueId)
+            {
+                throw new NotFoundException("Không tìm thấy sân trong cơ sở này.");
+            }
+
+            if (field.Status == newStatus)
+            {
+                throw new BadRequestException("Sân đã ở trạng thái này rồi.");
+            }
+
+            // BR-56 / E1: Block deactivation if upcoming bookings exist
+            if (newStatus == FieldStatus.Inactive)
+            {
+                var hasUpcoming = await _unitOfWork.BookingDetails
+                    .HasUpcomingBookingsForFieldAsync(fieldId);
+
+                if (hasUpcoming)
+                {
+                    throw new BadRequestException(
+                        "Không thể thay đổi trạng thái. Sân này đang có lịch đặt sắp tới. " +
+                        "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
+                }
+            }
+
+            field.Status = newStatus;
+            field.UpdatedAt = DateTime.Now;
+            _unitOfWork.Fields.Update(field);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }
