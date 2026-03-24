@@ -30,6 +30,7 @@ namespace Fiebo.Domain.Repositories
         ITicketEventRepository TicketEvents { get; }
         ITicketParticipantRepository TicketParticipants { get; }
         ITicketEventDetailRepository TicketEventsDetails { get; }
+        IVenueStaffRepository VenueStaffs { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

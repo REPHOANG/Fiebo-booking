@@ -93,6 +93,7 @@ builder.Services.AddScoped<IWalletTransactionRepository, WalletTransactionReposi
 builder.Services.AddScoped<ITicketEventRepository, TicketEventRepository>();
 builder.Services.AddScoped<ITicketParticipantRepository, TicketParticipantRepository>();
 builder.Services.AddScoped<ITicketEventDetailRepository, TicketEventDetailRepository>();
+builder.Services.AddScoped<IVenueStaffRepository, VenueStaffRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -118,6 +119,7 @@ builder.Services.AddHostedService<BookingCompleteJob>();
 builder.Services.AddSingleton<SseService>();
 builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 
 
 builder.Services.AddHttpClient();
