@@ -55,12 +55,15 @@ namespace Fiebo.Application.Services
             if (!await _identityService.IsPhoneUniqueAsync(request.PhoneNumber))
                 throw new BadRequestException("Số điện thoại đã tồn tại!");
 
+            if (request.Role != AppRoles.Customer && request.Role != AppRoles.FieldOwner)
+                throw new BadRequestException("Loại tài khoản không hợp lệ. Chỉ chấp nhận 'Customer' hoặc 'FieldOwner'.");
+
             var createResult = await _identityService.CreateUserAsync(
                     request.Email,
                     request.PhoneNumber,
                     request.Password,
                     request.FullName,
-                    AppRoles.Customer,
+                    request.Role,
                     request.DateOfBirth
                 );
             if (!createResult.IsSuccess)
