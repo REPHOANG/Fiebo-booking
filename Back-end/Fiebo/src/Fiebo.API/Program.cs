@@ -1,4 +1,4 @@
-﻿using DotNetEnv;
+using DotNetEnv;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
@@ -252,3 +252,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11612.153 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{839F7327-BE8E-4FC9-8666-F23D6C654DD6}"
 EndProject
@@ -20,6 +20,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Persistence", "src\Fiebo.Persistence\Fiebo.Persistence.csproj", "{9423C327-76A4-4F61-96A8-BEA7DE56AC2C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.Application.Tests", "test\Fiebo.Application.Tests\Fiebo.Application.Tests.csproj", "{569C630A-F71F-41BF-EC61-8A8651F92BD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiebo.IntegrationTests", "test\Fiebo.IntegrationTests\Fiebo.IntegrationTests.csproj", "{1DB90BF8-1CA7-45E4-BC99-F304DBF33629}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +57,10 @@ Global
 		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{569C630A-F71F-41BF-EC61-8A8651F92BD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DB90BF8-1CA7-45E4-BC99-F304DBF33629}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DB90BF8-1CA7-45E4-BC99-F304DBF33629}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DB90BF8-1CA7-45E4-BC99-F304DBF33629}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DB90BF8-1CA7-45E4-BC99-F304DBF33629}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -67,6 +73,7 @@ Global
 		{34513679-869C-4376-8191-B4B5E7EB4130} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
 		{9423C327-76A4-4F61-96A8-BEA7DE56AC2C} = {839F7327-BE8E-4FC9-8666-F23D6C654DD6}
 		{569C630A-F71F-41BF-EC61-8A8651F92BD5} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
+		{1DB90BF8-1CA7-45E4-BC99-F304DBF33629} = {7E22C7C0-E04D-4730-9DDD-10E0BB88E57F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E0890D88-FE4C-4594-8776-6729FA0674DF}
