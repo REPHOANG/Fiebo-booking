@@ -319,6 +319,44 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
+        /// UC-47: Create a new field within a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPost]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> CreateField(
+            [FromRoute] int venueId,
+            [FromForm] CreateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+            var imageUrls = new List<string>();
+            if (request.Images is { Count: > 0 })
+            {
+                foreach (var file in request.Images)
+                {
+                    var url = await _cloudinaryService.UploadImageAsync(file);
+                    imageUrls.Add(url);
+                }
+            }
+
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, imageUrls, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân mới thành công.",
+                Data = new { FieldId = fieldId }
+            });
+        }
+
+        /// <summary>
         /// UC-44: Change the status of a specific field (Active/Inactive).
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
