@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
@@ -245,6 +245,67 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
                 Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-41: Get all fields under a specific venue for the Field Owner.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
+
+            if (result.Count == 0)
+            {
+                return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Chưa có sân nào được tạo trong cơ sở này.",
+                    Data = result
+                });
+            }
+
+            return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách sân thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-44: Change the status of a specific field (Active/Inactive).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [HttpPatch]
+        [Route("/api/owner/venue/{venueId}/fields/{fieldId}/status")]
+        public async Task<IActionResult> ChangeFieldStatus(
+            [FromRoute] int venueId,
+            [FromRoute] int fieldId,
+            [FromBody] ChangeFieldStatusRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var newStatus = Enum.Parse<Domain.Enums.FieldStatus>(request.Status);
+            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, newStatus, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái sân thành công."
             });
         }
     }

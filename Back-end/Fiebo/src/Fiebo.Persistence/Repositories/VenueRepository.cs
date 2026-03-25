@@ -297,5 +297,14 @@ namespace Fiebo.Persistence.Repositories
                 .Include(v => v.Fields)
                 .ToListAsync();
         }
+
+        public async Task<List<Venue>> GetVenuesWithStaffAsync(string ownerId)
+        {
+            return await _context.Venues
+                .AsNoTracking()
+                .Where(v => v.OwnerId == ownerId)
+                .Include(v => v.VenueStaffs)
+                .ToListAsync();
+        }
     }
 }

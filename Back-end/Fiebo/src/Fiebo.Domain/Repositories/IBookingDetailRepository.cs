@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -17,5 +17,6 @@ namespace Fiebo.Domain.Repositories
         Task<bool> IsSlotAvailable(int slotId, int fieldId, DateOnly bookingDate);
         Task AddBookingDetailsAsync(IEnumerable<BookingDetail> details);
         Task<BookingDetail?> GetEarliestDetailAsync(int bookingId);
+        Task<bool> HasUpcomingBookingsForFieldAsync(int fieldId);
     }
 }

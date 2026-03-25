@@ -1,14 +1,10 @@
-﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.SportType;
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
+using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Fiebo.Application.Services
 {
@@ -54,6 +50,83 @@ namespace Fiebo.Application.Services
                 Id = st.Id,
                 Name = st.Name
             })];
+        }
+
+        public async Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId)
+        {
+            // BR-49 / E1: Verify venue exists and belongs to the current Field Owner
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền truy cập vào cơ sở này.");
+            }
+
+            var fields = await _unitOfWork.Fields.GetAllFieldsByVenueAsync(venueId);
+
+            var allTimeSlots = (await _unitOfWork.TimeSlots
+                .FindAsync(ts => ts.VenueId == venueId))
+                .ToList();
+
+            var priceBySportType = allTimeSlots
+                .GroupBy(ts => ts.SportTypeId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (Min: g.Min(ts => ts.Price), Max: g.Max(ts => ts.Price))
+                );
+
+            return fields.Select(f =>
+            {
+                priceBySportType.TryGetValue(f.SportTypeId, out var priceRange);
+                return new OwnerFieldListItemResponse
+                {
+                    FieldId = f.Id,
+                    FieldName = f.Name,
+                    SportType = f.SportType?.Name ?? "N/A",
+                    Status = f.Status.ToString(),
+                    MinPrice = priceRange.Min,
+                    MaxPrice = priceRange.Max
+                };
+            }).ToList();
+        }
+
+        public async Task ChangeFieldStatusAsync(int venueId, int fieldId, FieldStatus newStatus, string userId)
+        {
+            // BR-55: Verify venue exists and belongs to the current user
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != userId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền thay đổi trạng thái sân trong cơ sở này.");
+            }
+
+            var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+            if (field == null || field.VenueId != venueId)
+            {
+                throw new NotFoundException("Không tìm thấy sân trong cơ sở này.");
+            }
+
+            if (field.Status == newStatus)
+            {
+                throw new BadRequestException("Sân đã ở trạng thái này rồi.");
+            }
+
+            // BR-56 / E1: Block deactivation if upcoming bookings exist
+            if (newStatus == FieldStatus.Inactive)
+            {
+                var hasUpcoming = await _unitOfWork.BookingDetails
+                    .HasUpcomingBookingsForFieldAsync(fieldId);
+
+                if (hasUpcoming)
+                {
+                    throw new BadRequestException(
+                        "Không thể thay đổi trạng thái. Sân này đang có lịch đặt sắp tới. " +
+                        "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
+                }
+            }
+
+            field.Status = newStatus;
+            field.UpdatedAt = DateTime.Now;
+            _unitOfWork.Fields.Update(field);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

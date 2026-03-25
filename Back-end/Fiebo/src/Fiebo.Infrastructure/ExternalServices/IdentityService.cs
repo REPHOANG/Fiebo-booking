@@ -337,6 +337,27 @@ namespace Fiebo.Infrastructure.ExternalServices
                 PhoneNumber = phoneNumber,
             };
         }
+        public async Task<bool> UpdateUserStatusAsync(string userId, UserStatus status)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return false;
+
+            user.Status = status;
+            var result = await _userManager.UpdateAsync(user);
+
+            // Nếu deactive, có thể khóa luôn tài khoản để không login được
+            if (status == UserStatus.Inactive)
+            {
+                await _userManager.SetLockoutEnabledAsync(user, true);
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+            }
+            else // Re-active
+            {
+                await _userManager.SetLockoutEndDateAsync(user, null);
+            }
+
+            return result.Succeeded;
+        }
     }
 }
 
