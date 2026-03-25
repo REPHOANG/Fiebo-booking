@@ -18,16 +18,19 @@ namespace Fiebo.API.Controllers
         private readonly IVenueService _venueService;
         private readonly ILogger<VenueController> _logger;
         private readonly IFieldService _fieldService;
+        private readonly ICloudinaryService _cloudinaryService;
 
         public VenueController(
             IVenueService venueService,
             ILogger<VenueController> logger,
-            IFieldService fieldService
+            IFieldService fieldService,
+            ICloudinaryService cloudinaryService
             )
         {
             _venueService = venueService;
             _logger = logger;
             _fieldService = fieldService;
+            _cloudinaryService = cloudinaryService;
         }
 
         /// <summary>
@@ -279,6 +282,39 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy danh sách sân thành công.",
                 Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-46: Edit venue details (Name, Description, Location, Operating hours, Thumbnail).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPut]
+        [Route("/api/owner/venue/{venueId}")]
+        public async Task<IActionResult> UpdateVenue(
+            [FromRoute] int venueId,
+            [FromForm] UpdateVenueRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+            string? thumbnailUrl = null;
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                thumbnailUrl = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+            }
+
+            await _venueService.UpdateVenueAsync(venueId, request, thumbnailUrl, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật thông tin cơ sở thành công."
             });
         }
 

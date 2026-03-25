@@ -30,6 +30,6 @@ namespace Fiebo.Application.Interfaces
         Task<List<OwnerVenueListResponse>> GetVenuesByOwnerAsync(string ownerId);
         Task DeactivateVenueAsync(int venueId, string ownerId);
         Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId,DateOnly date);
-
+        Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string? newThumbnailUrl, string userId, string userRole);
     }
 }
