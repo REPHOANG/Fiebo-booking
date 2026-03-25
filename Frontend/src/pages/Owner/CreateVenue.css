@@ -84,6 +84,13 @@
 .cv-form-grid .cv-full-width {
   grid-column: 1 / -1;
 }
+.cv-form-grid .cv-map-section {
+  grid-column: 1 / -1;
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
 
 /* ── Form Group ── */
 .cv-form-group {
@@ -276,6 +283,40 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+/* ── Map section ── */
+.cv-map-section .cv-full-width {
+  grid-column: 1 / -1;
+  background: #fff;
+  border-radius: 18px;
+  
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+.cv-map-wrapper {
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+}
+.cv-map-iframe {
+  width: 100%;
+  height: 280px;
+  border: none;
+  display: block;
+}
+.cv-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.cv-map-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 /* ── Responsive ── */

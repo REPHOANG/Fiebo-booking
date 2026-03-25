@@ -45,16 +45,16 @@ const App = () => {
   }, [token, dispatch]);
 
   // Kiểm tra token định kỳ (token có thể hết hạn khi user đang dùng app)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentToken = store.getState?.()?.auth?.token ?? null;
-      if (currentToken && isTokenExpired(currentToken)) {
-        dispatch(logout());
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-      }
-    }, 60 * 1000);
-    return () => clearInterval(interval);
-  }, [dispatch]);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     const currentToken = store.getState?.()?.auth?.token ?? null;
+  //     if (currentToken && isTokenExpired(currentToken)) {
+  //       dispatch(logout());
+  //       localStorage.removeItem(AUTH_STORAGE_KEY);
+  //     }
+  //   }, 60 * 1000);
+  //   return () => clearInterval(interval);
+  // }, [dispatch]);
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {

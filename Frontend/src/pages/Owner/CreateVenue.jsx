@@ -9,6 +9,7 @@ import {
   MapPin,
   Clock,
   Building2,
+  MapPinned,
   Plus,
   Trash2,
   LayoutList,
@@ -327,12 +328,40 @@ const CreateVenue = () => {
                 {errors.longitude && (
                   <p className="cv-error-text">{errors.longitude.message}</p>
                 )}
+
+               
               </div>
+               {(watch("latitude") && watch("longitude")
+                  ? `https://www.openstreetmap.org/export/embed.html?bbox=${watch("longitude")}%2C${watch("latitude")}%2C${watch("longitude") }%2C${watch("latitude") }&layer=mapnik&marker=${watch("latitude")}%2C${watch("longitude")}`
+                  : null) && (
+                  <div className="cv-map-section">
+                    <h3><MapPinned size={18} /> Vị trí trên bản đồ</h3>
+                    <div className="cv-map-wrapper">
+                      <iframe
+                        title="Venue location"
+                        src={watch("latitude") && watch("longitude")
+                          ? `https://www.openstreetmap.org/export/embed.html?bbox=${watch("longitude")}%2C${watch("latitude")}%2C${watch("longitude") }%2C${watch("latitude") }&layer=mapnik&marker=${watch("latitude")}%2C${watch("longitude")}`
+                          : null}
+                        className="cv-map-iframe"
+                        loading="lazy"
+                      /> 
+                    </div>
+                    <a
+                      className="cv-map-link"
+                      href={`https://www.google.com/maps?q=${watch("latitude")},${watch("longitude")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MapPin size={14} /> Mở trong Google Maps
+                    </a>
+                  </div>
+                )}
+
             </div>
           </div>
 
           {/* ── Card 3: Danh sách sân ── */}
-          <div className="cv-card">
+          {/* <div className="cv-card">
             <h3 className="cv-card-title">
               <LayoutList size={20} /> Danh sách sân
             </h3>
@@ -417,7 +446,7 @@ const CreateVenue = () => {
                 {errors.fields.root.message}
               </p>
             )}
-          </div>
+          </div> */}
 
           {/* ── Submit ── */}
           <div className="cv-submit-section">
