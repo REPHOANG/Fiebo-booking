@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
@@ -18,16 +18,19 @@ namespace Fiebo.API.Controllers
         private readonly IVenueService _venueService;
         private readonly ILogger<VenueController> _logger;
         private readonly IFieldService _fieldService;
+        private readonly ICloudinaryService _cloudinaryService;
 
         public VenueController(
             IVenueService venueService,
             ILogger<VenueController> logger,
-            IFieldService fieldService
+            IFieldService fieldService,
+            ICloudinaryService cloudinaryService
             )
         {
             _venueService = venueService;
             _logger = logger;
             _fieldService = fieldService;
+            _cloudinaryService = cloudinaryService;
         }
 
         /// <summary>
@@ -245,6 +248,138 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
                 Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-41: Get all fields under a specific venue for the Field Owner.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
+
+            if (result.Count == 0)
+            {
+                return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Chưa có sân nào được tạo trong cơ sở này.",
+                    Data = result
+                });
+            }
+
+            return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách sân thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-46: Edit venue details (Name, Description, Location, Operating hours, Thumbnail).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPut]
+        [Route("/api/owner/venue/{venueId}")]
+        public async Task<IActionResult> UpdateVenue(
+            [FromRoute] int venueId,
+            [FromForm] UpdateVenueRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+            string? thumbnailUrl = null;
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                thumbnailUrl = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+            }
+
+            await _venueService.UpdateVenueAsync(venueId, request, thumbnailUrl, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật thông tin cơ sở thành công."
+            });
+        }
+
+        /// <summary>
+        /// UC-47: Create a new field within a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPost]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> CreateField(
+            [FromRoute] int venueId,
+            [FromForm] CreateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+
+            var imageUrls = new List<string>();
+            if (request.Images is { Count: > 0 })
+            {
+                foreach (var file in request.Images)
+                {
+                    var url = await _cloudinaryService.UploadImageAsync(file);
+                    imageUrls.Add(url);
+                }
+            }
+
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, imageUrls, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân mới thành công.",
+                Data = new { FieldId = fieldId }
+            });
+        }
+
+        /// <summary>
+        /// UC-44: Change the status of a specific field (Active/Inactive).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [HttpPatch]
+        [Route("/api/owner/venue/{venueId}/fields/{fieldId}/status")]
+        public async Task<IActionResult> ChangeFieldStatus(
+            [FromRoute] int venueId,
+            [FromRoute] int fieldId,
+            [FromBody] ChangeFieldStatusRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+            }
+
+            var newStatus = Enum.Parse<Domain.Enums.FieldStatus>(request.Status);
+            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, newStatus, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái sân thành công."
             });
         }
     }

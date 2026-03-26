@@ -1,0 +1,100 @@
+﻿using Fiebo.Application.DTOs.Owner;
+using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
+using Fiebo.Domain.Exceptions;
+using Fiebo.Domain.Repositories;
+
+namespace Fiebo.Application.Services
+{
+    public class StaffService : IStaffService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IIdentityService _identityService;
+
+        public StaffService(IUnitOfWork unitOfWork, IIdentityService identityService)
+        {
+            _unitOfWork = unitOfWork;
+            _identityService = identityService;
+        }
+
+        public async Task<List<OwnerStaffListResponse>> GetOwnerStaffListAsync(string ownerId)
+        {
+            var venues = await _unitOfWork.Venues.GetVenuesWithStaffAsync(ownerId);
+            var response = new List<OwnerStaffListResponse>();
+
+            foreach (var venue in venues)
+            {
+                var venueGroup = new OwnerStaffListResponse
+                {
+                    VenueId = venue.Id,
+                    VenueName = venue.Name,
+                    Staffs = new List<OwnerStaffMemberDto>()
+                };
+
+                foreach (var vs in venue.VenueStaffs)
+                {
+                    var userProfile = await _identityService.GetUserProfileAsync(vs.StaffId);
+                    if (userProfile != null)
+                    {
+                        venueGroup.Staffs.Add(new OwnerStaffMemberDto
+                        {
+                            StaffId = vs.StaffId,
+                            FullName = userProfile.FullName,
+                            Username = userProfile.Email 
+                        });
+                    }
+                }
+                response.Add(venueGroup);
+            }
+            return response;
+        }
+
+        public async Task<bool> CreateStaffAsync(string ownerId, OwnerCreateStaffRequest request)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
+            if (venue == null || venue.OwnerId != ownerId)
+                throw new BadRequestException("Sân bóng không hợp lệ hoặc không thuộc quyền quản lý của bạn.");
+
+            var fakeEmail = $"{request.Username}@gmail.com";
+
+            var createResult = await _identityService.CreateUserAsync(
+                fakeEmail,     
+                null!,
+                request.Password,
+                request.FullName,
+                AppRoles.FieldStaff,
+                null
+            );
+
+            if (!createResult.IsSuccess)
+                throw new BadRequestException(createResult.ErrorMessage);
+
+            var venueStaff = new VenueStaff
+            {
+                VenueId = request.VenueId,
+                StaffId = createResult.UserId
+            };
+
+            _unitOfWork.VenueStaffs.Add(venueStaff);
+            return await _unitOfWork.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> DeactivateStaffAsync(string ownerId, string staffId)
+        {
+            var isStaffOfOwner = await _unitOfWork.Venues.GetVenuesWithStaffAsync(ownerId);
+
+            var staffExists = isStaffOfOwner.Any(v => v.VenueStaffs.Any(vs => vs.StaffId == staffId));
+
+            if (!staffExists)
+            {
+                throw new BadRequestException("Nhân viên không thuộc quyền quản lý của bạn.");
+            }
+
+            var result = await _identityService.UpdateUserStatusAsync(staffId, UserStatus.Inactive);
+
+            return result;
+        }
+    }
+}

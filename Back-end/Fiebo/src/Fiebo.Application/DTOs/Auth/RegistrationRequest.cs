@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -19,16 +19,11 @@ namespace Fiebo.Application.DTOs.Auth
         [MaxLength(150, ErrorMessage = "Email must not exceed 150 characters")]
         public string Email { get; set; } = null!;
 
-        [Required(ErrorMessage = "Phone number is required")]
         [Phone(ErrorMessage = "Invalid phone number format")]
         public string PhoneNumber { get; set; } = null!;
 
         [Required(ErrorMessage = "Password is required")]
-        [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
-        [RegularExpression(
-            @"^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$",
-            ErrorMessage = "Password must include at least one uppercase letter, one number, and one special character"
-        )]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         public string Password { get; set; } = null!;
 
         [Required(ErrorMessage = "Confirm password is required")]
@@ -37,5 +32,8 @@ namespace Fiebo.Application.DTOs.Auth
 
         public DateOnly? DateOfBirth { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng chọn loại tài khoản")]
+        [RegularExpression("^(Customer|FieldOwner)$", ErrorMessage = "Loại tài khoản không hợp lệ. Chỉ chấp nhận 'Customer' hoặc 'FieldOwner'.")]
+        public string Role { get; set; } = null!;
     }
 }
