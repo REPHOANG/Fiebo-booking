@@ -58,6 +58,14 @@ const OwnerLayout = () => {
             Sân của tôi
           </NavLink>
           <NavLink
+            to="/owner/offline-booking"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Đặt sân offline
+          </NavLink>
+          <NavLink
             to="/owner/create-venue"
             className={({ isActive }) =>
               `owner-sidebar-link ${isActive ? "active" : ""}`

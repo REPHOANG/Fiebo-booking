@@ -99,6 +99,40 @@ export const getVenueReviews = async (venueId, { page = 1, pageSize = 10, sort }
 };
 
 /**
+ * Owner: Get all fields under a venue
+ * GET `/api/owner/venue/{venueId}/fields`
+ * @param {number|string} venueId
+ * @returns {Promise<Array>} OwnerFieldListItemResponse[]
+ */
+export const getOwnerVenueFields = async (venueId) => {
+  const response = await api.get(`/api/owner/venue/${venueId}/fields`);
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
+};
+
+/**
+ * Owner: Create a new field in venue
+ * POST `/api/owner/venue/{venueId}/fields`
+ * Body (multipart/form-data): name, sportTypeId, description?, images[]
+ * @param {number|string} venueId
+ * @param {{name:string,sportTypeId:number|string,description?:string,images?:File[]}} payload
+ */
+export const createOwnerField = async (venueId, payload) => {
+  const form = new FormData();
+  form.append("name", String(payload?.name ?? ""));
+  form.append("sportTypeId", String(payload?.sportTypeId ?? ""));
+  if (payload?.description) form.append("description", String(payload.description));
+  const images = Array.isArray(payload?.images) ? payload.images : [];
+  images.forEach((file) => {
+    if (file) form.append("images", file);
+  });
+  const response = await api.post(`/api/owner/venue/${venueId}/fields`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Search venues by location, date, time and sport type
  * @param {Object} params
  * @param {string} [params.location]

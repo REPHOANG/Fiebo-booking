@@ -16,6 +16,8 @@ import VerifyOTP from '../pages/auth/VerifyOTP';
 import ProtectedRoute from './ProtectedRoute';
 import CreateVenue from '../pages/Owner/CreateVenue';
 import OwnerVenues from '../pages/Owner/OwnerVenues';
+import OwnerOfflineBooking from '../pages/Owner/OwnerOfflineBooking';
+import OwnerVenueDetail from '../pages/Owner/OwnerVenueDetail';
 import OwnerEvents from '../pages/Owner/Event/OwnerEvents';
 import CreateEvent from '../pages/Owner/Event/CreateEvent';
 import OwnerEventDetail from '../pages/Owner/Event/OwnerEventDetail';
@@ -68,8 +70,10 @@ const AppRoutes = () => (
     >
       <Route path="/owner" element={<OwnerHome />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
+      <Route path="/owner/venues/:id" element={<OwnerVenueDetail />} />
       <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />
       <Route path="/owner/venues/:id/offline-booking/confirm" element={<BookingConfirmation />} />
+      <Route path="/owner/offline-booking" element={<OwnerOfflineBooking />} />
       <Route path="/owner/create-venue" element={<CreateVenue />} />
     <Route path="/owner/bookings" element={<OwnerBookings />} />
     <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />
