@@ -35,7 +35,7 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = events.Count > 0
                     ? "Lấy danh sách sự kiện thành công."
-                    : "Hiện tại chưa có sự kiện nào.",
+                    : "Sân hiện chưa có sự kiện.",
                 Data = events
             });
         }
@@ -113,7 +113,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Thanh toán vé thành công.",
+                Message = "Thanh toán thành công.",
             });
         }
 
@@ -234,7 +234,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật sự kiện thành công.",
+                Message = "Chỉnh sửa sự kiện thành công.",
             });
         }
     }

@@ -163,7 +163,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "page must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -172,7 +172,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "pageSize must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -181,7 +181,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "time cannot be provided without date"
+                    Message = "Ngày tìm kiếm không hợp lệ."
                 });
             }
 
