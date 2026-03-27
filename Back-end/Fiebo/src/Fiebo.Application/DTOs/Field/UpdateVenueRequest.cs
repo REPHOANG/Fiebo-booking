@@ -25,10 +25,10 @@ namespace Fiebo.Application.DTOs.Field
         public double Latitude { get; set; }
 
         [Required(ErrorMessage = "Giờ mở cửa là bắt buộc.")]
-        public TimeSpan OpenTime { get; set; }
+        public TimeOnly OpenTime { get; set; }
 
         [Required(ErrorMessage = "Giờ đóng cửa là bắt buộc.")]
-        public TimeSpan CloseTime { get; set; }
+        public TimeOnly CloseTime { get; set; }
 
         public IFormFile? ThumbnailImage { get; set; }
     }
