@@ -51,12 +51,12 @@ namespace Fiebo.Application.Services
         public async Task<string> RegisterAsync(RegistrationRequest request)
         {
             if (!await _identityService.IsEmailUniqueAsync(request.Email))
-                throw new BadRequestException("Email đã tồn tại trong hệ thống!");
+                throw new BadRequestException("Địa chỉ email này đã được đăng ký. Vui lòng sử dụng email hoặc đăng nhập khác.");
             if (!await _identityService.IsPhoneUniqueAsync(request.PhoneNumber))
-                throw new BadRequestException("Số điện thoại đã tồn tại!");
+                throw new BadRequestException("Số điện thoại này đã được đăng ký. Vui lòng thử số khác hoặc đăng ký.");
 
             if (request.Role != AppRoles.Customer && request.Role != AppRoles.FieldOwner)
-                throw new BadRequestException("Loại tài khoản không hợp lệ. Chỉ chấp nhận 'Customer' hoặc 'FieldOwner'.");
+                throw new BadRequestException("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.");
 
             var createResult = await _identityService.CreateUserAsync(
                     request.Email,
@@ -132,20 +132,20 @@ namespace Fiebo.Application.Services
 
             await _emailService.SendEmailAsync(request.Email, "Fiebo - Mã xác thực tài khoản", emailBody);
 
-            return "Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.";
+            return "Mã OTP xác thực đã được gửi đến email của bạn.";
         }
 
         public async Task<string> VerifyEmailAsync(VerifyOtpRequest request)
         {
             var isOtpValid = await _otpService.ValidateOtpAsync(request.Email, request.OtpCode);
             if (!isOtpValid)
-                throw new BadRequestException("Mã OTP không chính xác hoặc đã hết hạn.");
+                throw new BadRequestException("Mã OTP không hợp lệ. Vui lòng thử lại.");
 
             var isActivated = await _identityService.ActivateUserAsync(request.Email);
             if (!isActivated)
-                throw new BadRequestException("Lỗi kích hoạt tài khoản.");
+                throw new BadRequestException("Lỗi lấy dữ liệu.");
 
-            return "Kích hoạt thành công! Bạn có thể đăng nhập ngay.";
+            return "Tài khoản của bạn đã được kích hoạt thành công.";
         }
 
 
@@ -153,31 +153,31 @@ namespace Fiebo.Application.Services
         public async Task<string> LoginAsync(LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.EmailOrPhone) || string.IsNullOrWhiteSpace(request.Password))
-                throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+                throw new BadRequestException("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.");
 
             var input = request.EmailOrPhone.Trim();
 
             if (input.Contains("@"))
             {
                 if (!Regex.IsMatch(input, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-                    throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+                    throw new BadRequestException("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.");
             }
             else
             {
                 if (!Regex.IsMatch(input, @"^0\d{9,10}$"))
-                    throw new BadRequestException("Vui lòng nhập đầy đủ thông tin đăng nhập.");
+                    throw new BadRequestException("Định dạng số điện thoại không hợp lệ. Vui lòng nhập số điện thoại hợp lệ.");
             }
 
             var authResult = await _identityService.AuthenticateAsync(input, request.Password);
 
             if (!authResult.IsSuccess)
-                throw new UnauthorizedException("Sai tài khoản hoặc mật khẩu!");
+                throw new UnauthorizedException("Địa chỉ email/số điện thoại hoặc mật khẩu không hợp lệ.");
 
             if (authResult.Status == UserStatus.Banned)
-                throw new UnauthorizedException("Tài khoản của bạn đã bị khóa!");
+                throw new UnauthorizedException("Tài khoản của bạn đã bị khóa tạm thời do nhiều lần đăng nhập không thành công.");
 
             if (authResult.Status == UserStatus.Inactive)
-                throw new UnauthorizedException("Tài khoản chưa được kích hoạt OTP!");
+                throw new UnauthorizedException("Phiên đăng nhập của bạn đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.");
 
             var token = _tokenService.GenerateAccessToken(authResult.UserId, authResult.FullName, authResult.Role, authResult.Email);
 
@@ -217,7 +217,7 @@ namespace Fiebo.Application.Services
             if (result == null)
             {
                 _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
-                throw new NotFoundException("Người dùng không tồn tại!");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             return result;
         }
@@ -228,7 +228,7 @@ namespace Fiebo.Application.Services
             if (result == null)
             {
                 _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
-                throw new NotFoundException("Người dùng không tồn tại!");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             return result;
         }
@@ -353,7 +353,7 @@ namespace Fiebo.Application.Services
                 return new ServiceResponse
                 {
                     IsSuccess = false,
-                    Message = "Token không hợp lệ hoặc đã hết hạn!"
+                    Message = "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới."
                 };
             }
             var result = await _identityService.ResetPasswordAsync(account, request.NewPassword);

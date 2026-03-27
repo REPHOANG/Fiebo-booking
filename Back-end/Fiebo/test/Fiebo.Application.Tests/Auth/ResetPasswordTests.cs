@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Auth;
+using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Moq;
@@ -31,7 +31,7 @@ public class ResetPasswordTests
         var result = await _authService.ResetPasswordAsync(request);
 
         Assert.False(result.IsSuccess);
-        Assert.Equal("Token không hợp lệ hoặc đã hết hạn!", result.Message);
+        Assert.Equal("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.", result.Message);
     }
 
     [Fact]

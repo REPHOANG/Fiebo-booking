@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.DTOs.Venue;
@@ -418,38 +418,63 @@ namespace Fiebo.Application.Services
             return await GetVenueSchedule(venueId, date);
         }
 
+        public async Task UpdateVenueAsync(
+            int venueId,
+            UpdateVenueRequest request,
+            string? newThumbnailUrl,
+            string userId,
+            string userRole)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+            }
+
+            // BR-62: Admin can edit any venue; Owner can only edit their own
+            bool isAdmin = userRole == Domain.Constants.AppRoles.Admin;
+            if (!isAdmin && venue.OwnerId != userId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa cơ sở này.");
+            }
+
+            // E2: CloseTime must be after OpenTime
+            if (request.CloseTime <= request.OpenTime)
+            {
+                throw new BadRequestException(
+                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+            }
+
+            venue.Name = request.Name;
+            venue.Description = request.Description;
+            venue.AddressDetail = request.AddressDetail;
+            venue.ProvinceId = request.ProvinceId;
+            venue.WardId = request.WardId;
+            venue.Longitude = request.Longitude;
+            venue.Latitude = request.Latitude;
+            venue.OpenTime = request.OpenTime;
+            venue.CloseTime = request.CloseTime;
+            venue.UpdatedAt = DateTime.Now;
+
+            if (!string.IsNullOrEmpty(newThumbnailUrl))
+            {
+                venue.ThumbnailUrl = newThumbnailUrl;
+            }
+
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
         {
             if (ownerId == null)
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để tạo sân");
             }
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
-            var allowedContentTypes = new[]
-            {
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/webp",
-            "image/svg+xml"
-        };
+            
             var file = request.Thumbnail;
-            if (file != null)
-            {
-                if (file.Length == 0)
-                    throw new BadRequestException("Ảnh không hợp lệ.");
-
-                if (file.Length > 5 * 1024 * 1024) //5mb
-                    throw new BadRequestException("Mỗi ảnh không được vượt quá 5MB.");
-
-                var extension = Path.GetExtension(file.FileName).ToLower();
-
-                if (!allowedExtensions.Contains(extension))
-                    throw new BadRequestException("Chỉ chấp nhận ảnh jpg, jpeg, png, webp, svg.");
-
-                if (!allowedContentTypes.Contains(file.ContentType))
-                    throw new BadRequestException("Định dạng ảnh không hợp lệ.");
-            }
+            var fileList = file != null ? new List<IFormFile> { file } : [];
+            ValidateFiles(fileList, 0, 1);
 
             var venue = new Venue
             {

@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Wallet;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
@@ -29,7 +29,7 @@ namespace Fiebo.Application.Services
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
             if (wallet == null)
             {
-                throw new NotFoundException("Wallet is not found");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
             var topUpRequest = new Domain.Entities.TopUpRequest
             {
@@ -47,7 +47,7 @@ namespace Fiebo.Application.Services
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
             if (wallet == null)
             {
-                throw new NotFoundException("Wallet is not found");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
             return wallet?.Balance ?? 0;
         }
@@ -62,12 +62,12 @@ namespace Fiebo.Application.Services
             var topUpRequest = await _unitOfWork.TopUpRequests.GetByIdAsync(topUpId);
             if (topUpRequest == null)
             {
-                throw new NotFoundException("Top-up request is not found");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             var wallet = await _unitOfWork.Wallets.GetByIdAsync(topUpRequest.WalletId);
             if (wallet == null)
             {
-                throw new NotFoundException("Wallet is not found");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
             if (topUpRequest.Status == TopUpStatus.Paid)
             {
