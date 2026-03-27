@@ -30,7 +30,7 @@ namespace Fiebo.Application.Services
                 {
                     VenueId = venue.Id,
                     VenueName = venue.Name,
-                    Staffs = new List<OwnerStaffMemberDto>()
+                    Staffs = []
                 };
 
                 foreach (var vs in venue.VenueStaffs)
@@ -41,8 +41,10 @@ namespace Fiebo.Application.Services
                         venueGroup.Staffs.Add(new OwnerStaffMemberDto
                         {
                             StaffId = vs.StaffId,
-                            FullName = userProfile.FullName,
-                            Username = userProfile.Email 
+                            FullName = userProfile.FullName ?? "",
+                            Username = userProfile.Email ?? "",
+                            Status = userProfile.Status ?? "",
+                            CreatedAt = DateTime.Now
                         });
                     }
                 }
@@ -60,7 +62,7 @@ namespace Fiebo.Application.Services
             var fakeEmail = $"{request.Username}@gmail.com";
 
             var createResult = await _identityService.CreateUserAsync(
-                fakeEmail,     
+                fakeEmail,
                 null!,
                 request.Password,
                 request.FullName,
@@ -70,6 +72,9 @@ namespace Fiebo.Application.Services
 
             if (!createResult.IsSuccess)
                 throw new BadRequestException(createResult.ErrorMessage);
+            var active = await _identityService.ActivateUserAsync(fakeEmail);
+            if (active == false)
+                throw new BadRequestException("Kích hoạt tài khoản thất bại.");
 
             var venueStaff = new VenueStaff
             {
@@ -81,7 +86,7 @@ namespace Fiebo.Application.Services
             return await _unitOfWork.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> DeactivateStaffAsync(string ownerId, string staffId)
+        public async Task<bool> ChangeStaffStatusAsync(string ownerId, string staffId)
         {
             var isStaffOfOwner = await _unitOfWork.Venues.GetVenuesWithStaffAsync(ownerId);
 
@@ -91,8 +96,14 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Nhân viên không thuộc quyền quản lý của bạn.");
             }
-
-            var result = await _identityService.UpdateUserStatusAsync(staffId, UserStatus.Inactive);
+            var staff = await _identityService.GetUserProfileAsync(staffId);
+            var result = false;
+            if (staff!.Status == UserStatus.Active.ToString())
+            {
+                result = await _identityService.UpdateUserStatusAsync(staffId, UserStatus.Inactive);
+                return result;
+            }
+            result = await _identityService.UpdateUserStatusAsync(staffId, UserStatus.Active);
 
             return result;
         }

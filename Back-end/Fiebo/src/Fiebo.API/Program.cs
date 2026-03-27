@@ -94,6 +94,10 @@ builder.Services.AddScoped<ITicketEventRepository, TicketEventRepository>();
 builder.Services.AddScoped<ITicketParticipantRepository, TicketParticipantRepository>();
 builder.Services.AddScoped<ITicketEventDetailRepository, TicketEventDetailRepository>();
 builder.Services.AddScoped<IVenueStaffRepository, VenueStaffRepository>();
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<IWardRepository, WardRepository>();
+builder.Services.AddScoped<IVenueDocumentRepository, VenueDocumentRepository>();
+builder.Services.AddScoped<IVenueDocumentImageRepository, VenueDocumentImageRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -120,6 +124,7 @@ builder.Services.AddSingleton<SseService>();
 builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IAddressService, AddressService>();
 
 
 builder.Services.AddHttpClient();

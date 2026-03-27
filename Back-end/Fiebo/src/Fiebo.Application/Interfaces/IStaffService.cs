@@ -11,6 +11,6 @@ namespace Fiebo.Application.Interfaces
     {
         Task<List<OwnerStaffListResponse>> GetOwnerStaffListAsync(string ownerId);
         Task<bool> CreateStaffAsync(string ownerId, OwnerCreateStaffRequest request);
-        Task<bool> DeactivateStaffAsync(string ownerId, string staffId);
+        Task<bool> ChangeStaffStatusAsync(string ownerId, string staffId);
     }
 }

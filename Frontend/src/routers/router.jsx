@@ -21,6 +21,7 @@ import CreateEvent from '../pages/Owner/CreateEvent';
 import OwnerEventDetail from '../pages/Owner/OwnerEventDetail';
 import OwnerBookings from '../pages/Owner/OwnerBookings';
 import OwnerBookingDetail from '../pages/Owner/OwnerBookingDetail';
+import StaffList from '../pages/Owner/Staff/StaffList';
 import EventDetail from '../pages/Event/EventDetail';
 import EventRegister from '../pages/Event/EventRegister';
 import EventTicketDetail from '../pages/Event/EventTicketDetail';
@@ -72,6 +73,7 @@ const AppRoutes = () => (
       <Route path="/owner/create-venue" element={<CreateVenue />} />
     <Route path="/owner/bookings" element={<OwnerBookings />} />
     <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />
+    <Route path="/owner/staff" element={<StaffList />} />
     <Route path="/owner/events" element={<OwnerEvents />} />
     <Route path="/owner/events/create" element={<CreateEvent />} />
     <Route path="/owner/events/:id" element={<OwnerEventDetail />} />

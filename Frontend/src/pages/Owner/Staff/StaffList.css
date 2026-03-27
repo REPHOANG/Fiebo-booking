@@ -1,0 +1,65 @@
+.staff-page-shell {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.staff-page-shell,
+.staff-page-shell .MuiTypography-root,
+.staff-page-shell .MuiButton-root,
+.staff-page-shell .MuiChip-root,
+.staff-page-shell .MuiTableCell-root,
+.staff-page-shell .MuiFormControlLabel-root,
+.staff-page-shell .MuiSwitch-root {
+  font-family: inherit !important;
+}
+
+.staff-page-title {
+  font-weight: 800 !important;
+  margin-bottom: 6px !important;
+}
+
+.staff-create-btn {
+  text-transform: none !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-weight: 700 !important;
+  min-width: 210px;
+}
+
+.staff-summary-row {
+  margin-top: 4px;
+}
+
+.staff-note {
+  border-radius: 10px !important;
+}
+
+.staff-venue-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.staff-venue-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+.staff-venue-title {
+  font-weight: 700 !important;
+}
+
+@media (max-width: 900px) {
+  .staff-page-shell {
+    padding: 14px;
+  }
+
+  .staff-create-btn {
+    min-width: 100%;
+  }
+}

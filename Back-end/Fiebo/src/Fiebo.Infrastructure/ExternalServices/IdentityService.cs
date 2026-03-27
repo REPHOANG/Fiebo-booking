@@ -173,7 +173,8 @@ namespace Fiebo.Infrastructure.ExternalServices
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 DateOfBirth = user.DateOfBirth,
-                Roles = string.Join(", ", await _userManager.GetRolesAsync(user))
+                Roles = string.Join(", ", await _userManager.GetRolesAsync(user)),
+                Status = user.Status.ToString()
             };
         }
 

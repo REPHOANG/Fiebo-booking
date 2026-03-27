@@ -1,11 +1,14 @@
 ﻿using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Fiebo.Application.Services
@@ -15,16 +18,22 @@ namespace Fiebo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapService _mapService;
         private readonly IIdentityService _identityService;
+        private readonly ICloudinaryService _cloudinaryService;
+        private readonly ILogger<VenueService> _logger;
 
         public VenueService(
             IUnitOfWork unitOfWork,
             IMapService mapService,
-            IIdentityService identityService
+            IIdentityService identityService,
+            ICloudinaryService cloudinaryService,
+            ILogger<VenueService> logger
             )
         {
             _unitOfWork = unitOfWork;
             _mapService = mapService;
             _identityService = identityService;
+            _cloudinaryService = cloudinaryService;
+            _logger = logger;
         }
 
         public async Task<List<VenueInfoResponse>> GetNearbyVenues(
@@ -280,7 +289,7 @@ namespace Fiebo.Application.Services
         public async Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if(venue == null)
+            if (venue == null)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -383,6 +392,13 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn không có quyền tắt sân này");
             }
+            if (venue.Status == VenueStatus.Inactive)
+            {
+                venue.Status = VenueStatus.Active;
+                _unitOfWork.Venues.Update(venue);
+                await _unitOfWork.SaveChangesAsync();
+                return;
+            }
             venue.Status = VenueStatus.Inactive;
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
@@ -391,15 +407,262 @@ namespace Fiebo.Application.Services
         public async Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId, DateOnly date)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if(venue == null)
+            if (venue == null)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if(venue.OwnerId != ownerId)
+            if (venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền xem lịch sân này");
             }
             return await GetVenueSchedule(venueId, date);
+        }
+
+        public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để tạo sân");
+            }
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
+            var allowedContentTypes = new[]
+            {
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+            "image/svg+xml"
+        };
+            var file = request.Thumbnail;
+            if (file != null)
+            {
+                if (file.Length == 0)
+                    throw new BadRequestException("Ảnh không hợp lệ.");
+
+                if (file.Length > 5 * 1024 * 1024) //5mb
+                    throw new BadRequestException("Mỗi ảnh không được vượt quá 5MB.");
+
+                var extension = Path.GetExtension(file.FileName).ToLower();
+
+                if (!allowedExtensions.Contains(extension))
+                    throw new BadRequestException("Chỉ chấp nhận ảnh jpg, jpeg, png, webp, svg.");
+
+                if (!allowedContentTypes.Contains(file.ContentType))
+                    throw new BadRequestException("Định dạng ảnh không hợp lệ.");
+            }
+
+            var venue = new Venue
+            {
+                Name = request.Name,
+                OpenTime = request.OpenTime,
+                CloseTime = request.CloseTime,
+                Description = request.Description,
+                AddressDetail = request.AddressDetail,
+                ProvinceId = request.ProvinceId,
+                WardId = request.WardId,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                OwnerId = ownerId,
+                ThumbnailUrl = file != null ? await _cloudinaryService.UploadImageAsync(file) : null,
+                Status = VenueStatus.Draft
+            };
+            _unitOfWork.Venues.Add(venue);
+            await _unitOfWork.SaveChangesAsync();
+            return new CreateVenueResponse
+            {
+                VenueId = venue.Id,
+                Status = venue.Status.ToString()
+            };
+
+        }
+
+        public async Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest request)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để tải lên giấy tờ");
+            }
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền tải lên giấy tờ cho sân này");
+            }
+            ValidateFiles(request.BusinessDocument.Images);
+            ValidateFiles(request.LandUseDocument.Images);
+            var businessDoc = new VenueDocument
+            {
+                VenueId = venueId,
+                DocumentType = DocumentType.BusinessLicense,
+                IssueDate = request.BusinessDocument.IssueDate,
+                ExpiryDate = request.BusinessDocument.ExpiryDate
+            };
+
+            var landDoc = new VenueDocument
+            {
+                VenueId = venueId,
+                DocumentType = DocumentType.LandUse,
+                IssueDate = request.LandUseDocument.IssueDate,
+                ExpiryDate = request.LandUseDocument.ExpiryDate
+            };
+
+            _unitOfWork.VenueDocuments.Add(businessDoc);
+            _unitOfWork.VenueDocuments.Add(landDoc);
+            await _unitOfWork.SaveChangesAsync();
+            var images = new List<VenueDocumentImage>();
+
+            await UploadDocumentImagesAsync(request.BusinessDocument.Images, businessDoc.Id, images);
+            await UploadDocumentImagesAsync(request.LandUseDocument.Images, landDoc.Id, images);
+
+            _unitOfWork.VenueDocumentImages.AddRange(images);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        private async Task UploadDocumentImagesAsync(
+            IEnumerable<IFormFile> files,
+            int documentId,
+            List<VenueDocumentImage> result)
+        {
+            foreach (var file in files)
+            {
+                try
+                {
+                    var url = await _cloudinaryService.UploadImageAsync(file);
+
+                    result.Add(new VenueDocumentImage
+                    {
+                        DocumentId = documentId,
+                        ImageUrl = url
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Upload ảnh lỗi");
+                    throw new BadRequestException("Upload ảnh thất bại");
+                }
+            }
+        }
+        private static void ValidateFiles(
+            IEnumerable<IFormFile> files,
+            int min = 1,
+            int max = 5,
+            long maxSizeInBytes = 5 * 1024 * 1024)
+        {
+            if (files == null || !files.Any())
+                throw new BadRequestException($"Phải có ít nhất {min} ảnh");
+
+            var fileList = files.ToList();
+
+            if (fileList.Count < min || fileList.Count > max)
+                throw new BadRequestException($"Số lượng ảnh phải từ {min} đến {max}");
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
+            var allowedContentTypes = new[]
+            {
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/webp",
+                "image/svg+xml"
+            };
+
+            foreach (var file in fileList)
+            {
+                if (file.Length == 0)
+                    throw new BadRequestException("Ảnh không hợp lệ");
+
+                if (file.Length > maxSizeInBytes)
+                    throw new BadRequestException($"Mỗi ảnh không được vượt quá {maxSizeInBytes / (1024 * 1024)}MB");
+
+                var extension = Path.GetExtension(file.FileName).ToLower();
+
+                if (!allowedExtensions.Contains(extension))
+                    throw new BadRequestException("Chỉ chấp nhận ảnh jpg, jpeg, png, webp, svg");
+
+                if (!allowedContentTypes.Contains(file.ContentType))
+                    throw new BadRequestException("Định dạng ảnh không hợp lệ");
+            }
+        }
+
+        public async Task<VenueDraftResponse> GetVenueDraftAsync(int venueId, string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để xem bản nháp");
+            }
+            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem bản nháp của sân này");
+            }
+            if (venue.Status != VenueStatus.Draft)
+            {
+                throw new BadRequestException("Chỉ có thể xem bản nháp của sân đang ở trạng thái Draft");
+            }
+            return new VenueDraftResponse
+            {
+                Id = venue.Id,
+                Name = venue.Name,
+                OpenTime = venue.OpenTime,
+                CloseTime = venue.CloseTime,
+                Description = venue.Description,
+                AddressDetail = venue.AddressDetail,
+                ThumbnailUrl = venue.ThumbnailUrl,
+                ProvinceId = venue.ProvinceId,
+                ProvinceName = venue.Province?.Name,
+                WardId = venue.WardId,
+                WardName = venue.Ward?.Name,
+                Longitude = venue.Longitude,
+                Latitude = venue.Latitude,
+                Status = venue.Status.ToString(),
+                LandDocument = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse) is VenueDocument landDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = landDoc.IssueDate,
+                        ExpiryDate = landDoc.ExpiryDate,
+                        Images = [.. landDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null,
+                BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = bizDoc.IssueDate,
+                        ExpiryDate = bizDoc.ExpiryDate,
+                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null
+            };
+        }
+
+        public async Task SubmitVenueDraftAsync(int venueId, string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để gửi duyệt bản nháp");
+            }
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền gửi duyệt bản nháp của sân này");
+            }
+            if (venue.Status != VenueStatus.Draft)
+            {
+                throw new BadRequestException("Chỉ có thể gửi duyệt bản nháp của sân đang ở trạng thái Draft");
+            }
+            venue.Status = VenueStatus.Pending;
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

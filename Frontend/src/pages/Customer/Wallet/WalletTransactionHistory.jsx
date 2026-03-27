@@ -64,7 +64,6 @@ export default function WalletTransactionHistory({
     ]);
   };
 
-  const currentTransactions = transactions;
   // Map loại giao dịch
   const getTransactionTypeLabel = (type) => {
     const typeMap = {
@@ -78,7 +77,7 @@ export default function WalletTransactionHistory({
   };
 
   // Nhóm giao dịch theo ngày
-  const groupedByDate = currentTransactions.reduce((acc, transaction) => {
+  const groupedByDate = transactions.reduce((acc, transaction) => {
     const date = new Date(transaction.createdAt);
     const dateKey = date.toLocaleDateString("vi-VN", {
       year: "numeric",
@@ -203,7 +202,7 @@ export default function WalletTransactionHistory({
                     <div
                       className={`transaction-badge ${transaction.direction.toLowerCase()}`}
                     >
-                      {transaction.direction}
+                      {transaction.direction === "Credit" ? "Tiền vào" : "Tiền ra"}
                     </div>
                   </div>
                 </div>

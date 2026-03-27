@@ -15,5 +15,6 @@ namespace Fiebo.Application.DTOs.Auth
         public string? PhoneNumber { get; set; }
         public DateOnly? DateOfBirth { get; set; }
         public string? Roles { get; set; }
+        public string? Status { get; set; }
     }
 }

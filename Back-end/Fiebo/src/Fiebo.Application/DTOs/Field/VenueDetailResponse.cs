@@ -11,9 +11,9 @@ namespace Fiebo.Application.DTOs.Field
     public class VenueDetailResponse
     {
         public required string Name { get; set; }
-        public TimeSpan OpenTime { get; set; }
+        public TimeOnly OpenTime { get; set; }
 
-        public TimeSpan CloseTime { get; set; }
+        public TimeOnly CloseTime { get; set; }
 
         public double AverageRating { get; set; } = 0;
 
