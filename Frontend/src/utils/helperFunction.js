@@ -31,3 +31,29 @@ export const formatPrice = (n) => {
   const x = Number(n || 0);
   return `${x.toLocaleString("vi-VN")} đ/vé`;
 };
+export const formatVND = (n) => {
+  return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(n);
+};
+export const formatDateToTime = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatDateTime = (isoString) => {
+  if (!isoString) return "--";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};

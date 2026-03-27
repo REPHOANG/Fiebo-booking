@@ -38,3 +38,8 @@ export const topUpWallet = async (payload) => {
     transferContent: d?.transferContent ?? d?.TransferContent ?? '',
   };
 };
+export const walletHistoryApi = async (page, size, from, to) => {
+  const params = { page, size, from, to };
+  const response = await api.get('/api/Wallet/transactions', { params });;
+  return response.data.data;
+};

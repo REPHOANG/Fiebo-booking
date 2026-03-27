@@ -4,6 +4,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Services
 {
@@ -84,6 +85,7 @@ namespace Fiebo.Application.Services
                     Amount = topUpRequest.Amount,
                     Direction = TransactionDirection.Credit,
                     TransactionType = TransactionType.TopUp,
+                    ReferenceId = topUpRequest.Id
                 });
                 await _unitOfWork.SaveChangesAsync();
                 await _unitOfWork.CommitTransactionAsync();
@@ -95,6 +97,48 @@ namespace Fiebo.Application.Services
             }
             await _notificationService.NotifyWalletTopupAsync(wallet.UserId, request.TransferAmount);
             return true;
+        }
+
+        public async Task<PagedResult<WalletTransactionResponse>> GetWalletTransactionsAsync(string userId, int pageNumber, int pageSize, DateTime? from, DateTime? to)
+        {
+            to ??= DateTime.Today;
+            from ??= to.Value.AddDays(-7);
+
+            var fromDate = from.Value.Date;
+            var toDate = to.Value.Date.AddDays(1);
+
+            if (fromDate >= toDate)
+            {
+                throw new BadRequestException("From date must be less than to date");
+            }
+            var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
+            if (wallet == null)
+            {
+                throw new NotFoundException("Wallet is not found");
+            }
+            if (wallet.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You are not authorized to access this wallet");
+            }
+            var walletTransactions = await _unitOfWork.WalletTransactions
+                .GetTransactionsByWalletIdAsync(wallet.Id, pageNumber, pageSize, fromDate, toDate);
+            var items = walletTransactions.Items.Select(wt => new WalletTransactionResponse
+            {
+                Id = wt.Id,
+                Amount = wt.Amount,
+                Direction = wt.Direction.ToString(),
+                TransactionType = wt.TransactionType.ToString(),
+                ReferenceId = wt.ReferenceId,
+                CreatedAt = wt.CreatedAt
+            }).ToList();
+            return new PagedResult<WalletTransactionResponse>
+            {
+                Page = walletTransactions.Page,
+                PageSize = walletTransactions.PageSize,
+                TotalItems = walletTransactions.TotalItems,
+                Items = items
+            };
+
         }
     }
 }

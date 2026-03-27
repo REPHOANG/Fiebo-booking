@@ -15,6 +15,7 @@ namespace Fiebo.Domain.Repositories
 
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression);
         Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate);
+        IQueryable<T> GetQueryable();
 
         void Add(T entity);
         void AddRange(IEnumerable<T> entities);

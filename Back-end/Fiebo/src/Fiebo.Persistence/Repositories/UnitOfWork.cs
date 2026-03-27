@@ -27,12 +27,16 @@ namespace Fiebo.Persistence.Repositories
         public ITopUpRequestRepository TopUpRequests { get; }
         public IWalletTransactionRepository WalletTransactions { get; }
 
-        public ITicketEventRepository TicketEvents {  get;}
+        public ITicketEventRepository TicketEvents { get; }
 
-        public ITicketParticipantRepository TicketParticipants {  get;}
+        public ITicketParticipantRepository TicketParticipants { get; }
 
         public ITicketEventDetailRepository TicketEventsDetails { get; }
         public IVenueStaffRepository VenueStaffs { get; }
+        public IProvinceRepository Provinces { get; }
+        public IWardRepository Wards { get; }
+        public IVenueDocumentRepository VenueDocuments { get; }
+        public IVenueDocumentImageRepository VenueDocumentImages { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -48,7 +52,11 @@ namespace Fiebo.Persistence.Repositories
             ITicketEventRepository ticketEventRepository,
             ITicketParticipantRepository ticketParticipantRepository,
             ITicketEventDetailRepository ticketEventDetailRepository,
-            IVenueStaffRepository venueStaffRepository
+            IVenueStaffRepository venueStaffRepository,
+            IProvinceRepository provinceRepository,
+            IWardRepository wardRepository,
+            IVenueDocumentRepository venueDocumentRepository,
+            IVenueDocumentImageRepository venueDocumentImageRepository
             //IReportRepository reportRepository
             )
         {
@@ -68,6 +76,10 @@ namespace Fiebo.Persistence.Repositories
             TicketParticipants = ticketParticipantRepository;
             TicketEventsDetails = ticketEventDetailRepository;
             VenueStaffs = venueStaffRepository;
+            Provinces = provinceRepository;
+            Wards = wardRepository;
+            VenueDocuments = venueDocumentRepository;
+            VenueDocumentImages = venueDocumentImageRepository;
         }
 
 

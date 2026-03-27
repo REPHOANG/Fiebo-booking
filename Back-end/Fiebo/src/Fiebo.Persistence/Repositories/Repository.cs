@@ -44,5 +44,10 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Set<T>().SingleOrDefaultAsync(predicate);
         }
+
+        public IQueryable<T> GetQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
     }
 }
