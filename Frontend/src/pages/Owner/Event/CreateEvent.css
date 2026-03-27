@@ -435,3 +435,45 @@
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
 }
+
+@media (max-width: 900px) {
+  .create-event-form {
+    padding: 14px;
+  }
+
+  .ce-row,
+  .ce-row.two-cols {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .create-event-page {
+    padding: 12px;
+  }
+
+  .ce-field-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ce-field-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ce-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ce-actions .ce-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .ce-compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

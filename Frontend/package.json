@@ -31,6 +31,7 @@
     "react-hook-form": "^7.71.2",
     "react-intersection-observer": "^10.0.3",
     "react-leaflet": "^5.0.0",
+    "react-leaflet-cluster": "^4.0.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.13.0",
     "react-scripts": "5.0.1",

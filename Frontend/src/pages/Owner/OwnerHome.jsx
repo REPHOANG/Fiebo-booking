@@ -76,7 +76,9 @@ const OwnerHome = () => {
 
       <div className="owner-home-content">
         {loading ? (
-          <div className="oh-loading">Đang tải dashboard...</div>
+          <div className="owner-loading">
+            <span className="owner-spinner" />
+          </div>
         ) : (
           <>
             <div className="oh-kpis">

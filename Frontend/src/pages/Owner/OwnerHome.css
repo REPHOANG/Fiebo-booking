@@ -1,5 +1,7 @@
 .owner-home {
-  padding: 20px;
+  padding: 22px;
+  background: #f5f7fb;
+  min-height: calc(100vh - 86px);
 }
 
 .owner-home-header {
@@ -7,12 +9,22 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: 14px;
+}
+
+.owner-home-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 950;
+  color: #0f172a;
+  letter-spacing: -0.2px;
 }
 
 .oh-subtitle {
   margin: 6px 0 0 0;
   color: #64748b;
   font-size: 13px;
+  font-weight: 700;
 }
 
 .oh-header-actions {
@@ -25,21 +37,23 @@
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   padding: 10px 12px;
   border-radius: 12px;
   text-decoration: none;
   font-weight: 800;
   font-size: 13px;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
 .oh-secondary-btn {
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.9);
   color: #0f172a;
   padding: 10px 12px;
   border-radius: 12px;
@@ -48,11 +62,19 @@
   font-size: 13px;
 }
 
+.oh-create-btn:hover,
+.oh-secondary-btn:hover,
+.oh-kpi-btn:hover,
+.oh-mini-btn:hover,
+.oh-panel-link:hover {
+  filter: brightness(0.98);
+}
+
 .owner-home-content {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .oh-loading {
@@ -68,13 +90,20 @@
 }
 
 .oh-kpi {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 14px 14px;
   display: flex;
   gap: 10px;
   align-items: flex-start;
   background: #fff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.oh-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
 }
 
 .oh-kpi--cta {
@@ -89,9 +118,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 197, 94, 0.1);
-  color: #166534;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
   flex-shrink: 0;
+}
+
+.oh-kpis .oh-kpi:nth-child(1) .oh-kpi-icon {
+  background: rgba(245, 158, 11, 0.16);
+  color: #92400e;
+}
+.oh-kpis .oh-kpi:nth-child(2) .oh-kpi-icon {
+  background: rgba(34, 197, 94, 0.16);
+  color: #166534;
+}
+.oh-kpis .oh-kpi:nth-child(3) .oh-kpi-icon {
+  background: rgba(239, 68, 68, 0.16);
+  color: #991b1b;
+}
+.oh-kpis .oh-kpi:nth-child(4) .oh-kpi-icon {
+  background: rgba(37, 99, 235, 0.16);
+  color: #1d4ed8;
 }
 
 .oh-kpi-label {
@@ -120,12 +166,13 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   text-decoration: none;
   font-weight: 900;
   font-size: 13px;
   border: none;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
 }
 
 .oh-grid {
@@ -135,9 +182,11 @@
 }
 
 .oh-panel {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
   padding: 14px;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
 }
 
 .oh-panel-head {
@@ -158,7 +207,7 @@
 .oh-panel-link {
   font-size: 13px;
   font-weight: 800;
-  color: #3b82f6;
+  color: #2563eb;
   text-decoration: none;
 }
 
@@ -180,9 +229,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
   padding: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.9));
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.oh-venue-row:hover,
+.oh-booking-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.25);
 }
 
 .oh-venue-list,
@@ -225,7 +282,7 @@
   font-weight: 900;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(15, 23, 42, 0.10);
   color: #334155;
   background: #f8fafc;
   white-space: nowrap;
@@ -264,8 +321,8 @@
   justify-content: center;
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.95);
   color: #0f172a;
   text-decoration: none;
   font-weight: 900;
@@ -274,7 +331,7 @@
 }
 
 .oh-mini-btn:hover {
-  border-color: rgba(34, 197, 94, 0.45);
+  border-color: rgba(37, 99, 235, 0.28);
 }
 
 @media (max-width: 1100px) {
@@ -283,6 +340,27 @@
   }
   .oh-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .owner-home {
+    padding: 12px;
+  }
+
+  .owner-home-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .owner-home {
+    padding: 14px;
+  }
+  .owner-home-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

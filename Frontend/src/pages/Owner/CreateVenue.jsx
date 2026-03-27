@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 // NOTE: Tạm thời chỉ chạy giao diện (mock), chưa gọi API.
-// import { addVenueDocuments, assignVenueSportTypes, createVenue, submitVenue } from "../../services/venueService";
+// import { addVenueDocuments, createVenue, submitVenue } from "../../services/venueService";
 // import { getSportTypes } from "../../services/sportTypeService";
 import "./CreateVenue.css";
 
@@ -108,13 +108,6 @@ const WARDS_BY_PROVINCE = {
   ],
 };
 
-const SPORT_TYPES_FALLBACK = [
-  { id: 1, name: "Bóng Đá" },
-  { id: 2, name: "Bóng Rổ" },
-  { id: 3, name: "Tennis" },
-  { id: 4, name: "Pickleball" },
-];
-
 const DOCUMENT_TYPES = [
   { id: "LAND_USE", label: "Giấy tờ sử dụng đất" },
   { id: "RENT_CONTRACT", label: "Hợp đồng thuê đất" },
@@ -122,7 +115,12 @@ const DOCUMENT_TYPES = [
   { id: "OTHER", label: "Khác" },
 ];
 
-const STEPS = ["Tạo cơ sở", "Giấy tờ", "Bộ môn", "Xác nhận"];
+const DOC_LABEL_BY_ID = DOCUMENT_TYPES.reduce((acc, x) => {
+  acc[x.id] = x.label;
+  return acc;
+}, {});
+
+const STEPS = ["Tạo cơ sở", "Giấy tờ", "Xác nhận"];
 
 function MapClickHandler({ onPick }) {
   useMapEvents({
@@ -146,10 +144,8 @@ const CreateVenue = () => {
 
   const [docs, setDocs] = useState([
     { documentType: "LAND_USE", issueDate: "", expiryDate: "", images: [""] },
+    { documentType: "BUSINESS_LICENSE", issueDate: "", expiryDate: "", images: [""] },
   ]);
-  const [sportTypeIds, setSportTypeIds] = useState([]);
-  const [sportTypes] = useState([]);
-  const [sportTypesLoading] = useState(false);
 
   const {
     register: reg,
@@ -176,9 +172,6 @@ const CreateVenue = () => {
 
   const selectedProvinceId = watch("provinceId");
   const wards = WARDS_BY_PROVINCE[selectedProvinceId] || [];
-
-  // Tạm thời không gọi API lấy sport types
-  useEffect(() => {}, []);
 
   const lat = Number(watch("latitude"));
   const lng = Number(watch("longitude"));
@@ -246,17 +239,16 @@ const CreateVenue = () => {
     setIsSubmitting(true);
     try {
       const payload = {
-        documents: (docs || [])
-          .map((d) => ({
-            documentType: d.documentType,
-            issueDate: d.issueDate || null,
-            expiryDate: d.expiryDate || null,
-            images: (d.images || []).map((x) => String(x || "").trim()).filter(Boolean),
-          }))
-          .filter((d) => d.documentType && (d.images?.length || 0) > 0),
+        documents: (docs || []).map((d) => ({
+          documentType: d.documentType,
+          issueDate: d.issueDate || null,
+          expiryDate: d.expiryDate || null,
+          images: (d.images || []).map((x) => String(x || "").trim()).filter(Boolean),
+        })),
       };
-      if (!payload.documents.length) {
-        toast.error("Vui lòng thêm ít nhất 1 giấy tờ kèm ảnh URL.");
+      const missingImageDoc = payload.documents.find((d) => !d.documentType || (d.images?.length || 0) === 0);
+      if (missingImageDoc) {
+        toast.error(`Vui lòng thêm ít nhất 1 ảnh URL cho "${DOC_LABEL_BY_ID[missingImageDoc.documentType] || "giấy tờ"}".`);
         return;
       }
       await new Promise((r) => setTimeout(r, 400));
@@ -264,28 +256,6 @@ const CreateVenue = () => {
       setActiveStep(2);
     } catch (e) {
       toast.error(e?.response?.data?.message || e?.message || "Không lưu được giấy tờ.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleSport = (sid) => {
-    setSportTypeIds((prev) => (prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]));
-  };
-
-  const saveSportsAndNext = async () => {
-    if (!venueId) return;
-    if (!sportTypeIds.length) {
-      toast.error("Vui lòng chọn ít nhất 1 bộ môn.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await new Promise((r) => setTimeout(r, 400));
-      toast.success("Đã gán bộ môn (mock).");
-      setActiveStep(3);
-    } catch (e) {
-      toast.error(e?.response?.data?.message || e?.message || "Không gán được bộ môn.");
     } finally {
       setIsSubmitting(false);
     }
@@ -319,10 +289,9 @@ const CreateVenue = () => {
       longitude: v.longitude,
       thumbnailUrl: v.thumbnailUrl,
       docsCount: docs.length,
-      sportTypeIds,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venueId, docs.length, sportTypeIds, activeStep]);
+  }, [venueId, docs.length, activeStep]);
 
   return (
     <div className="create-venue-page">
@@ -334,7 +303,7 @@ const CreateVenue = () => {
           </button>
           <div>
             <h1>Tạo cơ sở mới</h1>
-            <p>Thực hiện theo 4 bước để gửi duyệt cơ sở</p>
+            <p>Thực hiện theo 3 bước để gửi duyệt cơ sở</p>
           </div>
         </div>
 
@@ -474,7 +443,7 @@ const CreateVenue = () => {
                 )}
               </div>
 
-              <div className="cv-form-group">
+              {/* <div className="cv-form-group">
                 <label>
                   Vĩ độ (Latitude) <span className="cv-required">*</span>
                 </label>
@@ -487,9 +456,9 @@ const CreateVenue = () => {
                 {errors.latitude && (
                   <p className="cv-error-text">{errors.latitude.message}</p>
                 )}
-              </div>
+              </div> */}
 
-              <div className="cv-form-group">
+              {/* <div className="cv-form-group">
                 <label>
                   Kinh độ (Longitude) <span className="cv-required">*</span>
                 </label>
@@ -504,7 +473,7 @@ const CreateVenue = () => {
                 )}
 
                
-              </div>
+              </div> */}
               <div className="cv-map-section">
                 <h3>
                   <MapPinned size={18} /> Vị trí trên bản đồ
@@ -572,7 +541,7 @@ const CreateVenue = () => {
               className="cv-submit-btn"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Đang tạo..." : "Tạo cơ sở (DRAFT)"}
+              {isSubmitting ? "Đang tạo..." : "Lưu & Tiếp theo"}
             </button>
           </div>
         </form>
@@ -595,20 +564,11 @@ const CreateVenue = () => {
                     <div key={di} className="cv-doc-card">
                       <div className="cv-doc-head">
                         <strong>Giấy tờ #{di + 1}</strong>
-                        {docs.length > 1 && (
-                          <button type="button" className="cv-doc-remove" onClick={() => setDocs((p) => p.filter((_, i) => i !== di))}>
-                            <Trash2 size={16} />
-                          </button>
-                        )}
                       </div>
                       <div className="cv-form-grid">
                         <div className="cv-form-group">
                           <label>Loại giấy tờ</label>
-                          <select value={d.documentType} onChange={(e) => setDocs((p) => p.map((x, i) => (i === di ? { ...x, documentType: e.target.value } : x)))}>
-                            {DOCUMENT_TYPES.map((t) => (
-                              <option key={t.id} value={t.id}>{t.label}</option>
-                            ))}
-                          </select>
+                          <input value={DOC_LABEL_BY_ID[d.documentType] || d.documentType} readOnly />
                         </div>
                         <div className="cv-form-group">
                           <label>Ngày cấp</label>
@@ -640,9 +600,6 @@ const CreateVenue = () => {
                     </div>
                   ))}
                 </div>
-                <button type="button" className="cv-add-field-btn" onClick={() => setDocs((p) => [...p, { documentType: "BUSINESS_LICENSE", issueDate: "", expiryDate: "", images: [""] }])}>
-                  <Plus size={18} /> Thêm giấy tờ
-                </button>
                 <div className="cv-submit-section">
                   <button type="button" className="cv-cancel-btn" onClick={() => setActiveStep(0)} disabled={isSubmitting}>Quay lại</button>
                   <button type="button" className="cv-submit-btn" onClick={saveDocsAndNext} disabled={isSubmitting}>{isSubmitting ? "Đang lưu..." : "Lưu & Tiếp tục"}</button>
@@ -655,29 +612,6 @@ const CreateVenue = () => {
         {activeStep === 2 && (
           <div className="cv-card">
             <h3 className="cv-card-title">
-              <Building2 size={20} /> Chọn SportType
-            </h3>
-            <div className="cv-sports">
-              {(sportTypes.length ? sportTypes : SPORT_TYPES_FALLBACK).map((s) => (
-                <label key={s.id} className={`cv-sport-pill${sportTypeIds.includes(s.id) ? " checked" : ""}`}>
-                  <input type="checkbox" checked={sportTypeIds.includes(s.id)} onChange={() => toggleSport(s.id)} />
-                  {s.name}
-                </label>
-              ))}
-            </div>
-            {sportTypesLoading ? (
-              <p className="cv-wizard-hint">Đang tải danh sách bộ môn…</p>
-            ) : null}
-            <div className="cv-submit-section">
-              <button type="button" className="cv-cancel-btn" onClick={() => setActiveStep(1)} disabled={isSubmitting}>Quay lại</button>
-              <button type="button" className="cv-submit-btn" onClick={saveSportsAndNext} disabled={isSubmitting}>{isSubmitting ? "Đang lưu..." : "Lưu & Tiếp tục"}</button>
-            </div>
-          </div>
-        )}
-
-        {activeStep === 3 && (
-          <div className="cv-card">
-            <h3 className="cv-card-title">
               <Building2 size={20} /> Review &amp; Submit
             </h3>
             <div className="cv-review">
@@ -686,11 +620,10 @@ const CreateVenue = () => {
               <div className="cv-review-row"><strong>Giờ:</strong> {review.openTime} – {review.closeTime}</div>
               <div className="cv-review-row"><strong>Địa chỉ:</strong> {review.addressDetail}</div>
               <div className="cv-review-row"><strong>Giấy tờ:</strong> {review.docsCount} mục</div>
-              <div className="cv-review-row"><strong>Bộ môn:</strong> {review.sportTypeIds.join(", ") || "—"}</div>
             </div>
             <div className="cv-submit-section">
-              <button type="button" className="cv-cancel-btn" onClick={() => setActiveStep(2)} disabled={isSubmitting}>Quay lại</button>
-              <button type="button" className="cv-submit-btn" onClick={doSubmitVenue} disabled={isSubmitting}>{isSubmitting ? "Đang gửi..." : "Gửi duyệt (PENDING)"}</button>
+              <button type="button" className="cv-cancel-btn" onClick={() => setActiveStep(1)} disabled={isSubmitting}>Quay lại</button>
+              <button type="button" className="cv-submit-btn" onClick={doSubmitVenue} disabled={isSubmitting}>{isSubmitting ? "Đang gửi..." : "Gửi duyệt"}</button>
             </div>
           </div>
         )}

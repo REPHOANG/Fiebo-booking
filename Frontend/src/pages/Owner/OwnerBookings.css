@@ -1,5 +1,5 @@
 .owner-bookings-page .owner-home-content {
-  max-width: 920px;
+  max-width: 100%;
 }
 
 .ob-card--list {
@@ -200,4 +200,28 @@
 
 .ob-link:hover {
   color: #139a44;
+}
+
+@media (max-width: 768px) {
+  .owner-bookings-page {
+    padding: 12px;
+  }
+
+  .ob-card {
+    padding: 14px;
+  }
+
+  .ob-booking-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ob-booking-actions {
+    width: 100%;
+  }
+
+  .ob-booking-actions .ob-btn {
+    width: 100%;
+    text-align: center;
+  }
 }

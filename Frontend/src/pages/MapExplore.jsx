@@ -1,0 +1,160 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
+import { MapPin, Search } from "lucide-react";
+import { searchVenues } from "../services/fieldService";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
+import "./MapExplore.css";
+
+const SPORTS = [
+  { label: "Tất cả", id: null },
+  { label: "Bóng đá", id: 1 },
+  { label: "Bóng rổ", id: 2 },
+  { label: "Tennis", id: 3 },
+  { label: "Pickleball", id: 4 },
+];
+
+const DEFAULT_CENTER = { lat: 21.0285, lng: 105.8542 };
+
+const FitToMarkers = ({ items }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!items?.length) {
+      map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 12);
+      return;
+    }
+    if (items.length === 1) {
+      map.setView([items[0].lat, items[0].lng], 15);
+      return;
+    }
+    const bounds = items.map((x) => [x.lat, x.lng]);
+    map.fitBounds(bounds, { padding: [32, 32] });
+  }, [items, map]);
+  return null;
+};
+
+const MapExplore = () => {
+  const [loading, setLoading] = useState(true);
+  const [searchValue, setSearchValue] = useState("");
+  const [activeSport, setActiveSport] = useState(null);
+  const [venues, setVenues] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const t = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await searchVenues({
+          location: searchValue || undefined,
+          sportTypeId: activeSport ?? undefined,
+          page: 1,
+          pageSize: 100,
+          userLat: DEFAULT_CENTER.lat,
+          userLng: DEFAULT_CENTER.lng,
+        });
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const normalized = items
+          .map((v) => ({
+            id: v?.venueId,
+            name: v?.venueName,
+            ward: v?.ward,
+            province: v?.province,
+            openTime: v?.openTime,
+            closeTime: v?.closeTime,
+            lat: Number(v?.latitude ?? v?.Latitude),
+            lng: Number(v?.longitude ?? v?.Longitude),
+          }))
+          .filter((x) => x.id && Number.isFinite(x.lat) && Number.isFinite(x.lng));
+        if (mounted) setVenues(normalized);
+      } catch {
+        if (mounted) setVenues([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      mounted = false;
+      clearTimeout(t);
+    };
+  }, [searchValue, activeSport]);
+
+  const list = useMemo(() => venues.slice(0, 50), [venues]);
+
+  return (
+    <div className="mapx-page">
+      <aside className="mapx-panel">
+        <div className="mapx-search">
+          <Search size={16} />
+          <input
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Tìm sân theo tên/khu vực..."
+          />
+        </div>
+
+        <div className="mapx-chips">
+          {SPORTS.map((s) => (
+            <button
+              key={s.label}
+              className={`mapx-chip ${activeSport === s.id ? "active" : ""}`}
+              onClick={() => setActiveSport(s.id)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mapx-list">
+          {loading ? (
+            <p className="mapx-empty">Đang tải dữ liệu sân...</p>
+          ) : list.length === 0 ? (
+            <p className="mapx-empty">Không tìm thấy sân phù hợp.</p>
+          ) : (
+            list.map((v) => (
+              <Link key={v.id} to={`/venue/${v.id}`} className="mapx-item">
+                <div className="mapx-item-name">{v.name}</div>
+                <div className="mapx-item-meta">
+                  {[v.ward, v.province].filter(Boolean).join(", ")}
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <section className="mapx-map">
+        <MapContainer
+          center={[DEFAULT_CENTER.lat, DEFAULT_CENTER.lng]}
+          zoom={12}
+          scrollWheelZoom
+          className="mapx-leaflet"
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <FitToMarkers items={venues} />
+          <MarkerClusterGroup chunkedLoading>
+            {venues.map((v) => (
+              <Marker key={v.id} position={[v.lat, v.lng]}>
+                <Popup>
+                  <strong>{v.name}</strong>
+                  <br />
+                  {[v.ward, v.province].filter(Boolean).join(", ")}
+                  <br />
+                  <Link to={`/venue/${v.id}`}>Xem chi tiết</Link>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        </MapContainer>
+      </section>
+    </div>
+  );
+};
+
+export default MapExplore;
+

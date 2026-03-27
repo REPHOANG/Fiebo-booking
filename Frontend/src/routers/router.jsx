@@ -34,6 +34,7 @@ import OwnerLayout from '../components/layout/OwnerLayout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
+import MapExplore from '../pages/MapExplore';
 import LoadingPage from '../components/ui/Loading/LoadingPage';
 import ErrorPage from '../components/ui/Error/ErrorPage';
 
@@ -90,6 +91,7 @@ const AppRoutes = () => (
       <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
       <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
       <Route path="/events" element={<Events />} />
+      <Route path="/map" element={<MapExplore />} />
       <Route path="/wallet/top-up" element={<ProtectedRoute element={<WalletTopUp />} />} />
       <Route path="/bookings" element={<ProtectedRoute element={<BookingList />} />} />
       <Route path="/bookings/:id" element={<ProtectedRoute element={<BookingList />} />} />

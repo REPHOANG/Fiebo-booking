@@ -14,7 +14,7 @@
 /* ── Stepper ── */
 .cv-stepper {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -504,6 +504,15 @@
     padding: 12px;
   }
 
+  .cv-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .cv-header h1 {
+    font-size: 20px;
+  }
+
   .cv-card {
     padding: 20px;
   }
@@ -527,5 +536,14 @@
   }
   .cv-stepper {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .cv-doc-card,
+  .cv-review {
+    padding: 12px;
+  }
+
+  .cv-map-leaflet {
+    height: 260px;
   }
 }

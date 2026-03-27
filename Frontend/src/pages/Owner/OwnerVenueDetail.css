@@ -312,3 +312,48 @@
   }
 }
 
+@media (max-width: 640px) {
+  .owner-venue-detail {
+    padding: 12px;
+  }
+
+  .ovd-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ovd-actions {
+    width: 100%;
+  }
+
+  .ovd-btn {
+    width: 100%;
+  }
+
+  .ovd-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .ovd-title {
+    font-size: 18px;
+  }
+
+  .ovd-meta-item {
+    font-size: 13px;
+  }
+
+  .ovd-map-iframe {
+    height: 220px;
+  }
+
+  .ovd-field-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ovd-field-right {
+    text-align: left;
+  }
+}
+

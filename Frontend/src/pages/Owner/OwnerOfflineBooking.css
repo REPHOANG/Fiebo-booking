@@ -148,8 +148,28 @@
 }
 
 @media (max-width: 900px) {
+  .owner-offline-page {
+    padding: 12px;
+  }
+
+  .oob-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .oob-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .oob-card {
+    grid-template-columns: 1fr;
+  }
+
+  .oob-thumb-wrap {
+    width: 100%;
+    height: 150px;
   }
 }
 

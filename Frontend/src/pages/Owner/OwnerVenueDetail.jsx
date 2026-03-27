@@ -383,7 +383,9 @@ const OwnerVenueDetail = () => {
             </div>
 
             {fieldsLoading ? (
-              <p className="ovd-muted">Đang tải danh sách sân...</p>
+              <div className="owner-loading" style={{ padding: 8 }}>
+                <span className="owner-spinner sm" />
+              </div>
             ) : filteredFields.length === 0 ? (
               <p className="ovd-muted">Không có sân phù hợp bộ lọc.</p>
             ) : (

@@ -540,16 +540,6 @@ const BookingPayment = () => {
               hiệu lực trên hệ thống.
             </p>
             <div className="bp-expired-actions">
-              {reservationId && (
-                <button
-                  type="button"
-                  className="bp-btn-try-pay"
-                  onClick={handleTryPayAfterExpired}
-                  disabled={paying}
-                >
-                  {paying ? "Đang xử lý..." : "Thử thanh toán"}
-                </button>
-              )}
               <button
                 className="bp-back-link"
                 onClick={() => navigate("/bookings")}

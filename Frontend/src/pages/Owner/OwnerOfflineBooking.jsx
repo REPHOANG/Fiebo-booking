@@ -57,7 +57,9 @@ const OwnerOfflineBooking = () => {
 
       {loading ? (
         <div className="oob-empty">
-          <p>Đang tải...</p>
+          <div className="owner-loading">
+            <span className="owner-spinner" />
+          </div>
         </div>
       ) : venues.length === 0 ? (
         <div className="oob-empty">

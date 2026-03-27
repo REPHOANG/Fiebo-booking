@@ -179,3 +179,27 @@
   color: #374151;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .oed-page {
+    padding: 12px;
+  }
+
+  .oed-card {
+    padding: 14px;
+  }
+
+  .oed-edit-row {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .oed-edit-form label input,
+  .oed-edit-form label textarea {
+    max-width: 100%;
+  }
+
+  .oed-table {
+    min-width: 560px;
+  }
+}
