@@ -66,7 +66,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Đăng nhập Google thành công",
+                Message = "Đăng nhập thành công",
                 Data = token
             });
         }
@@ -166,7 +166,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Vui lòng cung cấp email hoặc số điện thoại để gửi yêu cầu đặt lại mật khẩu."
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
             var result = await _authService.SendForgotPasswordAsync(request.Account);
@@ -200,7 +200,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Mã OTP không hợp lệ hoặc đã hết hạn"
+                    Message = "Mã OTP không hợp lệ. Vui lòng thử lại."
                 });
             }
             return Ok(new ApiResponse<object>

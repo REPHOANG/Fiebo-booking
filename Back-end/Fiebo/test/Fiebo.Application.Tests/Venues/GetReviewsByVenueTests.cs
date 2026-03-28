@@ -24,7 +24,7 @@ namespace Fiebo.Application.Tests.Venues
         {
             _unitOfWork.Setup(x => x.Reviews).Returns(_reviewRepo.Object);
 
-            _service = new VenueService(_unitOfWork.Object, null!, _identityService.Object);
+            _service = new VenueService(_unitOfWork.Object, null!, _identityService.Object, null!, null!);
         }
 
         [Fact]

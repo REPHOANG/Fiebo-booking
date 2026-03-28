@@ -102,7 +102,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<BadRequestException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Vui lòng nhập đầy đủ thông tin đăng nhập.", exception.Message);
+            Assert.Equal("Định dạng số điện thoại không hợp lệ. Vui lòng nhập số điện thoại hợp lệ.", exception.Message);
             _mocker.GetMock<IIdentityService>()
                 .Verify(x => x.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -125,7 +125,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<BadRequestException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Vui lòng nhập đầy đủ thông tin đăng nhập.", exception.Message);
+            Assert.Equal("Định dạng số điện thoại không hợp lệ. Vui lòng nhập số điện thoại hợp lệ.", exception.Message);
             _mocker.GetMock<IIdentityService>()
                 .Verify(x => x.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -148,7 +148,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<BadRequestException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Vui lòng nhập đầy đủ thông tin đăng nhập.", exception.Message);
+            Assert.Equal("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.", exception.Message);
             _mocker.GetMock<IIdentityService>()
                 .Verify(x => x.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -175,7 +175,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<UnauthorizedException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Sai tài khoản hoặc mật khẩu!", exception.Message);
+            Assert.Equal("Địa chỉ email/số điện thoại hoặc mật khẩu không hợp lệ.", exception.Message);
         }
 
         #endregion
@@ -200,7 +200,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<UnauthorizedException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Sai tài khoản hoặc mật khẩu!", exception.Message);
+            Assert.Equal("Địa chỉ email/số điện thoại hoặc mật khẩu không hợp lệ.", exception.Message);
         }
 
         #endregion
@@ -221,7 +221,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<BadRequestException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Vui lòng nhập đầy đủ thông tin đăng nhập.", exception.Message);
+            Assert.Equal("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.", exception.Message);
             _mocker.GetMock<IIdentityService>()
                 .Verify(x => x.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -248,7 +248,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<UnauthorizedException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Tài khoản chưa được kích hoạt OTP!", exception.Message);
+            Assert.Equal("Phiên đăng nhập của bạn đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.", exception.Message);
             _mocker.GetMock<ITokenService>()
                 .Verify(x => x.GenerateAccessToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -275,7 +275,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<UnauthorizedException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Tài khoản chưa được kích hoạt OTP!", exception.Message);
+            Assert.Equal("Phiên đăng nhập của bạn đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.", exception.Message);
         }
 
         #endregion
@@ -300,7 +300,7 @@ namespace Fiebo.Application.Tests.Auth
             var exception = await Assert.ThrowsAsync<UnauthorizedException>(
                 () => _authService.LoginAsync(request));
 
-            Assert.Equal("Tài khoản của bạn đã bị khóa!", exception.Message);
+            Assert.Equal("Tài khoản của bạn đã bị khóa tạm thời do nhiều lần đăng nhập không thành công.", exception.Message);
             _mocker.GetMock<ITokenService>()
                 .Verify(x => x.GenerateAccessToken(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }

@@ -139,6 +139,14 @@ const OwnerLayout = () => {
             <ReceiptText size={16} />
             Đơn đặt sân
           </NavLink>
+          <NavLink
+            to="/owner/staff"
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            Nhân viên
+          </NavLink>
 
           <div className="owner-sidebar-divider" />
 

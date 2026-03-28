@@ -115,7 +115,7 @@ namespace Fiebo.Infrastructure.ExternalServices
             else
             {
                 if (user.Status == Fiebo.Domain.Enums.UserStatus.Banned)
-                    throw new UnauthorizedException("Tài khoản của bạn đã bị khóa!");
+                    throw new UnauthorizedException("Tài khoản của bạn đã bị khóa tạm thời do nhiều lần đăng nhập không thành công.");
 
                 if (user.Status == Fiebo.Domain.Enums.UserStatus.Inactive)
                 {
@@ -155,7 +155,7 @@ namespace Fiebo.Infrastructure.ExternalServices
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Thay đổi mật khẩu thành công"
+                Message = "Mật khẩu của bạn đã được thay đổi thành công."
             };
         }
 
@@ -173,7 +173,8 @@ namespace Fiebo.Infrastructure.ExternalServices
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 DateOfBirth = user.DateOfBirth,
-                Roles = string.Join(", ", await _userManager.GetRolesAsync(user))
+                Roles = string.Join(", ", await _userManager.GetRolesAsync(user)),
+                Status = user.Status.ToString()
             };
         }
 
@@ -198,7 +199,7 @@ namespace Fiebo.Infrastructure.ExternalServices
                     return new ServiceResponse
                     {
                         IsSuccess = false,
-                        Message = "Số điện thoại này đã được sử dụng"
+                        Message = "Số điện thoại này đã được đăng ký. Vui lòng thử số khác hoặc đăng ký."
                     };
                 }
 
@@ -227,7 +228,7 @@ namespace Fiebo.Infrastructure.ExternalServices
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Cập nhật thông tin người dùng thành công"
+                Message = "Thông tin cá nhân đã được cập nhật thành công."
             };
         }
 
@@ -295,7 +296,7 @@ namespace Fiebo.Infrastructure.ExternalServices
             return new ServiceResponse
             {
                 IsSuccess = true,
-                Message = "Đặt lại mật khẩu thành công"
+                Message = "Mật khẩu của bạn đã được đặt lại thành công."
             };
         }
 

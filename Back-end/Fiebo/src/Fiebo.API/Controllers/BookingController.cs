@@ -38,7 +38,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<BookingPaymentResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Booking payment completed successfully using system wallet.",
+                Message = "Thanh toán thành công.",
                 Data = result
             });
         }

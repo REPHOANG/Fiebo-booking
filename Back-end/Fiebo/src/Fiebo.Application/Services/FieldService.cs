@@ -103,7 +103,7 @@ namespace Fiebo.Application.Services
             var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
             if (field == null || field.VenueId != venueId)
             {
-                throw new NotFoundException("Không tìm thấy sân trong cơ sở này.");
+                throw new NotFoundException("Không tìm thấy sân hợp lệ.");
             }
 
             if (field.Status == newStatus)

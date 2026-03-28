@@ -23,6 +23,7 @@ import CreateEvent from '../pages/Owner/Event/CreateEvent';
 import OwnerEventDetail from '../pages/Owner/Event/OwnerEventDetail';
 import OwnerBookings from '../pages/Owner/OwnerBookings';
 import OwnerBookingDetail from '../pages/Owner/OwnerBookingDetail';
+import StaffList from '../pages/Owner/Staff/StaffList';
 import EventDetail from '../pages/Event/EventDetail';
 import EventRegister from '../pages/Event/EventRegister';
 import EventTicketDetail from '../pages/Event/EventTicketDetail';
@@ -35,8 +36,9 @@ import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
 import MapExplore from '../pages/MapExplore';
-import LoadingPage from '../components/ui/Loading/LoadingPage';
-import ErrorPage from '../components/ui/Error/ErrorPage';
+import Wallet from '../pages/Customer/Wallet/Wallet';
+import WalletTransactionHistory from '../pages/Customer/Wallet/WalletTransactionHistory';
+
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -78,6 +80,7 @@ const AppRoutes = () => (
       <Route path="/owner/create-venue" element={<CreateVenue />} />
     <Route path="/owner/bookings" element={<OwnerBookings />} />
     <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />
+    <Route path="/owner/staff" element={<StaffList />} />
     <Route path="/owner/events" element={<OwnerEvents />} />
     <Route path="/owner/events/create" element={<CreateEvent />} />
     <Route path="/owner/events/:id" element={<OwnerEventDetail />} />
@@ -97,9 +100,8 @@ const AppRoutes = () => (
       <Route path="/bookings/:id" element={<ProtectedRoute element={<BookingList />} />} />
       <Route path="/venues" element={<Venues />} />
       <Route path="/admin" element={<div>Admin Page</div>} />
+      <Route path="/wallet" element={<ProtectedRoute element={<Wallet />} />} />
     </Route>
-      <Route path="/loading" element={<ErrorPage/>} />
-
   </Routes>
 );
 

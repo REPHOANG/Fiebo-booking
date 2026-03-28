@@ -152,7 +152,7 @@ namespace Fiebo.Application.Services
             var eventDetail = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
             if (eventDetail == null)
             {
-                throw new NotFoundException("Không tìm thấy sự kiện");
+                throw new NotFoundException("Sự kiện này không tồn tại");
             }
             var firstDetail = eventDetail.Details.First();
             var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}"; var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
@@ -186,7 +186,7 @@ namespace Fiebo.Application.Services
             var participant = await _unitOfWork.TicketParticipants.GetTicketDetailAsync(ticketId);
             if (participant == null)
             {
-                throw new NotFoundException("Không tìm thấy vé");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             if (participant.UserId != userId)
             {
@@ -246,12 +246,12 @@ namespace Fiebo.Application.Services
                 var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
                 if (dropInEvent == null)
                 {
-                    throw new NotFoundException("Không tìm thấy sự kiện");
+                    throw new NotFoundException("Sự kiện này không tồn tại");
                 }
 
                 if (dropInEvent.Status != TicketEventStatus.Pending)
                 {
-                    throw new BadRequestException("Sự kiện không có sẵn");
+                    throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
                 }
 
                 // 3. Check slot capacity (fix bug quantity)
@@ -303,7 +303,7 @@ namespace Fiebo.Application.Services
             var participant = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId);
             if (participant == null)
             {
-                throw new NotFoundException("Không tìm thấy vé");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             if (participant.UserId != userId)
             {
@@ -316,7 +316,7 @@ namespace Fiebo.Application.Services
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
             if (wallet == null)
             {
-                throw new NotFoundException("Không tìm thấy ví của người dùng");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
             if (wallet.Balance < participant.TotalPrice)
             {
@@ -418,7 +418,7 @@ namespace Fiebo.Application.Services
             var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
             if (dropInEvent == null)
             {
-                throw new NotFoundException("Không tìm thấy sự kiện");
+                throw new NotFoundException("Sự kiện này không tồn tại");
             }
             var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(eventId);
             if (earliestSlot == null)

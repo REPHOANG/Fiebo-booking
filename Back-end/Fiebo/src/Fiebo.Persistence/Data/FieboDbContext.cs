@@ -35,8 +35,9 @@ namespace Fiebo.Persistence.Data
         public DbSet<TicketEvent> TicketEvents { get; set; }
         public DbSet<TicketParticipant> TicketParticipants { get; set; }
         public DbSet<TicketEventDetail> TicketEventDetails { get; set; }
-        public DbSet<VenueStaff> VenueStaff {  get; set; }
-
+        public DbSet<VenueStaff> VenueStaff { get; set; }
+        public DbSet<VenueDocument> VenueDocuments { get; set; }
+        public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -193,9 +194,9 @@ namespace Fiebo.Persistence.Data
                 entity.HasIndex(e => e.BookingId)
                         .IsUnique();
 
-                    entity.HasMany(r => r.Images)
-                          .WithOne(i => i.Review)
-                          .HasForeignKey(i => i.ReviewId);
+                entity.HasMany(r => r.Images)
+                      .WithOne(i => i.Review)
+                      .HasForeignKey(i => i.ReviewId);
             });
 
             // Booking
@@ -441,8 +442,8 @@ namespace Fiebo.Persistence.Data
 
                 // Relationships
                 entity.HasMany(e => e.Details)
-                .WithOne(d => d.Event)        
-                .HasForeignKey(d => d.EventId)        
+                .WithOne(d => d.Event)
+                .HasForeignKey(d => d.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(e => e.Participants)
@@ -511,6 +512,55 @@ namespace Fiebo.Persistence.Data
                       .HasForeignKey(vs => vs.VenueId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // VenueDocument
+            modelBuilder.Entity<VenueDocument>(entity =>
+            {
+                entity.ToTable("VenueDocuments");
+
+                entity.HasKey(e => e.Id);
+
+                // Id tự tăng
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.VenueId)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Venue)
+                    .WithMany(v => v.Documents)
+                    .HasForeignKey(e => e.VenueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.Images)
+                    .WithOne(i => i.Document)
+                    .HasForeignKey(i => i.DocumentId);
+            });
+
+            // VenueDocumentImage
+            modelBuilder.Entity<VenueDocumentImage>(entity =>
+            {
+                entity.ToTable("VenueDocumentImages");
+
+                entity.HasKey(e => e.Id);
+
+                // Id tự tăng
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.DocumentId)
+                    .IsRequired();
+
+                entity.Property(e => e.ImageUrl)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Document)
+                    .WithMany(d => d.Images)
+                    .HasForeignKey(e => e.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
         }
     }
 }

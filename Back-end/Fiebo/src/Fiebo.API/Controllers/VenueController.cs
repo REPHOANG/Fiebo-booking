@@ -1,6 +1,7 @@
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Shared;
@@ -163,7 +164,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "page must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -172,7 +173,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "pageSize must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -181,7 +182,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "time cannot be provided without date"
+                    Message = "Ngày tìm kiếm không hợp lệ."
                 });
             }
 
@@ -381,6 +382,84 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Cập nhật trạng thái sân thành công."
             });
+        }
+
+        /// <summary>
+        /// API for owner to create new venue.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venue/draft")]
+        public async Task<IActionResult> CreateVenue([FromForm] CreateVenueRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _venueService.CreateVenueAsync(request, ownerId);
+            return Ok(new ApiResponse<CreateVenueResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Upload venue document images when create venue
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venues/{venueId}/documents")]
+        public async Task<IActionResult> UploadVenueDocument([FromRoute] int venueId, [FromForm] CreateVenueDocumentRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.UploadVenueDocumentAsync(venueId, ownerId, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải lên tài liệu sân thành công."
+            });
+        }
+
+        /// <summary>
+        /// Get the draft venue detail (for preview before submit) or view detail of draft venue
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venues/{venueId}/draft")]
+        public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _venueService.GetVenueDraftAsync(venueId, ownerId);
+            return Ok(new ApiResponse<VenueDraftResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin sân nháp thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Submit drafted venue for approval.
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/venues/{venueId}/submit")]
+        public async Task<IActionResult> SubmitVenueDraft([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.SubmitVenueDraftAsync(venueId, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Nộp duyệt sân thành công."
+            });
+
         }
     }
 }

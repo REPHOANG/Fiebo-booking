@@ -28,5 +28,6 @@ namespace Fiebo.Domain.Repositories
             double? radiusKm);
         Task<List<Venue>> GetVenuesByOwnerAsync(string ownerId);
         Task<List<Venue>> GetVenuesWithStaffAsync(string ownerId);
+        Task<Venue?> GetVenueWithDocumentsAsync(int venueId);
     }
 }

@@ -25,7 +25,7 @@ namespace Fiebo.Application.Tests.Venues
         public UpdateVenueTests()
         {
             _unitOfWork.Setup(x => x.Venues).Returns(_venueRepo.Object);
-            _service = new VenueService(_unitOfWork.Object, null!, null!);
+            _service = new VenueService(_unitOfWork.Object, null!, null!, null!, null!);
         }
 
         private static UpdateVenueRequest ValidRequest() => new()
@@ -37,8 +37,8 @@ namespace Fiebo.Application.Tests.Venues
             WardId = 10,
             Longitude = 105.8,
             Latitude = 21.0,
-            OpenTime = new TimeSpan(6, 0, 0),
-            CloseTime = new TimeSpan(22, 0, 0)
+            OpenTime = new TimeOnly(6, 0, 0),
+            CloseTime = new TimeOnly(22, 0, 0)
         };
 
         private static Venue ExistingVenue() => new()
@@ -47,8 +47,8 @@ namespace Fiebo.Application.Tests.Venues
             Name = "Old Name",
             OwnerId = OwnerId,
             Status = VenueStatus.Active,
-            OpenTime = new TimeSpan(7, 0, 0),
-            CloseTime = new TimeSpan(21, 0, 0)
+            OpenTime = new TimeOnly(7, 0, 0),
+            CloseTime = new TimeOnly(21, 0, 0)
         };
 
         // ================================================================
@@ -106,8 +106,8 @@ namespace Fiebo.Application.Tests.Venues
             _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(ExistingVenue());
 
             var request = ValidRequest();
-            request.OpenTime = new TimeSpan(18, 0, 0);
-            request.CloseTime = new TimeSpan(8, 0, 0);
+            request.OpenTime = new TimeOnly(18, 0, 0);
+            request.CloseTime = new TimeOnly(8, 0, 0);
 
             var ex = await Assert.ThrowsAsync<BadRequestException>(
                 () => _service.UpdateVenueAsync(VenueId, request, null, OwnerId, AppRoles.FieldOwner));
@@ -121,8 +121,8 @@ namespace Fiebo.Application.Tests.Venues
             _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(ExistingVenue());
 
             var request = ValidRequest();
-            request.OpenTime = new TimeSpan(10, 0, 0);
-            request.CloseTime = new TimeSpan(10, 0, 0);
+            request.OpenTime = new TimeOnly(10, 0, 0);
+            request.CloseTime = new TimeOnly(10, 0, 0);
 
             await Assert.ThrowsAsync<BadRequestException>(
                 () => _service.UpdateVenueAsync(VenueId, request, null, OwnerId, AppRoles.FieldOwner));
@@ -148,8 +148,8 @@ namespace Fiebo.Application.Tests.Venues
             Assert.Equal(10, venue.WardId);
             Assert.Equal(105.8, venue.Longitude);
             Assert.Equal(21.0, venue.Latitude);
-            Assert.Equal(new TimeSpan(6, 0, 0), venue.OpenTime);
-            Assert.Equal(new TimeSpan(22, 0, 0), venue.CloseTime);
+            Assert.Equal(new TimeOnly(6, 0, 0), venue.OpenTime);
+            Assert.Equal(new TimeOnly(22, 0, 0), venue.CloseTime);
             Assert.NotNull(venue.UpdatedAt);
             _unitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
         }

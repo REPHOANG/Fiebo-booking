@@ -11,12 +11,10 @@ import "leaflet/dist/leaflet.css";
 import { getProfile } from "./services/authService";
 import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
-import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
 import AppRoutes from "./routers/router";
 import store from "./store";
 import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
-const SPLASH_MIN_MS = 800;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,17 +43,6 @@ const App = () => {
     }
   }, [token, dispatch]);
 
-  // Kiểm tra token định kỳ (token có thể hết hạn khi user đang dùng app)
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     const currentToken = store.getState?.()?.auth?.token ?? null;
-  //     if (currentToken && isTokenExpired(currentToken)) {
-  //       dispatch(logout());
-  //       localStorage.removeItem(AUTH_STORAGE_KEY);
-  //     }
-  //   }, 60 * 1000);
-  //   return () => clearInterval(interval);
-  // }, [dispatch]);
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {
@@ -103,7 +90,6 @@ const App = () => {
     const init = async () => {
       console.log("🚀 App initializing...");
 
-      const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
 
       const apiReady = getProfile()
         .then((profile) => {
@@ -120,7 +106,6 @@ const App = () => {
       await Promise.all([apiReady]);
 
       if (!cancelled) {
-        setIsInitialLoading(false);
 
         if (!localStorage.getItem("locationPromptAsked")) {
           setShowLocationPrompt(true);

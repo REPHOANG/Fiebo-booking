@@ -141,6 +141,7 @@ const Header = () => {
                   >
                     <Link to="/profile">Hồ sơ</Link>
                     <Link to="/bookings">Sân đã đặt</Link>
+                    <Link to="/wallet">Ví của tôi</Link>
                     {isOwner && <Link to="/owner/venues">Sân của tôi</Link>}
 
                     <div className="dropdown-divider" />

@@ -11,5 +11,7 @@ namespace Fiebo.Application.DTOs.Owner
         public string StaffId { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public string Username { get; set; } = null!;
+        public string Status { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

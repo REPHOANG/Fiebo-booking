@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Interfaces
@@ -30,6 +31,11 @@ namespace Fiebo.Application.Interfaces
         Task<List<OwnerVenueListResponse>> GetVenuesByOwnerAsync(string ownerId);
         Task DeactivateVenueAsync(int venueId, string ownerId);
         Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId,DateOnly date);
+        Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId);
+        Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
+        Task<VenueDraftResponse> GetVenueDraftAsync(int venueId, string? ownerId);
+        Task SubmitVenueDraftAsync(int venueId, string? ownerId);
+
         Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string? newThumbnailUrl, string userId, string userRole);
     }
 }
