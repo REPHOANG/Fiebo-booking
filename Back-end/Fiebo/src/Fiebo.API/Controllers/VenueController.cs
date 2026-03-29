@@ -360,27 +360,23 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-44: Change the status of a specific field (Active/Inactive).
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPatch]
-        [Route("/api/owner/venue/{venueId}/fields/{fieldId}/status")]
+        [Route("/api/owner/venue/{venueId}/fields/{fieldId}")]
         public async Task<IActionResult> ChangeFieldStatus(
             [FromRoute] int venueId,
-            [FromRoute] int fieldId,
-            [FromBody] ChangeFieldStatusRequest request)
+            [FromRoute] int fieldId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userId))
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
             {
-                throw new UnauthorizedAccessException("Cannot identify current user.");
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
             }
-
-            var newStatus = Enum.Parse<Domain.Enums.FieldStatus>(request.Status);
-            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, newStatus, userId);
-
+            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, ownerId);
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật trạng thái sân thành công."
+                Message = "Vô hiệu hoá sân thành công"
             });
         }
 

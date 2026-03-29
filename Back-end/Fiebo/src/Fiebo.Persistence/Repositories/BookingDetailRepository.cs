@@ -90,5 +90,16 @@ namespace Fiebo.Persistence.Repositories
                     bd.Booking.BookingDate >= today &&
                     (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked));
         }
+
+        public async Task<bool> HasUpcomingBookingsForVenueAsync(int venueId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            return await _context.Bookings
+                .AnyAsync(b =>
+                    b.VenueId == venueId &&
+                    b.BookingDate >= today &&
+                    (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Booked));
+        }
     }
 }

@@ -91,11 +91,10 @@ namespace Fiebo.Application.Services
             }).ToList();
         }
 
-        public async Task ChangeFieldStatusAsync(int venueId, int fieldId, FieldStatus newStatus, string userId)
+        public async Task ChangeFieldStatusAsync(int venueId, int fieldId, string ownerId)
         {
-            // BR-55: Verify venue exists and belongs to the current user
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null || venue.OwnerId != userId)
+            if (venue == null || venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền thay đổi trạng thái sân trong cơ sở này.");
             }
@@ -106,13 +105,7 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy sân hợp lệ.");
             }
 
-            if (field.Status == newStatus)
-            {
-                throw new BadRequestException("Sân đã ở trạng thái này rồi.");
-            }
-
-            // BR-56 / E1: Block deactivation if upcoming bookings exist
-            if (newStatus == FieldStatus.Inactive)
+            if (field.Status == FieldStatus.Active)
             {
                 var hasUpcoming = await _unitOfWork.BookingDetails
                     .HasUpcomingBookingsForFieldAsync(fieldId);
@@ -120,13 +113,19 @@ namespace Fiebo.Application.Services
                 if (hasUpcoming)
                 {
                     throw new BadRequestException(
-                        "Không thể thay đổi trạng thái. Sân này đang có lịch đặt sắp tới. " +
+                        "Không thể tắt sân. Sân này đang có lịch đặt sắp tới. " +
                         "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
                 }
+
+                field.Status = FieldStatus.Inactive;
+            }
+            else
+            {
+                field.Status = FieldStatus.Active;
             }
 
-            field.Status = newStatus;
-            field.UpdatedAt = DateTime.Now;
+            field.UpdatedAt = DateTime.Now; 
+
             _unitOfWork.Fields.Update(field);
             await _unitOfWork.SaveChangesAsync();
         }

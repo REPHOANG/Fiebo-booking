@@ -388,18 +388,31 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
+
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền tắt sân này");
+                throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này");
             }
-            if (venue.Status == VenueStatus.Inactive)
+
+            if (venue.Status == VenueStatus.Active)
+            {
+                var hasUpcoming = await _unitOfWork.BookingDetails.HasUpcomingBookingsForVenueAsync(venueId);
+
+                if (hasUpcoming)
+                {
+                    throw new BadRequestException(
+                        "Không thể tắt cơ sở. Hiện đang có lịch đặt sắp tới. " +
+                        "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
+                }
+
+                venue.Status = VenueStatus.Inactive;
+            }
+            else
             {
                 venue.Status = VenueStatus.Active;
-                _unitOfWork.Venues.Update(venue);
-                await _unitOfWork.SaveChangesAsync();
-                return;
             }
-            venue.Status = VenueStatus.Inactive;
+
+            venue.UpdatedAt = DateTime.Now; 
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
