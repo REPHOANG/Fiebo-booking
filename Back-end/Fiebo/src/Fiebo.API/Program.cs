@@ -98,6 +98,7 @@ builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 builder.Services.AddScoped<IWardRepository, WardRepository>();
 builder.Services.AddScoped<IVenueDocumentRepository, VenueDocumentRepository>();
 builder.Services.AddScoped<IVenueDocumentImageRepository, VenueDocumentImageRepository>();
+builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
 
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();

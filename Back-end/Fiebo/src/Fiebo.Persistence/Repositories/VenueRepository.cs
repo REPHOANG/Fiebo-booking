@@ -291,7 +291,7 @@ namespace Fiebo.Persistence.Repositories
             return await _context.Venues
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(v => v.OwnerId == ownerId && v.Status == VenueStatus.Active)
+                .Where(v => v.OwnerId == ownerId)
                 .Include(v => v.Province)
                 .Include(v => v.Ward)
                 .Include(v => v.Fields)

@@ -97,8 +97,6 @@ namespace Fiebo.Persistence.Data
             modelBuilder.Entity<FieldImage>(entity =>
             {
                 entity.HasKey(x => x.Id);
-                entity.Property(x => x.Id)
-                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.ImageUrl)
                       .HasMaxLength(255);
