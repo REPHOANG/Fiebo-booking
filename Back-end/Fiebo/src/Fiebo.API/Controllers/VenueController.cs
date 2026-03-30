@@ -302,7 +302,7 @@ namespace Fiebo.API.Controllers
             await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, ownerId);
             return Ok(new ApiResponse<object>
             {
-                StatusCode = StatusCodes.Status200OK,pu
+                StatusCode = StatusCodes.Status200OK,
                 Message = "Vô hiệu hoá sân thành công"
             });
         }
