@@ -319,5 +319,13 @@ namespace Fiebo.Persistence.Repositories
                 .ThenInclude(d => d.Images)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<bool> IsVenueNameExistsForOwnerAsync(string ownerId, string name, int excludeVenueId)
+        {
+            return await _context.Venues
+                .AnyAsync(v => v.OwnerId == ownerId
+                            && v.Name == name
+                            && v.Id != excludeVenueId);
+        }
     }
 }

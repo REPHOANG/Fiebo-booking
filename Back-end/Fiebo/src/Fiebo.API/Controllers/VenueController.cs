@@ -424,5 +424,30 @@ namespace Fiebo.API.Controllers
                 Message = "Cập nhật thông tin sân thành công."
             });
         }
+
+        /// <summary>
+        /// Edit Venue Details: allows the Owner to update venue information.
+        /// Status transitions are handled automatically via State Machine (BR-01, BR-02).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/venues/{venueId}")]
+        public async Task<IActionResult> UpdateVenue(
+            [FromRoute] int venueId,
+            [FromForm] UpdateVenueRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định người dùng.");
+            }
+
+            await _venueService.UpdateVenueAsync(venueId, request, ownerId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật cơ sở thành công."
+            });
+        }
     }
 }

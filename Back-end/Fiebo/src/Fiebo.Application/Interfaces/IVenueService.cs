@@ -35,6 +35,7 @@ namespace Fiebo.Application.Interfaces
         Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
         Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId);
         Task SubmitVenueDraftAsync(int venueId, string? ownerId);
+        Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId);
 
     }
 }
