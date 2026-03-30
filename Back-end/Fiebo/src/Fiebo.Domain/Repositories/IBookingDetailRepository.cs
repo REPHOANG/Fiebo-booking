@@ -18,5 +18,7 @@ namespace Fiebo.Domain.Repositories
         Task AddBookingDetailsAsync(IEnumerable<BookingDetail> details);
         Task<BookingDetail?> GetEarliestDetailAsync(int bookingId);
         Task<bool> HasUpcomingBookingsForFieldAsync(int fieldId);
+
+        Task<bool> HasUpcomingBookingsForVenueAsync(int venueId);
     }
 }

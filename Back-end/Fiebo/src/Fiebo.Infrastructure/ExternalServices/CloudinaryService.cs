@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using Fiebo.Application.DTOs.Common;
 using Fiebo.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -27,19 +28,20 @@ namespace Fiebo.Infrastructure.ExternalServices
             //    var apiSecret = "msGlO4t9QvdJmy6fvv9FUjcM5Qs";
         }
 
-        public async Task<string> UploadImageAsync(IFormFile file)
+        public async Task<UploadImageResultDto> UploadImageAsync(IFormFile file)
         {
-            if (file == null || file.Length == 0) return string.Empty;
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File không hợp lệ");
 
-            var uploadResult = new ImageUploadResult();
+            ImageUploadResult uploadResult;
 
             using (var stream = file.OpenReadStream())
             {
                 var uploadParams = new ImageUploadParams
                 {
                     File = new FileDescription(file.FileName, stream),
-                    Folder = "Fiebo_Image", // Tự động tạo Folder nếu chưa có
-                    //Transformation = new Transformation().Width(800).Height(800).Crop("limit")
+                    Folder = "Fiebo_Image",
+                    // Transformation = new Transformation().Width(800).Height(800).Crop("limit")
                 };
 
                 uploadResult = await _cloudinary.UploadAsync(uploadParams);
@@ -50,7 +52,35 @@ namespace Fiebo.Infrastructure.ExternalServices
                 throw new Exception($"Cloudinary Upload Error: {uploadResult.Error.Message}");
             }
 
-            return uploadResult.SecureUrl.ToString();
+            return new UploadImageResultDto
+            {
+                Url = uploadResult.SecureUrl.ToString(),
+                PublicId = uploadResult.PublicId
+            };
+        }
+
+        public async Task DeleteImageAsync(string publicId)
+        {
+            if (string.IsNullOrWhiteSpace(publicId))
+                throw new ArgumentException("publicId không hợp lệ");
+
+            var deleteParams = new DeletionParams(publicId)
+            {
+                Invalidate = true
+            };
+
+            var result = await _cloudinary.DestroyAsync(deleteParams);
+
+            if (result.Error != null)
+            {
+                throw new Exception($"Cloudinary Delete Error: {result.Error.Message}");
+            }
+
+            // result.Result có thể là: "ok", "not found"
+            if (result.Result != "ok" && result.Result != "not found")
+            {
+                throw new Exception($"Xoá ảnh thất bại: {result.Result}");
+            }
         }
     }
 }

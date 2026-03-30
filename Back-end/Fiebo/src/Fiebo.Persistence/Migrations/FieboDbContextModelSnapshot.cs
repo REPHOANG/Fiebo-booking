@@ -155,11 +155,8 @@ namespace Fiebo.Persistence.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.FieldImage", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("FieldId")
                         .HasColumnType("int");

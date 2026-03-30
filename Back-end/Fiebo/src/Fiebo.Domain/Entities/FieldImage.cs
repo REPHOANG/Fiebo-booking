@@ -8,7 +8,7 @@ namespace Fiebo.Domain.Entities
 {
     public class FieldImage
     {
-        public int Id { get; set; }
+        public required string Id { get; set; }
 
         public int FieldId { get; set; }
 

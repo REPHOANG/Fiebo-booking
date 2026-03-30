@@ -20,7 +20,7 @@ namespace Fiebo.Application.Tests.SportTypes
         {
             _unitOfWork.Setup(x => x.SportTypes).Returns(_sportTypeRepo.Object);
 
-            _service = new FieldService(_unitOfWork.Object);
+            _service = new FieldService(_unitOfWork.Object, null!);
         }
 
         [Fact]

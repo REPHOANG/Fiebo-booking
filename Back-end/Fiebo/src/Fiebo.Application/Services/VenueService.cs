@@ -3,6 +3,7 @@ using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
+using Fiebo.Application.Validators;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
@@ -167,9 +168,9 @@ namespace Fiebo.Application.Services
         public async Task<VenueDetailResponse?> GetVenueDetail(int venueId)
         {
             var venue = await _unitOfWork.Venues.GetVenueDetailById(venueId);
-            if (venue == null)
+            if (venue == null || venue.Status != VenueStatus.Active)
             {
-                return null;
+                throw new NotFoundException("Không tìm thấy cơ sở");
             }
             return new VenueDetailResponse
             {
@@ -190,6 +191,11 @@ namespace Fiebo.Application.Services
 
         public async Task<PagedResult<ReviewDTO>> GetReviewsByVenue(int venueId, int page, int pageSize, string? sort)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null || venue.Status != VenueStatus.Active)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
             var result = await _unitOfWork.Reviews
                 .GetByVenueAsync(venueId, page, pageSize, sort);
             var userIds = result.Items.Select(r => r.UserId).ToList();
@@ -293,12 +299,16 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
+            if(venue.Status != VenueStatus.Active)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
             var sportTypes = await _unitOfWork.Fields.GetSportTypesByVenueAsync(venueId);
 
             var slots = await _unitOfWork.TimeSlots
                 .GetTimeSlotsByVenueAndDateAsync(venueId, date);
 
-            var fields = await _unitOfWork.Fields.GetFieldsWithBookingsAsync(venueId, date);
+            var fields = await _unitOfWork.Fields.GetFieldsWithBookingsAsync(venueId, date, FieldStatus.Active);
 
             var events = await _unitOfWork.TicketEventsDetails
                 .GetEventsByVenueAndDateAsync(venueId, date);
@@ -388,18 +398,31 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
+
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền tắt sân này");
+                throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này");
             }
-            if (venue.Status == VenueStatus.Inactive)
+
+            if (venue.Status == VenueStatus.Active)
+            {
+                var hasUpcoming = await _unitOfWork.BookingDetails.HasUpcomingBookingsForVenueAsync(venueId);
+
+                if (hasUpcoming)
+                {
+                    throw new BadRequestException(
+                        "Không thể tắt cơ sở. Hiện đang có lịch đặt sắp tới. " +
+                        "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
+                }
+
+                venue.Status = VenueStatus.Inactive;
+            }
+            else
             {
                 venue.Status = VenueStatus.Active;
-                _unitOfWork.Venues.Update(venue);
-                await _unitOfWork.SaveChangesAsync();
-                return;
             }
-            venue.Status = VenueStatus.Inactive;
+
+            venue.UpdatedAt = DateTime.Now; 
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -418,52 +441,7 @@ namespace Fiebo.Application.Services
             return await GetVenueSchedule(venueId, date);
         }
 
-        public async Task UpdateVenueAsync(
-            int venueId,
-            UpdateVenueRequest request,
-            string? newThumbnailUrl,
-            string userId,
-            string userRole)
-        {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null)
-            {
-                throw new NotFoundException("Không tìm thấy cơ sở.");
-            }
-
-            // BR-62: Admin can edit any venue; Owner can only edit their own
-            bool isAdmin = userRole == Domain.Constants.AppRoles.Admin;
-            if (!isAdmin && venue.OwnerId != userId)
-            {
-                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa cơ sở này.");
-            }
-
-            // E2: CloseTime must be after OpenTime
-            if (request.CloseTime <= request.OpenTime)
-            {
-                throw new BadRequestException(
-                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
-            }
-
-            venue.Name = request.Name;
-            venue.Description = request.Description;
-            venue.AddressDetail = request.AddressDetail;
-            venue.ProvinceId = request.ProvinceId;
-            venue.WardId = request.WardId;
-            venue.Longitude = request.Longitude;
-            venue.Latitude = request.Latitude;
-            venue.OpenTime = request.OpenTime;
-            venue.CloseTime = request.CloseTime;
-            venue.UpdatedAt = DateTime.Now;
-
-            if (!string.IsNullOrEmpty(newThumbnailUrl))
-            {
-                venue.ThumbnailUrl = newThumbnailUrl;
-            }
-
-            _unitOfWork.Venues.Update(venue);
-            await _unitOfWork.SaveChangesAsync();
-        }
+        
 
         public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
         {
@@ -474,7 +452,7 @@ namespace Fiebo.Application.Services
             
             var file = request.Thumbnail;
             var fileList = file != null ? new List<IFormFile> { file } : [];
-            ValidateFiles(fileList, 0, 1);
+            ImageValidator.ValidateFiles(fileList, 0, 1);
 
             var venue = new Venue
             {
@@ -488,7 +466,7 @@ namespace Fiebo.Application.Services
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
                 OwnerId = ownerId,
-                ThumbnailUrl = file != null ? await _cloudinaryService.UploadImageAsync(file) : null,
+                ThumbnailUrl = file != null ? (await _cloudinaryService.UploadImageAsync(file)).Url : null,
                 Status = VenueStatus.Draft
             };
             _unitOfWork.Venues.Add(venue);
@@ -516,8 +494,8 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn không có quyền tải lên giấy tờ cho sân này");
             }
-            ValidateFiles(request.BusinessDocument.Images);
-            ValidateFiles(request.LandUseDocument.Images);
+            ImageValidator.ValidateFiles(request.BusinessDocument.Images);
+            ImageValidator.ValidateFiles(request.LandUseDocument.Images);
             var businessDoc = new VenueDocument
             {
                 VenueId = venueId,
@@ -555,7 +533,7 @@ namespace Fiebo.Application.Services
             {
                 try
                 {
-                    var url = await _cloudinaryService.UploadImageAsync(file);
+                    var url = (await _cloudinaryService.UploadImageAsync(file)).Url;
 
                     result.Add(new VenueDocumentImage
                     {
@@ -570,49 +548,9 @@ namespace Fiebo.Application.Services
                 }
             }
         }
-        private static void ValidateFiles(
-            IEnumerable<IFormFile> files,
-            int min = 1,
-            int max = 5,
-            long maxSizeInBytes = 5 * 1024 * 1024)
-        {
-            if (files == null || !files.Any())
-                throw new BadRequestException($"Phải có ít nhất {min} ảnh");
+        
 
-            var fileList = files.ToList();
-
-            if (fileList.Count < min || fileList.Count > max)
-                throw new BadRequestException($"Số lượng ảnh phải từ {min} đến {max}");
-
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
-            var allowedContentTypes = new[]
-            {
-                "image/jpeg",
-                "image/jpg",
-                "image/png",
-                "image/webp",
-                "image/svg+xml"
-            };
-
-            foreach (var file in fileList)
-            {
-                if (file.Length == 0)
-                    throw new BadRequestException("Ảnh không hợp lệ");
-
-                if (file.Length > maxSizeInBytes)
-                    throw new BadRequestException($"Mỗi ảnh không được vượt quá {maxSizeInBytes / (1024 * 1024)}MB");
-
-                var extension = Path.GetExtension(file.FileName).ToLower();
-
-                if (!allowedExtensions.Contains(extension))
-                    throw new BadRequestException("Chỉ chấp nhận ảnh jpg, jpeg, png, webp, svg");
-
-                if (!allowedContentTypes.Contains(file.ContentType))
-                    throw new BadRequestException("Định dạng ảnh không hợp lệ");
-            }
-        }
-
-        public async Task<VenueDraftResponse> GetVenueDraftAsync(int venueId, string? ownerId)
+        public async Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId)
         {
             if (ownerId == null)
             {
@@ -627,11 +565,7 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn không có quyền xem bản nháp của sân này");
             }
-            if (venue.Status != VenueStatus.Draft)
-            {
-                throw new BadRequestException("Chỉ có thể xem bản nháp của sân đang ở trạng thái Draft");
-            }
-            return new VenueDraftResponse
+            return new OwnerVenueDetailResponse
             {
                 Id = venue.Id,
                 Name = venue.Name,
