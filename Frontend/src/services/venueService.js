@@ -11,41 +11,34 @@ export const ownerVenueScheduleUrl = (venueId) =>
   `/api/owner/venue/${venueId}/schedule`;
 
 /**
- * Step 1 — Create venue draft
- * POST `/api/venues`
- * @param {Object} payload
- * @param {string} payload.name
- * @param {string} payload.ownerId
- * @param {string} payload.openTime - "HH:mm:ss"
- * @param {string} payload.closeTime - "HH:mm:ss"
- * @param {string} [payload.description]
- * @param {string} payload.addressDetail
- * @param {number} payload.provinceId
- * @param {number} payload.wardId
- * @param {number} payload.latitude
- * @param {number} payload.longitude
- * @param {string} [payload.thumbnailUrl]
+ * Step 1 — Owner: tạo cơ sở nháp (multipart, khớp Swagger)
+ * POST `/api/owner/venue/draft`
+ * @param {FormData} formData — Name, OpenTime, CloseTime, Description?, AddressDetail, ProvinceId, WardId, Latitude, Longitude, Thumbnail?
  * @returns {Promise<{venueId:number,status:string}|any>}
  */
-export const createVenue = async (payload) => {
-  const response = await api.post('/api/venues', payload);
+export const createVenue = async (formData) => {
+  const response = await api.post('/api/owner/venue/draft', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return unwrap(response) ?? response;
 };
 
 /**
- * Step 2 — Add documents
- * POST `/api/venues/{venueId}/documents`
- * Body: { documents: [{ documentType, issueDate, expiryDate, images: [url] }] }
+ * Step 2 — Owner: upload giấy tờ (multipart)
+ * POST `/api/owner/venues/{venueId}/documents`
+ * Form keys: LandUseDocument.IssueDate, LandUseDocument.ExpiryDate, LandUseDocument.Images (lặp),
+ *            BusinessDocument.IssueDate, BusinessDocument.ExpiryDate, BusinessDocument.Images (lặp)
  */
-export const addVenueDocuments = async (venueId, payload) => {
-  const response = await api.post(`/api/venues/${venueId}/documents`, payload);
+export const addVenueDocuments = async (venueId, formData) => {
+  const response = await api.post(`/api/owner/venues/${venueId}/documents`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return unwrap(response) ?? response;
 };
 
 /**
- * Step 3 — Assign sport types
+ * Legacy / optional — gán bộ môn (nếu backend còn route `/api/venues/...`)
  * POST `/api/venues/{venueId}/sport-types`
- * Body: { sportTypeIds: number[] }
  */
 export const assignVenueSportTypes = async (venueId, payload) => {
   const response = await api.post(`/api/venues/${venueId}/sport-types`, payload);
@@ -53,11 +46,19 @@ export const assignVenueSportTypes = async (venueId, payload) => {
 };
 
 /**
- * Step 4 — Submit venue (DRAFT -> PENDING)
- * POST `/api/venues/{venueId}/submit`
+ * Step 3 — Owner: gửi duyệt (DRAFT → PENDING)
+ * PUT `/api/owner/venues/{venueId}/submit`
  */
 export const submitVenue = async (venueId) => {
-  const response = await api.post(`/api/venues/${venueId}/submit`, {});
+  const response = await api.put(`/api/owner/venues/${venueId}/submit`);
+  return unwrap(response) ?? response;
+};
+
+/**
+ * GET `/api/owner/venues/{venueId}/draft` — xem trước / chi tiết nháp
+ */
+export const getVenueDraft = async (venueId) => {
+  const response = await api.get(`/api/owner/venues/${venueId}/draft`);
   return unwrap(response) ?? response;
 };
 

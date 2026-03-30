@@ -79,6 +79,16 @@
     width: 100%;
     justify-content: space-between;
   }
+
+  .ov-tabbar {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .ov-tab {
+    flex: 1;
+    justify-content: center;
+  }
 }
 
 .ov-empty {
@@ -102,6 +112,98 @@
 
 .ov-create-link:hover {
   text-decoration: underline;
+}
+
+.ov-tab-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ov-tabbar {
+  display: inline-flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 4px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ov-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ov-tab:hover {
+  color: #0f172a;
+  background: rgba(19, 154, 68, 0.06);
+}
+
+.ov-tab--active {
+  color: #fff;
+  background: #139a44;
+  box-shadow: 0 2px 8px rgba(19, 154, 68, 0.35);
+}
+
+.ov-tab--active:hover {
+  color: #fff;
+  background: #0f7c36;
+}
+
+.ov-tab-label {
+  white-space: nowrap;
+}
+
+.ov-tab-count {
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 1.5em;
+  text-align: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+.ov-tab--active .ov-tab-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.ov-tab-hint {
+  margin: 12px 0 14px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  max-width: 720px;
+}
+
+.ov-tabpanel {
+  min-height: 80px;
+}
+
+.ov-section-empty {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px dashed #e2e8f0;
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #94a3b8;
 }
 
 .ov-list {
@@ -195,6 +297,19 @@
   background: rgba(148, 163, 184, 0.16);
   border-color: rgba(100, 116, 139, 0.30);
   color: #64748b;
+}
+
+.ov-status[data-status="pending"],
+.ov-status[data-status="draft"] {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #b45309;
+}
+
+.ov-status[data-status="rejected"] {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #b91c1c;
 }
 
 .ov-card-meta {

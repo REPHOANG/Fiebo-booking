@@ -670,16 +670,6 @@ const BookingConfirmation = () => {
             /* ── Logged-in user ── */
             <>
               <div className="bc-customer-row">
-                <span className="bc-customer-label">Email</span>
-                <input
-                  className="bc-field-input"
-                  type="email"
-                  value={user?.email || user?.username || ""}
-                  disabled
-                  readOnly
-                />
-              </div>
-              <div className="bc-customer-row">
                 <span className="bc-customer-label">Họ tên</span>
                 <input
                   className={`bc-field-input${nameError ? " error" : ""}`}

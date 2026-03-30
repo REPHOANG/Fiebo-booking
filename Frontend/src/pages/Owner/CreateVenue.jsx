@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import { useSelector } from "react-redux";
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import {
@@ -13,12 +12,9 @@ import {
   Building2,
   MapPinned,
   LayoutList,
-  Plus,
   Trash2,
 } from "lucide-react";
-// NOTE: Tạm thời chỉ chạy giao diện (mock), chưa gọi API.
-// import { addVenueDocuments, createVenue, submitVenue } from "../../services/venueService";
-// import { getSportTypes } from "../../services/sportTypeService";
+import { addVenueDocuments, createVenue, submitVenue } from "../../services/venueService";
 import "./CreateVenue.css";
 
 // Fix Leaflet default marker icons (Vite/CRA asset resolution)
@@ -42,13 +38,6 @@ const schema = yup.object({
     .min(3, "Tên cơ sở ít nhất 3 ký tự")
     .required("Vui lòng nhập tên cơ sở"),
   description: yup.string().optional(),
-  thumbnailUrl: yup
-    .string()
-    .trim()
-    .url("Thumbnail phải là URL hợp lệ")
-    .optional()
-    .nullable()
-    .transform((v) => (v === "" ? null : v)),
   openTime: yup.string().required("Vui lòng nhập giờ mở cửa"),
   closeTime: yup
     .string()
@@ -108,17 +97,11 @@ const WARDS_BY_PROVINCE = {
   ],
 };
 
-const DOCUMENT_TYPES = [
-  { id: "LAND_USE", label: "Giấy tờ sử dụng đất" },
-  { id: "RENT_CONTRACT", label: "Hợp đồng thuê đất" },
-  { id: "BUSINESS_LICENSE", label: "Giấy phép kinh doanh" },
-  { id: "OTHER", label: "Khác" },
+/** Khớp DTO backend: LandUseDocument + BusinessDocument (ảnh là file, không phải URL) */
+const DOC_SLOTS = [
+  { apiPrefix: "LandUseDocument", label: "Giấy tờ sử dụng đất" },
+  { apiPrefix: "BusinessDocument", label: "Giấy phép kinh doanh" },
 ];
-
-const DOC_LABEL_BY_ID = DOCUMENT_TYPES.reduce((acc, x) => {
-  acc[x.id] = x.label;
-  return acc;
-}, {});
 
 const STEPS = ["Tạo cơ sở", "Giấy tờ", "Xác nhận"];
 
@@ -133,24 +116,35 @@ function MapClickHandler({ onPick }) {
 }
 
 // ── Component ──
+function normalizeTimeForApi(t) {
+  if (!t || typeof t !== "string") return "";
+  const s = t.trim();
+  if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+  return s;
+}
+
 const CreateVenue = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const ownerId = useSelector((state) => state.auth?.user?.id);
   const [activeStep, setActiveStep] = useState(0);
   const [createdVenue, setCreatedVenue] = useState(null); // { venueId, status }
+  const [thumbnailFile, setThumbnailFile] = useState(null);
 
   const venueId = createdVenue?.venueId ?? createdVenue?.VenueId ?? null;
 
-  const [docs, setDocs] = useState([
-    { documentType: "LAND_USE", issueDate: "", expiryDate: "", images: [""] },
-    { documentType: "BUSINESS_LICENSE", issueDate: "", expiryDate: "", images: [""] },
-  ]);
+  const [docs, setDocs] = useState(() =>
+    DOC_SLOTS.map((s) => ({
+      apiPrefix: s.apiPrefix,
+      label: s.label,
+      issueDate: "",
+      expiryDate: "",
+      files: [],
+    }))
+  );
 
   const {
     register: reg,
     handleSubmit,
-    control,
     watch,
     formState: { errors },
     setValue,
@@ -159,7 +153,6 @@ const CreateVenue = () => {
     defaultValues: {
       name: "",
       description: "",
-      thumbnailUrl: "",
       openTime: "05:00",
       closeTime: "22:00",
       provinceId: "",
@@ -211,24 +204,38 @@ const CreateVenue = () => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      // Mock tạo venue draft (chỉ UI)
-      await new Promise((r) => setTimeout(r, 500));
-      const venueId = Math.floor(100000 + Math.random() * 900000);
-      const status = "DRAFT";
-      toast.success(
-        venueId
-          ? `Tạo cơ sở thành công (DRAFT) #${venueId}`
-          : "Tạo cơ sở thành công (DRAFT)!"
-      );
-      if (venueId) {
-        setCreatedVenue({ venueId, status: status ?? "DRAFT" });
+      const form = new FormData();
+      form.append("Name", String(data.name || "").trim());
+      form.append("OpenTime", normalizeTimeForApi(data.openTime));
+      form.append("CloseTime", normalizeTimeForApi(data.closeTime));
+      if (data.description != null && String(data.description).trim() !== "") {
+        form.append("Description", String(data.description).trim());
+      }
+      form.append("AddressDetail", String(data.addressDetail || "").trim());
+      form.append("ProvinceId", String(Number(data.provinceId)));
+      form.append("WardId", String(Number(data.wardId)));
+      form.append("Latitude", String(Number(data.latitude)));
+      form.append("Longitude", String(Number(data.longitude)));
+      if (thumbnailFile) form.append("Thumbnail", thumbnailFile);
+
+      const result = await createVenue(form);
+      const id = result?.venueId ?? result?.VenueId;
+      const status = result?.status ?? result?.Status ?? "DRAFT";
+      if (id) {
+        toast.success(`Tạo cơ sở thành công  #${id}`);
+        setCreatedVenue({ venueId: id, status });
         setActiveStep(1);
       } else {
-        navigate("/owner/venues");
+        toast.error("Phản hồi API thiếu venueId.");
       }
     } catch (err) {
       console.error("Create venue error:", err);
-      toast.error(err.message || "Tạo cơ sở thất bại. Vui lòng thử lại.");
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.Message ||
+        err?.message ||
+        "Tạo cơ sở thất bại. Vui lòng thử lại.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -238,24 +245,38 @@ const CreateVenue = () => {
     if (!venueId) return;
     setIsSubmitting(true);
     try {
-      const payload = {
-        documents: (docs || []).map((d) => ({
-          documentType: d.documentType,
-          issueDate: d.issueDate || null,
-          expiryDate: d.expiryDate || null,
-          images: (d.images || []).map((x) => String(x || "").trim()).filter(Boolean),
-        })),
-      };
-      const missingImageDoc = payload.documents.find((d) => !d.documentType || (d.images?.length || 0) === 0);
-      if (missingImageDoc) {
-        toast.error(`Vui lòng thêm ít nhất 1 ảnh URL cho "${DOC_LABEL_BY_ID[missingImageDoc.documentType] || "giấy tờ"}".`);
+      const missingDate = docs.find((d) => !d.issueDate || !d.expiryDate);
+      if (missingDate) {
+        toast.error(`Vui lòng nhập đủ ngày cấp và ngày hết hạn cho "${missingDate.label}".`);
         return;
       }
-      await new Promise((r) => setTimeout(r, 400));
-      toast.success("Đã lưu giấy tờ (mock).");
+      const missingFiles = docs.find((d) => !d.files || d.files.length === 0);
+      if (missingFiles) {
+        toast.error(`Vui lòng tải lên ít nhất 1 ảnh cho "${missingFiles.label}".`);
+        return;
+      }
+      const tooMany = docs.find((d) => d.files.length > 5);
+      if (tooMany) {
+        toast.error(`Mỗi loại giấy tờ tối đa 5 ảnh ("${tooMany.label}").`);
+        return;
+      }
+
+      const form = new FormData();
+      docs.forEach((d) => {
+        form.append(`${d.apiPrefix}.IssueDate`, d.issueDate);
+        form.append(`${d.apiPrefix}.ExpiryDate`, d.expiryDate);
+        d.files.forEach((file) => {
+          if (file) form.append(`${d.apiPrefix}.Images`, file);
+        });
+      });
+
+      await addVenueDocuments(venueId, form);
+      toast.success("Đã tải lên giấy tờ.");
       setActiveStep(2);
     } catch (e) {
-      toast.error(e?.response?.data?.message || e?.message || "Không lưu được giấy tờ.");
+      toast.error(
+        e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không lưu được giấy tờ."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -265,11 +286,13 @@ const CreateVenue = () => {
     if (!venueId) return;
     setIsSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 500));
-      toast.success("Đã gửi duyệt (PENDING) (mock).");
+      await submitVenue(venueId);
+      toast.success("Đã gửi duyệt cơ sở.");
       navigate("/owner/venues");
     } catch (e) {
-      toast.error(e?.response?.data?.message || e?.message || "Không gửi duyệt được.");
+      toast.error(
+        e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -287,11 +310,11 @@ const CreateVenue = () => {
       wardId: v.wardId,
       latitude: v.latitude,
       longitude: v.longitude,
-      thumbnailUrl: v.thumbnailUrl,
+      thumbnailName: thumbnailFile?.name || null,
       docsCount: docs.length,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venueId, docs.length, activeStep]);
+  }, [venueId, docs.length, activeStep, thumbnailFile]);
 
   return (
     <div className="create-venue-page">
@@ -348,15 +371,17 @@ const CreateVenue = () => {
               </div>
 
               <div className="cv-form-group cv-full-width">
-                <label>Thumbnail URL</label>
+                <label>Ảnh đại diện cơ sở (tùy chọn)</label>
                 <input
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  {...reg("thumbnailUrl")}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
                 />
-                {errors.thumbnailUrl && (
-                  <p className="cv-error-text">{errors.thumbnailUrl.message}</p>
-                )}
+                {thumbnailFile ? (
+                  <p className="cv-wizard-hint" style={{ marginTop: 8 }}>
+                    Đã chọn: <strong>{thumbnailFile.name}</strong>
+                  </p>
+                ) : null}
               </div>
 
               <div className="cv-form-group">
@@ -561,40 +586,76 @@ const CreateVenue = () => {
                 </div>
                 <div className="cv-docs">
                   {docs.map((d, di) => (
-                    <div key={di} className="cv-doc-card">
+                    <div key={d.apiPrefix} className="cv-doc-card">
                       <div className="cv-doc-head">
-                        <strong>Giấy tờ #{di + 1}</strong>
+                        <strong>{d.label}</strong>
                       </div>
                       <div className="cv-form-grid">
                         <div className="cv-form-group">
-                          <label>Loại giấy tờ</label>
-                          <input value={DOC_LABEL_BY_ID[d.documentType] || d.documentType} readOnly />
+                          <label>
+                            Ngày cấp <span className="cv-required">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={d.issueDate}
+                            onChange={(e) =>
+                              setDocs((p) => p.map((x, i) => (i === di ? { ...x, issueDate: e.target.value } : x)))
+                            }
+                          />
                         </div>
                         <div className="cv-form-group">
-                          <label>Ngày cấp</label>
-                          <input type="date" value={d.issueDate} onChange={(e) => setDocs((p) => p.map((x, i) => (i === di ? { ...x, issueDate: e.target.value } : x)))} />
-                        </div>
-                        <div className="cv-form-group">
-                          <label>Ngày hết hạn</label>
-                          <input type="date" value={d.expiryDate} onChange={(e) => setDocs((p) => p.map((x, i) => (i === di ? { ...x, expiryDate: e.target.value } : x)))} />
+                          <label>
+                            Ngày hết hạn <span className="cv-required">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={d.expiryDate}
+                            onChange={(e) =>
+                              setDocs((p) => p.map((x, i) => (i === di ? { ...x, expiryDate: e.target.value } : x)))
+                            }
+                          />
                         </div>
                         <div className="cv-form-group cv-full-width">
-                          <label>Ảnh giấy tờ (URL)</label>
-                          <div className="cv-doc-images">
-                            {(d.images || []).map((img, ii) => (
-                              <div key={ii} className="cv-doc-image-row">
-                                <input type="text" value={img} placeholder="https://example.com/doc.jpg" onChange={(e) => setDocs((p) => p.map((x, i) => (i === di ? { ...x, images: x.images.map((z, j) => (j === ii ? e.target.value : z)) } : x)))} />
-                                {(d.images || []).length > 1 && (
-                                  <button type="button" className="cv-doc-remove-img" onClick={() => setDocs((p) => p.map((x, i) => (i === di ? { ...x, images: x.images.filter((_, j) => j !== ii) } : x)))}>
+                          <label>
+                            Ảnh giấy tờ (file, tối đa 5) <span className="cv-required">*</span>
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => {
+                              const picked = Array.from(e.target.files || []).filter(Boolean);
+                              setDocs((p) =>
+                                p.map((x, i) => (i === di ? { ...x, files: [...x.files, ...picked].slice(0, 5) } : x))
+                              );
+                              e.target.value = "";
+                            }}
+                          />
+                          {d.files?.length ? (
+                            <ul className="cv-doc-file-list">
+                              {d.files.map((f, fi) => (
+                                <li key={`${f.name}-${fi}`} className="cv-doc-image-row">
+                                  <span>{f.name}</span>
+                                  <button
+                                    type="button"
+                                    className="cv-doc-remove-img"
+                                    aria-label="Xóa ảnh"
+                                    onClick={() =>
+                                      setDocs((p) =>
+                                        p.map((x, i) =>
+                                          i === di ? { ...x, files: x.files.filter((_, j) => j !== fi) } : x
+                                        )
+                                      )
+                                    }
+                                  >
                                     <Trash2 size={16} />
                                   </button>
-                                )}
-                              </div>
-                            ))}
-                            <button type="button" className="cv-add-field-btn" onClick={() => setDocs((p) => p.map((x, i) => (i === di ? { ...x, images: [...x.images, ""] } : x)))}>
-                              <Plus size={18} /> Thêm ảnh URL
-                            </button>
-                          </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="cv-wizard-hint">Chưa có file nào.</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -619,7 +680,10 @@ const CreateVenue = () => {
               <div className="cv-review-row"><strong>Tên:</strong> {review.name}</div>
               <div className="cv-review-row"><strong>Giờ:</strong> {review.openTime} – {review.closeTime}</div>
               <div className="cv-review-row"><strong>Địa chỉ:</strong> {review.addressDetail}</div>
-              <div className="cv-review-row"><strong>Giấy tờ:</strong> {review.docsCount} mục</div>
+              <div className="cv-review-row">
+                <strong>Ảnh đại diện:</strong> {review.thumbnailName || "Không tải"}
+              </div>
+              <div className="cv-review-row"><strong>Giấy tờ:</strong> {review.docsCount} loại</div>
             </div>
             <div className="cv-submit-section">
               <button type="button" className="cv-cancel-btn" onClick={() => setActiveStep(1)} disabled={isSubmitting}>Quay lại</button>
