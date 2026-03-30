@@ -302,8 +302,33 @@ namespace Fiebo.API.Controllers
             await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, ownerId);
             return Ok(new ApiResponse<object>
             {
-                StatusCode = StatusCodes.Status200OK,
+                StatusCode = StatusCodes.Status200OK,pu
                 Message = "Vô hiệu hoá sân thành công"
+            });
+        }
+
+        /// <summary>
+        /// UC: Create a new field for a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPost("/api/owner/venues/{venueId}/fields")]
+        public async Task<IActionResult> CreateField([FromRoute] int venueId, [FromForm] CreateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định người dùng.");
+            }
+
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân thành công.",
+                Data = new { FieldId = fieldId }
             });
         }
 

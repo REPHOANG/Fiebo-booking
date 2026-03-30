@@ -6,7 +6,7 @@ namespace Fiebo.Application.DTOs.Field
     public class CreateFieldRequest
     {
         [Required(ErrorMessage = "Vui lòng nhập Tên sân.")]
-        [MaxLength(200)]
+        [MaxLength(100)]
         public string Name { get; set; } = null!;
 
         public string? Description { get; set; }
