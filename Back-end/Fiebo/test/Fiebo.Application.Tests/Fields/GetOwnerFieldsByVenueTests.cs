@@ -27,7 +27,7 @@ namespace Fiebo.Application.Tests.Fields
             _unitOfWork.Setup(x => x.Fields).Returns(_fieldRepo.Object);
             _unitOfWork.Setup(x => x.TimeSlots).Returns(_timeSlotRepo.Object);
 
-            _service = new FieldService(_unitOfWork.Object);
+            _service = new FieldService(_unitOfWork.Object, null!);
         }
 
         private void SetupVenue(Venue? venue)
