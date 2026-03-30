@@ -12,6 +12,5 @@ namespace Fiebo.Application.Interfaces
         Task<List<SportTypeResponse>> GetAllSportTypes();
         Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId);
         Task ChangeFieldStatusAsync(int venueId, int fieldId, string ownerId);
-        Task<int> CreateFieldAsync(int venueId, CreateFieldRequest request, List<string> imageUrls, string userId, string userRole);
     }
 }

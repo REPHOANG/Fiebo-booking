@@ -130,61 +130,6 @@ namespace Fiebo.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<int> CreateFieldAsync(
-            int venueId,
-            CreateFieldRequest request,
-            List<string> imageUrls,
-            string userId,
-            string userRole)
-        {
-            // BR-69: Field must belong to an existing venue
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null)
-            {
-                throw new NotFoundException("Không tìm thấy cơ sở.");
-            }
-
-            // Authorization: Admin can create in any venue; Owner only in their own
-            bool isAdmin = userRole == AppRoles.Admin;
-            if (!isAdmin && venue.OwnerId != userId)
-            {
-                throw new UnauthorizedException("Bạn không có quyền tạo sân trong cơ sở này.");
-            }
-
-            // BR-71 / E2: Duplicate field name within the same venue
-            var nameExists = await _unitOfWork.Fields
-                .IsFieldNameExistsInVenueAsync(venueId, request.Name);
-
-            if (nameExists)
-            {
-                throw new ResourceConflictException(
-                    "Tên sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
-            }
-
-            // BR-70: Default status = Active
-            var field = new Field
-            {
-                Name = request.Name,
-                Description = request.Description,
-                SportTypeId = request.SportTypeId,
-                VenueId = venueId,
-                Status = FieldStatus.Active
-            };
-
-            _unitOfWork.Fields.Add(field);
-
-            foreach (var url in imageUrls)
-            {
-                field.Images.Add(new FieldImage
-                {
-                    ImageUrl = url,
-                    Field = field
-                });
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-
-            return field.Id;
-        }
+        
     }
 }

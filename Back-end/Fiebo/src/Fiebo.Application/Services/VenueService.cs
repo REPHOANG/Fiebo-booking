@@ -431,52 +431,7 @@ namespace Fiebo.Application.Services
             return await GetVenueSchedule(venueId, date);
         }
 
-        public async Task UpdateVenueAsync(
-            int venueId,
-            UpdateVenueRequest request,
-            string? newThumbnailUrl,
-            string userId,
-            string userRole)
-        {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null)
-            {
-                throw new NotFoundException("Không tìm thấy cơ sở.");
-            }
-
-            // BR-62: Admin can edit any venue; Owner can only edit their own
-            bool isAdmin = userRole == Domain.Constants.AppRoles.Admin;
-            if (!isAdmin && venue.OwnerId != userId)
-            {
-                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa cơ sở này.");
-            }
-
-            // E2: CloseTime must be after OpenTime
-            if (request.CloseTime <= request.OpenTime)
-            {
-                throw new BadRequestException(
-                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
-            }
-
-            venue.Name = request.Name;
-            venue.Description = request.Description;
-            venue.AddressDetail = request.AddressDetail;
-            venue.ProvinceId = request.ProvinceId;
-            venue.WardId = request.WardId;
-            venue.Longitude = request.Longitude;
-            venue.Latitude = request.Latitude;
-            venue.OpenTime = request.OpenTime;
-            venue.CloseTime = request.CloseTime;
-            venue.UpdatedAt = DateTime.Now;
-
-            if (!string.IsNullOrEmpty(newThumbnailUrl))
-            {
-                venue.ThumbnailUrl = newThumbnailUrl;
-            }
-
-            _unitOfWork.Venues.Update(venue);
-            await _unitOfWork.SaveChangesAsync();
-        }
+        
 
         public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
         {
