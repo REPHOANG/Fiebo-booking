@@ -307,7 +307,7 @@ namespace Fiebo.API.Controllers
             string? thumbnailUrl = null;
             if (request.ThumbnailImage is { Length: > 0 })
             {
-                thumbnailUrl = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+                thumbnailUrl = (await _cloudinaryService.UploadImageAsync(request.ThumbnailImage)).Url;
             }
 
             await _venueService.UpdateVenueAsync(venueId, request, thumbnailUrl, userId, userRole);
@@ -342,7 +342,7 @@ namespace Fiebo.API.Controllers
             {
                 foreach (var file in request.Images)
                 {
-                    var url = await _cloudinaryService.UploadImageAsync(file);
+                    var url = (await _cloudinaryService.UploadImageAsync(file)).Url;
                     imageUrls.Add(url);
                 }
             }
@@ -430,12 +430,12 @@ namespace Fiebo.API.Controllers
         /// <param name="venueId"></param>
         /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet("/api/owner/venues/{venueId}/draft")]
+        [HttpGet("/api/owner/venues/{venueId}/detail")]
         public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var result = await _venueService.GetVenueDraftAsync(venueId, ownerId);
-            return Ok(new ApiResponse<VenueDraftResponse>
+            var result = await _venueService.GetOwnerVenueDetailAsync(venueId, ownerId);
+            return Ok(new ApiResponse<OwnerVenueDetailResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy thông tin sân nháp thành công.",
@@ -460,6 +460,21 @@ namespace Fiebo.API.Controllers
                 Message = "Nộp duyệt sân thành công."
             });
 
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/field/{id}")]
+        public async Task<IActionResult> UpdateField(
+            [FromRoute] int id,
+            [FromForm] UpdateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _fieldService.UpdateFieldAsync(request, userId, id);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật thông tin sân thành công."
+            });
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Application.DTOs.Venue
 {
-    public class VenueDraftResponse
+    public class OwnerVenueDetailResponse
     {
         public int Id { get; set; }
 

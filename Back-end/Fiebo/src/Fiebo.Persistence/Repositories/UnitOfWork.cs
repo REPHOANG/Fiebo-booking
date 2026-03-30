@@ -37,6 +37,7 @@ namespace Fiebo.Persistence.Repositories
         public IWardRepository Wards { get; }
         public IVenueDocumentRepository VenueDocuments { get; }
         public IVenueDocumentImageRepository VenueDocumentImages { get; }
+        public IFieldImageRepository FieldImages { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -56,7 +57,8 @@ namespace Fiebo.Persistence.Repositories
             IProvinceRepository provinceRepository,
             IWardRepository wardRepository,
             IVenueDocumentRepository venueDocumentRepository,
-            IVenueDocumentImageRepository venueDocumentImageRepository
+            IVenueDocumentImageRepository venueDocumentImageRepository,
+            IFieldImageRepository fieldImageRepository
             //IReportRepository reportRepository
             )
         {
@@ -80,6 +82,7 @@ namespace Fiebo.Persistence.Repositories
             Wards = wardRepository;
             VenueDocuments = venueDocumentRepository;
             VenueDocumentImages = venueDocumentImageRepository;
+            FieldImages = fieldImageRepository;
         }
 
 

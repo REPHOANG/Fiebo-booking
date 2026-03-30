@@ -86,7 +86,7 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Định dạng ảnh không hợp lệ.");
                     try
                     {
-                        var imageUrl = await _cloudinaryService.UploadImageAsync(file);
+                        var imageUrl = (await _cloudinaryService.UploadImageAsync(file)).Url;
 
                         reviewImages.Add(new ReviewImage
                         {
