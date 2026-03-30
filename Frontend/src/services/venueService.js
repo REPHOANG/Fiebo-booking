@@ -55,10 +55,10 @@ export const submitVenue = async (venueId) => {
 };
 
 /**
- * GET `/api/owner/venues/{venueId}/draft` — xem trước / chi tiết nháp
+ * GET `/api/owner/venues/{venueId}/detail` — chi tiết cơ sở (nháp / owner), khớp VenueController.GetVenueDraft
  */
 export const getVenueDraft = async (venueId) => {
-  const response = await api.get(`/api/owner/venues/${venueId}/draft`);
+  const response = await api.get(`/api/owner/venues/${venueId}/detail`);
   return unwrap(response) ?? response;
 };
 

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar } from "lucide-react";
 import { toast } from "react-toastify";
 import { createOwnerField, getOwnerVenueFields, getVenueDetail } from "../../services/fieldService";
-import { deactivateOwnerVenue } from "../../services/venueService";
+import { deactivateOwnerVenue, getVenueDraft } from "../../services/venueService";
 import { getSportTypes } from "../../services/sportTypeService";
 import "./OwnerVenueDetail.css";
 
@@ -12,6 +12,23 @@ const formatTime = (timeSpan) => {
   const parts = String(timeSpan).split(":");
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
 };
+
+/** Public `/api/Venue/{id}/details` vs owner `/api/owner/venues/{id}/detail` — khác tên field địa phương. */
+function normalizeVenueDetailShape(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    name: raw.name ?? raw.Name ?? null,
+    openTime: raw.openTime ?? raw.OpenTime,
+    closeTime: raw.closeTime ?? raw.CloseTime,
+    description: raw.description ?? raw.Description ?? null,
+    addressDetail: raw.addressDetail ?? raw.AddressDetail ?? null,
+    province: raw.province ?? raw.Province ?? raw.provinceName ?? raw.ProvinceName ?? null,
+    ward: raw.ward ?? raw.Ward ?? raw.wardName ?? raw.WardName ?? null,
+    latitude: raw.latitude ?? raw.Latitude,
+    longitude: raw.longitude ?? raw.Longitude,
+    status: raw.status ?? raw.Status ?? null,
+  };
+}
 
 const OwnerVenueDetail = () => {
   const { id } = useParams();
@@ -44,8 +61,15 @@ const OwnerVenueDetail = () => {
     (async () => {
       setLoading(true);
       try {
-        const data = await getVenueDetail(id);
-        if (mounted) setVenue(data ?? null);
+        let data = null;
+        try {
+          // Owner endpoint includes `Status`, so we can correctly allow/deny editing.
+          data = await getVenueDraft(id);
+        } catch {
+          // Fallback (should be rare) if owner endpoint fails for any reason.
+          data = await getVenueDetail(id);
+        }
+        if (mounted) setVenue(normalizeVenueDetailShape(data));
       } catch (e) {
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được chi tiết cơ sở.");
         if (mounted) setVenue(null);
@@ -110,10 +134,17 @@ const OwnerVenueDetail = () => {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005}%2C${lat - 0.004}%2C${lng + 0.005}%2C${lat + 0.004}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [venue]);
 
-  // NOTE: VenueDetailResponse currently doesn't include status, so we can't reliably hide this action.
-  // We'll show "Vô hiệu hóa" on this page and only disable it when we are sure it's already inactive.
+  // Permissions for edit/deactivate depend on venue `Status`.
+  // We load from owner endpoint first (which includes `Status`) to ensure this is accurate.
   const statusLower = String(venue?.status || venue?.Status || "").toLowerCase().trim();
+  const canEditVenue = ["active", "draft", "inactive"].includes(statusLower);
+  const canDeactivateVenue = statusLower === "active" || statusLower === "draft";
   const isInactive = statusLower === "inactive";
+
+  useEffect(() => {
+    // Prevent showing the create form when the venue isn't editable.
+    if (!canEditVenue) setShowCreateForm(false);
+  }, [canEditVenue]);
 
   const filteredFields = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
@@ -175,7 +206,7 @@ const OwnerVenueDetail = () => {
           <button
             type="button"
             className="ovd-btn ovd-btn--danger"
-            disabled={deactivating || isInactive}
+            disabled={deactivating || !canDeactivateVenue}
             onClick={async () => {
               const ok = window.confirm(
                 `Vô hiệu hóa cơ sở "${venue?.name ?? `#${id}`}"? Khách sẽ không đặt sân tại đây nữa.`
@@ -192,9 +223,21 @@ const OwnerVenueDetail = () => {
                 setDeactivating(false);
               }
             }}
-            title={isInactive ? "Cơ sở đã vô hiệu hóa" : undefined}
+            title={
+              isInactive
+                ? "Cơ sở đã vô hiệu hóa"
+                : !canDeactivateVenue
+                  ? "Cơ sở không ở trạng thái cho phép vô hiệu hóa."
+                  : undefined
+            }
           >
-            {isInactive ? "Đã vô hiệu hóa" : deactivating ? "Đang vô hiệu hóa..." : "Vô hiệu hóa"}
+            {isInactive
+              ? "Đã vô hiệu hóa"
+              : !canDeactivateVenue
+                ? "Không thể vô hiệu hóa"
+                : deactivating
+                  ? "Đang vô hiệu hóa..."
+                  : "Vô hiệu hóa"}
           </button>
         </div>
       </div>
@@ -245,12 +288,13 @@ const OwnerVenueDetail = () => {
               <button
                 type="button"
                 className="ovd-toggle-btn"
+                disabled={!canEditVenue}
                 onClick={() => setShowCreateForm((v) => !v)}
               >
                 {showCreateForm ? "Thu gọn" : "+ Tạo sân"}
               </button>
             </div>
-            {showCreateForm ? (
+            {canEditVenue && showCreateForm ? (
               <>
                 <div className="ovd-create-grid">
                   <label className="ovd-label">
@@ -309,6 +353,10 @@ const OwnerVenueDetail = () => {
                     className="ovd-btn ovd-btn--primary"
                     disabled={creatingField}
                     onClick={async () => {
+                      if (!canEditVenue) {
+                        toast.error("Cơ sở hiện không cho phép chỉnh sửa.");
+                        return;
+                      }
                       if (!newField.name.trim()) {
                         toast.error("Vui lòng nhập tên sân.");
                         return;
@@ -341,8 +389,13 @@ const OwnerVenueDetail = () => {
                   </button>
                 </div>
               </>
-            ) : (
+            ) : canEditVenue ? (
               <p className="ovd-muted">Bấm “+ Tạo sân” để thêm sân mới cho cơ sở.</p>
+            ) : (
+              <p className="ovd-muted">
+                Cơ sở đang ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể
+                chỉnh sửa.
+              </p>
             )}
           </div>
 
@@ -366,6 +419,7 @@ const OwnerVenueDetail = () => {
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="active">Active</option>
+                <option value="draft">Draft</option>
                 <option value="inactive">Inactive</option>
               </select>
               <select

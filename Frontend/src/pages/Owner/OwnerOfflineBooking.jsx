@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getOwnerVenues } from "../../services/venueService";
@@ -12,12 +12,23 @@ const pick = (obj, ...keys) => {
   return undefined;
 };
 
+/** Khớp OwnerVenues — API có thể trả enum số. */
+function normalizeVenueStatus(raw) {
+  if (raw == null || raw === "") return "";
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const byNum = { 0: "inactive", 1: "active", 2: "pending", 3: "rejected", 4: "draft" };
+    return byNum[raw] ?? String(raw).toLowerCase();
+  }
+  return String(raw).trim().toLowerCase();
+}
+
 const translateVenueStatus = (status) => {
-  const s = String(status || "").toLowerCase();
+  const s = normalizeVenueStatus(status);
   if (s === "active") return "Hoạt động";
   if (s === "inactive") return "Đã vô hiệu hóa";
   if (s === "draft") return "Nháp";
   if (s === "pending") return "Chờ duyệt";
+  if (s === "rejected") return "Từ chối";
   return status || "—";
 };
 
@@ -42,6 +53,13 @@ const OwnerOfflineBooking = () => {
   useEffect(() => {
     loadVenues();
   }, [loadVenues]);
+
+  /** Chỉ cơ sở Active mới được đặt offline (theo luật nghiệp vụ). */
+  const activeVenues = useMemo(
+    () =>
+      venues.filter((v) => normalizeVenueStatus(pick(v, "status", "Status")) === "active"),
+    [venues]
+  );
 
   return (
     <div className="owner-offline-page">
@@ -68,9 +86,19 @@ const OwnerOfflineBooking = () => {
             + Tạo cơ sở mới
           </Link>
         </div>
+      ) : activeVenues.length === 0 ? (
+        <div className="oob-empty">
+          <p>
+            Hiện không có cơ sở nào đang hoạt động để đặt offline. Chỉ cơ sở{" "}
+            <strong>Active</strong> mới xuất hiện tại đây.
+          </p>
+          <Link to="/owner/venues" className="oob-primary-btn">
+            Xem tất cả cơ sở
+          </Link>
+        </div>
       ) : (
         <div className="oob-grid">
-          {venues.map((v) => {
+          {activeVenues.map((v) => {
             const id = pick(v, "venueId", "VenueId", "id");
             if (!id) return null;
             const name = pick(v, "name", "Name") ?? `Cơ sở #${id}`;
@@ -78,8 +106,7 @@ const OwnerOfflineBooking = () => {
             const province = pick(v, "province", "Province") ?? "";
             const ward = pick(v, "ward", "Ward") ?? "";
             const status = pick(v, "status", "Status");
-            const statusLower = String(status || "").toLowerCase();
-            const canOffline = statusLower === "active";
+            const statusLower = normalizeVenueStatus(status);
 
             return (
               <button
@@ -87,10 +114,6 @@ const OwnerOfflineBooking = () => {
                 type="button"
                 className="oob-card"
                 onClick={() => {
-                  if (!canOffline) {
-                    toast.error("Chỉ cơ sở đang hoạt động mới đặt offline được.");
-                    return;
-                  }
                   navigate(`/owner/venues/${id}/offline-booking`);
                 }}
               >
@@ -109,7 +132,7 @@ const OwnerOfflineBooking = () => {
                     </span>
                   </div>
                   <p className="oob-meta">{[ward, province].filter(Boolean).join(", ") || "—"}</p>
-                  <p className="oob-hint">{canOffline ? "Bấm để đặt offline" : "Không khả dụng"}</p>
+                  <p className="oob-hint">Bấm để đặt offline</p>
                 </div>
               </button>
             );

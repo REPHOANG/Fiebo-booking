@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, CircleCheck, FilePenLine, Hourglass, Ban } from "lucide-react";
 import { toast } from "react-toastify";
 import "./OwnerVenues.css";
 import { deactivateOwnerVenue, getOwnerVenues } from "../../services/venueService";
@@ -39,21 +39,24 @@ const translateVenueStatus = (status) => {
 };
 
 /**
- * - approved: chỉ Active
+ * - approved: Active
+ * - draft: Draft (bản nháp)
+ * - pending: Pending + Inactive
  * - cancelled: Rejected
- * - pending: Pending, Draft, Inactive, … (mọi thứ còn lại — Pending luôn thuộc “chờ duyệt”)
  */
 function bucketVenuesByApproval(list) {
   const approved = [];
+  const draft = [];
   const pending = [];
   const cancelled = [];
   for (const v of list) {
     const s = normalizeVenueStatus(pick(v, "status", "Status"));
     if (s === "active") approved.push(v);
+    else if (s === "draft") draft.push(v);
     else if (s === "rejected") cancelled.push(v);
     else pending.push(v);
   }
-  return { approved, pending, cancelled };
+  return { approved, draft, pending, cancelled };
 }
 
 const OwnerVenues = () => {
@@ -90,16 +93,30 @@ const OwnerVenues = () => {
     });
   }, [venues, searchText]);
 
-  const { approved: approvedVenues, pending: pendingVenues, cancelled: cancelledVenues } = useMemo(
-    () => bucketVenuesByApproval(filteredVenues),
-    [filteredVenues]
-  );
+  const {
+    approved: approvedVenues,
+    draft: draftVenues,
+    pending: pendingVenues,
+    cancelled: cancelledVenues,
+  } = useMemo(() => bucketVenuesByApproval(filteredVenues), [filteredVenues]);
 
   const activeList =
-    listTab === "approved" ? approvedVenues : listTab === "pending" ? pendingVenues : cancelledVenues;
+    listTab === "approved"
+      ? approvedVenues
+      : listTab === "draft"
+        ? draftVenues
+        : listTab === "pending"
+          ? pendingVenues
+          : cancelledVenues;
 
   const activeTabId =
-    listTab === "approved" ? "ov-tab-approved" : listTab === "pending" ? "ov-tab-pending" : "ov-tab-cancelled";
+    listTab === "approved"
+      ? "ov-tab-approved"
+      : listTab === "draft"
+        ? "ov-tab-draft"
+        : listTab === "pending"
+          ? "ov-tab-pending"
+          : "ov-tab-cancelled";
 
   const renderVenueCard = (v) => {
     const id = pick(v, "venueId", "VenueId");
@@ -110,7 +127,8 @@ const OwnerVenues = () => {
     const status = pick(v, "status", "Status");
     const totalFields = pick(v, "totalFields", "TotalFields") ?? 0;
     const statusLower = normalizeVenueStatus(status);
-    const canDeactivate = statusLower === "active";
+    // Chỉ cho phép chỉnh sửa khi status thuộc active/draft.
+    const canDeactivate = statusLower === "active" || statusLower === "draft";
 
     return (
       <div key={id} className="ov-card">
@@ -212,47 +230,84 @@ const OwnerVenues = () => {
               type="button"
               role="tab"
               id="ov-tab-approved"
+              data-kind="approved"
               aria-selected={listTab === "approved"}
               aria-controls="ov-tabpanel-venues"
               className={`ov-tab${listTab === "approved" ? " ov-tab--active" : ""}`}
               onClick={() => setListTab("approved")}
             >
-              <span className="ov-tab-label">
-                Cơ sở đã duyệt</span>
-              <span className="ov-tab-count">{approvedVenues.length}</span>
+              <span className="ov-tab-icon" aria-hidden>
+                <CircleCheck size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở đã duyệt</span>
+                <span className="ov-tab-count">{approvedVenues.length}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="ov-tab-draft"
+              data-kind="draft"
+              aria-selected={listTab === "draft"}
+              aria-controls="ov-tabpanel-venues"
+              className={`ov-tab${listTab === "draft" ? " ov-tab--active" : ""}`}
+              onClick={() => setListTab("draft")}
+            >
+              <span className="ov-tab-icon" aria-hidden>
+                <FilePenLine size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Bản nháp</span>
+                <span className="ov-tab-count">{draftVenues.length}</span>
+              </span>
             </button>
             <button
               type="button"
               role="tab"
               id="ov-tab-pending"
+              data-kind="pending"
               aria-selected={listTab === "pending"}
               aria-controls="ov-tabpanel-venues"
               className={`ov-tab${listTab === "pending" ? " ov-tab--active" : ""}`}
               onClick={() => setListTab("pending")}
             >
-              <span className="ov-tab-label">Cơ sở chờ duyệt</span>
-              <span className="ov-tab-count">{pendingVenues.length}</span>
+              <span className="ov-tab-icon" aria-hidden>
+                <Hourglass size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở chờ duyệt</span>
+                <span className="ov-tab-count">{pendingVenues.length}</span>
+              </span>
             </button>
             <button
               type="button"
               role="tab"
               id="ov-tab-cancelled"
+              data-kind="cancelled"
               aria-selected={listTab === "cancelled"}
               aria-controls="ov-tabpanel-venues"
               className={`ov-tab${listTab === "cancelled" ? " ov-tab--active" : ""}`}
               onClick={() => setListTab("cancelled")}
             >
-              <span className="ov-tab-label">Cơ sở bị hủy</span>
-              <span className="ov-tab-count">{cancelledVenues.length}</span>
+              <span className="ov-tab-icon" aria-hidden>
+                <Ban size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở bị hủy</span>
+                <span className="ov-tab-count">{cancelledVenues.length}</span>
+              </span>
             </button>
           </div>
 
           <p className="ov-tab-hint" id="ov-tab-hint">
             {listTab === "approved"
               ? "Chỉ hiển thị cơ sở có trạng thái Active (đang hoạt động)."
-              : listTab === "pending"
-                ? "Gồm cơ sở Pending (đã gửi chờ duyệt), bản nháp Draft, và Inactive."
-                : "Cơ sở bị từ chối duyệt (trạng thái Rejected trên hệ thống)."}
+              : listTab === "draft"
+                ? "Cơ sở đang lưu nháp (Draft), chưa gửi duyệt hoặc đang hoàn thiện hồ sơ."
+                : listTab === "pending"
+                  ? "Gồm cơ sở Pending (đã gửi chờ duyệt) và Inactive (đã vô hiệu hóa)."
+                  : "Cơ sở bị từ chối duyệt (trạng thái Rejected trên hệ thống)."}
           </p>
 
           <div

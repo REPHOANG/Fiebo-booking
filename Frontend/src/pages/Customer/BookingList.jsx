@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
   MapPin,
@@ -11,6 +11,10 @@ import {
   Loader2,
   AlertCircle,
   X,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  CreditCard,
 } from "lucide-react";
 import {
   cancelBookingApi,
@@ -56,6 +60,18 @@ const TABS = [
     statuses: ["CustomerCancelled", "OwnerCancelled"],
   },
 ];
+
+// Icon cho trạng thái
+const statusIcon = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "pending") return <Clock3 size={16} className="bl-status-icon" />;
+  if (s === "booked") return <CreditCard size={16} className="bl-status-icon" />;
+  if (s === "completed")
+    return <CheckCircle2 size={16} className="bl-status-icon bl-status-icon--ok" />;
+  if (s === "customercancelled" || s === "ownercancelled")
+    return <XCircle size={16} className="bl-status-icon bl-status-icon--danger" />;
+  return null;
+};
 
 function normHistoryItem(it) {
   const bid = it?.bookingId ?? it?.BookingId;
@@ -121,6 +137,86 @@ const BookingList = () => {
   const [popupBooking, setPopupBooking] = useState(null);
   const [loadingDetailPopup, setLoadingDetailPopup] = useState(false);
 
+  // Date filter panel (range/month/year)
+  const [datePanelOpen, setDatePanelOpen] = useState(false);
+  const [activeDateMode, setActiveDateMode] = useState("all"); // all | range | month | year
+  const [activeFromDate, setActiveFromDate] = useState(""); // yyyy-mm-dd
+  const [activeToDate, setActiveToDate] = useState(""); // yyyy-mm-dd
+
+  const [draftDateMode, setDraftDateMode] = useState(activeDateMode);
+  const [draftRangeFrom, setDraftRangeFrom] = useState("");
+  const [draftRangeTo, setDraftRangeTo] = useState("");
+  const [draftMonth, setDraftMonth] = useState(""); // yyyy-mm
+  const [draftYear, setDraftYear] = useState(""); // yyyy
+
+  const openDatePanel = () => {
+    setDraftDateMode(activeDateMode);
+    if (activeDateMode === "range") {
+      setDraftRangeFrom(activeFromDate);
+      setDraftRangeTo(activeToDate);
+      setDraftMonth("");
+      setDraftYear("");
+    } else if (activeDateMode === "month") {
+      setDraftMonth(activeFromDate ? activeFromDate.slice(0, 7) : "");
+      setDraftYear("");
+      setDraftRangeFrom("");
+      setDraftRangeTo("");
+    } else if (activeDateMode === "year") {
+      setDraftYear(activeFromDate ? activeFromDate.slice(0, 4) : "");
+      setDraftMonth("");
+      setDraftRangeFrom("");
+      setDraftRangeTo("");
+    } else {
+      setDraftRangeFrom("");
+      setDraftRangeTo("");
+      setDraftMonth("");
+      setDraftYear("");
+    }
+    setDatePanelOpen(true);
+  };
+
+  const resetAndApplyDates = (nextMode, nextFrom, nextTo) => {
+    setActiveDateMode(nextMode);
+    setActiveFromDate(nextFrom || "");
+    setActiveToDate(nextTo || "");
+    setDatePanelOpen(false);
+    setPage(1);
+    setHistoryItems([]);
+    setTotalItems(0);
+  };
+
+  const computeFromToFromDraft = () => {
+    if (draftDateMode === "range") {
+      if (!draftRangeFrom || !draftRangeTo) return null;
+      return { from: draftRangeFrom, to: draftRangeTo };
+    }
+    if (draftDateMode === "month") {
+      if (!draftMonth) return null;
+      const [y, m] = draftMonth.split("-");
+      const monthIndex = Number(m) - 1;
+      const lastDay = new Date(Number(y), monthIndex + 1, 0).getDate();
+      const mm = String(m).padStart(2, "0");
+      const ddFrom = "01";
+      const ddTo = String(lastDay).padStart(2, "0");
+      return { from: `${y}-${mm}-${ddFrom}`, to: `${y}-${mm}-${ddTo}` };
+    }
+    if (draftDateMode === "year") {
+      if (!draftYear) return null;
+      return { from: `${draftYear}-01-01`, to: `${draftYear}-12-31` };
+    }
+    return null;
+  };
+
+  const applyDraftFilter = () => {
+    if (draftDateMode === "all") {
+      resetAndApplyDates("all", "", "");
+      return;
+    }
+    const ft = computeFromToFromDraft();
+    if (!ft) return;
+    resetAndApplyDates(draftDateMode, ft.from, ft.to);
+  };
+
   const queryClient = useQueryClient();
 
   const cancelMutation = useMutation({
@@ -129,7 +225,7 @@ const BookingList = () => {
       setHistoryItems((prev) =>
         prev.map((item) =>
           (item.bookingId ?? item.BookingId) === bookingId
-            ? { ...item, status: "Cancelled", Status: "Cancelled" }
+            ? { ...item, status: "CustomerCancelled", Status: "CustomerCancelled" }
             : item,
         ),
       );
@@ -137,7 +233,7 @@ const BookingList = () => {
         popupBooking &&
         (popupBooking.bookingId ?? popupBooking.id) === bookingId
       ) {
-        setPopupBooking((prev) => ({ ...prev, status: "Cancelled" }));
+        setPopupBooking((prev) => ({ ...prev, status: "CustomerCancelled" }));
       }
       queryClient.invalidateQueries({ queryKey: ["bookingHistory"] });
     },
@@ -148,11 +244,13 @@ const BookingList = () => {
     isLoading: loadingList,
     error: listError,
   } = useQuery({
-    queryKey: ["bookingHistory", { page }],
+    queryKey: ["bookingHistory", { page, fromDate: activeFromDate, toDate: activeToDate }],
     queryFn: () =>
       getBookingHistory({
         pageNumber: page,
         pageSize: PAGE_SIZE,
+        ...(activeFromDate ? { fromDate: activeFromDate } : {}),
+        ...(activeToDate ? { toDate: activeToDate } : {}),
       }),
     keepPreviousData: true,
     staleTime: 0,
@@ -175,6 +273,7 @@ const BookingList = () => {
   const closeDetailPopup = () => {
     setDetailPopupId(null);
     setPopupBooking(null);
+    setDatePanelOpen(false);
     if (id) navigate("/bookings");
   };
 
@@ -186,6 +285,8 @@ const BookingList = () => {
       const res = await getBookingHistory({
         pageNumber: nextPage,
         pageSize: PAGE_SIZE,
+        ...(activeFromDate ? { fromDate: activeFromDate } : {}),
+        ...(activeToDate ? { toDate: activeToDate } : {}),
       });
       const items = res.items || [];
       setHistoryItems((prev) => [...prev, ...items]);
@@ -277,17 +378,152 @@ const BookingList = () => {
         <h1 className="bl-title">Sân đã đặt</h1>
       </div>
 
-      <div className="bl-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`bl-tab ${activeTab === tab.key ? "active" : ""}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="bl-toolbar">
+        <div className="bl-tabs" role="tablist" aria-label="Bộ lọc trạng thái">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`bl-tab ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.key)}
+              role="tab"
+              aria-selected={activeTab === tab.key}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="bl-date-filter-wrap">
+          <div className="bl-date-filter-card">
+            <button
+              type="button"
+              className="bl-date-filter-top"
+              onClick={() => (datePanelOpen ? setDatePanelOpen(false) : openDatePanel())}
+            >
+              <span className="bl-date-filter-top-text">
+                {activeDateMode === "all"
+                  ? "Xem tất cả"
+                  : activeDateMode === "range"
+                    ? "Khoảng ngày"
+                    : activeDateMode === "month"
+                      ? "Theo tháng"
+                      : "Theo năm"}
+              </span>
+              <span className="bl-date-filter-top-icon" aria-hidden>
+                <span className="bl-date-filter-top-icon-dot" />
+                <span className="bl-date-filter-top-icon-dot" />
+                <span className="bl-date-filter-top-icon-dot" />
+              </span>
+            </button>
+
+            <AnimatePresence>
+              {datePanelOpen ? (
+              <motion.div
+                className="bl-date-filter-panel"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+              <button
+                type="button"
+                className={`bl-date-filter-item${draftDateMode === "range" ? " active" : ""}`}
+                onClick={() => setDraftDateMode("range")}
+              >
+                Chọn khoảng ngày
+              </button>
+              <button
+                type="button"
+                className={`bl-date-filter-item${draftDateMode === "month" ? " active" : ""}`}
+                onClick={() => setDraftDateMode("month")}
+              >
+                Chọn tháng
+              </button>
+              <button
+                type="button"
+                className={`bl-date-filter-item${draftDateMode === "year" ? " active" : ""}`}
+                onClick={() => setDraftDateMode("year")}
+              >
+                Chọn năm
+              </button>
+              <button
+                type="button"
+                className={`bl-date-filter-item${draftDateMode === "all" ? " active" : ""}`}
+                onClick={() => setDraftDateMode("all")}
+              >
+                Xem tất cả
+              </button>
+
+              <div className="bl-date-filter-controls">
+                {draftDateMode === "range" ? (
+                  <div className="bl-date-filter-row">
+                    <label className="bl-date-filter-label">
+                      Từ
+                      <input
+                        className="bl-date-filter-input"
+                        type="date"
+                        value={draftRangeFrom}
+                        onChange={(e) => setDraftRangeFrom(e.target.value)}
+                      />
+                    </label>
+                    <label className="bl-date-filter-label">
+                      Đến
+                      <input
+                        className="bl-date-filter-input"
+                        type="date"
+                        value={draftRangeTo}
+                        onChange={(e) => setDraftRangeTo(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {draftDateMode === "month" ? (
+                  <div className="bl-date-filter-row">
+                    <label className="bl-date-filter-label">
+                      Tháng
+                      <input
+                        className="bl-date-filter-input"
+                        type="month"
+                        value={draftMonth}
+                        onChange={(e) => setDraftMonth(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {draftDateMode === "year" ? (
+                  <div className="bl-date-filter-row">
+                    <label className="bl-date-filter-label">
+                      Năm
+                      <input
+                        className="bl-date-filter-input"
+                        type="number"
+                        inputMode="numeric"
+                        min="2000"
+                        max="2100"
+                        value={draftYear}
+                        onChange={(e) => setDraftYear(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="bl-date-filter-actions">
+                <button type="button" className="bl-btn secondary bl-btn-sm" onClick={() => setDatePanelOpen(false)}>
+                  Đóng
+                </button>
+                <button type="button" className="bl-btn primary bl-btn-sm" onClick={applyDraftFilter}>
+                  Áp dụng
+                </button>
+              </div>
+              </motion.div>
+            ) : null}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {loadingList && page === 1 && historyItems.length === 0 ? (
@@ -305,26 +541,51 @@ const BookingList = () => {
             if (filtered.length === 0) {
               return (
                 <div className="bl-empty-state">
+                  <img
+                    className="bl-empty-illustration"
+                    src="/assets/images/empty-box.png"
+                    alt="empty"
+                  />
                   <p>Không có dữ liệu đơn hàng.</p>
                 </div>
               );
             }
-            return filtered.map((b) => (
-              <div key={b.bookingId} className="bl-list-item">
+            return filtered.map((b, idx) => (
+              <motion.div
+                key={b.bookingId}
+                className="bl-list-item"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+              >
                 <div className="bl-list-info">
                   <div className="bl-badge-row">
                     <span
                       className="bl-list-badge"
                       data-status={(b.status || "").toLowerCase()}
                     >
+                      {statusIcon(b.status)}
                       {translateStatus(b.status)}
                     </span>
                     <span className="bl-list-id">Mã #{b.bookingId}</span>
                   </div>
                   <h3 className="bl-list-venue">{b.venueName || "—"}</h3>
-                  <p className="bl-list-meta">
-                    <Calendar size={14} /> {formatDate(b.bookingDate)}
-                  </p>
+                  <div className="bl-list-meta">
+                    <span className="bl-meta-item">
+                      <Calendar size={14} /> {formatDate(b.bookingDate)}
+                    </span>
+                    {b.address && (
+                      <span className="bl-meta-item">
+                        <MapPin size={14} />
+                        <span className="bl-ellipsis">{b.address}</span>
+                      </span>
+                    )}
+                  </div>
+                  {b.totalPrice && (
+                    <div className="bl-list-price">
+                      <Receipt size={14} /> {formatPrice(b.totalPrice)}
+                    </div>
+                  )}
                 </div>
                 <div className="bl-list-actions">
                   {(b.status || "").toLowerCase() === "pending" && (
@@ -335,11 +596,12 @@ const BookingList = () => {
                         handleContinuePaymentFromList(b.venueId, b.bookingId)
                       }
                     >
-                      Thanh toán
+                      <CreditCard size={16} className="bl-btn-icon" /> Thanh toán
                     </button>
                   )}
                   {(b.status || "").toLowerCase() === "booked" && (
                     <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)} disabled={cancelMutation.isLoading}>
+                      <XCircle size={16} className="bl-btn-icon" />
                       {cancelMutation.isLoading ? 'Đang huỷ...' : 'Hủy'}
                     </button>
                   )}
@@ -349,18 +611,21 @@ const BookingList = () => {
                       className="bl-btn primary bl-btn-sm"
                       onClick={() => handleOpenRatingFromList(b.bookingId)}
                     >
-                      Đánh giá
+                      <CheckCircle2 size={16} className="bl-btn-icon" /> Đánh giá
                     </button>
                   )}
                   <button
                     type="button"
                     className="bl-btn secondary bl-btn-sm"
-                    onClick={() => setDetailPopupId(b.bookingId)}
+                    onClick={() => {
+                      setDatePanelOpen(false);
+                      setDetailPopupId(b.bookingId);
+                    }}
                   >
-                    Xem chi tiết
+                    <AlertCircle size={16} className="bl-btn-icon" /> Xem chi tiết
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ));
           })()}
           {historyItems.length < totalItems && (
@@ -394,6 +659,18 @@ const BookingList = () => {
               </div>
             ) : popupBooking ? (
               <div className="bl-detail-card bl-popup-card">
+                {(() => {
+                  const statusLower = String(popupBooking.status || "").toLowerCase();
+                  const isCancelled =
+                    statusLower === "ownercancelled" || statusLower === "customercancelled";
+                  const cancelReason =
+                    popupBooking.cancelReason ??
+                    popupBooking.CancelReason ??
+                    popupBooking.ownerCancelReason ??
+                    popupBooking.OwnerCancelReason ??
+                    null;
+                  return (
+                    <>
                 <div className="bl-detail-header">
                   <span
                     className="bl-badge"
@@ -433,6 +710,12 @@ const BookingList = () => {
                       "—"}
                   </p>
                 </div>
+                {isCancelled ? (
+                  <div className="bl-cancel-reason">
+                    <h3>Lý do hủy</h3>
+                    <p>{String(cancelReason || "Không có lý do cụ thể từ hệ thống.")}</p>
+                  </div>
+                ) : null}
                 {popupBooking.details && (
                   <div className="bl-slots">
                     <h3>Khung giờ đã đặt</h3>
@@ -476,6 +759,9 @@ const BookingList = () => {
                     Xem sân
                   </Link>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
           </div>

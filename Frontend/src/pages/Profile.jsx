@@ -8,6 +8,7 @@ import {
   faEdit,
   faEye,
   faEyeSlash,
+  faBars,
   faCog,
   faSignOutAlt,
   faArrowLeft,
@@ -41,6 +42,7 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const {
     data: profile
@@ -162,6 +164,7 @@ const Profile = () => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem('token');
     toast.success("Đăng xuất thành công!");
+    setMobileMenuOpen(false);
     navigate("/login");
   };
 
@@ -182,8 +185,38 @@ const Profile = () => {
     }
   };
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [mobileMenuOpen]);
+
   return (
     <div className="profile-page">
+      <button
+        type="button"
+        className={`profile-mobile-menu-btn ${mobileMenuOpen ? "hidden" : ""}`}
+        onClick={() => setMobileMenuOpen(true)}
+      >
+        <span className="profile-mobile-menu-btn-icon">
+          <FontAwesomeIcon icon={faBars} />
+        </span>
+        <span className="profile-mobile-menu-btn-text">Menu</span>
+      </button>
+      {mobileMenuOpen ? (
+        <div
+          className="profile-mobile-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      ) : null}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -191,7 +224,14 @@ const Profile = () => {
         className="profile-wrapper"
       >
         {/* ── SIDEBAR ── */}
-        <aside className="profile-sidebar">
+        <aside className={`profile-sidebar ${mobileMenuOpen ? "open" : ""}`}>
+          <button
+            type="button"
+            className="profile-mobile-close-btn"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
           <div className="sidebar-avatar-card">
             <div className="avatar-ring">
               <div className="avatar-circle">{avatarLetter}</div>
@@ -208,7 +248,10 @@ const Profile = () => {
           <nav className="sidebar-nav">
             <button
               className={`sidebar-nav-item ${activeTab === "profile" ? "active" : ""}`}
-              onClick={() => setActiveTab("profile")}
+              onClick={() => {
+                setActiveTab("profile");
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon">
                 <FontAwesomeIcon icon={faUser} />
@@ -217,7 +260,10 @@ const Profile = () => {
             </button>
             <button
               className={`sidebar-nav-item ${activeTab === "settings" ? "active" : ""}`}
-              onClick={() => setActiveTab("settings")}
+              onClick={() => {
+                setActiveTab("settings");
+                setMobileMenuOpen(false);
+              }}
             >
               <span className="nav-icon">
                 <FontAwesomeIcon icon={faShieldAlt} />
@@ -227,7 +273,13 @@ const Profile = () => {
           </nav>
 
           <div className="sidebar-actions">
-            <button className="btn-sidebar-back" onClick={() => navigate("/")}>
+            <button
+              className="btn-sidebar-back"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigate("/");
+              }}
+            >
               <FontAwesomeIcon icon={faArrowLeft} /> Quay lại
             </button>
             <button className="btn-sidebar-logout" onClick={handleLogout}>

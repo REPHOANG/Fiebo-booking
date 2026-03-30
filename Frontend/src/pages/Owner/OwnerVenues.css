@@ -83,11 +83,66 @@
   .ov-tabbar {
     align-self: stretch;
     width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .ov-tab {
-    flex: 1;
-    justify-content: center;
+    min-height: 52px;
+    padding: 10px 12px;
+  }
+
+  .ov-tab-label {
+    font-size: 12px;
+  }
+}
+
+/* Hẹp ngang: một hàng cuộn để không bóp chữ / icon */
+@media (max-width: 640px) {
+  .ov-tab-wrap {
+    margin-right: -4px;
+  }
+
+  .ov-tabbar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    gap: 8px;
+    padding: 8px 10px 10px;
+    scrollbar-width: thin;
+  }
+
+  .ov-tabbar::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .ov-tabbar::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.15);
+    border-radius: 999px;
+  }
+
+  .ov-tab {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-width: min(78vw, 220px);
+    max-width: 280px;
+    padding: 10px 12px;
+  }
+
+  .ov-tab-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ov-tab-label {
+    white-space: normal;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
@@ -121,75 +176,187 @@
 }
 
 .ov-tabbar {
-  display: inline-flex;
-  align-self: flex-start;
-  flex-wrap: wrap;
-  gap: 0;
-  padding: 4px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
 .ov-tab {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
   border: none;
   cursor: pointer;
   font: inherit;
-  font-size: 14px;
-  font-weight: 700;
+  text-align: left;
   color: #64748b;
-  padding: 10px 18px;
-  border-radius: 10px;
-  background: transparent;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid transparent;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.12s ease;
 }
 
 .ov-tab:hover {
   color: #0f172a;
-  background: rgba(19, 154, 68, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+
+.ov-tab:active {
+  transform: scale(0.99);
+}
+
+.ov-tab:focus-visible {
+  outline: 2px solid #139a44;
+  outline-offset: 2px;
 }
 
 .ov-tab--active {
   color: #fff;
-  background: #139a44;
-  box-shadow: 0 2px 8px rgba(19, 154, 68, 0.35);
+  background: linear-gradient(145deg, #16a34a 0%, #139a44 45%, #0f7c36 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 16px rgba(19, 154, 68, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .ov-tab--active:hover {
   color: #fff;
-  background: #0f7c36;
+  background: linear-gradient(145deg, #15803d 0%, #139a44 50%, #0d6d32 100%);
+}
+
+.ov-tab.ov-tab--active:hover .ov-tab-icon {
+  background: rgba(255, 255, 255, 0.34);
+  color: #ffffff;
+}
+
+.ov-tab-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Trạng thái chưa chọn: nền trung tính + icon màu đậm để khỏi “trùng” với nền tông pastel */
+.ov-tab[data-kind="approved"] .ov-tab-icon {
+  background: #ffffff;
+  color: #047857;
+  box-shadow:
+    inset 0 0 0 1px rgba(4, 120, 87, 0.22),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ov-tab[data-kind="draft"] .ov-tab-icon {
+  background: #ffffff;
+  color: #b45309;
+  box-shadow:
+    inset 0 0 0 1px rgba(180, 83, 9, 0.22),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ov-tab[data-kind="pending"] .ov-tab-icon {
+  background: #ffffff;
+  color: #0369a1;
+  box-shadow:
+    inset 0 0 0 1px rgba(3, 105, 161, 0.22),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ov-tab[data-kind="cancelled"] .ov-tab-icon {
+  background: #ffffff;
+  color: #be123c;
+  box-shadow:
+    inset 0 0 0 1px rgba(190, 18, 60, 0.22),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/*
+ * Tab đang chọn: bắt buộc override mọi data-kind (trước đây .ov-tab[data-kind] thắng specificity → icon xanh trên nền xanh).
+ */
+.ov-tab.ov-tab--active .ov-tab-icon {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.ov-tab-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .ov-tab-label {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.ov-tab--active .ov-tab-label {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
 }
 
 .ov-tab-count {
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 800;
-  min-width: 1.5em;
+  min-width: 1.75em;
   text-align: center;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-  color: #475569;
+  background: rgba(15, 23, 42, 0.07);
+  color: #334155;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  line-height: 1.2;
 }
 
 .ov-tab--active .ov-tab-count {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.26);
   color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .ov-tab-hint {
   margin: 12px 0 14px;
+  padding: 10px 14px;
   font-size: 13px;
   color: #64748b;
-  line-height: 1.45;
+  line-height: 1.5;
   max-width: 720px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .ov-tabpanel {

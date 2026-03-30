@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Calendar, Search } from "lucide-react";
 import { createBooking, createWalkInBooking } from "../../../services/bookingService";
 import { savePaymentDraft } from '../../../utils/paymentDraft';
 import { getVenueSchedule } from "../../../services/fieldService";
@@ -36,6 +36,29 @@ const getUnavailableKeysFromSchedule = (schedule) => {
     });
   });
   return keys;
+};
+
+const SERVICE_CATALOG = [
+  { id: "ball-franklin", name: "Bóng Franklin X", unit: "quả", price: 75000, category: "Bóng thi đấu" },
+  { id: "ball-zocker", name: "Bóng Zocker", unit: "quả", price: 55000, category: "Bóng thi đấu" },
+  { id: "ball-zocker-pack", name: "Bóng Zocker hộp 3", unit: "hộp", price: 150000, category: "Bóng thi đấu" },
+  { id: "snack-noodle", name: "Mì tôm trứng", unit: "bát", price: 30000, category: "Đồ ăn nhanh" },
+  { id: "snack-egg", name: "Trứng gà", unit: "quả", price: 10000, category: "Đồ ăn nhanh" },
+  { id: "drink-aquarius", name: "Aquarius", unit: "chai", price: 15000, category: "Đồ uống" },
+  { id: "drink-tea", name: "Bò húc", unit: "chai", price: 20000, category: "Đồ uống" },
+  { id: "drink-coffee", name: "Cafe bạc xỉu", unit: "cốc", price: 30000, category: "Đồ uống" },
+  { id: "accessory-bib", name: "Áo bib", unit: "bộ", price: 20000, category: "Phụ kiện thể thao" },
+  { id: "accessory-shuttle", name: "Cầu lông", unit: "ống", price: 90000, category: "Phụ kiện thể thao" },
+];
+
+const buildBookingNoteWithServices = (baseNote, serviceRows) => {
+  const note = (baseNote || "").trim();
+  if (!serviceRows.length) return note || undefined;
+  const serviceLine = serviceRows
+    .map((s) => `${s.name} x${s.qty} (${s.subtotal.toLocaleString("vi-VN")} đ)`)
+    .join("; ");
+  const merged = `${note ? `${note}\n` : ""}[Dich vu] ${serviceLine}`;
+  return merged;
 };
 
 // Build booking details from schedule by matching client field (name + sportType) to schedule.
@@ -96,6 +119,11 @@ const BookingConfirmation = () => {
   const [bookingNote, setBookingNote] = useState("");
   const [isRetrying, setIsRetrying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serviceQty, setServiceQty] = useState({});
+  const [showServicePopup, setShowServicePopup] = useState(false);
+  const [serviceDraftQty, setServiceDraftQty] = useState({});
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [serviceCategory, setServiceCategory] = useState("all");
 
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
@@ -251,6 +279,65 @@ const BookingConfirmation = () => {
 
   const totalPrice = slotSummary?.totalPrice || 0;
   const totalMinutes = slotSummary?.totalMinutes || 0;
+  const selectedServiceRows = useMemo(() => {
+    return SERVICE_CATALOG
+      .map((s) => {
+        const qty = Number(serviceQty[s.id] || 0);
+        return qty > 0 ? { ...s, qty, subtotal: qty * s.price } : null;
+      })
+      .filter(Boolean);
+  }, [serviceQty]);
+  const serviceTotal = useMemo(
+    () => selectedServiceRows.reduce((sum, x) => sum + x.subtotal, 0),
+    [selectedServiceRows]
+  );
+  // Business rule (offline): user only pays field fee on app; services are paid directly at venue.
+  const payableTotal = totalPrice;
+
+  const openServicePopup = () => {
+    setServiceDraftQty({ ...serviceQty });
+    setServiceSearch("");
+    setServiceCategory("all");
+    setShowServicePopup(true);
+  };
+
+  const applyServicePopup = () => {
+    setServiceQty({ ...serviceDraftQty });
+    setShowServicePopup(false);
+  };
+
+  const serviceCategories = useMemo(
+    () => ["all", ...Array.from(new Set(SERVICE_CATALOG.map((s) => s.category)))],
+    []
+  );
+
+  const filteredServiceCatalog = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    return SERVICE_CATALOG.filter((s) => {
+      const inCategory = serviceCategory === "all" || s.category === serviceCategory;
+      const inSearch = !q || s.name.toLowerCase().includes(q);
+      return inCategory && inSearch;
+    });
+  }, [serviceCategory, serviceSearch]);
+
+  const modalServiceRows = useMemo(() => {
+    const grouped = {};
+    filteredServiceCatalog.forEach((item) => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    });
+    return Object.entries(grouped);
+  }, [filteredServiceCatalog]);
+
+  const modalServiceCount = useMemo(
+    () => Object.values(serviceDraftQty).reduce((sum, x) => sum + Number(x || 0), 0),
+    [serviceDraftQty]
+  );
+  const modalServiceTotal = useMemo(
+    () =>
+      SERVICE_CATALOG.reduce((sum, s) => sum + Number(serviceDraftQty[s.id] || 0) * Number(s.price || 0), 0),
+    [serviceDraftQty]
+  );
 
   const handleConfirmBooking = () => {
     setConfirmError("");
@@ -309,9 +396,12 @@ const BookingConfirmation = () => {
             bookingDate: selectedDate,
             fullname,
             phoneNumber,
-            ...((bookingNote || "").trim() && { bookingNote: (bookingNote || "").trim() }),
+            ...((bookingNote || "").trim() && { bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows) }),
             details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
           };
+          if (!payload.bookingNote) {
+            payload.bookingNote = buildBookingNoteWithServices("", selectedServiceRows);
+          }
 
           if (!payload.details.length) {
             toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
@@ -409,9 +499,12 @@ const BookingConfirmation = () => {
           bookingDate: selectedDate,
           fullname,
           phoneNumber,
-          ...((bookingNote || "").trim() && { bookingNote: (bookingNote || "").trim() }),
+          ...((bookingNote || "").trim() && { bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows) }),
           details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
         };
+        if (!payload.bookingNote) {
+          payload.bookingNote = buildBookingNoteWithServices("", selectedServiceRows);
+        }
 
         if (!payload.details.length) {
           toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
@@ -525,7 +618,7 @@ const BookingConfirmation = () => {
             bookingDate: selectedDate,
             fullname: (displayName || guestName || "").trim(),
             phoneNumber: (displayPhone || guestPhone || "").trim(),
-            bookingNote: (bookingNote || "").trim() || undefined,
+            bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows),
             details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
           };
           const res = await createBooking(payload);
@@ -571,7 +664,7 @@ const BookingConfirmation = () => {
       exit={{ opacity: 0, x: -40 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-    <div className="bc-main">
+    <div className={`bc-main${isWalkInBooking ? " bc-main--owner" : ""}`}>
       {/* Header */}
       <div className="bc-header">
         <button
@@ -655,6 +748,30 @@ const BookingConfirmation = () => {
         </div>
       </div>
 
+      <div className="bc-section">
+        <div className="bc-section-header">
+          <span style={{ fontSize: "1.05rem" }}>🧰</span>
+          <span>Dịch vụ kèm theo</span>
+        </div>
+        <div className="bc-services-card">
+          {selectedServiceRows.length === 0 ? (
+            <p className="bc-service-empty">Chưa chọn dịch vụ nào.</p>
+          ) : (
+            selectedServiceRows.map((s) => (
+              <div key={s.id} className="bc-service-row">
+                <div className="bc-service-info">
+                  <strong>{s.name}</strong>
+                  <span>
+                    {s.qty} {s.unit} × {formatPrice(s.price)}
+                  </span>
+                </div>
+                <div className="bc-service-subtotal">{formatPrice(s.subtotal)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
         </div>
 
         {/* Right column: customer info */}
@@ -734,6 +851,11 @@ const BookingConfirmation = () => {
           )}
         </div>
       </div>
+      <div className="bc-service-open-wrap">
+        <button type="button" className="bc-service-open-btn" onClick={openServicePopup}>
+          + THÊM DỊCH VỤ
+        </button>
+      </div>
         </div>
       </div>
 
@@ -749,10 +871,20 @@ const BookingConfirmation = () => {
           <span>Tổng khung giờ</span>
           <span className="bc-summary-val">{selectedSlots?.length || 0} khung</span>
         </div>
+        <div className="bc-summary-row">
+          <span>Tiền sân</span>
+          <span className="bc-summary-val">{formatPrice(totalPrice)}</span>
+        </div>
+        <div className="bc-summary-row">
+          <span>Tiền dịch vụ</span>
+          <span className="bc-summary-val">
+            {formatPrice(serviceTotal)} <span className="bc-summary-note">(trả tại sân)</span>
+          </span>
+        </div>
         <div className="bc-summary-divider" />
         <div className="bc-summary-row total">
           <span>Tổng thanh toán</span>
-          <span className="bc-summary-total">{formatPrice(totalPrice)}</span>
+          <span className="bc-summary-total">{formatPrice(payableTotal)}</span>
         </div>
       </div>
 
@@ -762,7 +894,7 @@ const BookingConfirmation = () => {
       <div className="bc-bottom">
         <div className="bc-bottom-price">
           <span className="bc-bottom-label">Tổng cộng</span>
-          <span className="bc-bottom-amount">{formatPrice(totalPrice)}</span>
+          <span className="bc-bottom-amount">{formatPrice(payableTotal)}</span>
         </div>
         <button
           className={`bc-confirm-btn${!canConfirm || isSubmitting ? " disabled" : ""}${isSubmitting ? " loading" : ""}`}
@@ -777,6 +909,109 @@ const BookingConfirmation = () => {
         </button>
       </div>
     </div>
+
+    {showServicePopup ? (
+      <div className="bc-service-modal-backdrop" onClick={() => setShowServicePopup(false)}>
+        <div className="bc-service-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="bc-service-modal-head">
+            <h3>Dịch vụ dành cho bạn</h3>
+            <button type="button" className="bc-service-close" onClick={() => setShowServicePopup(false)}>
+              ×
+            </button>
+          </div>
+          <div className="bc-service-toolbar">
+            <div className="bc-service-search-wrap">
+              <Search size={16} />
+              <input
+                className="bc-service-search"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder="Nhập tên sản phẩm"
+              />
+            </div>
+            <div className="bc-service-cats">
+              {serviceCategories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`bc-service-cat${serviceCategory === c ? " active" : ""}`}
+                  onClick={() => setServiceCategory(c)}
+                >
+                  {c === "all" ? "Tất cả" : c}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="bc-service-modal-body">
+            {modalServiceRows.length === 0 ? (
+              <p className="bc-service-empty">Không có dịch vụ phù hợp.</p>
+            ) : (
+              modalServiceRows.map(([category, items]) => (
+                <div key={category} className="bc-service-category-block">
+                  <p className="bc-service-category-title">{category}</p>
+                  <div className="bc-service-product-grid">
+                    {items.map((s) => {
+                      const qty = Number(serviceDraftQty[s.id] || 0);
+                      return (
+                        <div key={s.id} className="bc-service-product-card">
+                          <div className="bc-service-product-main">
+                            <div className="bc-service-product-icon" aria-hidden>
+                              👜
+                            </div>
+                            <div className="bc-service-product-info">
+                              <strong>{s.name} ({s.unit})</strong>
+                              <span>{formatPrice(s.price)} / {s.unit}</span>
+                            </div>
+                          </div>
+                          <div className="bc-service-actions">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setServiceDraftQty((prev) => ({
+                                  ...prev,
+                                  [s.id]: Math.max(0, Number(prev[s.id] || 0) - 1),
+                                }))
+                              }
+                              className="bc-qty-btn"
+                            >
+                              -
+                            </button>
+                            <span className="bc-qty-val">{qty}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setServiceDraftQty((prev) => ({
+                                  ...prev,
+                                  [s.id]: Math.min(99, Number(prev[s.id] || 0) + 1),
+                                }))
+                              }
+                              className="bc-qty-btn"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="bc-service-modal-foot">
+            <button type="button" className="bc-service-cancel" onClick={() => setShowServicePopup(false)}>
+              Hủy
+            </button>
+            <button type="button" className="bc-service-apply" onClick={applyServicePopup}>
+              Thêm dịch vụ
+            </button>
+            <span className="bc-service-foot-meta">
+              {modalServiceCount} món | Tổng cộng: {formatPrice(modalServiceTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+    ) : null}
     </motion.div>
   );
 };
