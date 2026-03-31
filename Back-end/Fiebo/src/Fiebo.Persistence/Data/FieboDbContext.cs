@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Persistence.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +41,9 @@ namespace Fiebo.Persistence.Data
         public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
         public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
         public DbSet<ServiceType> ServiceTypes { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<OwnerPlan> OwnerPlans { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -605,6 +608,36 @@ namespace Fiebo.Persistence.Data
                 entity.Property(x => x.Name)
                       .HasMaxLength(100)
                       .IsRequired();
+            });
+
+            // SubscriptionPlan
+            modelBuilder.Entity<SubscriptionPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.DurationDays).IsRequired();
+            });
+
+            // OwnerPlan
+            modelBuilder.Entity<OwnerPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.OwnerId).HasMaxLength(450).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.Status).HasConversion<int>();
+                
+                entity.HasOne(op => op.Plan)
+                      .WithMany(sp => sp.OwnerPlans)
+                      .HasForeignKey(op => op.PlanId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(op => op.OwnerId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
         }

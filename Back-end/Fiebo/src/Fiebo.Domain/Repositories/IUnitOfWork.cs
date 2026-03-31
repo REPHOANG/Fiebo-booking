@@ -38,6 +38,9 @@ namespace Fiebo.Domain.Repositories
         IFieldImageRepository FieldImages { get; }
         IVenueServiceItemRepository VenueServiceItems { get; }
         IServiceTypeRepository ServiceTypes { get; }
+        ISubscriptionPlanRepository SubscriptionPlans { get; }
+        IOwnerPlanRepository OwnerPlans { get; }
+
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
