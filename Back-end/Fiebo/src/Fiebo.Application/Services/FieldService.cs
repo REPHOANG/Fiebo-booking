@@ -144,25 +144,24 @@ namespace Fiebo.Application.Services
         public async Task<int> CreateFieldAsync(
             int venueId,
             CreateFieldRequest request,
-            List<string> imageUrls,
             string userId,
             string userRole)
         {
-            // BR-69: Field must belong to an existing venue
+            // BR-01: Field must belong to exactly one Venue and one SportType
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if (venue == null)
             {
-                throw new NotFoundException("Không tìm thấy cơ sở.");
+                throw new NotFoundException("Không tìm thấy cơ sở sân.");
             }
 
-            // Authorization: Admin can create in any venue; Owner only in their own
+            // Authorization: Field Owner or Admin
             bool isAdmin = userRole == AppRoles.Admin;
             if (!isAdmin && venue.OwnerId != userId)
             {
                 throw new UnauthorizedException("Bạn không có quyền tạo sân trong cơ sở này.");
             }
 
-            // BR-71 / E2: Duplicate field name within the same venue
+            // BR-02 / MSG-E02: Check for duplicate field names within the same Venue
             var nameExists = await _unitOfWork.Fields
                 .IsFieldNameExistsInVenueAsync(venueId, request.Name);
 
@@ -172,7 +171,7 @@ namespace Fiebo.Application.Services
                     "Tên sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
             }
 
-            // BR-70: Default status = Active
+            // BR-03 / Default Status: Automatically set to Active
             var field = new Field
             {
                 Name = request.Name,
@@ -182,18 +181,29 @@ namespace Fiebo.Application.Services
                 Status = FieldStatus.Active
             };
 
-            _unitOfWork.Fields.Add(field);
-
-            foreach (var url in imageUrls)
+            // MSG-E03 / Image Validation: Check if images are valid
+            if (request.Images != null && request.Images.Any())
             {
-                field.Images.Add(new FieldImage
+                ImageValidator.ValidateFiles(request.Images, min: 0, max: 10); // Optional but max 10 images
+
+                foreach (var file in request.Images)
                 {
-                    Id = "ramdonId", // sửa, dùng public id từ Cloudinary
-                    ImageUrl = url,
-                    Field = field
-                });
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(file);
+                    if (uploadResult == null)
+                    {
+                        throw new BadRequestException("Có lỗi xảy ra khi tải lên hình ảnh lên hệ thống.");
+                    }
+
+                    field.Images.Add(new FieldImage
+                    {
+                        Id = uploadResult.PublicId,
+                        ImageUrl = uploadResult.Url,
+                        Field = field
+                    });
+                }
             }
 
+            _unitOfWork.Fields.Add(field);
             await _unitOfWork.SaveChangesAsync();
 
             return field.Id;

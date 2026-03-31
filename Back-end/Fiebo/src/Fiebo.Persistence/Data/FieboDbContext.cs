@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Persistence.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +38,12 @@ namespace Fiebo.Persistence.Data
         public DbSet<VenueStaff> VenueStaff { get; set; }
         public DbSet<VenueDocument> VenueDocuments { get; set; }
         public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
+        public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
+        public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
+        public DbSet<ServiceType> ServiceTypes { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<OwnerPlan> OwnerPlans { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -557,6 +563,81 @@ namespace Fiebo.Persistence.Data
                     .WithMany(d => d.Images)
                     .HasForeignKey(e => e.DocumentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<VenueServiceItem>(entity =>
+            {
+                entity.ToTable("VenueServiceItems");
+
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+
+                entity.HasOne(x => x.Venue)
+                      .WithMany(v => v.VenueServiceItems)
+                      .HasForeignKey(x => x.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired(false);
+                entity.HasOne(v => v.ServiceType)
+                      .WithMany(s => s.VenueServiceItems)
+                      .HasForeignKey(v => v.ServiceTypeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<BookingServiceItem>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne(x => x.Booking)
+                      .WithMany(b => b.BookingServiceItems)
+                      .HasForeignKey(x => x.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.VenueServiceItem)
+                      .WithMany(v => v.BookingServiceItems)
+                      .HasForeignKey(x => x.VenueServiceItemId)
+                      .OnDelete(DeleteBehavior.Restrict); 
+            });
+            modelBuilder.Entity<ServiceType>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Name)
+                      .HasMaxLength(100)
+                      .IsRequired();
+            });
+
+            // SubscriptionPlan
+            modelBuilder.Entity<SubscriptionPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.DurationDays).IsRequired();
+            });
+
+            // OwnerPlan
+            modelBuilder.Entity<OwnerPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.OwnerId).HasMaxLength(450).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.Status).HasConversion<int>();
+                
+                entity.HasOne(op => op.Plan)
+                      .WithMany(sp => sp.OwnerPlans)
+                      .HasForeignKey(op => op.PlanId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(op => op.OwnerId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
         }

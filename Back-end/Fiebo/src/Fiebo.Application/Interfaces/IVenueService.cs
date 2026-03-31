@@ -35,6 +35,11 @@ namespace Fiebo.Application.Interfaces
         Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
         Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId);
         Task SubmitVenueDraftAsync(int venueId, string? ownerId);
-
+        Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId);
+        Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request);
+        Task UpdateVenueServiceAsync(int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default);
+        Task DeleteVenueServiceAsync(int serviceId, string ownerId, CancellationToken cancellationToken = default);
+        Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default);
+        Task<List<ServiceTypeResponse>> GetServiceTypesAsync(CancellationToken cancellationToken = default);
     }
 }

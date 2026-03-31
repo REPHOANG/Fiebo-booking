@@ -623,5 +623,258 @@ namespace Fiebo.Application.Services
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
+
+        public async Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId)
+        {
+            // 1. Load venue (tracked for updates)
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+            }
+
+            // BR-03: OwnerId is immutable — only the owner can edit
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này.");
+            }
+
+            // E2 / MSG-E02: CloseTime must be after OpenTime
+            if (request.CloseTime <= request.OpenTime)
+            {
+                throw new BadRequestException(
+                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+            }
+
+            // MSG-E03: Duplicate venue name check (unique per owner, excluding self)
+            var nameExists = await _unitOfWork.Venues
+                .IsVenueNameExistsForOwnerAsync(ownerId, request.Name, venueId);
+            if (nameExists)
+            {
+                throw new ResourceConflictException(
+                    "Tên cơ sở này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
+            }
+
+            // E3 / MSG-E05: TimeSlot conflict when shortening hours on Active venue
+            if (venue.Status == VenueStatus.Active)
+            {
+                bool isHoursShortened = request.OpenTime > venue.OpenTime
+                                    || request.CloseTime < venue.CloseTime;
+
+                if (isHoursShortened)
+                {
+                    var hasConflict = await _unitOfWork.TimeSlots
+                        .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
+
+                    if (hasConflict)
+                    {
+                        throw new BadRequestException(
+                            "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động " +
+                            "nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
+                    }
+                }
+            }
+
+            // BR-01: Status Transition (State Machine)
+            // Rejected(3) -> Pending(2) on any save
+            // Draft(4) -> stays Draft(4)
+            // Active(1), Inactive(0), Pending(2) -> unchanged (BR-02 may override below)
+            if (venue.Status == VenueStatus.Rejected)
+            {
+                venue.Status = VenueStatus.Pending;
+            }
+
+            // BR-02: Critical Info Lock — Active venue with address change -> Pending
+            if (venue.Status == VenueStatus.Active)
+            {
+                bool addressChanged = venue.ProvinceId != request.ProvinceId
+                                   || venue.WardId != request.WardId
+                                   || venue.AddressDetail != request.AddressDetail;
+
+                if (addressChanged)
+                {
+                    venue.Status = VenueStatus.Pending;
+                }
+            }
+
+            // Apply field updates
+            venue.Name = request.Name;
+            venue.Description = request.Description;
+            venue.AddressDetail = request.AddressDetail;
+            venue.ProvinceId = request.ProvinceId;
+            venue.WardId = request.WardId;
+            venue.Longitude = request.Longitude;
+            venue.Latitude = request.Latitude;
+            venue.OpenTime = request.OpenTime;
+            venue.CloseTime = request.CloseTime;
+
+            // Handle thumbnail upload
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                var fileList = new List<IFormFile> { request.ThumbnailImage };
+                ImageValidator.ValidateFiles(fileList, 1, 1);
+
+                var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+                venue.ThumbnailUrl = uploadResult.Url;
+            }
+
+            venue.UpdatedAt = DateTime.Now;
+
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền thêm dịch vụ cho sân này");
+            }
+
+            string? imageUrl = null;
+            if (request.Image != null)
+            {
+                ImageValidator.ValidateFiles(new List<IFormFile> { request.Image }, 0, 1);
+                imageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
+            }
+
+            var serviceItem = new VenueServiceItem
+            {
+                VenueId = venueId,
+                Name = request.ServiceName,
+                Description = request.Description,
+                Price = request.Price,
+                ServiceTypeId = request.ServiceTypeId,
+                ImageUrl = imageUrl
+            };
+
+            _unitOfWork.VenueServiceItems.Add(serviceItem);
+            await _unitOfWork.SaveChangesAsync();
+
+            return serviceItem.Id;
+        }
+
+        public async Task UpdateVenueServiceAsync(int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default)
+        {
+            var existingService = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+
+            if (existingService == null || existingService.IsDeleted)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ hoặc dịch vụ đã bị xóa");
+            }
+
+            var venue = await _unitOfWork.Venues.GetByIdAsync(existingService.VenueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa dịch vụ của sân này");
+            }
+
+            string? imageUrl = existingService.ImageUrl;
+            if (request.Image != null)
+            {
+                ImageValidator.ValidateFiles(new List<IFormFile> { request.Image }, 0, 1);
+                imageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
+            }
+
+            existingService.IsDeleted = true;
+            _unitOfWork.VenueServiceItems.Update(existingService);
+
+            var newServiceVersion = new VenueServiceItem
+            {
+                VenueId = existingService.VenueId,
+                Name = request.ServiceName,
+                Description = request.Description,
+                Price = request.Price,
+                ServiceTypeId = request.ServiceTypeId,
+                ImageUrl = imageUrl,
+                IsDeleted = false
+            };
+
+            _unitOfWork.VenueServiceItems.Add(newServiceVersion);
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task DeleteVenueServiceAsync(int serviceId, string ownerId, CancellationToken cancellationToken = default)
+        {
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+
+            if (serviceItem == null || serviceItem.IsDeleted)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ");
+            }
+
+            var venue = await _unitOfWork.Venues.GetByIdAsync(serviceItem.VenueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xóa dịch vụ của sân này");
+            }
+
+            var isServiceInUse = await _unitOfWork.VenueServiceItems.IsServiceInUseAsync(serviceId, cancellationToken);
+            if (isServiceInUse)
+            {
+                throw new BadRequestException("Dịch vụ đang được sử dụng trong các lịch đặt sắp tới, không thể xóa.");
+            }
+
+            serviceItem.IsDeleted = true;
+
+            _unitOfWork.VenueServiceItems.Update(serviceItem);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem dịch vụ của sân này");
+            }
+
+            var pagedResult = await _unitOfWork.VenueServiceItems.GetPagedServicesAsync(
+                venueId,
+                request.SearchKeyword,
+                request.ServiceTypeId, 
+                request.Page,
+                request.PageSize,
+                cancellationToken);
+
+            var dtos = pagedResult.Items.Select(s => new VenueServiceDetailResponse
+            {
+                Id = s.Id,
+                ServiceName = s.Name,
+                Description = s.Description,
+                Price = s.Price,
+
+                ServiceTypeId = s.ServiceTypeId,
+                ServiceTypeName = s.ServiceType?.Name ?? string.Empty,
+
+                ImageUrl = s.ImageUrl
+            }).ToList();
+
+            return new PagedResult<VenueServiceDetailResponse>
+            {
+                Items = dtos,
+                TotalItems = pagedResult.TotalItems,
+                Page = pagedResult.Page,
+                PageSize = pagedResult.PageSize
+            };
+        }
+
+        public async Task<List<ServiceTypeResponse>> GetServiceTypesAsync(CancellationToken cancellationToken = default)
+        {
+            var types = await _unitOfWork.ServiceTypes.GetAllAsync(cancellationToken);
+
+            return types.Select(t => new ServiceTypeResponse
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Description = t.Description
+            }).ToList();
+        }
     }
 }

@@ -11,5 +11,9 @@ namespace Fiebo.Domain.Repositories
     {
         Task<int> GetCurrentPlayer(int eventId);
         Task<TicketParticipant?> GetTicketDetailAsync(int participantId);
+        Task<(List<TicketParticipant> Items, int TotalCount)> GetCustomerEventHistoryAsync(
+            string userId,
+            int pageIndex,
+            int pageSize);
     }
 }

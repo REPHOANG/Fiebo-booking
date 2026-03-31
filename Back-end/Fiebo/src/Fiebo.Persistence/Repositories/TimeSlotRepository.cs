@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +26,14 @@ namespace Fiebo.Persistence.Repositories
                     s.VenueId == venueId &&
                     s.DayOfWeek == dayOfWeek)
                 .ToListAsync();
+        }
+
+        public async Task<bool> HasTimeSlotsOutsideRangeAsync(
+            int venueId, TimeOnly newOpenTime, TimeOnly newCloseTime)
+        {
+            return await _context.TimeSlots
+                .AnyAsync(ts => ts.VenueId == venueId
+                             && (ts.StartTime < newOpenTime || ts.EndTime > newCloseTime));
         }
     }
 }

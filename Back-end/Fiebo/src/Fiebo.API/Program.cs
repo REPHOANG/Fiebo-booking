@@ -99,7 +99,10 @@ builder.Services.AddScoped<IWardRepository, WardRepository>();
 builder.Services.AddScoped<IVenueDocumentRepository, VenueDocumentRepository>();
 builder.Services.AddScoped<IVenueDocumentImageRepository, VenueDocumentImageRepository>();
 builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
-
+builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemRepository>();
+builder.Services.AddScoped<IServiceTypeRepository, ServiceTypeRepository>();
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
@@ -126,7 +129,7 @@ builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 
 builder.Services.AddHttpClient();
 
