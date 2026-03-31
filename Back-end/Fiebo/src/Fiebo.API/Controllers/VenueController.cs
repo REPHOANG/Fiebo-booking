@@ -385,6 +385,12 @@ namespace Fiebo.API.Controllers
 
         }
 
+        /// <summary>
+        /// Update field information for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPut("/api/owner/field/{id}")]
         public async Task<IActionResult> UpdateField(
@@ -397,6 +403,26 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Cập nhật thông tin sân thành công."
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{id}/time-slot")]
+        public async Task<IActionResult> GetOwnerVenueSchedule(
+            [FromRoute] int id, [FromQuery] int sportTypeId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetVenueTimeSlotAsync(id,  sportTypeId, ownerId);
+            return Ok(new ApiResponse<List<VenueTimeSlotResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
+                Data = result
             });
         }
     }

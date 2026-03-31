@@ -192,7 +192,7 @@ namespace Fiebo.Application.Services
         public async Task<PagedResult<ReviewDTO>> GetReviewsByVenue(int venueId, int page, int pageSize, string? sort)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if(venue == null || venue.Status != VenueStatus.Active)
+            if (venue == null || venue.Status != VenueStatus.Active)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -299,7 +299,7 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if(venue.Status != VenueStatus.Active)
+            if (venue.Status != VenueStatus.Active)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -422,7 +422,7 @@ namespace Fiebo.Application.Services
                 venue.Status = VenueStatus.Active;
             }
 
-            venue.UpdatedAt = DateTime.Now; 
+            venue.UpdatedAt = DateTime.Now;
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -441,7 +441,7 @@ namespace Fiebo.Application.Services
             return await GetVenueSchedule(venueId, date);
         }
 
-        
+
 
         public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
         {
@@ -449,7 +449,7 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để tạo sân");
             }
-            
+
             var file = request.Thumbnail;
             var fileList = file != null ? new List<IFormFile> { file } : [];
             ImageValidator.ValidateFiles(fileList, 0, 1);
@@ -548,7 +548,7 @@ namespace Fiebo.Application.Services
                 }
             }
         }
-        
+
 
         public async Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId)
         {
@@ -622,6 +622,32 @@ namespace Fiebo.Application.Services
             venue.Status = VenueStatus.Pending;
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<List<VenueTimeSlotResponse>> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId)
+        {
+            if (userId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để xem khung giờ sân");
+            }
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if(venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if(venue.OwnerId != userId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem khung giờ sân này");
+            }
+            var result = await _unitOfWork.TimeSlots.GetVenueTimeSlotAsync(venueId, sportTypeId);
+            return [.. result.Select(t => new VenueTimeSlotResponse
+            {
+                Id = t.Id,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                Price = t.Price,
+                DayOfWeek = t.DayOfWeek.ToString()
+            })];
         }
     }
 }

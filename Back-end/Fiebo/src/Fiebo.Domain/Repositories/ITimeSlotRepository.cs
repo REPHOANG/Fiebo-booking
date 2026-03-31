@@ -10,5 +10,6 @@ namespace Fiebo.Domain.Repositories
     public interface ITimeSlotRepository : IRepository<TimeSlot>
     {
         Task<List<TimeSlot>> GetTimeSlotsByVenueAndDateAsync(int venueId, DateOnly date);
+        Task<List<TimeSlot>> GetVenueTimeSlotAsync(int venueId, int sportTypeId);
     }
 }

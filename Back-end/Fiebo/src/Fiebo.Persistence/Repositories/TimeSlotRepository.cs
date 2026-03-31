@@ -27,5 +27,18 @@ namespace Fiebo.Persistence.Repositories
                     s.DayOfWeek == dayOfWeek)
                 .ToListAsync();
         }
+
+        public Task<List<TimeSlot>> GetVenueTimeSlotAsync(int venueId, int sportTypeId)
+        {
+            return _context.TimeSlots
+                .AsNoTracking()
+                .Where(s =>
+                    s.VenueId == venueId &&
+                    s.SportTypeId == sportTypeId &&
+                    s.IsDeleted == false)
+                .OrderBy(s => s.DayOfWeek)
+                .ThenBy(s => s.StartTime)
+                .ToListAsync();
+        }
     }
 }

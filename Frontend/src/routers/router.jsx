@@ -34,7 +34,7 @@ import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
 import Wallet from '../pages/Customer/Wallet/Wallet';
-import WalletTransactionHistory from '../pages/Customer/Wallet/WalletTransactionHistory';
+import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
 
 
 /**
@@ -77,6 +77,7 @@ const AppRoutes = () => (
     <Route path="/owner/events" element={<OwnerEvents />} />
     <Route path="/owner/events/create" element={<CreateEvent />} />
     <Route path="/owner/events/:id" element={<OwnerEventDetail />} />
+    <Route path="/owner/venue/:id/services" element={<ServiceManagement/>} />
     </Route>
 
     {/* Layout (Header + Footer): home, venues, booking */}
@@ -94,6 +95,7 @@ const AppRoutes = () => (
       <Route path="/admin" element={<div>Admin Page</div>} />
       <Route path="/wallet" element={<ProtectedRoute element={<Wallet />} />} />
     </Route>
+
   </Routes>
 );
 

@@ -1,6 +1,7 @@
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Venue;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Interfaces
@@ -35,6 +36,7 @@ namespace Fiebo.Application.Interfaces
         Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
         Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId);
         Task SubmitVenueDraftAsync(int venueId, string? ownerId);
+        Task<List<VenueTimeSlotResponse>> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId);
 
     }
 }
