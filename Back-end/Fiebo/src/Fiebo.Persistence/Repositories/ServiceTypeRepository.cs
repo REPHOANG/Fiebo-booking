@@ -1,12 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Repositories;
+using Fiebo.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
 
-namespace Fiebo.Persistence.Repositories
+namespace Fiebo.Persistence.Repositories;
+
+public class ServiceTypeRepository : IServiceTypeRepository
 {
-    internal class ServiceTypeRepository
+    private readonly FieboDbContext _context;
+
+    public ServiceTypeRepository(FieboDbContext context)
     {
+        _context = context;
+    }
+
+    public async Task<List<ServiceType>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.ServiceTypes
+            .AsNoTracking() 
+            .ToListAsync(cancellationToken);
     }
 }
