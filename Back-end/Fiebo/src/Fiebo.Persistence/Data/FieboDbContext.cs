@@ -40,6 +40,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
         public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
         public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
+        public DbSet<ServiceType> ServiceTypes { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -569,14 +570,16 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
-                entity.Property(x => x.ServiceType).HasMaxLength(50).IsRequired();
-                entity.HasQueryFilter(x => !x.IsDeleted);
 
                 entity.HasOne(x => x.Venue)
                       .WithMany(v => v.VenueServiceItems)
                       .HasForeignKey(x => x.VenueId)
                       .OnDelete(DeleteBehavior.Cascade)
                       .IsRequired(false);
+                entity.HasOne(v => v.ServiceType)
+                      .WithMany(s => s.VenueServiceItems)
+                      .HasForeignKey(v => v.ServiceTypeId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
             modelBuilder.Entity<BookingServiceItem>(entity =>
             {
@@ -591,6 +594,17 @@ namespace Fiebo.Persistence.Data
                       .WithMany(v => v.BookingServiceItems)
                       .HasForeignKey(x => x.VenueServiceItemId)
                       .OnDelete(DeleteBehavior.Restrict); 
+            });
+            modelBuilder.Entity<ServiceType>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.Id)
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Name)
+                      .HasMaxLength(100)
+                      .IsRequired();
             });
 
         }

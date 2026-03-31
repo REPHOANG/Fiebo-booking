@@ -9,7 +9,8 @@ public class VenueServiceItem : BaseEntity
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public decimal Price { get; set; }
-    public string ServiceType { get; set; } = null!;
+    public int ServiceTypeId { get; set; }
+    public virtual ServiceType ServiceType { get; set; } = null!;
     public string? ImageUrl { get; set; }
     public bool IsDeleted { get; set; } = false;
 
