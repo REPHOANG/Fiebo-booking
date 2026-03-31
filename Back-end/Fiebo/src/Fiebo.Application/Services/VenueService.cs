@@ -723,5 +723,159 @@ namespace Fiebo.Application.Services
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
+
+        public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở");
+            }
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền thêm dịch vụ cho sân này");
+            }
+
+            string? imageUrl = null;
+            if (request.Image != null)
+            {
+                ImageValidator.ValidateFiles(new List<IFormFile> { request.Image }, 0, 1);
+                imageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
+            }
+
+            var serviceItem = new VenueServiceItem
+            {
+                VenueId = venueId,
+                Name = request.ServiceName,
+                Description = request.Description,
+                Price = request.Price,
+                ServiceType = request.ServiceType,
+                ImageUrl = imageUrl
+            };
+
+            _unitOfWork.VenueServiceItems.Add(serviceItem);
+            await _unitOfWork.SaveChangesAsync();
+
+            return serviceItem.Id;
+        }
+
+        public async Task<VenueServiceDetailResponse> GetVenueServiceDetailAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền truy cập dịch vụ của sân này");
+            }
+
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+            if (serviceItem == null || serviceItem.VenueId != venueId)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ");
+            }
+
+            return new VenueServiceDetailResponse
+            {
+                Id = serviceItem.Id,
+                ServiceName = serviceItem.Name,
+                Description = serviceItem.Description,
+                Price = serviceItem.Price,
+                ServiceType = serviceItem.ServiceType,
+                ImageUrl = serviceItem.ImageUrl
+            };
+        }
+
+        public async Task UpdateVenueServiceAsync(int venueId, int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa dịch vụ của sân này");
+            }
+
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+            if (serviceItem == null || serviceItem.VenueId != venueId)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ");
+            }
+
+            if (request.Image != null)
+            {
+                ImageValidator.ValidateFiles(new List<IFormFile> { request.Image }, 0, 1);
+                serviceItem.ImageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
+            }
+
+            serviceItem.Name = request.ServiceName;
+            serviceItem.Description = request.Description;
+            serviceItem.Price = request.Price;
+            serviceItem.ServiceType = request.ServiceType;
+
+            _unitOfWork.VenueServiceItems.Update(serviceItem);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task DeleteVenueServiceAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xóa dịch vụ của sân này");
+            }
+
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+            if (serviceItem == null || serviceItem.VenueId != venueId)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ");
+            }
+
+            var isServiceInUse = await _unitOfWork.VenueServiceItems.IsServiceInUseAsync(serviceId, cancellationToken);
+            if (isServiceInUse)
+            {
+                throw new BadRequestException("Dịch vụ đang được sử dụng trong các lịch đặt sắp tới, không thể xóa.");
+            }
+
+            serviceItem.IsDeleted = true;
+
+            _unitOfWork.VenueServiceItems.Update(serviceItem);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default)
+        {
+            // 1. Validate quyền sở hữu sân
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null || venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem dịch vụ của sân này");
+            }
+
+            // 2. Fetch data từ Repository
+            var pagedResult = await _unitOfWork.VenueServiceItems.GetPagedServicesAsync(
+                venueId,
+                request.SearchKeyword,
+                request.ServiceType,
+                request.Page,
+                request.PageSize,
+                cancellationToken);
+
+            // 3. Map Entity sang DTO
+            var dtos = pagedResult.Items.Select(s => new VenueServiceDetailResponse
+            {
+                Id = s.Id,
+                ServiceName = s.Name,
+                Description = s.Description,
+                Price = s.Price,
+                ServiceType = s.ServiceType,
+                ImageUrl = s.ImageUrl
+            }).ToList();
+
+            // 4. Trả về format chuẩn
+            return new PagedResult<VenueServiceDetailResponse>
+            {
+                Items = dtos,
+                TotalItems = pagedResult.TotalItems,
+                Page = pagedResult.Page,
+                PageSize = pagedResult.PageSize
+            };
+        }
     }
 }

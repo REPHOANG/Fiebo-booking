@@ -5,6 +5,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -475,6 +476,47 @@ namespace Fiebo.Application.Services
                         .ToList()
                 };
             }).ToList();
+        }
+
+        public async Task<PagedResult<CustomerEventHistoryResponse>> GetCustomerEventHistoryAsync(string userId, EventHistoryFilter filter)
+        {
+            var (items, totalRecords) = await _unitOfWork.TicketParticipants.GetCustomerEventHistoryAsync(
+                userId,
+                filter.PageIndex,
+                filter.PageSize);
+
+            var mappedItems = items.Select(tp =>
+            {
+                var firstDetail = tp.Event.Details.FirstOrDefault();
+
+                return new CustomerEventHistoryResponse
+                {
+                    TicketParticipantId = tp.Id,
+                    EventId = tp.EventId,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = tp.Event.EventDate,
+                    TicketQuantity = tp.TicketQuantity,
+                    TotalAmount = tp.TotalPrice,
+                    ParticipantStatus = tp.Status.ToString(),
+                    Slots = tp.Event.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
+
+            return new PagedResult<CustomerEventHistoryResponse>
+            {
+                Items = mappedItems,
+                TotalItems = totalRecords,
+                Page = filter.PageIndex,   
+                PageSize = filter.PageSize
+            };
         }
     }
 }

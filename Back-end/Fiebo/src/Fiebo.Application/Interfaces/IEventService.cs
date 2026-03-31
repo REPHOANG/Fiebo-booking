@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Event;
 using Fiebo.Application.DTOs.TicketEvent;
+using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,5 +21,6 @@ namespace Fiebo.Application.Interfaces
         Task<OwnerTicketEventDetailResponse?> GetEventDetailForOwnerAsync(int eventId, string ownerId);
         //Task UpdateDropInEventAsync(int eventId, UpdateDropInEventRequest request, string ownerId);
         Task<List<OwnerDropInEventListItemResponse>> GetOwnerEventListAsync(string ownerId);
+        Task<PagedResult<CustomerEventHistoryResponse>> GetCustomerEventHistoryAsync(string userId, EventHistoryFilter filter);
     }
 }
