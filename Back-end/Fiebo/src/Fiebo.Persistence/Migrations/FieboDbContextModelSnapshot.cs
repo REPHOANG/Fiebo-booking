@@ -348,7 +348,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ServiceType");
+                    b.ToTable("ServiceTypes");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.SportType", b =>

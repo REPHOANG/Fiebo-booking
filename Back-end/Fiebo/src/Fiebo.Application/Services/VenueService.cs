@@ -749,7 +749,6 @@ namespace Fiebo.Application.Services
                 Name = request.ServiceName,
                 Description = request.Description,
                 Price = request.Price,
-                ServiceTypeId = request.ServiceTypeId,
                 ImageUrl = imageUrl
             };
 
@@ -790,7 +789,6 @@ namespace Fiebo.Application.Services
                 Name = request.ServiceName,
                 Description = request.Description,
                 Price = request.Price,
-                ServiceTypeId = request.ServiceTypeId,
                 ImageUrl = imageUrl,
                 IsDeleted = false
             };
@@ -838,7 +836,6 @@ namespace Fiebo.Application.Services
             var pagedResult = await _unitOfWork.VenueServiceItems.GetPagedServicesAsync(
                 venueId,
                 request.SearchKeyword,
-                request.ServiceTypeId, 
                 request.Page,
                 request.PageSize,
                 cancellationToken);
@@ -849,10 +846,6 @@ namespace Fiebo.Application.Services
                 ServiceName = s.Name,
                 Description = s.Description,
                 Price = s.Price,
-
-                ServiceTypeId = s.ServiceTypeId,
-                ServiceTypeName = s.ServiceType?.Name ?? string.Empty,
-
                 ImageUrl = s.ImageUrl
             }).ToList();
 
@@ -863,18 +856,6 @@ namespace Fiebo.Application.Services
                 Page = pagedResult.Page,
                 PageSize = pagedResult.PageSize
             };
-        }
-
-        public async Task<List<ServiceTypeResponse>> GetServiceTypesAsync(CancellationToken cancellationToken = default)
-        {
-            var types = await _unitOfWork.ServiceTypes.GetAllAsync(cancellationToken);
-
-            return types.Select(t => new ServiceTypeResponse
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Description = t.Description
-            }).ToList();
         }
     }
 }
