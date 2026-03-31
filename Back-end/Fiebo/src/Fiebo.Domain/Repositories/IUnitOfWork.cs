@@ -36,6 +36,7 @@ namespace Fiebo.Domain.Repositories
         IVenueDocumentRepository VenueDocuments { get; }
         IVenueDocumentImageRepository VenueDocumentImages { get; }
         IFieldImageRepository FieldImages { get; }
+        IVenueServiceItemRepository VenueServiceItems { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
