@@ -749,7 +749,7 @@ namespace Fiebo.Application.Services
                 Name = request.ServiceName,
                 Description = request.Description,
                 Price = request.Price,
-                ServiceType = request.ServiceType,
+                ServiceTypeId = request.ServiceTypeId,
                 ImageUrl = imageUrl
             };
 
@@ -759,72 +759,60 @@ namespace Fiebo.Application.Services
             return serviceItem.Id;
         }
 
-        public async Task<VenueServiceDetailResponse> GetVenueServiceDetailAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default)
+        public async Task UpdateVenueServiceAsync(int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default)
         {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null || venue.OwnerId != ownerId)
+            var existingService = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+
+            if (existingService == null || existingService.IsDeleted)
             {
-                throw new UnauthorizedException("Bạn không có quyền truy cập dịch vụ của sân này");
+                throw new NotFoundException("Không tìm thấy dịch vụ hoặc dịch vụ đã bị xóa");
             }
 
-            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
-            if (serviceItem == null || serviceItem.VenueId != venueId)
-            {
-                throw new NotFoundException("Không tìm thấy dịch vụ");
-            }
-
-            return new VenueServiceDetailResponse
-            {
-                Id = serviceItem.Id,
-                ServiceName = serviceItem.Name,
-                Description = serviceItem.Description,
-                Price = serviceItem.Price,
-                ServiceType = serviceItem.ServiceType,
-                ImageUrl = serviceItem.ImageUrl
-            };
-        }
-
-        public async Task UpdateVenueServiceAsync(int venueId, int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default)
-        {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            var venue = await _unitOfWork.Venues.GetByIdAsync(existingService.VenueId);
             if (venue == null || venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền chỉnh sửa dịch vụ của sân này");
             }
 
-            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
-            if (serviceItem == null || serviceItem.VenueId != venueId)
-            {
-                throw new NotFoundException("Không tìm thấy dịch vụ");
-            }
-
+            string? imageUrl = existingService.ImageUrl;
             if (request.Image != null)
             {
                 ImageValidator.ValidateFiles(new List<IFormFile> { request.Image }, 0, 1);
-                serviceItem.ImageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
+                imageUrl = (await _cloudinaryService.UploadImageAsync(request.Image)).Url;
             }
 
-            serviceItem.Name = request.ServiceName;
-            serviceItem.Description = request.Description;
-            serviceItem.Price = request.Price;
-            serviceItem.ServiceType = request.ServiceType;
+            existingService.IsDeleted = true;
+            _unitOfWork.VenueServiceItems.Update(existingService);
 
-            _unitOfWork.VenueServiceItems.Update(serviceItem);
+            var newServiceVersion = new VenueServiceItem
+            {
+                VenueId = existingService.VenueId,
+                Name = request.ServiceName,
+                Description = request.Description,
+                Price = request.Price,
+                ServiceTypeId = request.ServiceTypeId,
+                ImageUrl = imageUrl,
+                IsDeleted = false
+            };
+
+            _unitOfWork.VenueServiceItems.Add(newServiceVersion);
+
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task DeleteVenueServiceAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default)
+        public async Task DeleteVenueServiceAsync(int serviceId, string ownerId, CancellationToken cancellationToken = default)
         {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+
+            if (serviceItem == null || serviceItem.IsDeleted)
+            {
+                throw new NotFoundException("Không tìm thấy dịch vụ");
+            }
+
+            var venue = await _unitOfWork.Venues.GetByIdAsync(serviceItem.VenueId);
             if (venue == null || venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền xóa dịch vụ của sân này");
-            }
-
-            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
-            if (serviceItem == null || serviceItem.VenueId != venueId)
-            {
-                throw new NotFoundException("Không tìm thấy dịch vụ");
             }
 
             var isServiceInUse = await _unitOfWork.VenueServiceItems.IsServiceInUseAsync(serviceId, cancellationToken);
@@ -841,34 +829,33 @@ namespace Fiebo.Application.Services
 
         public async Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default)
         {
-            // 1. Validate quyền sở hữu sân
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if (venue == null || venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền xem dịch vụ của sân này");
             }
 
-            // 2. Fetch data từ Repository
             var pagedResult = await _unitOfWork.VenueServiceItems.GetPagedServicesAsync(
                 venueId,
                 request.SearchKeyword,
-                request.ServiceType,
+                request.ServiceTypeId, 
                 request.Page,
                 request.PageSize,
                 cancellationToken);
 
-            // 3. Map Entity sang DTO
             var dtos = pagedResult.Items.Select(s => new VenueServiceDetailResponse
             {
                 Id = s.Id,
                 ServiceName = s.Name,
                 Description = s.Description,
                 Price = s.Price,
-                ServiceType = s.ServiceType,
+
+                ServiceTypeId = s.ServiceTypeId,
+                ServiceTypeName = s.ServiceType?.Name ?? string.Empty,
+
                 ImageUrl = s.ImageUrl
             }).ToList();
 
-            // 4. Trả về format chuẩn
             return new PagedResult<VenueServiceDetailResponse>
             {
                 Items = dtos,
@@ -876,6 +863,18 @@ namespace Fiebo.Application.Services
                 Page = pagedResult.Page,
                 PageSize = pagedResult.PageSize
             };
+        }
+
+        public async Task<List<ServiceTypeResponse>> GetServiceTypesAsync(CancellationToken cancellationToken = default)
+        {
+            var types = await _unitOfWork.ServiceTypes.GetAllAsync(cancellationToken);
+
+            return types.Select(t => new ServiceTypeResponse
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Description = t.Description
+            }).ToList();
         }
     }
 }
