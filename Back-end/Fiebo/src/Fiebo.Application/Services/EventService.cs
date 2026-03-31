@@ -47,10 +47,14 @@ namespace Fiebo.Application.Services
                 var field = await _unitOfWork.Fields.GetByIdAsync(detail.FieldId);
                 if (field == null)
                     throw new NotFoundException($"Không tìm thấy sân với ID {detail.FieldId}.");
+                if (field.Status != FieldStatus.Active)
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
 
                 var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
                 if (venue == null || venue.OwnerId != userId)
                     throw new UnauthorizedAccessException("Bạn không có quyền tạo sự kiện cho sân này.");
+                if (venue.Status != VenueStatus.Active)
+                    throw new BadRequestException("Cơ sở này hiện không hoạt động.");
 
                 if (venueId == null)
                     venueId = venue.Id;
@@ -244,10 +248,20 @@ namespace Fiebo.Application.Services
                 }
 
                 // 2. Get event
-                var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
+                var dropInEvent = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
                 if (dropInEvent == null)
                 {
                     throw new NotFoundException("Sự kiện này không tồn tại");
+                }
+
+                // Check Venue and Field active status
+                var firstDetail = dropInEvent.Details.FirstOrDefault();
+                if (firstDetail != null)
+                {
+                    if (firstDetail.Field.Status != FieldStatus.Active)
+                        throw new BadRequestException("Sân hiện tại không hoạt động.");
+                    if (firstDetail.Field.Venue?.Status != VenueStatus.Active)
+                        throw new BadRequestException("Cơ sở này hiện không hoạt động.");
                 }
 
                 if (dropInEvent.Status != TicketEventStatus.Pending)

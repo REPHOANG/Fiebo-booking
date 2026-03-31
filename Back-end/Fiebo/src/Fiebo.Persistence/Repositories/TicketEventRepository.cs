@@ -35,7 +35,9 @@ namespace Fiebo.Persistence.Repositories
             return await _context.TicketEvents
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(te => te.Status == TicketEventStatus.Pending)
+                .Where(te => te.Status == TicketEventStatus.Pending &&
+                             te.Details.Any(d => d.Field.Status == FieldStatus.Active &&
+                                                 d.Field.Venue!.Status == VenueStatus.Active))
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
                         .ThenInclude(f => f.Venue)
