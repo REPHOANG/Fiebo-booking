@@ -12,8 +12,5 @@ public class UpdateVenueServiceRequest
     public string ServiceName { get; set; } = null!;
     public string? Description { get; set; }
     public decimal Price { get; set; }
-
-    public int ServiceTypeId { get; set; }
-
     public IFormFile? Image { get; set; }
 }
