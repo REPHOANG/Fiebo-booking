@@ -624,6 +624,106 @@ namespace Fiebo.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
+        public async Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId)
+        {
+            // 1. Load venue (tracked for updates)
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+            }
+
+            // BR-03: OwnerId is immutable — only the owner can edit
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này.");
+            }
+
+            // E2 / MSG-E02: CloseTime must be after OpenTime
+            if (request.CloseTime <= request.OpenTime)
+            {
+                throw new BadRequestException(
+                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+            }
+
+            // MSG-E03: Duplicate venue name check (unique per owner, excluding self)
+            var nameExists = await _unitOfWork.Venues
+                .IsVenueNameExistsForOwnerAsync(ownerId, request.Name, venueId);
+            if (nameExists)
+            {
+                throw new ResourceConflictException(
+                    "Tên cơ sở này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
+            }
+
+            // E3 / MSG-E05: TimeSlot conflict when shortening hours on Active venue
+            if (venue.Status == VenueStatus.Active)
+            {
+                bool isHoursShortened = request.OpenTime > venue.OpenTime
+                                    || request.CloseTime < venue.CloseTime;
+
+                if (isHoursShortened)
+                {
+                    var hasConflict = await _unitOfWork.TimeSlots
+                        .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
+
+                    if (hasConflict)
+                    {
+                        throw new BadRequestException(
+                            "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động " +
+                            "nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
+                    }
+                }
+            }
+
+            // BR-01: Status Transition (State Machine)
+            // Rejected(3) -> Pending(2) on any save
+            // Draft(4) -> stays Draft(4)
+            // Active(1), Inactive(0), Pending(2) -> unchanged (BR-02 may override below)
+            if (venue.Status == VenueStatus.Rejected)
+            {
+                venue.Status = VenueStatus.Pending;
+            }
+
+            // BR-02: Critical Info Lock — Active venue with address change -> Pending
+            if (venue.Status == VenueStatus.Active)
+            {
+                bool addressChanged = venue.ProvinceId != request.ProvinceId
+                                   || venue.WardId != request.WardId
+                                   || venue.AddressDetail != request.AddressDetail;
+
+                if (addressChanged)
+                {
+                    venue.Status = VenueStatus.Pending;
+                }
+            }
+
+            // Apply field updates
+            venue.Name = request.Name;
+            venue.Description = request.Description;
+            venue.AddressDetail = request.AddressDetail;
+            venue.ProvinceId = request.ProvinceId;
+            venue.WardId = request.WardId;
+            venue.Longitude = request.Longitude;
+            venue.Latitude = request.Latitude;
+            venue.OpenTime = request.OpenTime;
+            venue.CloseTime = request.CloseTime;
+
+            // Handle thumbnail upload
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                var fileList = new List<IFormFile> { request.ThumbnailImage };
+                ImageValidator.ValidateFiles(fileList, 1, 1);
+
+                var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+                venue.ThumbnailUrl = uploadResult.Url;
+            }
+
+            venue.UpdatedAt = DateTime.Now;
+
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
