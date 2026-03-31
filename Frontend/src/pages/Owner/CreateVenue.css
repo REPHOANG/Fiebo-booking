@@ -110,9 +110,39 @@
 
 .cv-doc-image-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 72px 1fr auto;
   gap: 10px;
   align-items: center;
+}
+
+.cv-doc-thumb-wrap {
+  width: 72px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.cv-doc-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cv-doc-thumb--empty {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cv-doc-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Sports pills ── */
@@ -289,6 +319,57 @@
 .cv-form-group textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.cv-thumb-meta {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cv-thumb-name {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.cv-thumb-remove-btn {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cv-thumb-remove-btn:hover {
+  background: #fee2e2;
+}
+
+.cv-thumb-preview {
+  margin-top: 10px;
+  width: 220px;
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+}
+
+.cv-thumb-preview-img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
 }
 
 .cv-form-group select {
@@ -545,5 +626,9 @@
 
   .cv-map-leaflet {
     height: 260px;
+  }
+
+  .cv-thumb-preview {
+    width: 100%;
   }
 }

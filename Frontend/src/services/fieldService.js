@@ -100,14 +100,23 @@ export const getVenueReviews = async (venueId, { page = 1, pageSize = 10, sort }
 
 /**
  * Owner: Get all fields under a venue
- * GET `/api/owner/venue/{venueId}/fields`
+ * GET `/api/owner/venue/{venueId}/fields` (fallback `/api/owner/venues/{venueId}/fields`)
  * @param {number|string} venueId
  * @returns {Promise<Array>} OwnerFieldListItemResponse[]
  */
 export const getOwnerVenueFields = async (venueId) => {
-  const response = await api.get(`/api/owner/venue/${venueId}/fields`);
-  const data = response.data?.data ?? response.data;
-  return Array.isArray(data) ? data : [];
+  try {
+    const response = await api.get(`/api/owner/venue/${venueId}/fields`);
+    const data = response.data?.data ?? response.data;
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    // Backward compatibility with older backend route.
+    const status = error?.response?.status;
+    if (status !== 404 && status !== 405) throw error;
+    const response = await api.get(`/api/owner/venues/${venueId}/fields`);
+    const data = response.data?.data ?? response.data;
+    return Array.isArray(data) ? data : [];
+  }
 };
 
 /**
@@ -130,6 +139,41 @@ export const createOwnerField = async (venueId, payload) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data?.data ?? response.data;
+};
+
+/**
+ * Owner: Update a field
+ * Try multiple route variants for backend compatibility.
+ * @param {number|string} fieldId
+ * @param {{name?:string,description?:string,sportTypeId?:number|string,status?:string}} payload
+ * @param {number|string} [venueId]
+ */
+export const updateOwnerField = async (fieldId, payload, venueId) => {
+  const body = {
+    ...(payload?.name != null ? { name: payload.name } : {}),
+    ...(payload?.description != null ? { description: payload.description } : {}),
+    ...(payload?.sportTypeId != null ? { sportTypeId: payload.sportTypeId } : {}),
+    ...(payload?.status != null ? { status: payload.status } : {}),
+  };
+
+  const candidates = [
+    `/api/owner/fields/${fieldId}`,
+    `/api/owner/field/${fieldId}`,
+    ...(venueId != null ? [`/api/owner/venues/${venueId}/fields/${fieldId}`, `/api/owner/venue/${venueId}/fields/${fieldId}`] : []),
+  ];
+
+  let lastError;
+  for (const url of candidates) {
+    try {
+      const response = await api.patch(url, body);
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      lastError = error;
+      const status = error?.response?.status;
+      if (status !== 404 && status !== 405) throw error;
+    }
+  }
+  throw lastError;
 };
 
 /**

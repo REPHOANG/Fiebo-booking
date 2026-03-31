@@ -154,8 +154,11 @@ const OwnerVenues = () => {
               </span>
             </div>
             <div className="ov-card-actions">
-              <Link to={`/owner/venues/${id}`} className="ov-btn ov-btn--secondary">
-                Xem chi tiết
+              <Link
+                to={statusLower === "draft" ? `/owner/create-venue?venueId=${id}` : `/owner/venues/${id}`}
+                className="ov-btn ov-btn--secondary"
+              >
+                {statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
               </Link>
               {canDeactivate ? (
                 <button

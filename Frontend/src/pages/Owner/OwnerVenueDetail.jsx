@@ -1,16 +1,116 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar } from "lucide-react";
+import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
-import { createOwnerField, getOwnerVenueFields, getVenueDetail } from "../../services/fieldService";
+import { getOwnerVenueFields, getVenueDetail, updateOwnerField } from "../../services/fieldService";
 import { deactivateOwnerVenue, getVenueDraft } from "../../services/venueService";
-import { getSportTypes } from "../../services/sportTypeService";
 import "./OwnerVenueDetail.css";
 
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "—";
   const parts = String(timeSpan).split(":");
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
+};
+
+const formatDisplayValue = (key, value) => {
+  if (value == null) return "—";
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
+  if (typeof value === "boolean") return value ? "Có" : "Không";
+  if (typeof value === "number") {
+    const lower = String(key || "").toLowerCase();
+    if (lower.includes("price") || lower.includes("amount")) return `${value.toLocaleString("vi-VN")} đ`;
+    return Number.isFinite(value) ? String(value) : "—";
+  }
+  if (typeof value === "object") return value;
+  return String(value);
+};
+
+const normalizeDoc = (doc) => {
+  if (!doc || typeof doc !== "object") return null;
+  const issueDate = doc.issueDate ?? doc.IssueDate ?? null;
+  const expiryDate = doc.expiryDate ?? doc.ExpiryDate ?? null;
+  const imagesRaw = doc.images ?? doc.Images ?? [];
+  const images = Array.isArray(imagesRaw) ? imagesRaw.filter(Boolean) : [];
+  return { issueDate, expiryDate, images };
+};
+
+const renderStructuredValue = (value, parentKey = "root") => {
+  if (value == null || value === "") return <span className="ovd-raw-value">—</span>;
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="ovd-raw-value">—</span>;
+    return (
+      <div className="ovd-nested-list">
+        {value.map((item, idx) => (
+          <div key={`${parentKey}-${idx}`} className="ovd-nested-item">
+            <span className="ovd-nested-index">#{idx + 1}</span>
+            <div className="ovd-nested-content">
+              {typeof item === "object" && item !== null
+                ? renderStructuredValue(item, `${parentKey}-${idx}`)
+                : <span className="ovd-raw-value">{String(item)}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value).filter(([, v]) => v != null && v !== "");
+    if (entries.length === 0) return <span className="ovd-raw-value">—</span>;
+    return (
+      <div className="ovd-nested-grid">
+        {entries.map(([k, v]) => (
+          <div key={`${parentKey}-${k}`} className="ovd-nested-block">
+            <span className="ovd-nested-key">{k}</span>
+            {typeof v === "object"
+              ? renderStructuredValue(v, `${parentKey}-${k}`)
+              : <span className="ovd-raw-value">{String(formatDisplayValue(k, v))}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <span className="ovd-raw-value">{String(formatDisplayValue(parentKey, value))}</span>;
+};
+
+const DocumentImageCarousel = ({ images = [], title = "Document image" }) => {
+  const safeImages = Array.isArray(images) ? images.filter(Boolean) : [];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+  }, [safeImages.length]);
+
+  if (safeImages.length === 0) return <span className="ovd-muted">Không có ảnh</span>;
+
+  const prev = () => setIdx((p) => (p - 1 + safeImages.length) % safeImages.length);
+  const next = () => setIdx((p) => (p + 1) % safeImages.length);
+
+  return (
+    <div className="ovd-doc-carousel">
+      <a
+        href={safeImages[idx]}
+        target="_blank"
+        rel="noreferrer"
+        className="ovd-doc-image-link ovd-doc-image-link--lg"
+      >
+        <img src={safeImages[idx]} alt={`${title} ${idx + 1}`} className="ovd-doc-image ovd-doc-image--lg" />
+      </a>
+      {safeImages.length > 1 ? (
+        <>
+          <button type="button" className="ovd-doc-nav ovd-doc-nav--left" onClick={prev} aria-label="Ảnh trước">
+            <ChevronLeft size={18} />
+          </button>
+          <button type="button" className="ovd-doc-nav ovd-doc-nav--right" onClick={next} aria-label="Ảnh kế tiếp">
+            <ChevronRight size={18} />
+          </button>
+          <span className="ovd-doc-counter">{idx + 1}/{safeImages.length}</span>
+        </>
+      ) : null}
+    </div>
+  );
 };
 
 /** Public `/api/Venue/{id}/details` vs owner `/api/owner/venues/{id}/detail` — khác tên field địa phương. */
@@ -34,27 +134,20 @@ const OwnerVenueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [venue, setVenue] = useState(null);
+  const [venueRaw, setVenueRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deactivating, setDeactivating] = useState(false);
   const [fields, setFields] = useState([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
-  const [sportTypes, setSportTypes] = useState([]);
-  const [creatingField, setCreatingField] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingFieldId, setEditingFieldId] = useState(null);
+  const [savingFieldEdit, setSavingFieldEdit] = useState(false);
+  const [editFieldData, setEditFieldData] = useState({
+    name: "",
+    description: "",
+  });
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sportFilter, setSportFilter] = useState("all");
-  const [newField, setNewField] = useState({
-    name: "",
-    sportTypeId: "",
-    description: "",
-    images: [],
-  });
-
-  const loadFields = async (venueId) => {
-    const list = await getOwnerVenueFields(venueId);
-    setFields(Array.isArray(list) ? list : []);
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -69,10 +162,16 @@ const OwnerVenueDetail = () => {
           // Fallback (should be rare) if owner endpoint fails for any reason.
           data = await getVenueDetail(id);
         }
-        if (mounted) setVenue(normalizeVenueDetailShape(data));
+        if (mounted) {
+          setVenue(normalizeVenueDetailShape(data));
+          setVenueRaw(data && typeof data === "object" ? data : null);
+        }
       } catch (e) {
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được chi tiết cơ sở.");
-        if (mounted) setVenue(null);
+        if (mounted) {
+          setVenue(null);
+          setVenueRaw(null);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -101,27 +200,6 @@ const OwnerVenueDetail = () => {
     };
   }, [id]);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const list = await getSportTypes();
-        const normalized = (Array.isArray(list) ? list : [])
-          .map((x) => ({
-            id: x?.id ?? x?.sportTypeId ?? x?.SportTypeId,
-            name: x?.name ?? x?.sportTypeName ?? x?.SportTypeName,
-          }))
-          .filter((x) => x.id != null && x.name);
-        if (mounted) setSportTypes(normalized);
-      } catch {
-        if (mounted) setSportTypes([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const address = useMemo(() => {
     if (!venue) return "";
     return [venue.addressDetail, venue.ward, venue.province].filter(Boolean).join(", ");
@@ -134,17 +212,92 @@ const OwnerVenueDetail = () => {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005}%2C${lat - 0.004}%2C${lng + 0.005}%2C${lat + 0.004}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [venue]);
 
+  const businessLicenseDoc = useMemo(
+    () => normalizeDoc(venueRaw?.businessLicense ?? venueRaw?.BusinessLicense),
+    [venueRaw],
+  );
+  const landDocumentDoc = useMemo(
+    () => normalizeDoc(venueRaw?.landDocument ?? venueRaw?.LandDocument),
+    [venueRaw],
+  );
+
+  const extraVenueEntries = useMemo(() => {
+    if (!venueRaw || typeof venueRaw !== "object") return [];
+    const excluded = new Set([
+      "name",
+      "Name",
+      "openTime",
+      "OpenTime",
+      "closeTime",
+      "CloseTime",
+      "description",
+      "Description",
+      "addressDetail",
+      "AddressDetail",
+      "province",
+      "Province",
+      "provinceName",
+      "ProvinceName",
+      "ward",
+      "Ward",
+      "wardName",
+      "WardName",
+      "latitude",
+      "Latitude",
+      "longitude",
+      "Longitude",
+      "status",
+      "Status",
+      "id",
+      "Id",
+      "provinceId",
+      "ProvinceId",
+      "wardId",
+      "WardId",
+      "thumbnailUrl",
+      "ThumbnailUrl",
+      "businessLicense",
+      "BusinessLicense",
+      "landDocument",
+      "LandDocument",
+    ]);
+    return Object.entries(venueRaw)
+      .filter(([key, value]) => !excluded.has(key) && value != null && value !== "")
+      .sort(([a], [b]) => a.localeCompare(b));
+  }, [venueRaw]);
+
+  const venueThumbnail =
+    venueRaw?.thumbnailUrl ??
+    venueRaw?.ThumbnailUrl ??
+    null;
+
+  const venueProvinceDisplay =
+    venue?.province ??
+    venueRaw?.provinceName ??
+    venueRaw?.ProvinceName ??
+    venueRaw?.province ??
+    venueRaw?.Province ??
+    venueRaw?.provinceId ??
+    venueRaw?.ProvinceId ??
+    "—";
+
+  const venueWardDisplay =
+    venue?.ward ??
+    venueRaw?.wardName ??
+    venueRaw?.WardName ??
+    venueRaw?.ward ??
+    venueRaw?.Ward ??
+    venueRaw?.wardId ??
+    venueRaw?.WardId ??
+    "—";
+
   // Permissions for edit/deactivate depend on venue `Status`.
   // We load from owner endpoint first (which includes `Status`) to ensure this is accurate.
   const statusLower = String(venue?.status || venue?.Status || "").toLowerCase().trim();
-  const canEditVenue = ["active", "draft", "inactive"].includes(statusLower);
+  const canEditVenue = ["active", "draft"].includes(statusLower);
+  const canCreateField = ["active", "draft", "pending"].includes(statusLower);
   const canDeactivateVenue = statusLower === "active" || statusLower === "draft";
   const isInactive = statusLower === "inactive";
-
-  useEffect(() => {
-    // Prevent showing the create form when the venue isn't editable.
-    if (!canEditVenue) setShowCreateForm(false);
-  }, [canEditVenue]);
 
   const filteredFields = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
@@ -165,6 +318,20 @@ const OwnerVenueDetail = () => {
     );
     return Array.from(set);
   }, [fields]);
+
+  const beginEditField = (field) => {
+    const fieldId = field?.fieldId ?? field?.FieldId;
+    setEditingFieldId(fieldId);
+    setEditFieldData({
+      name: field?.fieldName ?? field?.FieldName ?? "",
+      description: field?.description ?? field?.Description ?? "",
+    });
+  };
+
+  const cancelEditField = () => {
+    setEditingFieldId(null);
+    setEditFieldData({ name: "", description: "" });
+  };
 
   if (loading) {
     return (
@@ -244,20 +411,115 @@ const OwnerVenueDetail = () => {
 
       <div className="ovd-layout">
         <div className="ovd-col-left">
-          <div className="ovd-card">
-            <h1 className="ovd-title">{venue.name ?? `Cơ sở #${id}`}</h1>
-            <div className="ovd-meta">
-              {address ? (
-                <div className="ovd-meta-item">
-                  <MapPin size={16} /> <span>{address}</span>
+          <div className="ovd-card ovd-main-card">
+            <div className="ovd-main-head">
+              <div className="ovd-main-info">
+                {canEditVenue ? (
+                  <div style={{ marginBottom: 8 }}>
+                    <Link className="ovd-toggle-btn" to={`/owner/venues/${id}/edit`}>
+                      Chỉnh sửa thông tin cơ sở
+                    </Link>
+                  </div>
+                ) : null}
+                <h1 className="ovd-title">{venue.name ?? `Cơ sở #${id}`}</h1>
+                <div className="ovd-meta">
+                  {address ? (
+                    <div className="ovd-meta-item">
+                      <MapPin size={16} /> <span>{address}</span>
+                    </div>
+                  ) : null}
+                  <div className="ovd-meta-item">
+                    <Clock size={16} /> <span>{formatTime(venue.openTime)} – {formatTime(venue.closeTime)}</span>
+                  </div>
                 </div>
-              ) : null}
-              <div className="ovd-meta-item">
-                <Clock size={16} /> <span>{formatTime(venue.openTime)} – {formatTime(venue.closeTime)}</span>
+                {venue.description ? <p className="ovd-desc">{venue.description}</p> : null}
+              </div>
+              <div className="ovd-main-cover-wrap">
+                {venueThumbnail ? (
+                  <a href={venueThumbnail} target="_blank" rel="noreferrer" className="ovd-main-cover-link">
+                    <img src={venueThumbnail} alt="Ảnh đại diện cơ sở" className="ovd-main-cover" />
+                  </a>
+                ) : (
+                  <div className="ovd-main-cover ovd-main-cover--placeholder">Chưa có ảnh</div>
+                )}
               </div>
             </div>
-            {venue.description ? <p className="ovd-desc">{venue.description}</p> : null}
           </div>
+
+          {businessLicenseDoc || landDocumentDoc ? (
+            <div className="ovd-card">
+              <h3 className="ovd-subtitle">
+                <Calendar size={18} /> Giấy tờ pháp lý
+              </h3>
+              <div className="ovd-docs-grid">
+                {landDocumentDoc ? (
+                  <div className="ovd-doc-card">
+                    <h4 className="ovd-doc-title">Giấy tờ sử dụng đất</h4>
+                    <div className="ovd-doc-meta">
+                      <span>Ngày cấp: <strong>{String(landDocumentDoc.issueDate || "—")}</strong></span>
+                      <span>Ngày hết hạn: <strong>{String(landDocumentDoc.expiryDate || "—")}</strong></span>
+                    </div>
+                    <div className="ovd-doc-images">
+                      <DocumentImageCarousel
+                        images={landDocumentDoc.images}
+                        title="Land document"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {businessLicenseDoc ? (
+                  <div className="ovd-doc-card">
+                    <h4 className="ovd-doc-title">Giấy phép kinh doanh</h4>
+                    <div className="ovd-doc-meta">
+                      <span>Ngày cấp: <strong>{String(businessLicenseDoc.issueDate || "—")}</strong></span>
+                      <span>Ngày hết hạn: <strong>{String(businessLicenseDoc.expiryDate || "—")}</strong></span>
+                    </div>
+                    <div className="ovd-doc-images">
+                      <DocumentImageCarousel
+                        images={businessLicenseDoc.images}
+                        title="Business license"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {extraVenueEntries.length > 0 ? (
+            <div className="ovd-card">
+              <h3 className="ovd-subtitle">
+                <Calendar size={18} /> Thông tin mở rộng
+              </h3>
+              <div className="ovd-extra-grid">
+                <div className="ovd-raw-item">
+                  <span className="ovd-raw-key">Ảnh đại diện cơ sở</span>
+                  {venueThumbnail ? (
+                    <a href={venueThumbnail} target="_blank" rel="noreferrer" className="ovd-cover-link">
+                      <img src={venueThumbnail} alt="Ảnh đại diện cơ sở" className="ovd-cover-thumb" />
+                    </a>
+                  ) : (
+                    <span className="ovd-raw-value">—</span>
+                  )}
+                </div>
+                <div className="ovd-raw-item">
+                  <span className="ovd-raw-key">Tỉnh / Thành phố</span>
+                  <span className="ovd-raw-value">{String(venueProvinceDisplay)}</span>
+                </div>
+                <div className="ovd-raw-item">
+                  <span className="ovd-raw-key">Quận / Huyện</span>
+                  <span className="ovd-raw-value">{String(venueWardDisplay)}</span>
+                </div>
+                {extraVenueEntries.map(([key, value]) => (
+                  <div key={key} className="ovd-raw-item">
+                    <span className="ovd-raw-key">{key}</span>
+                    {renderStructuredValue(formatDisplayValue(key, value), key)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {mapSrc ? (
             <div className="ovd-card">
@@ -285,116 +547,22 @@ const OwnerVenueDetail = () => {
               <h3 className="ovd-subtitle">
                 <Calendar size={18} /> Tạo sân mới
               </h3>
-              <button
-                type="button"
-                className="ovd-toggle-btn"
-                disabled={!canEditVenue}
-                onClick={() => setShowCreateForm((v) => !v)}
+              <Link
+                className={`ovd-toggle-btn ${!canCreateField ? "is-disabled" : ""}`}
+                to={canCreateField ? `/owner/venues/${id}/create-field` : "#"}
+                onClick={(e) => {
+                  if (!canCreateField) e.preventDefault();
+                }}
               >
-                {showCreateForm ? "Thu gọn" : "+ Tạo sân"}
-              </button>
+                + Tạo sân
+              </Link>
             </div>
-            {canEditVenue && showCreateForm ? (
-              <>
-                <div className="ovd-create-grid">
-                  <label className="ovd-label">
-                    Tên sân
-                    <input
-                      className="ovd-input"
-                      value={newField.name}
-                      onChange={(e) => setNewField((p) => ({ ...p, name: e.target.value }))}
-                      placeholder="Ví dụ: Sân 1"
-                    />
-                  </label>
-                  <label className="ovd-label">
-                    Môn thể thao
-                    <select
-                      className="ovd-input"
-                      value={newField.sportTypeId}
-                      onChange={(e) => setNewField((p) => ({ ...p, sportTypeId: e.target.value }))}
-                    >
-                      <option value="">-- Chọn môn thể thao --</option>
-                      {sportTypes.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="ovd-label ovd-full">
-                    Mô tả
-                    <textarea
-                      className="ovd-input"
-                      rows={3}
-                      value={newField.description}
-                      onChange={(e) => setNewField((p) => ({ ...p, description: e.target.value }))}
-                      placeholder="Mô tả sân (tuỳ chọn)"
-                    />
-                  </label>
-                  <label className="ovd-label ovd-full">
-                    Ảnh sân
-                    <input
-                      className="ovd-input"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) =>
-                        setNewField((p) => ({
-                          ...p,
-                          images: Array.from(e.target.files || []),
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-                <div className="ovd-create-actions">
-                  <button
-                    type="button"
-                    className="ovd-btn ovd-btn--primary"
-                    disabled={creatingField}
-                    onClick={async () => {
-                      if (!canEditVenue) {
-                        toast.error("Cơ sở hiện không cho phép chỉnh sửa.");
-                        return;
-                      }
-                      if (!newField.name.trim()) {
-                        toast.error("Vui lòng nhập tên sân.");
-                        return;
-                      }
-                      if (!newField.sportTypeId) {
-                        toast.error("Vui lòng chọn môn thể thao.");
-                        return;
-                      }
-                      setCreatingField(true);
-                      try {
-                        await createOwnerField(id, {
-                          name: newField.name.trim(),
-                          sportTypeId: Number(newField.sportTypeId),
-                          description: newField.description?.trim() || undefined,
-                          images: newField.images,
-                        });
-                        toast.success("Tạo sân thành công.");
-                        setNewField({ name: "", sportTypeId: "", description: "", images: [] });
-                        setFieldsLoading(true);
-                        await loadFields(id);
-                      } catch (e) {
-                        toast.error(e?.response?.data?.message ?? e?.message ?? "Không tạo được sân.");
-                      } finally {
-                        setCreatingField(false);
-                        setFieldsLoading(false);
-                      }
-                    }}
-                  >
-                    {creatingField ? "Đang tạo..." : "Tạo sân"}
-                  </button>
-                </div>
-              </>
-            ) : canEditVenue ? (
-              <p className="ovd-muted">Bấm “+ Tạo sân” để thêm sân mới cho cơ sở.</p>
+            {canCreateField ? (
+              <p className="ovd-muted">Bấm “+ Tạo sân” để chuyển đến trang tạo sân mới cho cơ sở.</p>
             ) : (
               <p className="ovd-muted">
                 Cơ sở đang ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể
-                chỉnh sửa.
+                tạo sân.
               </p>
             )}
           </div>
@@ -467,6 +635,91 @@ const OwnerVenueDetail = () => {
                         <span className="ovd-field-price">{priceLabel}</span>
                         <span className="ovd-field-status">{status}</span>
                       </div>
+                      {canEditVenue ? (
+                        <div className="ovd-field-actions">
+                          <button
+                            type="button"
+                            className="ovd-toggle-btn"
+                            onClick={() => beginEditField(f)}
+                          >
+                            Sửa
+                          </button>
+                        </div>
+                      ) : null}
+                      {canEditVenue && editingFieldId === fieldId ? (
+                        <div className="ovd-field-edit">
+                          <label className="ovd-label">
+                            Tên sân
+                            <input
+                              className="ovd-input"
+                              value={editFieldData.name}
+                              onChange={(e) =>
+                                setEditFieldData((prev) => ({ ...prev, name: e.target.value }))
+                              }
+                              placeholder="Nhập tên sân"
+                            />
+                          </label>
+                          <label className="ovd-label">
+                            Mô tả
+                            <textarea
+                              className="ovd-input"
+                              rows={2}
+                              value={editFieldData.description}
+                              onChange={(e) =>
+                                setEditFieldData((prev) => ({ ...prev, description: e.target.value }))
+                              }
+                              placeholder="Mô tả sân"
+                            />
+                          </label>
+                          <div className="ovd-create-actions">
+                            <button
+                              type="button"
+                              className="ovd-btn"
+                              onClick={cancelEditField}
+                              disabled={savingFieldEdit}
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              type="button"
+                              className="ovd-btn ovd-btn--primary"
+                              disabled={savingFieldEdit}
+                              onClick={async () => {
+                                if (!fieldId) return;
+                                if (!editFieldData.name.trim()) {
+                                  toast.error("Tên sân không được để trống.");
+                                  return;
+                                }
+                                setSavingFieldEdit(true);
+                                try {
+                                  await updateOwnerField(
+                                    fieldId,
+                                    {
+                                      name: editFieldData.name.trim(),
+                                      description: editFieldData.description?.trim() || "",
+                                    },
+                                    id,
+                                  );
+                                  toast.success("Cập nhật sân thành công.");
+                                  const list = await getOwnerVenueFields(id);
+                                  setFields(Array.isArray(list) ? list : []);
+                                  cancelEditField();
+                                } catch (e) {
+                                  toast.error(
+                                    e?.response?.data?.message ??
+                                      e?.message ??
+                                      "Không cập nhật được sân.",
+                                  );
+                                } finally {
+                                  setSavingFieldEdit(false);
+                                }
+                              }}
+                            >
+                              {savingFieldEdit ? "Đang lưu..." : "Lưu"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

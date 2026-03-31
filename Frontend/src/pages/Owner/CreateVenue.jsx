@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -14,7 +14,8 @@ import {
   LayoutList,
   Trash2,
 } from "lucide-react";
-import { addVenueDocuments, createVenue, submitVenue } from "../../services/venueService";
+import { addVenueDocuments, createVenue, getVenueDraft, submitVenue } from "../../services/venueService";
+import { getDistrictsByProvince, getProvinces } from "../../services/addressService";
 import "./CreateVenue.css";
 
 // Fix Leaflet default marker icons (Vite/CRA asset resolution)
@@ -70,33 +71,6 @@ const schema = yup.object({
     .required("Vui lòng nhập kinh độ"),
 });
 
-const PROVINCES = [
-  { id: 1, name: "Hà Nội" },
-  { id: 2, name: "TP. Hồ Chí Minh" },
-  { id: 3, name: "Đà Nẵng" },
-];
-
-const WARDS_BY_PROVINCE = {
-  1: [
-    { id: 1, name: "Cầu Giấy" },
-    { id: 2, name: "Thanh Xuân" },
-    { id: 3, name: "Đống Đa" },
-    { id: 4, name: "Ba Đình" },
-    { id: 5, name: "Hoàn Kiếm" },
-  ],
-  2: [
-    { id: 6, name: "Quận 1" },
-    { id: 7, name: "Quận 3" },
-    { id: 8, name: "Quận 7" },
-    { id: 9, name: "Thủ Đức" },
-  ],
-  3: [
-    { id: 10, name: "Hải Châu" },
-    { id: 11, name: "Thanh Khê" },
-    { id: 12, name: "Sơn Trà" },
-  ],
-};
-
 /** Khớp DTO backend: LandUseDocument + BusinessDocument (ảnh là file, không phải URL) */
 const DOC_SLOTS = [
   { apiPrefix: "LandUseDocument", label: "Giấy tờ sử dụng đất" },
@@ -115,6 +89,43 @@ function MapClickHandler({ onPick }) {
   return null;
 }
 
+function DocImagePreviewItem({ file, onRemove }) {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl("");
+      return undefined;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
+
+  return (
+    <li className="cv-doc-image-row">
+      <div className="cv-doc-thumb-wrap">
+        {previewUrl ? (
+          <img src={previewUrl} alt={file?.name || "Document preview"} className="cv-doc-thumb" />
+        ) : (
+          <div className="cv-doc-thumb cv-doc-thumb--empty">No preview</div>
+        )}
+      </div>
+      <span className="cv-doc-file-name">{file?.name}</span>
+      <button
+        type="button"
+        className="cv-doc-remove-img"
+        aria-label="Xóa ảnh"
+        onClick={onRemove}
+      >
+        <Trash2 size={16} />
+      </button>
+    </li>
+  );
+}
+
 // ── Component ──
 function normalizeTimeForApi(t) {
   if (!t || typeof t !== "string") return "";
@@ -125,10 +136,20 @@ function normalizeTimeForApi(t) {
 
 const CreateVenue = () => {
   const navigate = useNavigate();
+  const { id: routeVenueId } = useParams();
+  const [searchParams] = useSearchParams();
+  const resumeVenueId = searchParams.get("venueId") || routeVenueId || null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [createdVenue, setCreatedVenue] = useState(null); // { venueId, status }
   const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState("");
+  const thumbnailInputRef = useRef(null);
+  const docInputRefs = useRef({});
+  const [provinceOptions, setProvinceOptions] = useState([]);
+  const [districtOptions, setDistrictOptions] = useState([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
 
   const venueId = createdVenue?.venueId ?? createdVenue?.VenueId ?? null;
 
@@ -141,6 +162,18 @@ const CreateVenue = () => {
       files: [],
     }))
   );
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreviewUrl("");
+      return undefined;
+    }
+    const url = URL.createObjectURL(thumbnailFile);
+    setThumbnailPreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [thumbnailFile]);
 
   const {
     register: reg,
@@ -164,7 +197,105 @@ const CreateVenue = () => {
   });
 
   const selectedProvinceId = watch("provinceId");
-  const wards = WARDS_BY_PROVINCE[selectedProvinceId] || [];
+
+  useEffect(() => {
+    let mounted = true;
+    if (!resumeVenueId) return () => { mounted = false; };
+    (async () => {
+      try {
+        const draft = await getVenueDraft(resumeVenueId);
+        if (!mounted || !draft) return;
+
+        setCreatedVenue({
+          venueId: draft?.venueId ?? draft?.VenueId ?? Number(resumeVenueId),
+          status: draft?.status ?? draft?.Status ?? "DRAFT",
+        });
+
+        // Prefill step-1 fields from draft
+        setValue("name", draft?.name ?? draft?.Name ?? "");
+        setValue("description", draft?.description ?? draft?.Description ?? "");
+        const openRaw = draft?.openTime ?? draft?.OpenTime ?? "";
+        const closeRaw = draft?.closeTime ?? draft?.CloseTime ?? "";
+        setValue("openTime", String(openRaw).slice(0, 5));
+        setValue("closeTime", String(closeRaw).slice(0, 5));
+        setValue("provinceId", String(draft?.provinceId ?? draft?.ProvinceId ?? ""));
+        setValue("wardId", String(draft?.wardId ?? draft?.WardId ?? ""));
+        setValue("addressDetail", draft?.addressDetail ?? draft?.AddressDetail ?? "");
+        if (draft?.latitude ?? draft?.Latitude) {
+          setValue("latitude", Number(draft?.latitude ?? draft?.Latitude));
+        }
+        if (draft?.longitude ?? draft?.Longitude) {
+          setValue("longitude", Number(draft?.longitude ?? draft?.Longitude));
+        }
+
+        const hasDocuments =
+          Boolean(draft?.landUseDocument ?? draft?.LandUseDocument) ||
+          Boolean(draft?.businessDocument ?? draft?.BusinessDocument);
+        setActiveStep(hasDocuments ? 2 : 1);
+      } catch (e) {
+        toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được bản nháp để tiếp tục.");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [resumeVenueId, setValue]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoadingProvinces(true);
+      try {
+        const list = await getProvinces();
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((x) => ({
+            id: x?.id ?? x?.provinceId ?? x?.ProvinceId,
+            name: x?.name ?? x?.provinceName ?? x?.ProvinceName,
+          }))
+          .filter((x) => x.id != null && x.name);
+        if (mounted) setProvinceOptions(normalized);
+      } catch (e) {
+        if (mounted) setProvinceOptions([]);
+        toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được danh sách tỉnh/thành.");
+      } finally {
+        if (mounted) setLoadingProvinces(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedProvinceId) {
+      setDistrictOptions([]);
+      return () => {
+        mounted = false;
+      };
+    }
+    (async () => {
+      setLoadingDistricts(true);
+      try {
+        const list = await getDistrictsByProvince(selectedProvinceId);
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((x) => ({
+            id: x?.id ?? x?.districtId ?? x?.wardId ?? x?.DistrictId ?? x?.WardId,
+            name: x?.name ?? x?.districtName ?? x?.wardName ?? x?.DistrictName ?? x?.WardName,
+          }))
+          .filter((x) => x.id != null && x.name);
+        if (mounted) setDistrictOptions(normalized);
+      } catch (e) {
+        if (mounted) setDistrictOptions([]);
+        toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được danh sách quận/huyện.");
+      } finally {
+        if (mounted) setLoadingDistricts(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedProvinceId]);
 
   const lat = Number(watch("latitude"));
   const lng = Number(watch("longitude"));
@@ -248,6 +379,18 @@ const CreateVenue = () => {
       const missingDate = docs.find((d) => !d.issueDate || !d.expiryDate);
       if (missingDate) {
         toast.error(`Vui lòng nhập đủ ngày cấp và ngày hết hạn cho "${missingDate.label}".`);
+        return;
+      }
+      const invalidDateRange = docs.find((d) => {
+        const issue = new Date(d.issueDate);
+        const expiry = new Date(d.expiryDate);
+        if (Number.isNaN(issue.getTime()) || Number.isNaN(expiry.getTime())) return true;
+        return expiry.getTime() <= issue.getTime();
+      });
+      if (invalidDateRange) {
+        toast.error(
+          `Ngày hết hạn phải sau ngày cấp cho "${invalidDateRange.label}".`,
+        );
         return;
       }
       const missingFiles = docs.find((d) => !d.files || d.files.length === 0);
@@ -373,14 +516,36 @@ const CreateVenue = () => {
               <div className="cv-form-group cv-full-width">
                 <label>Ảnh đại diện cơ sở (tùy chọn)</label>
                 <input
+                  ref={thumbnailInputRef}
                   type="file"
                   accept="image/*"
                   onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
                 />
                 {thumbnailFile ? (
-                  <p className="cv-wizard-hint" style={{ marginTop: 8 }}>
-                    Đã chọn: <strong>{thumbnailFile.name}</strong>
-                  </p>
+                  <div className="cv-thumb-meta">
+                    <p className="cv-wizard-hint cv-thumb-name">
+                      Đã chọn: <strong>{thumbnailFile.name}</strong>
+                    </p>
+                    <button
+                      type="button"
+                      className="cv-thumb-remove-btn"
+                      onClick={() => {
+                        setThumbnailFile(null);
+                        if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+                      }}
+                    >
+                      Xóa ảnh
+                    </button>
+                  </div>
+                ) : null}
+                {thumbnailPreviewUrl ? (
+                  <div className="cv-thumb-preview">
+                    <img
+                      src={thumbnailPreviewUrl}
+                      alt="Xem trước ảnh đại diện cơ sở"
+                      className="cv-thumb-preview-img"
+                    />
+                  </div>
                 ) : null}
               </div>
 
@@ -424,12 +589,13 @@ const CreateVenue = () => {
                   }}
                 >
                   <option value="">-- Chọn tỉnh/thành --</option>
-                  {PROVINCES.map((p) => (
+                  {provinceOptions.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
                   ))}
                 </select>
+                {loadingProvinces ? <p className="cv-wizard-hint">Đang tải tỉnh/thành...</p> : null}
                 {errors.provinceId && (
                   <p className="cv-error-text">{errors.provinceId.message}</p>
                 )}
@@ -439,14 +605,15 @@ const CreateVenue = () => {
                 <label>
                   Quận / Huyện <span className="cv-required">*</span>
                 </label>
-                <select {...reg("wardId")} disabled={!selectedProvinceId}>
+                <select {...reg("wardId")} disabled={!selectedProvinceId || loadingDistricts}>
                   <option value="">-- Chọn quận/huyện --</option>
-                  {wards.map((w) => (
+                  {districtOptions.map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.name}
                     </option>
                   ))}
                 </select>
+                {loadingDistricts ? <p className="cv-wizard-hint">Đang tải quận/huyện...</p> : null}
                 {errors.wardId && (
                   <p className="cv-error-text">{errors.wardId.message}</p>
                 )}
@@ -610,6 +777,7 @@ const CreateVenue = () => {
                           <input
                             type="date"
                             value={d.expiryDate}
+                            min={d.issueDate || undefined}
                             onChange={(e) =>
                               setDocs((p) => p.map((x, i) => (i === di ? { ...x, expiryDate: e.target.value } : x)))
                             }
@@ -620,6 +788,9 @@ const CreateVenue = () => {
                             Ảnh giấy tờ (file, tối đa 5) <span className="cv-required">*</span>
                           </label>
                           <input
+                            ref={(el) => {
+                              docInputRefs.current[d.apiPrefix] = el;
+                            }}
                             type="file"
                             accept="image/*"
                             multiple
@@ -634,23 +805,21 @@ const CreateVenue = () => {
                           {d.files?.length ? (
                             <ul className="cv-doc-file-list">
                               {d.files.map((f, fi) => (
-                                <li key={`${f.name}-${fi}`} className="cv-doc-image-row">
-                                  <span>{f.name}</span>
-                                  <button
-                                    type="button"
-                                    className="cv-doc-remove-img"
-                                    aria-label="Xóa ảnh"
-                                    onClick={() =>
-                                      setDocs((p) =>
-                                        p.map((x, i) =>
-                                          i === di ? { ...x, files: x.files.filter((_, j) => j !== fi) } : x
-                                        )
+                                <DocImagePreviewItem
+                                  key={`${f.name}-${fi}`}
+                                  file={f}
+                                  onRemove={() => {
+                                    setDocs((p) =>
+                                      p.map((x, i) =>
+                                        i === di ? { ...x, files: x.files.filter((_, j) => j !== fi) } : x
                                       )
+                                    );
+                                    if (d.files.length <= 1) {
+                                      const refEl = docInputRefs.current[d.apiPrefix];
+                                      if (refEl) refEl.value = "";
                                     }
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </li>
+                                  }}
+                                />
                               ))}
                             </ul>
                           ) : (

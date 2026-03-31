@@ -19,6 +19,7 @@ export const ownerVenueScheduleUrl = (venueId) =>
 export const createVenue = async (formData) => {
   const response = await api.post('/api/owner/venue/draft', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
   });
   return unwrap(response) ?? response;
 };
@@ -32,6 +33,7 @@ export const createVenue = async (formData) => {
 export const addVenueDocuments = async (venueId, formData) => {
   const response = await api.post(`/api/owner/venues/${venueId}/documents`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000,
   });
   return unwrap(response) ?? response;
 };
@@ -77,6 +79,35 @@ export const getOwnerVenues = async () => {
  */
 export const deactivateOwnerVenue = async (venueId) => {
   const response = await api.patch(`${OWNER_VENUES_BASE}/${venueId}`);
+  return unwrap(response) ?? response;
+};
+
+/**
+ * Update venue basic information (owner).
+ * PUT `/api/owner/venues/{venueId}` with multipart form — matches VenueController.UpdateVenue.
+ * Do not PATCH this path: PATCH on the same URL is DeactivateVenue (sets inactive).
+ */
+export const updateOwnerVenueInfo = async (venueId, payload) => {
+  const form = new FormData();
+  form.append('Name', String(payload?.name ?? '').trim());
+  if (payload?.description != null && String(payload.description).trim() !== '') {
+    form.append('Description', String(payload.description).trim());
+  }
+  form.append('AddressDetail', String(payload?.addressDetail ?? '').trim());
+  form.append('ProvinceId', String(Number(payload?.provinceId)));
+  form.append('WardId', String(Number(payload?.wardId)));
+  form.append('Latitude', String(Number(payload?.latitude ?? 0)));
+  form.append('Longitude', String(Number(payload?.longitude ?? 0)));
+  form.append('OpenTime', payload?.openTime ?? '');
+  form.append('CloseTime', payload?.closeTime ?? '');
+  if (payload?.thumbnailFile) {
+    form.append('ThumbnailImage', payload.thumbnailFile);
+  }
+
+  const response = await api.put(`/api/owner/venues/${venueId}`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
   return unwrap(response) ?? response;
 };
 
