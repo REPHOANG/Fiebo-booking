@@ -51,13 +51,11 @@ public class VenueServiceItemRepository : IVenueServiceItemRepository
     public async Task<PagedResult<VenueServiceItem>> GetPagedServicesAsync(
     int venueId,
     string? keyword,
-    int? serviceTypeId, 
     int page,
     int pageSize,
     CancellationToken cancellationToken = default)
     {
         var query = _context.VenueServiceItems
-            .Include(x => x.ServiceType) 
             .Where(x => x.VenueId == venueId && !x.IsDeleted)
             .AsNoTracking()
             .AsQueryable();
@@ -65,11 +63,6 @@ public class VenueServiceItemRepository : IVenueServiceItemRepository
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             query = query.Where(x => x.Name.Contains(keyword));
-        }
-
-        if (serviceTypeId.HasValue) 
-        {
-            query = query.Where(x => x.ServiceTypeId == serviceTypeId.Value);
         }
 
         var totalItems = await query.CountAsync(cancellationToken);
