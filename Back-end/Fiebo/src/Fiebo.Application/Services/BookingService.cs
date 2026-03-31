@@ -206,6 +206,22 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
+            if (venue == null || venue.Status != VenueStatus.Active)
+            {
+                throw new BadRequestException("Cơ sở này hiện không hoạt động.");
+            }
+
+            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
+            foreach (var fieldId in uniqueFieldIds)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+                if (field == null || field.Status != FieldStatus.Active)
+                {
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
+                }
+            }
+
             // 1. Build lock keys for each slot
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
@@ -385,6 +401,22 @@ namespace Fiebo.Application.Services
 
         public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
+            if (venue == null || venue.Status != VenueStatus.Active)
+            {
+                throw new BadRequestException("Cơ sở này hiện không hoạt động.");
+            }
+
+            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
+            foreach (var fieldId in uniqueFieldIds)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+                if (field == null || field.Status != FieldStatus.Active)
+                {
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
+                }
+            }
+
             // 1. Build lock keys for each slot
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
