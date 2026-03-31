@@ -300,15 +300,6 @@ namespace Fiebo.Persistence.Data
                       .WithMany(s => s.TimeSlots)
                       .HasForeignKey(x => x.SportTypeId)
                       .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(x => new
-                {
-                    x.VenueId,
-                    x.SportTypeId,
-                    x.DayOfWeek,
-                    x.StartTime
-                })
-                .IsUnique();
             });
             // ReviewImage
             modelBuilder.Entity<ReviewImage>(entity =>
