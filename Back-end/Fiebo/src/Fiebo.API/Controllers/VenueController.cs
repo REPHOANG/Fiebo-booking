@@ -424,5 +424,127 @@ namespace Fiebo.API.Controllers
                 Message = "Cập nhật thông tin sân thành công."
             });
         }
+
+        /// <summary>
+        /// Field Owner adds a new service to a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venues/{venueId}/services")]
+        public async Task<IActionResult> AddVenueService(
+            [FromRoute] int venueId,
+            [FromForm] AddVenueServiceRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var serviceId = await _venueService.AddVenueServiceAsync(venueId, ownerId, request);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Thêm dịch vụ thành công.",
+                Data = new { ServiceId = serviceId }
+            });
+        }
+
+        /// <summary>
+        /// Lấy chi tiết một dịch vụ để hiển thị lên Form Edit 
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venues/{venueId}/services/{serviceId}")]
+        public async Task<IActionResult> GetVenueServiceDetail(
+            [FromRoute] int venueId,
+            [FromRoute] int serviceId,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
+
+            var result = await _venueService.GetVenueServiceDetailAsync(venueId, serviceId, ownerId, cancellationToken);
+
+            return Ok(new ApiResponse<VenueServiceDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin dịch vụ thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Field Owner edits an existing venue service.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/venues/{venueId}/services/{serviceId}")]
+        public async Task<IActionResult> UpdateVenueService(
+            [FromRoute] int venueId,
+            [FromRoute] int serviceId,
+            [FromForm] UpdateVenueServiceRequest request,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
+
+            await _venueService.UpdateVenueServiceAsync(venueId, serviceId, ownerId, request, cancellationToken);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật dịch vụ thành công.", 
+            });
+        }
+
+        /// <summary>
+        /// Field Owner deletes an existing venue service.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpDelete("/api/owner/venues/{venueId}/services/{serviceId}")]
+        public async Task<IActionResult> DeleteVenueService(
+            [FromRoute] int venueId,
+            [FromRoute] int serviceId,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            await _venueService.DeleteVenueServiceAsync(venueId, serviceId, ownerId, cancellationToken);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xóa dịch vụ thành công." 
+            });
+        }
+
+        /// <summary>
+        /// Lấy danh sách dịch vụ của sân, có hỗ trợ phân trang, tìm kiếm và lọc.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venues/{venueId}/services")]
+        public async Task<IActionResult> GetVenueServices(
+            [FromRoute] int venueId,
+            [FromQuery] GetVenueServicesRequest request,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _venueService.GetVenueServicesAsync(venueId, ownerId, request, cancellationToken);
+
+            return Ok(new ApiResponse<PagedResult<VenueServiceDetailResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách dịch vụ thành công.",
+                Data = result
+            });
+        }
     }
 }

@@ -38,6 +38,8 @@ namespace Fiebo.Persistence.Data
         public DbSet<VenueStaff> VenueStaff { get; set; }
         public DbSet<VenueDocument> VenueDocuments { get; set; }
         public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
+        public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
+        public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -557,6 +559,38 @@ namespace Fiebo.Persistence.Data
                     .WithMany(d => d.Images)
                     .HasForeignKey(e => e.DocumentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<VenueServiceItem>(entity =>
+            {
+                entity.ToTable("VenueServiceItems");
+
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.ServiceType).HasMaxLength(50).IsRequired();
+                entity.HasQueryFilter(x => !x.IsDeleted);
+
+                entity.HasOne(x => x.Venue)
+                      .WithMany(v => v.VenueServiceItems)
+                      .HasForeignKey(x => x.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired(false);
+            });
+            modelBuilder.Entity<BookingServiceItem>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne(x => x.Booking)
+                      .WithMany(b => b.BookingServiceItems)
+                      .HasForeignKey(x => x.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.VenueServiceItem)
+                      .WithMany(v => v.BookingServiceItems)
+                      .HasForeignKey(x => x.VenueServiceItemId)
+                      .OnDelete(DeleteBehavior.Restrict); 
             });
 
         }

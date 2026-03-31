@@ -25,5 +25,6 @@ namespace Fiebo.Domain.Entities
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
         public Review? Review { get; set; }
+        public ICollection<BookingServiceItem> BookingServiceItems { get; set; } = [];
     }
 }

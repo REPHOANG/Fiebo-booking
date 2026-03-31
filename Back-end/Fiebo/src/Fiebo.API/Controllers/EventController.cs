@@ -3,6 +3,7 @@ using Fiebo.Application.DTOs.Event;
 using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -235,6 +236,30 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Chỉnh sửa sự kiện thành công.",
+            });
+        }
+
+        /// <summary>
+        /// Retrieves the event booking history for the authenticated customer.
+        /// </summary>
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpGet("history")]
+        public async Task<IActionResult> GetCustomerEventHistory([FromQuery] EventHistoryFilter filter)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
+            }
+
+            var result = await _eventService.GetCustomerEventHistoryAsync(userId, filter);
+
+            return Ok(new ApiResponse<PagedResult<CustomerEventHistoryResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải lịch sử sự kiện thành công.",
+                Data = result
             });
         }
     }
