@@ -626,8 +626,8 @@ namespace Fiebo.Application.Services
 
         public async Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId)
         {
-            // 1. Load venue (tracked for updates)
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            // 1. Load venue with documents (tracked for updates)
+            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsTrackedAsync(venueId);
             if (venue == null)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở.");
@@ -719,6 +719,77 @@ namespace Fiebo.Application.Services
             }
 
             venue.UpdatedAt = DateTime.Now;
+
+            // Handle Documents update
+            bool documentsChanged = false;
+
+            if (request.BusinessDocument != null)
+            {
+                var bizDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense);
+                if (bizDoc == null)
+                {
+                    bizDoc = new VenueDocument { VenueId = venueId, DocumentType = DocumentType.BusinessLicense };
+                    _unitOfWork.VenueDocuments.Add(bizDoc);
+                }
+
+                if (request.BusinessDocument.IssueDate.HasValue)
+                {
+                    bizDoc.IssueDate = request.BusinessDocument.IssueDate.Value;
+                    documentsChanged = true;
+                }
+                if (request.BusinessDocument.ExpiryDate.HasValue)
+                {
+                    bizDoc.ExpiryDate = request.BusinessDocument.ExpiryDate.Value;
+                    documentsChanged = true;
+                }
+
+                if (request.BusinessDocument.Images != null && request.BusinessDocument.Images.Any())
+                {
+                    ImageValidator.ValidateFiles(request.BusinessDocument.Images);
+                    bizDoc.Images.Clear(); // Remove old images
+                    var newImages = new List<VenueDocumentImage>();
+                    await UploadDocumentImagesAsync(request.BusinessDocument.Images, bizDoc.Id, newImages);
+                    foreach (var img in newImages) bizDoc.Images.Add(img);
+                    documentsChanged = true;
+                }
+            }
+
+            if (request.LandUseDocument != null)
+            {
+                var landDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse);
+                if (landDoc == null)
+                {
+                    landDoc = new VenueDocument { VenueId = venueId, DocumentType = DocumentType.LandUse };
+                    _unitOfWork.VenueDocuments.Add(landDoc);
+                }
+
+                if (request.LandUseDocument.IssueDate.HasValue)
+                {
+                    landDoc.IssueDate = request.LandUseDocument.IssueDate.Value;
+                    documentsChanged = true;
+                }
+                if (request.LandUseDocument.ExpiryDate.HasValue)
+                {
+                    landDoc.ExpiryDate = request.LandUseDocument.ExpiryDate.Value;
+                    documentsChanged = true;
+                }
+
+                if (request.LandUseDocument.Images != null && request.LandUseDocument.Images.Any())
+                {
+                    ImageValidator.ValidateFiles(request.LandUseDocument.Images);
+                    landDoc.Images.Clear(); // Remove old images
+                    var newImages = new List<VenueDocumentImage>();
+                    await UploadDocumentImagesAsync(request.LandUseDocument.Images, landDoc.Id, newImages);
+                    foreach (var img in newImages) landDoc.Images.Add(img);
+                    documentsChanged = true;
+                }
+            }
+
+            // BR-02 extended: Demote to Pending if documents changed
+            if (documentsChanged && venue.Status == VenueStatus.Active)
+            {
+                venue.Status = VenueStatus.Pending;
+            }
 
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();

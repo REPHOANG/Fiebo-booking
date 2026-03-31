@@ -31,5 +31,8 @@ namespace Fiebo.Application.DTOs.Field
         public TimeOnly CloseTime { get; set; }
 
         public IFormFile? ThumbnailImage { get; set; }
+
+        public Fiebo.Application.DTOs.Venue.UpdateVenueDocumentDto? BusinessDocument { get; set; }
+        public Fiebo.Application.DTOs.Venue.UpdateVenueDocumentDto? LandUseDocument { get; set; }
     }
 }
