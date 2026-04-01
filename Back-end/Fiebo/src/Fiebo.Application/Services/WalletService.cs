@@ -270,5 +270,69 @@ namespace Fiebo.Application.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<BankAccountResponse>> GetUserBankAccountsAsync(string userId)
+        {
+            var accounts = await _unitOfWork.UserBankAccounts.FindAsync(x => x.UserId == userId);
+            return accounts.Select(x => new BankAccountResponse
+            {
+                Id = x.Id,
+                BankName = x.BankName,
+                AccountNumber = x.AccountNumber,
+                AccountHolderName = x.AccountHolderName
+            });
+        }
+
+        public async Task<BankAccountResponse> CreateBankAccountAsync(string userId, CreateBankAccountRequest request)
+        {
+            var account = new UserBankAccount
+            {
+                UserId = userId,
+                BankName = request.BankName,
+                AccountNumber = request.AccountNumber,
+                AccountHolderName = request.AccountHolderName,
+                CreatedAt = DateTime.Now
+            };
+
+            _unitOfWork.UserBankAccounts.Add(account);
+            await _unitOfWork.SaveChangesAsync();
+
+            return new BankAccountResponse
+            {
+                Id = account.Id,
+                BankName = account.BankName,
+                AccountNumber = account.AccountNumber,
+                AccountHolderName = account.AccountHolderName
+            };
+        }
+
+        public async Task UpdateBankAccountAsync(string userId, int id, UpdateBankAccountRequest request)
+        {
+            var account = await _unitOfWork.UserBankAccounts.GetByIdAndUserAsync(id, userId);
+            if (account == null)
+            {
+                throw new NotFoundException("Không tìm thấy tài khoản ngân hàng hoặc bạn không có quyền chỉnh sửa.");
+            }
+
+            account.BankName = request.BankName;
+            account.AccountNumber = request.AccountNumber;
+            account.AccountHolderName = request.AccountHolderName;
+            account.UpdatedAt = DateTime.Now;
+
+            _unitOfWork.UserBankAccounts.Update(account);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task DeleteBankAccountAsync(string userId, int id)
+        {
+            var account = await _unitOfWork.UserBankAccounts.GetByIdAndUserAsync(id, userId);
+            if (account == null)
+            {
+                throw new NotFoundException("Không tìm thấy tài khoản ngân hàng hoặc bạn không có quyền xóa.");
+            }
+
+            _unitOfWork.UserBankAccounts.Remove(account);
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 }
