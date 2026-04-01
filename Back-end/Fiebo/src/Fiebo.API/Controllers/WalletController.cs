@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Services;
+using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
@@ -92,6 +92,26 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sử giao dịch thành công.",
                 Data = transactions
+            });
+        }
+        /// <summary>
+        /// Withdraw from wallet to a bank account.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.Customer + "," + AppRoles.FieldOwner)]
+        [HttpPost("withdraw")]
+        public async Task<IActionResult> Withdraw([FromBody] Application.DTOs.Wallet.WithdrawRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? AppRoles.Customer;
+
+            var result = await _walletService.WithdrawAsync(userId!, userRole, request);
+            return Ok(new ApiResponse<Application.DTOs.Wallet.WithdrawResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = result.Message,
+                Data = result
             });
         }
     }

@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Wallet;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
@@ -15,5 +15,6 @@ namespace Fiebo.Application.Interfaces
         Task<bool> TopUpWalletAsync(SepayWebhookRequest request);
         Task<PagedResult<WalletTransactionResponse>> GetWalletTransactionsAsync
             (string userId, int pageNumber, int pageSize, DateTime? from, DateTime? to);
+        Task<WithdrawResponse> WithdrawAsync(string userId, string userRole, WithdrawRequest request);
     }
 }

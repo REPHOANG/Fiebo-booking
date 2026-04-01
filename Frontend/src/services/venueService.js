@@ -122,3 +122,49 @@ export const getOwnerVenueSchedule = async (venueId, date) => {
   });
   return unwrap(response) ?? response;
 };
+
+export const getVenueServices = async (venueId) => {
+  const response = await api.get(`/api/venue/${venueId}/services`);
+  return response.data.data;
+}
+
+export const addVenueService = async (venueId, serviceData) => {
+  const formData = new FormData();
+  formData.append("ServiceName", serviceData.serviceName);
+  formData.append("Price", serviceData.price);
+  if (serviceData.description) {
+    formData.append("Description", serviceData.description);
+  }
+  if (serviceData.imageFile) {
+    formData.append("Image", serviceData.imageFile);
+  }
+  const response = await api.post(
+    `/api/owner/venue/${venueId}/service`,
+    formData
+  );
+  return response.data?.data ?? response.data ?? response;
+};
+
+export const updateVenueService = async (venueId, serviceId, serviceData) => {
+  const formData = new FormData();
+
+  formData.append("ServiceName", serviceData.serviceName);
+  formData.append("Description", serviceData.description || "");
+  formData.append("Price", serviceData.price);
+
+  if (serviceData.imageFile) {
+    formData.append("Image", serviceData.imageFile);
+  }
+
+  const response = await api.put(
+    `/api/owner/service/${serviceId}`,
+    formData
+  );
+
+  return response.data?.data ?? response.data ?? response;
+};
+
+export const deleteVenueService = async (serviceId) => {
+  const response = await api.delete(`/api/owner/service/${serviceId}`);
+  return response.data?.data ?? response.data ?? response;
+}

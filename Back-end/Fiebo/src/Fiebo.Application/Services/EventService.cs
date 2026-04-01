@@ -511,6 +511,7 @@ namespace Fiebo.Application.Services
                     EventDate = tp.Event.EventDate,
                     TicketQuantity = tp.TicketQuantity,
                     TotalAmount = tp.TotalPrice,
+                    EventStatus = tp.Event.Status.ToString(),
                     ParticipantStatus = tp.Status.ToString(),
                     Slots = tp.Event.Details
                         .Select(d => new TicketEventSlotResponse

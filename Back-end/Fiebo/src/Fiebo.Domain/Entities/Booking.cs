@@ -20,11 +20,11 @@ namespace Fiebo.Domain.Entities
         public decimal TotalPrice { get; set; }
         public BookingStatus Status { get; set; }
         public DateTime? ExpiredAt { get; set; }
-        public string? CancelReason { get; set; }
-
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
         public Review? Review { get; set; }
         public ICollection<BookingServiceItem> BookingServiceItems { get; set; } = [];
+        public ICollection<PayoutDetail> PayoutDetails { get; set; } = [];
+        public CancelBooking? CancelBooking { get; set; }
     }
 }

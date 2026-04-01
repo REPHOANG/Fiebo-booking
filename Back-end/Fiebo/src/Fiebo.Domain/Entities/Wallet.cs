@@ -12,6 +12,8 @@ namespace Fiebo.Domain.Entities
 
         public string UserId { get; set; } = null!;
 
+        public DateTime RowVersion { get; set; }
+
         public ICollection<TopUpRequest> TopUpRequests { get; set; } = [];
 
         public ICollection<WalletTransaction> Transactions { get; set; } = [];
