@@ -66,6 +66,44 @@
   -webkit-text-fill-color: transparent;
 }
 
+/* ============ LIST TYPE (Đặt sân / Sự kiện) ============ */
+.bl-list-type-row {
+  margin-bottom: 16px;
+}
+
+.bl-list-type-segment {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  gap: 4px;
+}
+
+.bl-list-type-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.bl-list-type-btn:hover {
+  color: var(--text-main);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.bl-list-type-btn.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+}
+
 /* ============ TOOLBAR ============ */
 .bl-toolbar {
   position: relative;
@@ -392,6 +430,16 @@
 [data-status="completed"] {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: #fff;
+}
+
+[data-status="joined"] {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+[data-status="cancelled"] {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 [data-status="customercancelled"],

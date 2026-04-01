@@ -15,6 +15,7 @@ import {
   XCircle,
   Clock3,
   CreditCard,
+  Ticket,
 } from "lucide-react";
 import {
   cancelBookingApi,
@@ -22,6 +23,7 @@ import {
   getBookingHistory,
   getCancelBookingPreview,
 } from "../../services/bookingService";
+import { getCustomerEventHistory } from "../../services/eventService";
 import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
 import Swal from "sweetalert2";
@@ -59,6 +61,13 @@ const TABS = [
     label: "Đã hủy",
     statuses: ["CustomerCancelled", "OwnerCancelled"],
   },
+];
+
+const EVENT_TABS = [
+  { key: "all", label: "Tất cả" },
+  { key: "pending", label: "Chờ thanh toán", statuses: ["Pending"] },
+  { key: "joined", label: "Đã tham gia", statuses: ["Joined"] },
+  { key: "cancelled", label: "Đã hủy", statuses: ["Cancelled"] },
 ];
 
 // Icon cho trạng thái
@@ -120,17 +129,67 @@ function translateStatus(status) {
   return status || "—";
 }
 
+function normEventHistoryItem(raw) {
+  const ticketParticipantId =
+    raw?.ticketParticipantId ?? raw?.TicketParticipantId;
+  if (ticketParticipantId == null) return null;
+  const slotsRaw = raw?.slots ?? raw?.Slots ?? [];
+  const slots = Array.isArray(slotsRaw)
+    ? slotsRaw.map((s) => ({
+        fieldName: s?.fieldName ?? s?.FieldName ?? "",
+        startTime: s?.startTime ?? s?.StartTime,
+        endTime: s?.endTime ?? s?.EndTime,
+      }))
+    : [];
+  return {
+    ticketParticipantId,
+    eventId: raw?.eventId ?? raw?.EventId,
+    venueName: raw?.venueName ?? raw?.VenueName ?? "",
+    eventDate: raw?.eventDate ?? raw?.EventDate,
+    ticketQuantity: Number(raw?.ticketQuantity ?? raw?.TicketQuantity ?? 0) || 0,
+    totalAmount: raw?.totalAmount ?? raw?.TotalAmount,
+    participantStatus: raw?.participantStatus ?? raw?.ParticipantStatus ?? "",
+    eventStatus: raw?.eventStatus ?? raw?.EventStatus ?? "",
+    slots,
+  };
+}
+
+function translateEventParticipantStatus(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "pending") return "Chờ thanh toán";
+  if (s === "joined") return "Đã tham gia";
+  if (s === "cancelled") return "Đã hủy";
+  return status || "—";
+}
+
+function eventStatusIcon(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "pending") return <Clock3 size={16} className="bl-status-icon" />;
+  if (s === "joined")
+    return <CheckCircle2 size={16} className="bl-status-icon bl-status-icon--ok" />;
+  if (s === "cancelled")
+    return <XCircle size={16} className="bl-status-icon bl-status-icon--danger" />;
+  return <Ticket size={16} className="bl-status-icon" />;
+}
+
 const BookingList = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { isAuthenticated } = useSelector((state) => state.auth || {});
+  const [listMode, setListMode] = useState("venue"); // venue | event
   const [activeTab, setActiveTab] = useState("all");
+  const [activeEventTab, setActiveEventTab] = useState("all");
   const [list, setList] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [totalItems, setTotalItems] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [eventList, setEventList] = useState([]);
+  const [eventItems, setEventItems] = useState([]);
+  const [eventPage, setEventPage] = useState(1);
+  const [eventTotalItems, setEventTotalItems] = useState(0);
+  const [eventLoadingMore, setEventLoadingMore] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [ratingBookingId, setRatingBookingId] = useState(null);
   const [detailPopupId, setDetailPopupId] = useState(null);
@@ -254,6 +313,23 @@ const BookingList = () => {
       }),
     keepPreviousData: true,
     staleTime: 0,
+    enabled: Boolean(isAuthenticated) && listMode === "venue",
+  });
+
+  const {
+    data: eventHistoryData,
+    isLoading: loadingEventList,
+    error: eventListError,
+  } = useQuery({
+    queryKey: ["customerEventHistory", { page: eventPage }],
+    queryFn: () =>
+      getCustomerEventHistory({
+        pageIndex: eventPage,
+        pageSize: PAGE_SIZE,
+      }),
+    keepPreviousData: true,
+    staleTime: 0,
+    enabled: Boolean(isAuthenticated) && listMode === "event",
   });
 
   useEffect(() => {
@@ -269,6 +345,36 @@ const BookingList = () => {
       setTotalItems(bookingHistoryData.totalItems ?? items.length);
     }
   }, [bookingHistoryData, page]);
+
+  useEffect(() => {
+    const normalized = (eventItems || [])
+      .map(normEventHistoryItem)
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          new Date(String(b.eventDate || 0)) - new Date(String(a.eventDate || 0)),
+      );
+    setEventList(normalized);
+  }, [eventItems]);
+
+  useEffect(() => {
+    if (listMode !== "event" || !eventHistoryData) return;
+    const items = eventHistoryData.items || [];
+    if (eventPage === 1) {
+      setEventItems(items);
+      setEventTotalItems(eventHistoryData.totalItems ?? items.length);
+    }
+  }, [eventHistoryData, eventPage, listMode]);
+
+  useEffect(() => {
+    if (listMode !== "event") return;
+    setDetailPopupId(null);
+    setPopupBooking(null);
+    setDatePanelOpen(false);
+    setEventPage(1);
+    setEventItems([]);
+    setEventTotalItems(0);
+  }, [listMode]);
 
   const closeDetailPopup = () => {
     setDetailPopupId(null);
@@ -295,6 +401,26 @@ const BookingList = () => {
     } catch (e) {
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handleLoadMoreEvents = async () => {
+    if (eventLoadingMore) return;
+    const nextPage = eventPage + 1;
+    setEventLoadingMore(true);
+    try {
+      const res = await getCustomerEventHistory({
+        pageIndex: nextPage,
+        pageSize: PAGE_SIZE,
+      });
+      const items = res.items || [];
+      setEventItems((prev) => [...prev, ...items]);
+      setEventTotalItems(res.totalItems ?? eventItems.length + items.length);
+      setEventPage(nextPage);
+    } catch (e) {
+      // silent
+    } finally {
+      setEventLoadingMore(false);
     }
   };
 
@@ -375,25 +501,55 @@ const BookingList = () => {
         <button type="button" className="bl-back" onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
         </button>
-        <h1 className="bl-title">Sân đã đặt</h1>
+        <h1 className="bl-title">
+          {listMode === "venue" ? "Sân đã đặt" : "Sự kiện của tôi"}
+        </h1>
+      </div>
+
+      <div className="bl-list-type-row" role="tablist" aria-label="Loại lịch sử">
+        <div className="bl-list-type-segment">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listMode === "venue"}
+            className={`bl-list-type-btn ${listMode === "venue" ? "active" : ""}`}
+            onClick={() => setListMode("venue")}
+          >
+            Đặt sân
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={listMode === "event"}
+            className={`bl-list-type-btn ${listMode === "event" ? "active" : ""}`}
+            onClick={() => setListMode("event")}
+          >
+            Sự kiện
+          </button>
+        </div>
       </div>
 
       <div className="bl-toolbar">
         <div className="bl-tabs" role="tablist" aria-label="Bộ lọc trạng thái">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              className={`bl-tab ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-              role="tab"
-              aria-selected={activeTab === tab.key}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {(listMode === "venue" ? TABS : EVENT_TABS).map((tab) => {
+            const currentTab = listMode === "venue" ? activeTab : activeEventTab;
+            const setTab = listMode === "venue" ? setActiveTab : setActiveEventTab;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={`bl-tab ${currentTab === tab.key ? "active" : ""}`}
+                onClick={() => setTab(tab.key)}
+                role="tab"
+                aria-selected={currentTab === tab.key}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
+        {listMode === "venue" ? (
         <div className="bl-date-filter-wrap">
           <div className="bl-date-filter-card">
             <button
@@ -524,16 +680,29 @@ const BookingList = () => {
             </AnimatePresence>
           </div>
         </div>
+        ) : null}
       </div>
 
-      {loadingList && page === 1 && historyItems.length === 0 ? (
+      {listMode === "venue" &&
+      loadingList &&
+      page === 1 &&
+      historyItems.length === 0 ? (
         <div className="bl-loading">
           <Loader2 size={32} className="spin" />
           <span>Đang tải danh sách...</span>
         </div>
+      ) : listMode === "event" &&
+        loadingEventList &&
+        eventPage === 1 &&
+        eventItems.length === 0 ? (
+        <div className="bl-loading">
+          <Loader2 size={32} className="spin" />
+          <span>Đang tải lịch sử sự kiện...</span>
+        </div>
       ) : (
         <div className="bl-list">
-          {(() => {
+          {listMode === "venue"
+            ? (() => {
             const filtered =
               activeTab === "all"
                 ? list
@@ -627,8 +796,129 @@ const BookingList = () => {
                 </div>
               </motion.div>
             ));
-          })()}
-          {historyItems.length < totalItems && (
+          })()
+            : (() => {
+                const errMsg =
+                  eventListError?.response?.data?.message ??
+                  eventListError?.message ??
+                  null;
+                if (errMsg && eventList.length === 0 && !loadingEventList) {
+                  return (
+                    <div className="bl-empty-state">
+                      <p>{String(errMsg)}</p>
+                    </div>
+                  );
+                }
+                const filtered =
+                  activeEventTab === "all"
+                    ? eventList
+                    : eventList.filter((e) => {
+                        const def = EVENT_TABS.find((t) => t.key === activeEventTab);
+                        const statuses = def?.statuses ?? [];
+                        if (!statuses.length) return true;
+                        const st = String(e.participantStatus || "");
+                        return statuses.some(
+                          (x) => x.toLowerCase() === st.toLowerCase(),
+                        );
+                      });
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bl-empty-state">
+                      <img
+                        className="bl-empty-illustration"
+                        src="/assets/images/empty-box.png"
+                        alt="empty"
+                      />
+                      <p>Chưa có vé hoặc sự kiện nào.</p>
+                    </div>
+                  );
+                }
+                return filtered.map((ev, idx) => {
+                  const stLower = String(ev.participantStatus || "").toLowerCase();
+                  const slotLabel = (ev.slots || [])
+                    .map(
+                      (s) =>
+                        `${formatTime(s.startTime)}–${formatTime(s.endTime)}`,
+                    )
+                    .join(", ");
+                  return (
+                    <motion.div
+                      key={ev.ticketParticipantId}
+                      className="bl-list-item"
+                      initial={{ opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.04 }}
+                    >
+                      <div className="bl-list-info">
+                        <div className="bl-badge-row">
+                          <span
+                            className="bl-list-badge"
+                            data-status={stLower}
+                          >
+                            {eventStatusIcon(ev.participantStatus)}
+                            {translateEventParticipantStatus(ev.participantStatus)}
+                          </span>
+                          <span className="bl-list-id">
+                            Vé #{ev.ticketParticipantId}
+                          </span>
+                        </div>
+                        <h3 className="bl-list-venue">{ev.venueName || "—"}</h3>
+                        <div className="bl-list-meta">
+                          <span className="bl-meta-item">
+                            <Calendar size={14} /> {formatDate(ev.eventDate)}
+                          </span>
+                          {slotLabel ? (
+                            <span className="bl-meta-item">
+                              <Clock size={14} />
+                              <span className="bl-ellipsis">{slotLabel}</span>
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="bl-list-price">
+                          <Receipt size={14} />{" "}
+                          {formatPrice(ev.totalAmount)} · {ev.ticketQuantity} vé
+                        </div>
+                      </div>
+                      <div className="bl-list-actions">
+                        {stLower === "pending" && (
+                          <button
+                            type="button"
+                            className="bl-btn primary bl-btn-sm"
+                            onClick={() =>
+                              navigate(
+                                `/event/ticket/${ev.ticketParticipantId}/payment`,
+                              )
+                            }
+                          >
+                            <CreditCard size={16} className="bl-btn-icon" />{" "}
+                            Thanh toán
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="bl-btn secondary bl-btn-sm"
+                          onClick={() =>
+                            navigate(`/event/ticket/${ev.ticketParticipantId}`)
+                          }
+                        >
+                          <Ticket size={16} className="bl-btn-icon" /> Xem vé
+                        </button>
+                        {ev.eventId != null ? (
+                          <button
+                            type="button"
+                            className="bl-btn outline bl-btn-sm"
+                            onClick={() => navigate(`/event/${ev.eventId}`)}
+                          >
+                            <AlertCircle size={16} className="bl-btn-icon" />{" "}
+                            Sự kiện
+                          </button>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                  );
+                });
+              })()}
+          {listMode === "venue" && historyItems.length < totalItems && (
             <div className="bl-load-more">
               <button
                 type="button"
@@ -637,6 +927,18 @@ const BookingList = () => {
                 disabled={loadingMore}
               >
                 {loadingMore ? "Đang tải thêm..." : "Tải thêm"}
+              </button>
+            </div>
+          )}
+          {listMode === "event" && eventItems.length < eventTotalItems && (
+            <div className="bl-load-more">
+              <button
+                type="button"
+                className="bl-btn outline bl-load-btn"
+                onClick={handleLoadMoreEvents}
+                disabled={eventLoadingMore}
+              >
+                {eventLoadingMore ? "Đang tải thêm..." : "Tải thêm"}
               </button>
             </div>
           )}

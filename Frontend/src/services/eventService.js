@@ -54,3 +54,26 @@ export const payEventTicket = async (ticketId, payload = {}) => {
   return unwrap(response);
 };
 
+/**
+ * Lịch sử vé / tham gia sự kiện của khách (GET /api/Event/history).
+ * Query: pageIndex, pageSize (backend EventHistoryFilter).
+ * @returns {Promise<{ page, pageSize, totalItems, items }>}
+ */
+export const getCustomerEventHistory = async (params = {}) => {
+  const pageIndex = params.pageIndex ?? params.page ?? 1;
+  const pageSize = params.pageSize ?? 10;
+  const response = await api.get("/api/Event/history", {
+    params: { pageIndex, pageSize },
+  });
+  const data = response.data?.data ?? response.data ?? {};
+  const items = data?.items ?? data?.Items ?? [];
+  const totalItems = data?.totalItems ?? data?.TotalItems ?? items.length;
+  const page = data?.page ?? data?.Page ?? pageIndex;
+  const ps = data?.pageSize ?? data?.PageSize ?? pageSize;
+  return {
+    page,
+    pageSize: ps,
+    totalItems,
+    items: Array.isArray(items) ? items : [],
+  };
+};
