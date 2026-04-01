@@ -31,7 +31,7 @@ namespace Fiebo.Application.Interfaces
         Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date);
         Task<List<OwnerVenueListResponse>> GetVenuesByOwnerAsync(string ownerId);
         Task DeactivateVenueAsync(int venueId, string ownerId);
-        Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId,DateOnly date);
+        Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId, DateOnly date);
         Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId);
         Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
         Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId);
@@ -41,7 +41,7 @@ namespace Fiebo.Application.Interfaces
         Task<VenueServiceDetailResponse> GetVenueServiceDetailAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default);
         Task UpdateVenueServiceAsync(int venueId, int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default);
         Task DeleteVenueServiceAsync(int venueId, int serviceId, string ownerId, CancellationToken cancellationToken = default);
-        Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default);        Task<List<VenueTimeSlotResponse>> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId);
-
+        Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default);
+        
     }
 }

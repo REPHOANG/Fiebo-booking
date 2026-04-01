@@ -12,5 +12,12 @@ namespace Fiebo.Domain.Repositories
         Task<List<TimeSlot>> GetTimeSlotsByVenueAndDateAsync(int venueId, DateOnly date);
         Task<bool> HasTimeSlotsOutsideRangeAsync(int venueId, TimeOnly newOpenTime, TimeOnly newCloseTime);
         Task<List<TimeSlot>> GetVenueTimeSlotAsync(int venueId, int sportTypeId);
+        Task<bool> IsTimeSlotOverlapping(
+            int venueId,
+            int sportTypeId,
+            DayOfWeek dayOfWeek,
+            TimeOnly startTime,
+            TimeOnly endTime,
+            int? excludeId = null);
     }
 }

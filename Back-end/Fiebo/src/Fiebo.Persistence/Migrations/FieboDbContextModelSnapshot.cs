@@ -79,7 +79,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("VenueId");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.BookingDetail", b =>
@@ -110,7 +110,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("SlotId");
 
-                    b.ToTable("BookingDetails");
+                    b.ToTable("BookingDetails", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.BookingServiceItem", b =>
@@ -139,7 +139,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("VenueServiceItemId");
 
-                    b.ToTable("BookingServiceItems");
+                    b.ToTable("BookingServiceItems", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
@@ -179,7 +179,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("VenueId");
 
-                    b.ToTable("Fields");
+                    b.ToTable("Fields", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.FieldImage", b =>
@@ -198,7 +198,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("FieldId");
 
-                    b.ToTable("FieldImages");
+                    b.ToTable("FieldImages", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Province", b =>
@@ -216,7 +216,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Provinces");
+                    b.ToTable("Provinces", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Report", b =>
@@ -270,7 +270,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>
@@ -304,7 +304,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.ReviewImage", b =>
@@ -327,7 +327,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("ReviewId");
 
-                    b.ToTable("ReviewImages");
+                    b.ToTable("ReviewImages", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.SportType", b =>
@@ -345,7 +345,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SportTypes");
+                    b.ToTable("SportTypes", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
@@ -480,9 +480,6 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<decimal>("Price")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
@@ -503,7 +500,7 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("VenueId", "SportTypeId", "DayOfWeek", "StartTime")
                         .IsUnique();
 
-                    b.ToTable("TimeSlots");
+                    b.ToTable("TimeSlots", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TopUpRequest", b =>
@@ -533,7 +530,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("WalletId");
 
-                    b.ToTable("TopUpRequests");
+                    b.ToTable("TopUpRequests", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Venue", b =>
@@ -599,7 +596,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("WardId");
 
-                    b.ToTable("Venues");
+                    b.ToTable("Venues", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.VenueDocument", b =>
@@ -727,7 +724,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("VenueId");
 
-                    b.ToTable("VenueStaff");
+                    b.ToTable("VenueStaff", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Wallet", b =>
@@ -757,7 +754,7 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Wallets");
+                    b.ToTable("Wallets", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.WalletTransaction", b =>
@@ -790,7 +787,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("WalletId");
 
-                    b.ToTable("WalletTransactions");
+                    b.ToTable("WalletTransactions", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Ward", b =>
@@ -813,7 +810,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("ProvinceId");
 
-                    b.ToTable("Wards");
+                    b.ToTable("Wards", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Persistence.Identity.ApplicationUser", b =>

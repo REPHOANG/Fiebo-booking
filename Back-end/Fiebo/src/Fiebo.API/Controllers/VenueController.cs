@@ -19,16 +19,19 @@ namespace Fiebo.API.Controllers
         private readonly IVenueService _venueService;
         private readonly ILogger<VenueController> _logger;
         private readonly IFieldService _fieldService;
+        private readonly ITimeSlotService _timeSlotService;
 
         public VenueController(
             IVenueService venueService,
             ILogger<VenueController> logger,
-            IFieldService fieldService
+            IFieldService fieldService,
+            ITimeSlotService timeSlotService
             )
         {
             _venueService = venueService;
             _logger = logger;
             _fieldService = fieldService;
+            _timeSlotService = timeSlotService;
         }
 
         /// <summary>
@@ -460,7 +463,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner adds a new service to a venue.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPost("/api/owner/venues/{venueId}/services")]
+        [HttpPost("/api/owner/venue/{venueId}/services")]
         public async Task<IActionResult> AddVenueService(
             [FromRoute] int venueId,
             [FromForm] AddVenueServiceRequest request)
@@ -485,7 +488,7 @@ namespace Fiebo.API.Controllers
         /// Lấy chi tiết một dịch vụ để hiển thị lên Form Edit 
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet("/api/owner/venues/{venueId}/services/{serviceId}")]
+        [HttpGet("/api/owner/venue/{venueId}/services/{serviceId}")]
         public async Task<IActionResult> GetVenueServiceDetail(
             [FromRoute] int venueId,
             [FromRoute] int serviceId,
@@ -508,7 +511,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner edits an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPut("/api/owner/venues/{venueId}/services/{serviceId}")]
+        [HttpPut("/api/owner/venue/{venueId}/services/{serviceId}")]
         public async Task<IActionResult> UpdateVenueService(
             [FromRoute] int venueId,
             [FromRoute] int serviceId,
@@ -523,7 +526,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật dịch vụ thành công.", 
+                Message = "Cập nhật dịch vụ thành công.",
             });
         }
 
@@ -531,7 +534,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner deletes an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpDelete("/api/owner/venues/{venueId}/services/{serviceId}")]
+        [HttpDelete("/api/owner/venue/{venueId}/services/{serviceId}")]
         public async Task<IActionResult> DeleteVenueService(
             [FromRoute] int venueId,
             [FromRoute] int serviceId,
@@ -548,7 +551,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Xóa dịch vụ thành công." 
+                Message = "Xóa dịch vụ thành công."
             });
         }
 
@@ -556,7 +559,7 @@ namespace Fiebo.API.Controllers
         /// Lấy danh sách dịch vụ của sân, có hỗ trợ phân trang, tìm kiếm và lọc.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet("/api/owner/venues/{venueId}/services")]
+        [HttpGet("/api/owner/venue/{venueId}/services")]
         public async Task<IActionResult> GetVenueServices(
             [FromRoute] int venueId,
             [FromQuery] GetVenueServicesRequest request,
@@ -578,6 +581,12 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Get time slots by venue and sport type for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sportTypeId"></param>
+        /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/venue/{id}/time-slot")]
@@ -585,15 +594,44 @@ namespace Fiebo.API.Controllers
             [FromRoute] int id, [FromQuery] int sportTypeId)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(ownerId))
-            {
-                throw new UnauthorizedAccessException("Cannot identify current owner.");
-            }
-            var result = await _venueService.GetVenueTimeSlotAsync(id,  sportTypeId, ownerId);
+            var result = await _timeSlotService.GetVenueTimeSlotAsync(id, sportTypeId, ownerId);
             return Ok(new ApiResponse<List<VenueTimeSlotResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost]
+        [Route("/api/owner/venue/{id}/time-slot")]
+        public async Task<IActionResult> CreateVenueTimeSlot(
+            [FromRoute] int id,
+            [FromBody] CreateVenueTimeSlotRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _timeSlotService.CreateVenueTimeSlotAsync(id, request, ownerId);
+            return Ok(new ApiResponse<VenueTimeSlotResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo khung giờ sân thành công",
+                Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/time-slots/{id}")]
+        public async Task<IActionResult> UpdateVenueTimeSlot(
+            [FromRoute] int id,
+            [FromBody] UpdateVenueTimeSlotRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _timeSlotService.UpdateVenueTimeSlotAsync(id, request, ownerId);
+            return Ok(new ApiResponse<VenueTimeSlotResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật khung giờ sân thành công",
                 Data = result
             });
         }
