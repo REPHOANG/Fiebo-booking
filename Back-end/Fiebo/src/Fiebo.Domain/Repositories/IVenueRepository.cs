@@ -29,6 +29,7 @@ namespace Fiebo.Domain.Repositories
         Task<List<Venue>> GetVenuesByOwnerAsync(string ownerId);
         Task<List<Venue>> GetVenuesWithStaffAsync(string ownerId);
         Task<Venue?> GetVenueWithDocumentsAsync(int venueId);
+        Task<Venue?> GetVenueWithDocumentsTrackedAsync(int venueId);
         Task<bool> IsVenueNameExistsForOwnerAsync(string ownerId, string name, int excludeVenueId);
     }
 }

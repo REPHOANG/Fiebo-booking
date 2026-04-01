@@ -49,16 +49,15 @@ public class VenueServiceItemRepository : IVenueServiceItemRepository
     }
 
     public async Task<PagedResult<VenueServiceItem>> GetPagedServicesAsync(
-        int venueId,
-        string? keyword,
-        string? serviceType,
-        int page,
-        int pageSize,
-        CancellationToken cancellationToken = default)
+    int venueId,
+    string? keyword,
+    int page,
+    int pageSize,
+    CancellationToken cancellationToken = default)
     {
         var query = _context.VenueServiceItems
-            .Where(x => x.VenueId == venueId)
-            .AsNoTracking() 
+            .Where(x => x.VenueId == venueId && !x.IsDeleted)
+            .AsNoTracking()
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))
@@ -66,15 +65,10 @@ public class VenueServiceItemRepository : IVenueServiceItemRepository
             query = query.Where(x => x.Name.Contains(keyword));
         }
 
-        if (!string.IsNullOrWhiteSpace(serviceType))
-        {
-            query = query.Where(x => x.ServiceType == serviceType);
-        }
-
         var totalItems = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderByDescending(x => x.Id) 
+            .OrderByDescending(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

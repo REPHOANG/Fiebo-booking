@@ -485,35 +485,11 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// Lấy chi tiết một dịch vụ để hiển thị lên Form Edit 
-        /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet("/api/owner/venue/{venueId}/services/{serviceId}")]
-        public async Task<IActionResult> GetVenueServiceDetail(
-            [FromRoute] int venueId,
-            [FromRoute] int serviceId,
-            CancellationToken cancellationToken)
-        {
-            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
-
-            var result = await _venueService.GetVenueServiceDetailAsync(venueId, serviceId, ownerId, cancellationToken);
-
-            return Ok(new ApiResponse<VenueServiceDetailResponse>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy thông tin dịch vụ thành công.",
-                Data = result
-            });
-        }
-
-        /// <summary>
         /// Field Owner edits an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPut("/api/owner/venue/{venueId}/services/{serviceId}")]
+        [HttpPut("/api/owner/services/{serviceId}")] 
         public async Task<IActionResult> UpdateVenueService(
-            [FromRoute] int venueId,
             [FromRoute] int serviceId,
             [FromForm] UpdateVenueServiceRequest request,
             CancellationToken cancellationToken)
@@ -521,7 +497,7 @@ namespace Fiebo.API.Controllers
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
 
-            await _venueService.UpdateVenueServiceAsync(venueId, serviceId, ownerId, request, cancellationToken);
+            await _venueService.UpdateVenueServiceAsync(serviceId, ownerId, request, cancellationToken);
 
             return Ok(new ApiResponse<object>
             {
@@ -534,19 +510,15 @@ namespace Fiebo.API.Controllers
         /// Field Owner deletes an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpDelete("/api/owner/venue/{venueId}/services/{serviceId}")]
+        [HttpDelete("/api/owner/services/{serviceId}")] 
         public async Task<IActionResult> DeleteVenueService(
-            [FromRoute] int venueId,
             [FromRoute] int serviceId,
             CancellationToken cancellationToken)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(ownerId))
-            {
-                throw new UnauthorizedAccessException("Cannot identify current owner.");
-            }
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
 
-            await _venueService.DeleteVenueServiceAsync(venueId, serviceId, ownerId, cancellationToken);
+            await _venueService.DeleteVenueServiceAsync(serviceId, ownerId, cancellationToken);
 
             return Ok(new ApiResponse<object>
             {

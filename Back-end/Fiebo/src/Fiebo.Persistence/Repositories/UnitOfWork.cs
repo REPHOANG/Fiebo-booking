@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -39,6 +39,8 @@ namespace Fiebo.Persistence.Repositories
         public IVenueDocumentImageRepository VenueDocumentImages { get; }
         public IFieldImageRepository FieldImages { get; }
         public IVenueServiceItemRepository VenueServiceItems { get; }
+        public ISubscriptionPlanRepository SubscriptionPlans { get; }
+        public IOwnerPlanRepository OwnerPlans { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -60,7 +62,9 @@ namespace Fiebo.Persistence.Repositories
             IVenueDocumentRepository venueDocumentRepository,
             IVenueDocumentImageRepository venueDocumentImageRepository,
             IFieldImageRepository fieldImageRepository,
-            IVenueServiceItemRepository venueServiceItemRepository
+            IVenueServiceItemRepository venueServiceItemRepository,
+            ISubscriptionPlanRepository subscriptionPlanRepository,
+            IOwnerPlanRepository ownerPlanRepository
             //IReportRepository reportRepository
             )
         {
@@ -86,6 +90,8 @@ namespace Fiebo.Persistence.Repositories
             VenueDocumentImages = venueDocumentImageRepository;
             FieldImages = fieldImageRepository;
             VenueServiceItems = venueServiceItemRepository;
+            SubscriptionPlans = subscriptionPlanRepository;
+            OwnerPlans = ownerPlanRepository;
         }
 
 

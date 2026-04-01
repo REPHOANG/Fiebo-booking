@@ -18,7 +18,6 @@ public interface IVenueServiceItemRepository
     Task<PagedResult<VenueServiceItem>> GetPagedServicesAsync(
         int venueId,
         string? keyword,
-        string? serviceType,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
