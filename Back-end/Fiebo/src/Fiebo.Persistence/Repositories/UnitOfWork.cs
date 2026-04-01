@@ -39,7 +39,6 @@ namespace Fiebo.Persistence.Repositories
         public IVenueDocumentImageRepository VenueDocumentImages { get; }
         public IFieldImageRepository FieldImages { get; }
         public IVenueServiceItemRepository VenueServiceItems { get; }
-        public IServiceTypeRepository ServiceTypes { get; }
         public ISubscriptionPlanRepository SubscriptionPlans { get; }
         public IOwnerPlanRepository OwnerPlans { get; }
 
@@ -64,7 +63,6 @@ namespace Fiebo.Persistence.Repositories
             IVenueDocumentImageRepository venueDocumentImageRepository,
             IFieldImageRepository fieldImageRepository,
             IVenueServiceItemRepository venueServiceItemRepository,
-            IServiceTypeRepository serviceTypeRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IOwnerPlanRepository ownerPlanRepository
             //IReportRepository reportRepository
@@ -92,7 +90,6 @@ namespace Fiebo.Persistence.Repositories
             VenueDocumentImages = venueDocumentImageRepository;
             FieldImages = fieldImageRepository;
             VenueServiceItems = venueServiceItemRepository;
-            ServiceTypes = serviceTypeRepository;
             SubscriptionPlans = subscriptionPlanRepository;
             OwnerPlans = ownerPlanRepository;
         }

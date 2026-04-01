@@ -40,7 +40,6 @@ namespace Fiebo.Persistence.Data
         public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
         public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
         public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
-        public DbSet<ServiceType> ServiceTypes { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<OwnerPlan> OwnerPlans { get; set; }
 
@@ -300,15 +299,6 @@ namespace Fiebo.Persistence.Data
                       .WithMany(s => s.TimeSlots)
                       .HasForeignKey(x => x.SportTypeId)
                       .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(x => new
-                {
-                    x.VenueId,
-                    x.SportTypeId,
-                    x.DayOfWeek,
-                    x.StartTime
-                })
-                .IsUnique();
             });
             // ReviewImage
             modelBuilder.Entity<ReviewImage>(entity =>
@@ -579,10 +569,6 @@ namespace Fiebo.Persistence.Data
                       .HasForeignKey(x => x.VenueId)
                       .OnDelete(DeleteBehavior.Cascade)
                       .IsRequired(false);
-                entity.HasOne(v => v.ServiceType)
-                      .WithMany(s => s.VenueServiceItems)
-                      .HasForeignKey(v => v.ServiceTypeId)
-                      .OnDelete(DeleteBehavior.Restrict);
             });
             modelBuilder.Entity<BookingServiceItem>(entity =>
             {
@@ -597,17 +583,6 @@ namespace Fiebo.Persistence.Data
                       .WithMany(v => v.BookingServiceItems)
                       .HasForeignKey(x => x.VenueServiceItemId)
                       .OnDelete(DeleteBehavior.Restrict); 
-            });
-            modelBuilder.Entity<ServiceType>(entity =>
-            {
-                entity.HasKey(x => x.Id);
-
-                entity.Property(x => x.Id)
-                      .ValueGeneratedOnAdd();
-
-                entity.Property(x => x.Name)
-                      .HasMaxLength(100)
-                      .IsRequired();
             });
 
             // SubscriptionPlan

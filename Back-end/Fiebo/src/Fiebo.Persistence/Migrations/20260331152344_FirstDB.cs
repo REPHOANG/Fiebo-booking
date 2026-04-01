@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Fiebo.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class FirstDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -89,7 +89,7 @@ namespace Fiebo.Persistence.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "ServiceType",
+                name: "ServiceTypes",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -101,7 +101,7 @@ namespace Fiebo.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ServiceType", x => x.Id);
+                    table.PrimaryKey("PK_ServiceTypes", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -117,6 +117,25 @@ namespace Fiebo.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SportTypes", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "SubscriptionPlans",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DurationDays = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubscriptionPlans", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -312,6 +331,41 @@ namespace Fiebo.Persistence.Migrations
                         principalTable: "Provinces",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "OwnerPlans",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    OwnerId = table.Column<string>(type: "varchar(450)", maxLength: 450, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PlanId = table.Column<int>(type: "int", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    PaidAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(12,2)", precision: 12, scale: 2, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OwnerPlans", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OwnerPlans_AspNetUsers_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OwnerPlans_SubscriptionPlans_PlanId",
+                        column: x => x.PlanId,
+                        principalTable: "SubscriptionPlans",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -593,9 +647,9 @@ namespace Fiebo.Persistence.Migrations
                 {
                     table.PrimaryKey("PK_VenueServiceItems", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_VenueServiceItems_ServiceType_ServiceTypeId",
+                        name: "FK_VenueServiceItems_ServiceTypes_ServiceTypeId",
                         column: x => x.ServiceTypeId,
-                        principalTable: "ServiceType",
+                        principalTable: "ServiceTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -948,6 +1002,16 @@ namespace Fiebo.Persistence.Migrations
                 column: "VenueId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OwnerPlans_OwnerId",
+                table: "OwnerPlans",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OwnerPlans_PlanId",
+                table: "OwnerPlans",
+                column: "PlanId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Reports_BookingId",
                 table: "Reports",
                 column: "BookingId");
@@ -1000,10 +1064,9 @@ namespace Fiebo.Persistence.Migrations
                 column: "SportTypeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TimeSlots_VenueId_SportTypeId_DayOfWeek_StartTime",
+                name: "IX_TimeSlots_VenueId",
                 table: "TimeSlots",
-                columns: new[] { "VenueId", "SportTypeId", "DayOfWeek", "StartTime" },
-                unique: true);
+                column: "VenueId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TopUpRequests_WalletId",
@@ -1090,6 +1153,9 @@ namespace Fiebo.Persistence.Migrations
                 name: "FieldImages");
 
             migrationBuilder.DropTable(
+                name: "OwnerPlans");
+
+            migrationBuilder.DropTable(
                 name: "Reports");
 
             migrationBuilder.DropTable(
@@ -1120,6 +1186,9 @@ namespace Fiebo.Persistence.Migrations
                 name: "VenueServiceItems");
 
             migrationBuilder.DropTable(
+                name: "SubscriptionPlans");
+
+            migrationBuilder.DropTable(
                 name: "Reviews");
 
             migrationBuilder.DropTable(
@@ -1138,7 +1207,7 @@ namespace Fiebo.Persistence.Migrations
                 name: "Wallets");
 
             migrationBuilder.DropTable(
-                name: "ServiceType");
+                name: "ServiceTypes");
 
             migrationBuilder.DropTable(
                 name: "Bookings");

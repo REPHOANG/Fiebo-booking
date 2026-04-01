@@ -37,7 +37,6 @@ namespace Fiebo.Domain.Repositories
         IVenueDocumentImageRepository VenueDocumentImages { get; }
         IFieldImageRepository FieldImages { get; }
         IVenueServiceItemRepository VenueServiceItems { get; }
-        IServiceTypeRepository ServiceTypes { get; }
         ISubscriptionPlanRepository SubscriptionPlans { get; }
         IOwnerPlanRepository OwnerPlans { get; }
 

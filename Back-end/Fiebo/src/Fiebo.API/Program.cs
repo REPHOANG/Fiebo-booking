@@ -100,7 +100,6 @@ builder.Services.AddScoped<IVenueDocumentRepository, VenueDocumentRepository>();
 builder.Services.AddScoped<IVenueDocumentImageRepository, VenueDocumentImageRepository>();
 builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
 builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemRepository>();
-builder.Services.AddScoped<IServiceTypeRepository, ServiceTypeRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
 // Service layer

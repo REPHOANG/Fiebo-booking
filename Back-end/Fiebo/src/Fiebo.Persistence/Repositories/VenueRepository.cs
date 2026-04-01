@@ -320,6 +320,18 @@ namespace Fiebo.Persistence.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<Venue?> GetVenueWithDocumentsTrackedAsync(int venueId)
+        {
+            return await _context.Venues
+                .AsSplitQuery()
+                .Where(v => v.Id == venueId)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .Include(v => v.Documents)
+                .ThenInclude(d => d.Images)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<bool> IsVenueNameExistsForOwnerAsync(string ownerId, string name, int excludeVenueId)
         {
             return await _context.Venues

@@ -543,21 +543,5 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
-
-        /// <summary>
-        /// Lấy danh mục các loại dịch vụ (Đồ ăn, Thức uống, Thuê đồ...)
-        /// </summary>
-        [HttpGet("service-types")]
-        public async Task<IActionResult> GetServiceTypes(CancellationToken cancellationToken)
-        {
-            var result = await _venueService.GetServiceTypesAsync(cancellationToken);
-
-            return Ok(new ApiResponse<List<ServiceTypeResponse>>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh mục loại dịch vụ thành công.",
-                Data = result
-            });
-        }
     }
 }
