@@ -91,6 +91,17 @@ const Login = ({ onLoginSuccess }) => {
     return "unknown";
   };
 
+  const hasOwnerRole = (user) => {
+    const roleRaw = user?.role ?? user?.roles ?? "";
+    if (Array.isArray(roleRaw)) {
+      return roleRaw.some((r) => String(r).toLowerCase().trim() === "fieldowner");
+    }
+    return String(roleRaw)
+      .split(",")
+      .map((r) => r.toLowerCase().trim())
+      .includes("fieldowner");
+  };
+
   // ── Password login handler ────────────────────────────────────────────────
   const onSubmit = async (data) => {
     const idType = detectIdentifierType(data.identifier);
@@ -135,11 +146,11 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
-      if (roleVal === 'fieldowner' || isOwner) {
+      if (hasOwnerRole(response.user) || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
+      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
       if (roleVal === 'admin') {
         navigate('/admin', { replace: true });
         return;
@@ -193,11 +204,11 @@ const Login = ({ onLoginSuccess }) => {
         onLoginSuccess();
         return;
       }
-      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
-      if (roleVal === 'fieldowner' || isOwner) {
+      if (hasOwnerRole(response.user) || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
+      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
       if (roleVal === 'admin') {
         navigate('/admin', { replace: true });
         return;

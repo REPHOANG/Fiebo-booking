@@ -65,9 +65,6 @@ const OwnerLayout = () => {
           <div className="owner-sidebar-brand">
             <span className="owner-logo">Fiebo Owner</span>
           </div>
-          <Link to="/" className="owner-home-btn" onClick={handleSidebarNavigate}>
-            Về trang khách
-          </Link>
         </div>
 
         <nav className="owner-sidebar-nav">

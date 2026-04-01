@@ -42,6 +42,7 @@ import MapExplore from '../pages/MapExplore';
 import Wallet from '../pages/Customer/Wallet/Wallet';
 import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
 import OwnerProfile from '../pages/Owner/OwnerProfile';
+import OwnerSubscription from '../pages/Owner/OwnerSubscription';
 
 
 /**
@@ -77,6 +78,7 @@ const AppRoutes = () => (
     >
       <Route path="/owner" element={<OwnerHome />} />
       <Route path="/owner/profile" element={<OwnerProfile />} />
+      <Route path="/owner/subscription" element={<OwnerSubscription />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
       <Route path="/owner/venues/:id" element={<OwnerVenueDetail />} />
       <Route path="/owner/venues/:id/create-field" element={<OwnerCreateField />} />
