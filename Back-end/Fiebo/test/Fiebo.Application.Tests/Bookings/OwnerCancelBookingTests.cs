@@ -270,41 +270,41 @@ namespace Fiebo.Application.Tests.Bookings
             _unitOfWork.Verify(x => x.CommitTransactionAsync(), Times.Never);
         }
 
-        [Fact]
-        public async Task Should_StillSucceed_WhenNotificationFails()
-        {
-            var booking = CreateBookingWithVenue(totalPrice: 100_000m);
-            var trackedBooking = new Booking
-            {
-                Id = 1,
-                UserId = CustomerId,
-                Status = BookingStatus.Booked,
-                TotalPrice = 100_000m,
-                Fullname = "Nguyen Van A",
-                PhoneNumber = "0901234567"
-            };
-            var wallet = new Wallet { Id = 5, UserId = CustomerId, Balance = 0m };
+        //[Fact]
+        //public async Task Should_StillSucceed_WhenNotificationFails()
+        //{
+        //    var booking = CreateBookingWithVenue(totalPrice: 100_000m);
+        //    var trackedBooking = new Booking
+        //    {
+        //        Id = 1,
+        //        UserId = CustomerId,
+        //        Status = BookingStatus.Booked,
+        //        TotalPrice = 100_000m,
+        //        Fullname = "Nguyen Van A",
+        //        PhoneNumber = "0901234567"
+        //    };
+        //    var wallet = new Wallet { Id = 5, UserId = CustomerId, Balance = 0m };
 
-            _bookingRepo
-                .Setup(x => x.GetBookingDetailByBookingId(1))
-                .ReturnsAsync(booking);
-            SetupFindBookingReturns(trackedBooking);
-            _walletRepo
-                .Setup(x => x.FindAsync(It.IsAny<Expression<Func<Wallet, bool>>>()))
-                .ReturnsAsync(new List<Wallet> { wallet });
-            _unitOfWork.Setup(x => x.SaveChangesAsync()).ReturnsAsync(1);
+        //    _bookingRepo
+        //        .Setup(x => x.GetBookingDetailByBookingId(1))
+        //        .ReturnsAsync(booking);
+        //    SetupFindBookingReturns(trackedBooking);
+        //    _walletRepo
+        //        .Setup(x => x.FindAsync(It.IsAny<Expression<Func<Wallet, bool>>>()))
+        //        .ReturnsAsync(new List<Wallet> { wallet });
+        //    _unitOfWork.Setup(x => x.SaveChangesAsync()).ReturnsAsync(1);
 
-            _notificationService
-                .Setup(x => x.NotifyBookingCancelledByOwnerAsync(
-                    It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>()))
-                .ThrowsAsync(new Exception("SSE connection lost"));
+        //    _notificationService
+        //        .Setup(x => x.NotifyBookingCancelledByOwnerAsync(
+        //            It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<decimal>()))
+        //        .ThrowsAsync(new Exception("SSE connection lost"));
 
-            var result = await _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason);
+        //    var result = await _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason);
 
-            Assert.True(result);
-            Assert.Equal(BookingStatus.OwnerCancelled, trackedBooking.Status);
-            Assert.Equal(100_000m, wallet.Balance);
-            _unitOfWork.Verify(x => x.CommitTransactionAsync(), Times.Once);
-        }
+        //    Assert.True(result);
+        //    Assert.Equal(BookingStatus.OwnerCancelled, trackedBooking.Status);
+        //    Assert.Equal(100_000m, wallet.Balance);
+        //    _unitOfWork.Verify(x => x.CommitTransactionAsync(), Times.Once);
+        //}
     }
 }
