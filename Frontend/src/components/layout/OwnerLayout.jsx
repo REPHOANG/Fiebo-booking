@@ -15,6 +15,7 @@ import {
   ReceiptText,
   CalendarDays,
   ListChecks,
+  UserCircle,
 } from "lucide-react";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import "./OwnerLayout.css";
@@ -80,6 +81,16 @@ const OwnerLayout = () => {
           >
             <LayoutDashboard size={16} />
             Tổng quan
+          </NavLink>
+          <NavLink
+            to="/owner/profile"
+            onClick={handleSidebarNavigate}
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            <UserCircle size={16} />
+            Hồ sơ & gói
           </NavLink>
 
           <div className={`owner-nav-group ${isVenuesSectionActive ? "active" : ""}`}>
@@ -224,12 +235,16 @@ const OwnerLayout = () => {
             <button type="button" className="owner-topbar-icon" aria-label="notifications">
               <Bell size={15} />
             </button>
-            <div className="owner-topbar-user">
+            <Link
+              to="/owner/profile"
+              className="owner-topbar-user"
+              onClick={() => setMenuOpen(false)}
+            >
               <span className="owner-topbar-avatar">
                 {(user?.name || user?.email || "O").charAt(0).toUpperCase()}
               </span>
               <span className="owner-topbar-name">{user?.name || user?.email || "Owner"}</span>
-            </div>
+            </Link>
           </div>
         </div>
         <Outlet />

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import { getOwnerVenueFields, getVenueDetail, updateOwnerField } from "../../services/fieldService";
 import { deactivateOwnerVenue, getVenueDraft } from "../../services/venueService";
@@ -364,6 +364,15 @@ const OwnerVenueDetail = () => {
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
+          <Link
+            className={`ovd-btn ${!canCreateField ? "is-disabled" : ""}`}
+            to={canCreateField ? `/owner/venues/${id}/create-field` : "#"}
+            onClick={(e) => {
+              if (!canCreateField) e.preventDefault();
+            }}
+          >
+            <Calendar size={16} /> Time slot
+          </Link>
           <Link className="ovd-btn ovd-btn--secondary" to="/owner/venues">
             Danh sách cơ sở
           </Link>
@@ -545,20 +554,25 @@ const OwnerVenueDetail = () => {
           <div className="ovd-card">
             <div className="ovd-title-row">
               <h3 className="ovd-subtitle">
-                <Calendar size={18} /> Tạo sân mới
+                <Calendar size={18} /> Thêm sân
               </h3>
-              <Link
-                className={`ovd-toggle-btn ${!canCreateField ? "is-disabled" : ""}`}
-                to={canCreateField ? `/owner/venues/${id}/create-field` : "#"}
-                onClick={(e) => {
-                  if (!canCreateField) e.preventDefault();
-                }}
-              >
-                + Tạo sân
-              </Link>
+              <div className="ovd-actions">
+                <Link
+                  className={`ovd-btn ${!canCreateField ? "is-disabled" : ""}`}
+                  to={canCreateField ? `/owner/venues/${id}/add-field` : "#"}
+                  onClick={(e) => {
+                    if (!canCreateField) e.preventDefault();
+                  }}
+                >
+                  <Plus size={15} /> Thêm sân
+                </Link>
+              </div>
             </div>
             {canCreateField ? (
-              <p className="ovd-muted">Bấm “+ Tạo sân” để chuyển đến trang tạo sân mới cho cơ sở.</p>
+              <p className="ovd-muted">
+                Bấm “Thêm sân” để tạo sân mới; hoặc dùng “Time slot” trên thanh trên để quản lý khung giờ theo
+                loại sân.
+              </p>
             ) : (
               <p className="ovd-muted">
                 Cơ sở đang ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể

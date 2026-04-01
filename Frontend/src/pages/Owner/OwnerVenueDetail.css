@@ -87,6 +87,11 @@
   cursor: not-allowed;
 }
 
+.ovd-btn.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 .ovd-card {
   border: 1px solid #e5e7eb;
   background: #fff;
@@ -397,6 +402,37 @@
   margin-top: 10px;
   display: grid;
   gap: 10px;
+}
+
+.ovd-sport-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ovd-sport-chip {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ovd-sport-chip:hover {
+  border-color: #16a34a;
+  color: #15803d;
+}
+
+.ovd-sport-chip.is-active {
+  border-color: #16a34a;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #166534;
+  box-shadow: 0 1px 2px rgba(22, 163, 74, 0.15);
 }
 
 .ovd-create-grid {

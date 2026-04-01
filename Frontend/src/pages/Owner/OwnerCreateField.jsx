@@ -1,12 +1,28 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Copy, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { createOwnerField, getOwnerVenueFields, getVenueSchedule } from "../../services/fieldService";
+import { getOwnerVenueFields } from "../../services/fieldService";
 import { getSportTypes } from "../../services/sportTypeService";
 import { getVenueDraft } from "../../services/venueService";
+import {
+  getOwnerVenueTimeSlots,
+  createOwnerVenueTimeSlot,
+  updateOwnerVenueTimeSlot,
+  deleteOwnerVenueTimeSlot,
+} from "../../services/venueTimeSlotService";
 import "./OwnerVenueDetail.css";
+
+const DOTNET_DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "—";
@@ -63,19 +79,49 @@ const buildTimeOptions = (openTime, closeTime) => {
   return options;
 };
 
-const isSlotLocked = (slotLike) => {
-  const status = String(slotLike?.status ?? slotLike?.Status ?? "").toLowerCase();
-  if (status.includes("lock") || status.includes("block") || status.includes("unavailable")) return true;
-  return Boolean(
-    slotLike?.isLocked ??
-      slotLike?.IsLocked ??
-      slotLike?.locked ??
-      slotLike?.Locked ??
-      slotLike?.isBlocked ??
-      slotLike?.IsBlocked,
-  );
+const toTimeOnly = (hhmm) => {
+  const s = String(hhmm || "").trim();
+  if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+  return s;
 };
 
+const mergeApiSlotsIntoRows = (apiSlots, generatedSlots, weekDates) => {
+  const dateKeyByDayName = {};
+  weekDates.forEach((d) => {
+    dateKeyByDayName[DOTNET_DAY_NAMES[d.getDay()]] = toIsoDate(d);
+  });
+
+  const base = generatedSlots.map((r) => ({
+    ...r,
+    prices: { ...(r.prices || {}) },
+    slotIds: {},
+  }));
+
+  const findOrAddRow = (start, end) => {
+    let row = base.find((x) => x.start === start && x.end === end);
+    if (!row) {
+      const key = `${start}-${end}`;
+      row = { id: key, start, end, prices: {}, slotIds: {} };
+      base.push(row);
+    }
+    return row;
+  };
+
+  for (const s of apiSlots || []) {
+    const start = formatTime(s.startTime ?? s.StartTime);
+    const end = formatTime(s.endTime ?? s.EndTime);
+    const row = findOrAddRow(start, end);
+    const dayName = s.dayOfWeek ?? s.DayOfWeek;
+    const dk = dateKeyByDayName[dayName];
+    if (!dk) continue;
+    row.prices[dk] = Number(s.price ?? s.Price ?? 0);
+    row.slotIds[dk] = s.id ?? s.Id;
+  }
+
+  return base.sort((a, b) => parseHour(a.start) - parseHour(b.start));
+};
+
+/** Quản lý time slot theo loại sân (môn) — route `/owner/venues/:id/create-field` */
 const OwnerCreateField = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -84,37 +130,25 @@ const OwnerCreateField = () => {
   const [slotRows, setSlotRows] = useState([]);
   const [slotDuration, setSlotDuration] = useState(60);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
-  const [creatingField, setCreatingField] = useState(false);
   const [venueOpenTime, setVenueOpenTime] = useState(null);
   const [venueCloseTime, setVenueCloseTime] = useState(null);
-  const [newField, setNewField] = useState({
-    name: "",
-    sportTypeId: "",
-    description: "",
-    images: [],
-  });
+  const [sportTypeId, setSportTypeId] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const venueSportTypeNames = useMemo(() => {
-    const set = new Set(
-      (venueFields || [])
-        .map((f) => String(f?.sportType ?? f?.SportType ?? "").trim())
-        .filter(Boolean),
-    );
-    return Array.from(set);
-  }, [venueFields]);
-
-  const allowedSportTypeOptions = useMemo(() => {
-    if (!sportTypes.length) return [];
-    if (!venueSportTypeNames.length) return sportTypes;
-    const venueTypeKeys = new Set(venueSportTypeNames.map(normalizeText));
-    const filtered = sportTypes.filter((s) => venueTypeKeys.has(normalizeText(s.name)));
-    return filtered.length ? filtered : sportTypes;
-  }, [sportTypes, venueSportTypeNames]);
+  /** Tất cả môn trong hệ thống — cho phép cấu hình time slot trước khi có sân thuộc môn đó. */
+  const sportTypeOptions = useMemo(
+    () =>
+      [...sportTypes].sort((a, b) =>
+        String(a.name ?? "").localeCompare(String(b.name ?? ""), "vi", { sensitivity: "base" }),
+      ),
+    [sportTypes],
+  );
 
   const selectedSportTypeName = useMemo(() => {
-    const found = allowedSportTypeOptions.find((s) => String(s.id) === String(newField.sportTypeId));
+    const found = sportTypeOptions.find((s) => String(s.id) === String(sportTypeId));
     return found?.name ?? "";
-  }, [allowedSportTypeOptions, newField.sportTypeId]);
+  }, [sportTypeOptions, sportTypeId]);
 
   const existingFieldsBySelectedType = useMemo(() => {
     if (!selectedSportTypeName) return venueFields;
@@ -126,7 +160,7 @@ const OwnerCreateField = () => {
 
   const weekDates = useMemo(() => {
     const base = new Date();
-    const day = base.getDay(); // 0..6 (Sun..Sat)
+    const day = base.getDay();
     const mondayOffset = day === 0 ? -6 : 1 - day;
     const monday = new Date(base);
     monday.setDate(base.getDate() + mondayOffset);
@@ -136,40 +170,15 @@ const OwnerCreateField = () => {
       return d;
     });
   }, []);
+
   const weekDayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
   const activeDayKey = useMemo(() => toIsoDate(weekDates[activeDayIndex]), [weekDates, activeDayIndex]);
   const otherDayKeys = useMemo(
     () => weekDates.map((d) => toIsoDate(d)).filter((k) => k !== activeDayKey),
     [weekDates, activeDayKey],
   );
-  const timeOptions = useMemo(() => buildTimeOptions(venueOpenTime, venueCloseTime), [venueOpenTime, venueCloseTime]);
 
-  const applyCurrentDayToAllOtherDays = () => {
-    if (!slotRows.length || !otherDayKeys.length) return;
-    const sourceKey = activeDayKey;
-    setSlotRows((prev) =>
-      prev.map((row) => {
-        const raw = row.prices?.[sourceKey];
-        const price =
-          raw === "" || raw === undefined || raw === null ? 0 : Number(raw);
-        const locked = Boolean(row.locks?.[sourceKey]);
-        const nextPrices = { ...(row.prices || {}) };
-        const nextLocks = { ...(row.locks || {}) };
-        otherDayKeys.forEach((k) => {
-          nextPrices[k] = price;
-          nextLocks[k] = locked;
-        });
-        return {
-          ...row,
-          prices: nextPrices,
-          locks: nextLocks,
-        };
-      }),
-    );
-    toast.success(
-      "Đã áp dụng khung giờ (theo từng hàng), giá và trạng thái khóa của ngày này cho các ngày còn lại trong tuần.",
-    );
-  };
+  const timeOptions = useMemo(() => buildTimeOptions(venueOpenTime, venueCloseTime), [venueOpenTime, venueCloseTime]);
 
   const generatedSlots = useMemo(() => {
     const openMin = timeToMinutes(venueOpenTime);
@@ -185,11 +194,49 @@ const OwnerCreateField = () => {
         start,
         end,
         prices: {},
-        locks: {},
+        slotIds: {},
       });
     }
     return rows;
   }, [venueOpenTime, venueCloseTime, slotDuration]);
+
+  const reloadSlots = useCallback(async () => {
+    const sid = Number(sportTypeId);
+    if (!sid || !generatedSlots.length) {
+      setSlotRows(generatedSlots.map((r) => ({ ...r, prices: { ...r.prices }, slotIds: {} })));
+      return;
+    }
+    setLoadingSlots(true);
+    try {
+      const { timeSlots } = await getOwnerVenueTimeSlots(id, sid);
+      setSlotRows(mergeApiSlotsIntoRows(timeSlots, generatedSlots, weekDates));
+    } catch {
+      toast.error("Không tải được khung giờ từ máy chủ.");
+      setSlotRows(generatedSlots.map((r) => ({ ...r, prices: { ...r.prices }, slotIds: {} })));
+    } finally {
+      setLoadingSlots(false);
+    }
+  }, [id, sportTypeId, generatedSlots, weekDates]);
+
+  const applyCurrentDayToAllOtherDays = () => {
+    if (!slotRows.length || !otherDayKeys.length) return;
+    const sourceKey = activeDayKey;
+    setSlotRows((prev) =>
+      prev.map((row) => {
+        const raw = row.prices?.[sourceKey];
+        const price = raw === "" || raw === undefined || raw === null ? 0 : Number(raw);
+        const nextPrices = { ...(row.prices || {}) };
+        otherDayKeys.forEach((k) => {
+          nextPrices[k] = price;
+        });
+        return {
+          ...row,
+          prices: nextPrices,
+        };
+      }),
+    );
+    toast.success("Đã áp dụng giá của ngày này cho các ngày còn lại trong tuần (lưu để đồng bộ máy chủ).");
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -235,54 +282,6 @@ const OwnerCreateField = () => {
     let mounted = true;
     (async () => {
       try {
-        const daySchedules = await Promise.all(
-          weekDates.map((d) => getVenueSchedule(id, toIsoDate(d)).catch(() => null)),
-        );
-        const matrix = new Map(
-          generatedSlots.map((row) => [
-            `${row.start}-${row.end}`,
-            { ...row, prices: {} },
-          ]),
-        );
-        daySchedules.forEach((schedule, dayIdx) => {
-          const allSportTypes = Array.isArray(schedule?.sportTypes) ? schedule.sportTypes : [];
-          const source = selectedSportTypeName
-            ? allSportTypes.filter(
-                (st) =>
-                  normalizeText(st?.sportTypeName ?? st?.sportType ?? "") ===
-                  normalizeText(selectedSportTypeName),
-              )
-            : allSportTypes;
-          source.forEach((st) => {
-            (Array.isArray(st?.slots) ? st.slots : []).forEach((s, idx) => {
-              const start = formatTime(s?.startTime ?? s?.StartTime);
-              const end = formatTime(s?.endTime ?? s?.EndTime);
-              const key = `${start}-${end}`;
-              if (!matrix.has(key)) return;
-              const row = matrix.get(key);
-              row.prices[toIsoDate(weekDates[dayIdx])] = Number(s?.price ?? s?.Price ?? 0);
-              row.locks = {
-                ...(row.locks || {}),
-                [toIsoDate(weekDates[dayIdx])]: isSlotLocked(s),
-              };
-            });
-          });
-        });
-        const rows = Array.from(matrix.values()).sort((a, b) => parseHour(a.start) - parseHour(b.start));
-        if (mounted) setSlotRows(rows);
-      } catch {
-        if (mounted) setSlotRows(generatedSlots);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [id, weekDates, selectedSportTypeName, generatedSlots]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
         const list = await getOwnerVenueFields(id);
         if (mounted) setVenueFields(Array.isArray(list) ? list : []);
       } catch {
@@ -295,17 +294,90 @@ const OwnerCreateField = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!allowedSportTypeOptions.length) return;
-    const exists = allowedSportTypeOptions.some(
-      (s) => String(s.id) === String(newField.sportTypeId),
-    );
+    if (!sportTypeOptions.length) return;
+    const exists = sportTypeOptions.some((s) => String(s.id) === String(sportTypeId));
     if (!exists) {
-      setNewField((prev) => ({
-        ...prev,
-        sportTypeId: String(allowedSportTypeOptions[0].id),
-      }));
+      setSportTypeId(String(sportTypeOptions[0].id));
     }
-  }, [allowedSportTypeOptions, newField.sportTypeId]);
+  }, [sportTypeOptions, sportTypeId]);
+
+  useEffect(() => {
+    reloadSlots();
+  }, [reloadSlots]);
+
+  const saveSlots = async () => {
+    const sid = Number(sportTypeId);
+    if (!sid) {
+      toast.error("Vui lòng chọn loại sân / môn thể thao.");
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const row of slotRows) {
+        for (const d of weekDates) {
+          const dk = toIsoDate(d);
+          const dow = DOTNET_DAY_NAMES[d.getDay()];
+          const rawPrice = row.prices?.[dk];
+          const price =
+            rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
+          const existingId = row.slotIds?.[dk];
+          const startT = toTimeOnly(row.start);
+          const endT = toTimeOnly(row.end);
+
+          if (existingId) {
+            if (price <= 0) {
+              await deleteOwnerVenueTimeSlot(existingId);
+            } else {
+              await updateOwnerVenueTimeSlot(existingId, {
+                startTime: startT,
+                endTime: endT,
+                price,
+              });
+            }
+          } else if (price > 0) {
+            await createOwnerVenueTimeSlot(id, {
+              sportTypeId: sid,
+              startTime: startT,
+              endTime: endT,
+              dayOfWeek: dow,
+              price,
+            });
+          }
+        }
+      }
+      toast.success("Đã lưu khung giờ.");
+      await reloadSlots();
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không lưu được khung giờ.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeRow = async (rowIdx) => {
+    const row = slotRows[rowIdx];
+    const ids = new Set();
+    weekDates.forEach((d) => {
+      const sid = row.slotIds?.[toIsoDate(d)];
+      if (sid) ids.add(sid);
+    });
+    if (ids.size === 0) {
+      setSlotRows((prev) => prev.filter((_, i) => i !== rowIdx));
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const slotId of ids) {
+        await deleteOwnerVenueTimeSlot(slotId);
+      }
+      setSlotRows((prev) => prev.filter((_, i) => i !== rowIdx));
+      toast.success("Đã xóa khung giờ trên máy chủ.");
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được khung giờ.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="owner-venue-detail">
@@ -314,6 +386,9 @@ const OwnerCreateField = () => {
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
+          <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/add-field`}>
+            + Thêm sân
+          </Link>
           <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}`}>
             Chi tiết cơ sở
           </Link>
@@ -323,7 +398,7 @@ const OwnerCreateField = () => {
       <div className="ovd-card">
         <div className="ovd-title-row">
           <h3 className="ovd-subtitle">
-            <Calendar size={18} /> Tạo sân mới
+            <Calendar size={18} /> Quản lý time slot theo loại sân
           </h3>
         </div>
         <p className="ovd-muted">
@@ -331,88 +406,35 @@ const OwnerCreateField = () => {
           <strong>
             {formatTime(venueOpenTime)} - {formatTime(venueCloseTime)}
           </strong>
+          . Chọn loại sân (môn) để chỉnh giá theo từng khung giờ trong tuần. Có thể chọn{" "}
+          <strong>bất kỳ môn nào</strong> trong hệ thống (không bị giới hạn bởi sân đã tạo).
         </p>
-        <div className="ovd-create-grid">
-          <label className="ovd-label">
-            Tên sân
-            <input
-              className="ovd-input"
-              value={newField.name}
-              onChange={(e) => setNewField((p) => ({ ...p, name: e.target.value }))}
-              placeholder="Ví dụ: Sân 1"
-            />
-          </label>
-          <label className="ovd-label ovd-full">
-            Mô tả
-            <textarea
-              className="ovd-input"
-              rows={3}
-              value={newField.description}
-              onChange={(e) => setNewField((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Mô tả sân (tuỳ chọn)"
-            />
-          </label>
-          <label className="ovd-label ovd-full">
-            Ảnh sân
-            <input
-              className="ovd-input"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) =>
-                setNewField((p) => ({
-                  ...p,
-                  images: Array.from(e.target.files || []),
-                }))
-              }
-            />
-          </label>
-        </div>
+
         <div className="ovd-fields">
-          <p className="ovd-muted">
-            Sân hiện có ({selectedSportTypeName || "tất cả môn"}):{" "}
-            <strong>{existingFieldsBySelectedType.length}</strong>
-          </p>
-          {existingFieldsBySelectedType.length === 0 ? (
-            <p className="ovd-muted">Chưa có sân cho loại môn này.</p>
-          ) : (
-            existingFieldsBySelectedType.map((f) => {
-              const fieldId = f?.fieldId ?? f?.FieldId;
-              const fieldName = f?.fieldName ?? f?.FieldName ?? "—";
-              const sportName = f?.sportType ?? f?.SportType ?? "—";
-              const status = f?.status ?? f?.Status ?? "—";
-              const minPrice = f?.minPrice ?? f?.MinPrice;
-              const maxPrice = f?.maxPrice ?? f?.MaxPrice;
-              const priceLabel =
-                minPrice != null && maxPrice != null
-                  ? `${Number(minPrice).toLocaleString("vi-VN")} – ${Number(maxPrice).toLocaleString("vi-VN")} đ`
-                  : "—";
-              return (
-                <div key={fieldId ?? fieldName} className="ovd-field-row">
-                  <div className="ovd-field-main">
-                    <strong className="ovd-field-name">{fieldName}</strong>
-                    <span className="ovd-field-meta">{sportName}</span>
-                  </div>
-                  <div className="ovd-field-right">
-                    <span className="ovd-field-price">{priceLabel}</span>
-                    <span className="ovd-field-status">{status}</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-        <div className="ovd-fields">
+          {sportTypeOptions.length > 0 ? (
+            <div className="ovd-sport-chips" role="group" aria-label="Chọn môn nhanh">
+              {sportTypeOptions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`ovd-sport-chip ${String(sportTypeId) === String(s.id) ? "is-active" : ""}`}
+                  onClick={() => setSportTypeId(String(s.id))}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="ovd-schedule-sport-picker">
             <label className="ovd-label">
-              Chọn môn thể thao
+              Loại sân / môn thể thao
               <select
                 className="ovd-input"
-                value={newField.sportTypeId}
-                onChange={(e) => setNewField((p) => ({ ...p, sportTypeId: e.target.value }))}
+                value={sportTypeId}
+                onChange={(e) => setSportTypeId(e.target.value)}
               >
-                <option value="">-- Chọn môn thể thao --</option>
-                {allowedSportTypeOptions.map((s) => (
+                <option value="">-- Chọn môn --</option>
+                {sportTypeOptions.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -420,10 +442,37 @@ const OwnerCreateField = () => {
               </select>
             </label>
           </div>
+
+          <p className="ovd-muted">
+            Sân thuộc loại này ({selectedSportTypeName || "—"}):{" "}
+            <strong>{existingFieldsBySelectedType.length}</strong>
+            {existingFieldsBySelectedType.length === 0 ? (
+              <span> — có thể thêm sân trước khi khách đặt.</span>
+            ) : null}
+          </p>
+          {existingFieldsBySelectedType.length > 0 ? (
+            <div className="ovd-fields" style={{ marginTop: 8 }}>
+              {existingFieldsBySelectedType.slice(0, 5).map((f) => {
+                const fieldId = f?.fieldId ?? f?.FieldId;
+                const fieldName = f?.fieldName ?? f?.FieldName ?? "—";
+                return (
+                  <div key={fieldId ?? fieldName} className="ovd-field-row">
+                    <div className="ovd-field-main">
+                      <strong className="ovd-field-name">{fieldName}</strong>
+                    </div>
+                  </div>
+                );
+              })}
+              {existingFieldsBySelectedType.length > 5 ? (
+                <p className="ovd-muted">… và {existingFieldsBySelectedType.length - 5} sân khác.</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="ovd-fields">
           <div className="ovd-title-row">
-            <p className="ovd-muted">
-              Khung giờ {selectedSportTypeName || "theo môn đã chọn"}
-            </p>
+            <p className="ovd-muted">Khung giờ · {selectedSportTypeName || "chọn môn"}</p>
             <div className="ovd-week-controls">
               <select
                 className="ovd-input"
@@ -436,8 +485,15 @@ const OwnerCreateField = () => {
               </select>
             </div>
           </div>
-          {slotRows.length === 0 ? (
-            <p className="ovd-muted">Chưa có dữ liệu giá slot cho tuần này.</p>
+
+          {loadingSlots ? (
+            <p className="ovd-muted">Đang tải khung giờ…</p>
+          ) : !sportTypeId ? (
+            <p className="ovd-muted">Chọn loại sân / môn để xem và chỉnh khung giờ.</p>
+          ) : slotRows.length === 0 ? (
+            <p className="ovd-muted">
+              Chưa có khung giờ nào (kiểm tra giờ mở cửa cơ sở hoặc chọn độ dài slot khác).
+            </p>
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
@@ -474,7 +530,7 @@ const OwnerCreateField = () => {
                       className="ovd-btn ovd-btn--secondary ovd-apply-all-days-btn"
                       onClick={applyCurrentDayToAllOtherDays}
                     >
-                      <Copy size={15} /> Áp dụng cho tất cả các ngày còn lại
+                      <Copy size={15} /> Áp dụng giá cho các ngày còn lại
                     </button>
                   </div>
                 </div>
@@ -483,16 +539,14 @@ const OwnerCreateField = () => {
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th className="ovd-week-side-head">Slot</th>
-                        <th>Giá</th>
-                        <th>Trạng thái</th>
+                        <th className="ovd-week-side-head">Khung giờ</th>
+                        <th>Giá (đ)</th>
                         <th>Xóa</th>
                       </tr>
                     </thead>
                     <tbody>
                       {slotRows.map((row, rowIdx) => {
                         const value = row.prices?.[activeDayKey];
-                        const locked = Boolean(row.locks?.[activeDayKey]);
                         return (
                           <tr key={`${activeDayKey}-${row.id ?? rowIdx}`}>
                             <td>{rowIdx + 1}</td>
@@ -505,7 +559,9 @@ const OwnerCreateField = () => {
                                     const nextStart = e.target.value;
                                     setSlotRows((prev) =>
                                       prev.map((r, i) =>
-                                        i === rowIdx ? { ...r, start: nextStart, id: `${nextStart}-${r.end}` } : r,
+                                        i === rowIdx
+                                          ? { ...r, start: nextStart, id: `${nextStart}-${r.end}` }
+                                          : r,
                                       ),
                                     );
                                   }}
@@ -524,7 +580,9 @@ const OwnerCreateField = () => {
                                     const nextEnd = e.target.value;
                                     setSlotRows((prev) =>
                                       prev.map((r, i) =>
-                                        i === rowIdx ? { ...r, end: nextEnd, id: `${r.start}-${nextEnd}` } : r,
+                                        i === rowIdx
+                                          ? { ...r, end: nextEnd, id: `${r.start}-${nextEnd}` }
+                                          : r,
                                       ),
                                     );
                                   }}
@@ -537,13 +595,12 @@ const OwnerCreateField = () => {
                                 </select>
                               </div>
                             </td>
-                            <td className={locked ? "ovd-week-cell is-locked" : "ovd-week-cell"}>
+                            <td className="ovd-week-cell">
                               <input
                                 type="number"
                                 min="0"
                                 className="ovd-week-price-input"
                                 value={value ?? ""}
-                                disabled={locked}
                                 onChange={(e) => {
                                   const nextRaw = e.target.value;
                                   setSlotRows((prev) =>
@@ -569,7 +626,9 @@ const OwnerCreateField = () => {
                                             prices: {
                                               ...(r.prices || {}),
                                               [activeDayKey]:
-                                                r?.prices?.[activeDayKey] === "" ? 0 : r?.prices?.[activeDayKey],
+                                                r?.prices?.[activeDayKey] === ""
+                                                  ? 0
+                                                  : r?.prices?.[activeDayKey],
                                             },
                                           }
                                         : r,
@@ -581,33 +640,9 @@ const OwnerCreateField = () => {
                             <td>
                               <button
                                 type="button"
-                                className={`ovd-week-lock-btn ${locked ? "is-locked" : ""}`}
-                                onClick={() => {
-                                  setSlotRows((prev) =>
-                                    prev.map((r, i) =>
-                                      i === rowIdx
-                                        ? {
-                                            ...r,
-                                            locks: {
-                                              ...(r.locks || {}),
-                                              [activeDayKey]: !Boolean(r.locks?.[activeDayKey]),
-                                            },
-                                          }
-                                        : r,
-                                    ),
-                                  );
-                                }}
-                              >
-                                {locked ? "Mo khoa" : "Khoa"}
-                              </button>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
                                 className="ovd-week-delete-btn"
-                                onClick={() => {
-                                  setSlotRows((prev) => prev.filter((_, i) => i !== rowIdx));
-                                }}
+                                disabled={saving}
+                                onClick={() => removeRow(rowIdx)}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -622,6 +657,7 @@ const OwnerCreateField = () => {
                   <button
                     type="button"
                     className="ovd-add-slot-btn"
+                    disabled={saving || !sportTypeId}
                     onClick={() => {
                       const step = Number(slotDuration) === 30 ? 30 : 60;
                       const last = slotRows[slotRows.length - 1];
@@ -643,7 +679,7 @@ const OwnerCreateField = () => {
                           start,
                           end,
                           prices: { [activeDayKey]: 0 },
-                          locks: { [activeDayKey]: false },
+                          slotIds: {},
                         },
                       ]);
                     }}
@@ -660,34 +696,10 @@ const OwnerCreateField = () => {
           <button
             type="button"
             className="ovd-btn ovd-btn--primary"
-            disabled={creatingField}
-            onClick={async () => {
-              if (!newField.name.trim()) {
-                toast.error("Vui lòng nhập tên sân.");
-                return;
-              }
-              if (!newField.sportTypeId) {
-                toast.error("Vui lòng chọn môn thể thao.");
-                return;
-              }
-              setCreatingField(true);
-              try {
-                await createOwnerField(id, {
-                  name: newField.name.trim(),
-                  sportTypeId: Number(newField.sportTypeId),
-                  description: newField.description?.trim() || undefined,
-                  images: newField.images,
-                });
-                toast.success("Tạo sân thành công.");
-                navigate(`/owner/venues/${id}`);
-              } catch (e) {
-                toast.error(e?.response?.data?.message ?? e?.message ?? "Không tạo được sân.");
-              } finally {
-                setCreatingField(false);
-              }
-            }}
+            disabled={saving || !sportTypeId || loadingSlots}
+            onClick={saveSlots}
           >
-            {creatingField ? "Đang tạo..." : "Tạo sân"}
+            {saving ? "Đang lưu…" : "Lưu khung giờ"}
           </button>
         </div>
       </div>

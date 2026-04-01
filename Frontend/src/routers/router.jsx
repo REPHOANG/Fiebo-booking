@@ -19,6 +19,7 @@ import OwnerVenues from '../pages/Owner/OwnerVenues';
 import OwnerOfflineBooking from '../pages/Owner/OwnerOfflineBooking';
 import OwnerVenueDetail from '../pages/Owner/OwnerVenueDetail';
 import OwnerCreateField from '../pages/Owner/OwnerCreateField';
+import OwnerAddField from '../pages/Owner/OwnerAddField';
 import OwnerEditVenue from '../pages/Owner/OwnerEditVenue';
 import OwnerEvents from '../pages/Owner/Event/OwnerEvents';
 import CreateEvent from '../pages/Owner/Event/CreateEvent';
@@ -40,6 +41,7 @@ import BookingList from '../pages/Customer/BookingList';
 import MapExplore from '../pages/MapExplore';
 import Wallet from '../pages/Customer/Wallet/Wallet';
 import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
+import OwnerProfile from '../pages/Owner/OwnerProfile';
 
 
 /**
@@ -74,9 +76,11 @@ const AppRoutes = () => (
       }
     >
       <Route path="/owner" element={<OwnerHome />} />
+      <Route path="/owner/profile" element={<OwnerProfile />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
       <Route path="/owner/venues/:id" element={<OwnerVenueDetail />} />
       <Route path="/owner/venues/:id/create-field" element={<OwnerCreateField />} />
+      <Route path="/owner/venues/:id/add-field" element={<OwnerAddField />} />
       <Route path="/owner/venues/:id/edit" element={<OwnerEditVenue />} />
       <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />
       <Route path="/owner/venues/:id/offline-booking/confirm" element={<BookingConfirmation />} />
