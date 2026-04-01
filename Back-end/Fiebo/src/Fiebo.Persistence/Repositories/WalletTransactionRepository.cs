@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Persistence.Data;
@@ -35,6 +35,13 @@ namespace Fiebo.Persistence.Repositories
                 PageSize = pageSize,
                 TotalItems = totalItems
             };
+        }
+        public async Task<bool> HasPendingWithdrawalAsync(int walletId)
+        {
+            return await _context.WalletTransactions
+                .AnyAsync(t => t.WalletId == walletId
+                    && t.TransactionType == Domain.Enums.TransactionType.Withdraw
+                    && t.Status == Domain.Enums.TransactionStatus.Pending);
         }
     }
 }

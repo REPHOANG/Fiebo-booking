@@ -1,4 +1,4 @@
-using Fiebo.Domain.Entities;
+﻿using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -42,6 +42,7 @@ namespace Fiebo.Persistence.Repositories
         public ISubscriptionPlanRepository SubscriptionPlans { get; }
         public IOwnerPlanRepository OwnerPlans { get; }
         public ICancelBookingRepository CancelBooking { get; }
+        public IUserBankAccountRepository UserBankAccounts { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -66,7 +67,9 @@ namespace Fiebo.Persistence.Repositories
             IVenueServiceItemRepository venueServiceItemRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IOwnerPlanRepository ownerPlanRepository,
-            ICancelBookingRepository cancelBookingRepository
+            ICancelBookingRepository cancelBookingRepository,
+            IOwnerPlanRepository ownerPlanRepository,
+            IUserBankAccountRepository userBankAccountRepository
             //IReportRepository reportRepository
             )
         {
@@ -95,6 +98,7 @@ namespace Fiebo.Persistence.Repositories
             SubscriptionPlans = subscriptionPlanRepository;
             OwnerPlans = ownerPlanRepository;
             CancelBooking = cancelBookingRepository;
+            UserBankAccounts = userBankAccountRepository;
         }
 
 
