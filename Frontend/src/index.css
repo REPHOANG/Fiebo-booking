@@ -126,8 +126,3 @@ input, select {
   outline: none;
   transition: all .2s ease;
 }
-
-input:focus, select:focus {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
-}

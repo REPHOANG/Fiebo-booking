@@ -192,7 +192,7 @@ namespace Fiebo.Application.Services
         public async Task<PagedResult<ReviewDTO>> GetReviewsByVenue(int venueId, int page, int pageSize, string? sort)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if(venue == null || venue.Status != VenueStatus.Active)
+            if (venue == null || venue.Status != VenueStatus.Active)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -299,7 +299,7 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if(venue.Status != VenueStatus.Active)
+            if (venue.Status != VenueStatus.Active)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -422,7 +422,7 @@ namespace Fiebo.Application.Services
                 venue.Status = VenueStatus.Active;
             }
 
-            venue.UpdatedAt = DateTime.Now; 
+            venue.UpdatedAt = DateTime.Now;
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
         }
@@ -441,7 +441,7 @@ namespace Fiebo.Application.Services
             return await GetVenueSchedule(venueId, date);
         }
 
-        
+
 
         public async Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId)
         {
@@ -449,7 +449,12 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để tạo sân");
             }
-            
+            if (request.CloseTime <= request.OpenTime)
+            {
+                throw new BadRequestException(
+                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+            }
+
             var file = request.Thumbnail;
             var fileList = file != null ? new List<IFormFile> { file } : [];
             ImageValidator.ValidateFiles(fileList, 0, 1);
@@ -548,7 +553,7 @@ namespace Fiebo.Application.Services
                 }
             }
         }
-        
+
 
         public async Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId)
         {
@@ -606,7 +611,7 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để gửi duyệt bản nháp");
             }
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsAsync(venueId);
             if (venue == null)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
@@ -618,6 +623,11 @@ namespace Fiebo.Application.Services
             if (venue.Status != VenueStatus.Draft)
             {
                 throw new BadRequestException("Chỉ có thể gửi duyệt bản nháp của sân đang ở trạng thái Draft");
+            }
+            if (venue.Documents.Count(d => d.DocumentType == DocumentType.BusinessLicense) == 0 ||
+               venue.Documents.Count(d => d.DocumentType == DocumentType.LandUse) == 0)
+            {
+                throw new BadRequestException("Vui lòng tải lên đầy đủ giấy tờ trước khi gửi duyệt");
             }
             venue.Status = VenueStatus.Pending;
             _unitOfWork.Venues.Update(venue);
@@ -685,7 +695,7 @@ namespace Fiebo.Application.Services
             }
 
             // BR-02: Critical Info Lock — Active venue with address change -> Pending
-            if (venue.Status == VenueStatus.Active)
+            if (venue.Status == VenueStatus.Active || venue.Status == VenueStatus.Inactive)
             {
                 bool addressChanged = venue.ProvinceId != request.ProvinceId
                                    || venue.WardId != request.WardId

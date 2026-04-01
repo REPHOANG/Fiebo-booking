@@ -43,17 +43,21 @@ namespace Fiebo.Persistence.Repositories
             int pageIndex,
             int pageSize)
         {
-            var query = _context.TicketParticipants
+            var baseQuery = _context.TicketParticipants
+                .Where(tp => tp.UserId == userId);
+
+            var totalCount = await baseQuery.CountAsync();
+
+            var items = await baseQuery
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(tp => tp.Event)
                     .ThenInclude(e => e.Details)
                         .ThenInclude(d => d.Field)
                             .ThenInclude(f => f.Venue)
-                .Where(tp => tp.UserId == userId)
-                .AsQueryable();
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
+                .Include(tp => tp.Event)
+                    .ThenInclude(e => e.Details)
+                        .ThenInclude(d => d.Slot)
                 .OrderByDescending(tp => tp.Id)
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)

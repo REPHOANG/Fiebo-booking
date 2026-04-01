@@ -24,7 +24,8 @@ namespace Fiebo.Persistence.Repositories
                 .AsNoTracking()
                 .Where(s =>
                     s.VenueId == venueId &&
-                    s.DayOfWeek == dayOfWeek)
+                    s.DayOfWeek == dayOfWeek &&
+                    s.IsDeleted == false)
                 .ToListAsync();
         }
 
@@ -34,6 +35,41 @@ namespace Fiebo.Persistence.Repositories
             return await _context.TimeSlots
                 .AnyAsync(ts => ts.VenueId == venueId
                              && (ts.StartTime < newOpenTime || ts.EndTime > newCloseTime));
+        }
+
+        public Task<List<TimeSlot>> GetVenueTimeSlotAsync(int venueId, int sportTypeId)
+        {
+            return _context.TimeSlots
+                .AsNoTracking()
+                .Where(s =>
+                    s.VenueId == venueId &&
+                    s.SportTypeId == sportTypeId &&
+                    s.IsDeleted == false)
+                .OrderBy(s => s.DayOfWeek)
+                .ThenBy(s => s.StartTime)
+                .ToListAsync();
+        }
+
+        public async Task<bool> IsTimeSlotOverlapping(
+            int venueId,
+            int sportTypeId,
+            DayOfWeek dayOfWeek,
+            TimeOnly startTime,
+            TimeOnly endTime,
+            int? excludeId = null)
+        {
+            return await _context.TimeSlots
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.VenueId == venueId &&
+                    x.SportTypeId == sportTypeId &&
+                    x.DayOfWeek == dayOfWeek &&
+                    (excludeId == null || x.Id != excludeId)
+                )
+                .AnyAsync(x =>
+                    startTime < x.EndTime &&
+                    endTime > x.StartTime
+                );
         }
     }
 }

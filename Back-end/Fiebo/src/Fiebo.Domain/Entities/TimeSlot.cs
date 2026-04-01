@@ -21,6 +21,7 @@ namespace Fiebo.Domain.Entities
         public int SportTypeId { get; set; }
 
         public decimal Price { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
         // Navigation
         public Venue Venue { get; set; } = null!;
