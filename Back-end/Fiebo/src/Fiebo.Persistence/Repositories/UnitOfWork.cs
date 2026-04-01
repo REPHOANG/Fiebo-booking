@@ -41,6 +41,7 @@ namespace Fiebo.Persistence.Repositories
         public IVenueServiceItemRepository VenueServiceItems { get; }
         public ISubscriptionPlanRepository SubscriptionPlans { get; }
         public IOwnerPlanRepository OwnerPlans { get; }
+        public ICancelBookingRepository CancelBooking { get; }
 
         public UnitOfWork(FieboDbContext context,
             IWalletRepository walletRepository,
@@ -64,7 +65,8 @@ namespace Fiebo.Persistence.Repositories
             IFieldImageRepository fieldImageRepository,
             IVenueServiceItemRepository venueServiceItemRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
-            IOwnerPlanRepository ownerPlanRepository
+            IOwnerPlanRepository ownerPlanRepository,
+            ICancelBookingRepository cancelBookingRepository
             //IReportRepository reportRepository
             )
         {
@@ -92,6 +94,7 @@ namespace Fiebo.Persistence.Repositories
             VenueServiceItems = venueServiceItemRepository;
             SubscriptionPlans = subscriptionPlanRepository;
             OwnerPlans = ownerPlanRepository;
+            CancelBooking = cancelBookingRepository;
         }
 
 

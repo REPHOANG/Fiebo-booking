@@ -39,10 +39,6 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("BookingType")
                         .HasColumnType("int");
 
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -140,6 +136,32 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("VenueServiceItemId");
 
                     b.ToTable("BookingServiceItems");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.CancelBooking", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal>("RefundAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.ToTable("CancelBookings", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
@@ -246,6 +268,105 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("PlanId");
 
                     b.ToTable("OwnerPlans");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.Payout", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BatchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("BatchId", "OwnerId")
+                        .IsUnique();
+
+                    b.ToTable("Payouts");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.PayoutBatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("FromDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ToDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromDate", "ToDate")
+                        .IsUnique();
+
+                    b.ToTable("PayoutBatches");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.PayoutDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PayoutId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("PayoutId");
+
+                    b.ToTable("PayoutDetails");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Province", b =>
@@ -1151,6 +1272,17 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("VenueServiceItem");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.CancelBooking", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Booking", "Booking")
+                        .WithOne("CancelBooking")
+                        .HasForeignKey("Fiebo.Domain.Entities.CancelBooking", "BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.SportType", "SportType")
@@ -1196,6 +1328,36 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.Payout", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.PayoutBatch", "Batch")
+                        .WithMany("Payouts")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.PayoutDetail", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Booking", "Booking")
+                        .WithMany("PayoutDetails")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.Payout", "Payout")
+                        .WithMany("PayoutDetails")
+                        .HasForeignKey("PayoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Payout");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Report", b =>
@@ -1461,6 +1623,10 @@ namespace Fiebo.Persistence.Migrations
 
                     b.Navigation("BookingServiceItems");
 
+                    b.Navigation("CancelBooking");
+
+                    b.Navigation("PayoutDetails");
+
                     b.Navigation("Review");
                 });
 
@@ -1469,6 +1635,16 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("BookingDetails");
 
                     b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.Payout", b =>
+                {
+                    b.Navigation("PayoutDetails");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.PayoutBatch", b =>
+                {
+                    b.Navigation("Payouts");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Province", b =>
