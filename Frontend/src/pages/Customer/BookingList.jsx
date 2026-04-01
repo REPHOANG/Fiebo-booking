@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,6 +16,8 @@ import {
   Clock3,
   CreditCard,
   Ticket,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import {
   cancelBookingApi,
@@ -24,7 +26,7 @@ import {
   getCancelBookingPreview,
 } from "../../services/bookingService";
 import { getCustomerEventHistory } from "../../services/eventService";
-import { getTopBookingFields, searchVenues } from "../../services/fieldService";
+import { searchVenues } from "../../services/fieldService";
 import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
 import Swal from "sweetalert2";
@@ -64,6 +66,12 @@ const TABS = [
   },
 ];
 
+const TYPE_FILTERS = [
+  { key: "all", label: "Tất cả" },
+  { key: "daily", label: "Đơn ngày" },
+  { key: "event", label: "Sự kiện" },
+];
+
 // Icon cho trạng thái
 const statusIcon = (status) => {
   const s = (status || "").toLowerCase();
@@ -88,7 +96,16 @@ function normHistoryItem(it) {
     province: it?.province ?? it?.Province,
     ward: it?.ward ?? it?.Ward,
     venueId: it?.venueId ?? it?.VenueId,
+    totalPrice: it?.totalPrice ?? it?.TotalPrice,
   };
+}
+
+/** Lọc theo tháng dương lịch (khớp tiêu đề “Thống kê tháng …”). */
+function isSameCalendarMonth(dateVal, year, month1to12) {
+  if (dateVal == null || dateVal === "") return false;
+  const d = new Date(dateVal);
+  if (Number.isNaN(d.getTime())) return false;
+  return d.getFullYear() === year && d.getMonth() + 1 === month1to12;
 }
 
 function groupHistoryByBooking(items) {
@@ -112,11 +129,27 @@ function getTabForStatus(status) {
   return null;
 }
 
-function getEventTabForStatus(status) {
-  const s = String(status || "").toLowerCase();
-  if (s === "pending") return "pending";
-  if (s === "joined") return "upcoming";
-  if (s === "cancelled") return "cancelled";
+/**
+ * Trạng thái hiển thị/lọc cho vé sự kiện — gộp ParticipantStatus + EventStatus từ API.
+ * Khớp styling với đơn sân: pending | booked | completed | cancelled
+ */
+function resolveEventListStatus(participantStatus, eventStatus) {
+  const ps = String(participantStatus ?? "").toLowerCase();
+  const es = String(eventStatus ?? "").toLowerCase();
+
+  if (ps === "cancelled" || es === "cancelled") return "cancelled";
+  if (ps === "pending") return "pending";
+  if (es === "completed") return "completed";
+  if (ps === "joined") return "booked";
+  return "booked";
+}
+
+function getEventHistoryTab(participantStatus, eventStatus) {
+  const key = resolveEventListStatus(participantStatus, eventStatus);
+  if (key === "pending") return "pending";
+  if (key === "booked") return "upcoming";
+  if (key === "completed") return "completed";
+  if (key === "cancelled") return "cancelled";
   return null;
 }
 
@@ -145,9 +178,6 @@ function getBookingTypeMeta(item) {
 const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
 
 
-const getAddressFromVenue = (venue) =>
-  venue?.location || venue?.address || venue?.Address || venue?.ward || "";
-
 function normEventHistoryItem(raw) {
   const ticketParticipantId =
     raw?.ticketParticipantId ??
@@ -173,24 +203,28 @@ function normEventHistoryItem(raw) {
     ticketQuantity: Number(raw?.ticketQuantity ?? raw?.TicketQuantity ?? 0) || 0,
     totalAmount: raw?.totalAmount ?? raw?.TotalAmount,
     participantStatus: raw?.participantStatus ?? raw?.ParticipantStatus ?? "",
+    eventStatus: raw?.eventStatus ?? raw?.EventStatus ?? "",
     slots,
   };
 }
 
-function translateEventParticipantStatus(status) {
-  const s = String(status || "").toLowerCase();
-  if (s === "pending") return "Chờ thanh toán";
-  if (s === "joined") return "Đã tham gia";
-  if (s === "cancelled") return "Đã hủy";
-  return status || "—";
+function translateEventHistoryStatus(participantStatus, eventStatus) {
+  const key = resolveEventListStatus(participantStatus, eventStatus);
+  if (key === "pending") return "Chờ thanh toán";
+  if (key === "cancelled") return "Đã hủy";
+  if (key === "completed") return "Hoàn thành";
+  if (key === "booked") return "Đã tham gia";
+  return "—";
 }
 
-function eventStatusIcon(status) {
-  const s = String(status || "").toLowerCase();
-  if (s === "pending") return <Clock3 size={16} className="bl-status-icon" />;
-  if (s === "joined")
+function eventHistoryStatusIcon(participantStatus, eventStatus) {
+  const key = resolveEventListStatus(participantStatus, eventStatus);
+  if (key === "pending") return <Clock3 size={16} className="bl-status-icon" />;
+  if (key === "booked")
+    return <CreditCard size={16} className="bl-status-icon" />;
+  if (key === "completed")
     return <CheckCircle2 size={16} className="bl-status-icon bl-status-icon--ok" />;
-  if (s === "cancelled")
+  if (key === "cancelled")
     return <XCircle size={16} className="bl-status-icon bl-status-icon--danger" />;
   return <Ticket size={16} className="bl-status-icon" />;
 }
@@ -200,6 +234,9 @@ const BookingList = () => {
   const { id } = useParams();
   const { isAuthenticated } = useSelector((state) => state.auth || {});
   const [activeTab, setActiveTab] = useState("all");
+  const [activeTypeFilter, setActiveTypeFilter] = useState("all");
+  const [typeFilterOpen, setTypeFilterOpen] = useState(false);
+  const typeFilterRef = useRef(null);
   const [list, setList] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -230,6 +267,7 @@ const BookingList = () => {
   const [draftYear, setDraftYear] = useState(""); // yyyy
 
   const openDatePanel = () => {
+    setTypeFilterOpen(false);
     setDraftDateMode(activeDateMode);
     if (activeDateMode === "range") {
       setDraftRangeFrom(activeFromDate);
@@ -299,6 +337,22 @@ const BookingList = () => {
 
   const queryClient = useQueryClient();
 
+  const activeTypeLabel = useMemo(
+    () => TYPE_FILTERS.find((t) => t.key === activeTypeFilter)?.label ?? "Tất cả",
+    [activeTypeFilter],
+  );
+
+  useEffect(() => {
+    if (!typeFilterOpen) return;
+    const onPointerDown = (e) => {
+      if (typeFilterRef.current && !typeFilterRef.current.contains(e.target)) {
+        setTypeFilterOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [typeFilterOpen]);
+
   const cancelMutation = useMutation({
     mutationFn: cancelBookingApi,
     onSuccess: (_, bookingId) => {
@@ -355,12 +409,6 @@ const BookingList = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: suggestedVenuesData } = useQuery({
-    queryKey: ["bookingListSuggestions"],
-    queryFn: () => getTopBookingFields({ limit: 4 }),
-    staleTime: 1000 * 60 * 5,
-  });
-
   useEffect(() => {
     const grouped = groupHistoryByBooking(historyItems);
     setList(grouped);
@@ -401,7 +449,7 @@ const BookingList = () => {
       .filter((ev) =>
         activeTab === "all"
           ? true
-          : getEventTabForStatus(ev.participantStatus) === activeTab,
+          : getEventHistoryTab(ev.participantStatus, ev.eventStatus) === activeTab,
       );
     const eventRows = filteredEvents
       .map((ev) => ({
@@ -410,10 +458,44 @@ const BookingList = () => {
         sortDate: ev.eventDate,
         data: ev,
       }));
-    return [...venueRows, ...eventRows].sort(
+    let rows = [...venueRows, ...eventRows];
+    if (activeTypeFilter === "daily") rows = rows.filter((row) => row.kind === "venue");
+    if (activeTypeFilter === "event") rows = rows.filter((row) => row.kind === "event");
+    return rows.sort(
       (a, b) => new Date(String(b.sortDate || 0)) - new Date(String(a.sortDate || 0)),
     );
-  }, [list, eventItems, activeTab]);
+  }, [list, eventItems, activeTab, activeTypeFilter]);
+
+  /** Thống kê sidebar: chỉ đơn/vé hoàn thành trong tháng hiện tại (theo tiêu đề card). */
+  const sideStatsCompleted = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth() + 1;
+
+    const venueCompleted = list.filter(
+      (b) =>
+        String(b.status || "").toLowerCase() === "completed" &&
+        isSameCalendarMonth(b.bookingDate, y, m),
+    );
+    const eventCompleted = (eventItems || [])
+      .map(normEventHistoryItem)
+      .filter(Boolean)
+      .filter(
+        (ev) =>
+          resolveEventListStatus(ev.participantStatus, ev.eventStatus) ===
+            "completed" && isSameCalendarMonth(ev.eventDate, y, m),
+      );
+
+    const count = venueCompleted.length + eventCompleted.length;
+    const sum =
+      venueCompleted.reduce(
+        (s, b) => s + Number(b.totalPrice ?? 0),
+        0,
+      ) +
+      eventCompleted.reduce((s, e) => s + Number(e.totalAmount ?? 0), 0);
+
+    return { count, sum };
+  }, [list, eventItems]);
 
   const venueCatalog = useMemo(() => {
     if (Array.isArray(venueCatalogData)) return venueCatalogData;
@@ -439,13 +521,6 @@ const BookingList = () => {
     }
     return map;
   }, [venueCatalog]);
-
-  const suggestedVenues = useMemo(() => {
-    const raw = Array.isArray(suggestedVenuesData)
-      ? suggestedVenuesData
-      : suggestedVenuesData?.items || suggestedVenuesData?.Items || [];
-    return raw.slice(0, 3);
-  }, [suggestedVenuesData]);
 
   const closeDetailPopup = () => {
     setDetailPopupId(null);
@@ -585,7 +660,10 @@ const BookingList = () => {
               key={tab.key}
               type="button"
               className={`bl-tab ${activeTab === tab.key ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setTypeFilterOpen(false);
+                setActiveTab(tab.key);
+              }}
               role="tab"
               aria-selected={activeTab === tab.key}
             >
@@ -595,12 +673,80 @@ const BookingList = () => {
           </div>
         </div>
 
-        <div className="bl-date-filter-wrap">
+        <div className="bl-toolbar-right">
+          <div className="bl-type-filter" ref={typeFilterRef}>
+            <span className="bl-type-filter-heading" id="booking-type-filter-label">
+              Loại
+            </span>
+            <div className="bl-type-filter-card">
+              <button
+                type="button"
+                className={`bl-type-filter-trigger${typeFilterOpen ? " is-open" : ""}`}
+                aria-expanded={typeFilterOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="booking-type-filter-label"
+                onClick={() => {
+                  setDatePanelOpen(false);
+                  setTypeFilterOpen((v) => !v);
+                }}
+              >
+                <span className="bl-type-filter-value">{activeTypeLabel}</span>
+                <ChevronDown size={18} className="bl-type-filter-chevron" aria-hidden />
+              </button>
+              <AnimatePresence>
+                {typeFilterOpen ? (
+                  <motion.div
+                    className="bl-type-filter-panel"
+                    role="listbox"
+                    aria-labelledby="booking-type-filter-label"
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  >
+                    {TYPE_FILTERS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        role="option"
+                        aria-selected={activeTypeFilter === opt.key}
+                        className={`bl-type-filter-option${
+                          activeTypeFilter === opt.key ? " active" : ""
+                        }`}
+                        onClick={() => {
+                          setActiveTypeFilter(opt.key);
+                          setTypeFilterOpen(false);
+                        }}
+                      >
+                        <span className="bl-type-filter-option-label">{opt.label}</span>
+                        {activeTypeFilter === opt.key ? (
+                          <Check
+                            size={18}
+                            className="bl-type-filter-option-check"
+                            strokeWidth={2.5}
+                            aria-hidden
+                          />
+                        ) : (
+                          <span className="bl-type-filter-option-check-placeholder" aria-hidden />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="bl-date-filter-wrap">
           <div className="bl-date-filter-card">
             <button
               type="button"
               className="bl-date-filter-top"
-              onClick={() => (datePanelOpen ? setDatePanelOpen(false) : openDatePanel())}
+              onClick={() => {
+                setTypeFilterOpen(false);
+                if (datePanelOpen) setDatePanelOpen(false);
+                else openDatePanel();
+              }}
             >
               <span className="bl-date-filter-top-text">
                 {activeDateMode === "all"
@@ -724,6 +870,7 @@ const BookingList = () => {
             ) : null}
             </AnimatePresence>
           </div>
+          </div>
         </div>
       </div>
 
@@ -736,11 +883,7 @@ const BookingList = () => {
         <div className="bl-content-grid">
           <div className="bl-list">
             {(() => {
-              const filtered =
-                activeTab === "all"
-                  ? list
-                  : list.filter((b) => getTabForStatus(b.status) === activeTab);
-              if (filtered.length === 0 && eventItems.length === 0) {
+              if (combinedList.length === 0) {
                 return (
                   <div className="bl-empty-state">
                     <img
@@ -755,7 +898,10 @@ const BookingList = () => {
               return combinedList.map((row, idx) => {
               if (row.kind === "event") {
                 const ev = row.data;
-                const stLower = String(ev.participantStatus || "").toLowerCase();
+                const stLower = resolveEventListStatus(
+                  ev.participantStatus,
+                  ev.eventStatus,
+                );
                 const slotLabel = (ev.slots || [])
                   .map((s) => `${formatTime(s.startTime)}–${formatTime(s.endTime)}`)
                   .join(", ");
@@ -777,8 +923,14 @@ const BookingList = () => {
                       <span className="bl-type-tag bl-type-tag--event">Sự kiện</span>
                       <div className="bl-badge-row">
                         <span className="bl-list-badge" data-status={stLower}>
-                          {eventStatusIcon(ev.participantStatus)}
-                          {translateEventParticipantStatus(ev.participantStatus)}
+                          {eventHistoryStatusIcon(
+                            ev.participantStatus,
+                            ev.eventStatus,
+                          )}
+                          {translateEventHistoryStatus(
+                            ev.participantStatus,
+                            ev.eventStatus,
+                          )}
                         </span>
                         <span className="bl-list-id">Vé #{ev.ticketParticipantId}</span>
                       </div>
@@ -944,65 +1096,15 @@ const BookingList = () => {
               <div className="bl-side-stats">
                 <div>
                   <span>Số lần đặt</span>
-                  <strong>{combinedList.length}</strong>
+                  <strong>{sideStatsCompleted.count}</strong>
                 </div>
                 <div>
                   <span>Tổng chi</span>
                   <strong>
-                    {formatPrice(
-                      combinedList.reduce(
-                        (sum, row) =>
-                          sum +
-                          Number(
-                            row.kind === "event"
-                              ? row.data.totalAmount || 0
-                              : row.data.totalPrice || 0,
-                          ),
-                        0,
-                      ),
-                    )}
+                    {formatPrice(sideStatsCompleted.sum)}
                   </strong>
                 </div>
               </div>
-            </div>
-            <div className="bl-side-card">
-              <h3>Gợi ý sân mới</h3>
-              {suggestedVenues.length > 0 ? (
-                <div className="bl-side-suggest-list">
-                  {suggestedVenues.map((v, index) => {
-                    const vid = v?.venueId ?? v?.VenueId;
-                    const vname = v?.venueName ?? v?.VenueName ?? "Sân gần bạn";
-                    const vthumb =
-                      v?.thumbnailUrl ??
-                      v?.ThumbnailUrl ??
-                      FALLBACK_VENUE_IMAGE;
-                    const vaddr = getAddressFromVenue(v);
-                    return (
-                      <button
-                        key={String(vid ?? index)}
-                        type="button"
-                        className="bl-side-suggest-item"
-                        onClick={() => vid && navigate(`/venue/${vid}`)}
-                      >
-                        <img src={vthumb} alt={vname} />
-                        <span>
-                          <strong>{vname}</strong>
-                          <small>{vaddr || "Xem chi tiết cơ sở"}</small>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p>Chưa có gợi ý phù hợp lúc này.</p>
-              )}
-              <button
-                type="button"
-                className="bl-btn outline bl-btn-sm"
-                onClick={() => navigate("/venues")}
-              >
-                Xem thêm sân gần đây
-              </button>
             </div>
           </aside>
         </div>
