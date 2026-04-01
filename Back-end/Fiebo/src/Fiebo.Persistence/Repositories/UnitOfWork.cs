@@ -68,7 +68,6 @@ namespace Fiebo.Persistence.Repositories
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IOwnerPlanRepository ownerPlanRepository,
             ICancelBookingRepository cancelBookingRepository,
-            IOwnerPlanRepository ownerPlanRepository,
             IUserBankAccountRepository userBankAccountRepository
             //IReportRepository reportRepository
             )

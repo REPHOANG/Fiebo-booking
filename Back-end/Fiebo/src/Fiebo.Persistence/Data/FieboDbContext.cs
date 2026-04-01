@@ -42,6 +42,10 @@ namespace Fiebo.Persistence.Data
         public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<OwnerPlan> OwnerPlans { get; set; }
+        public DbSet<PayoutBatch> PayoutBatches { get; set; }
+        public DbSet<Payout> Payouts { get; set; }
+        public DbSet<PayoutDetail> PayoutDetails { get; set; }
+        public DbSet<CancelBooking> CancelBookings { get; set; }
         public DbSet<UserBankAccount> UserBankAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -217,9 +221,6 @@ namespace Fiebo.Persistence.Data
                 entity.Property(b => b.UserId)
                       .IsRequired()
                       .HasMaxLength(50);
-
-                entity.Property(b => b.CancelReason)
-                      .HasMaxLength(255);
 
                 entity.HasOne(e => e.Venue)
                       .WithMany(v => v.Bookings)
@@ -401,13 +402,6 @@ namespace Fiebo.Persistence.Data
                     .IsRequired();
 
                 entity.Property(x => x.ReferenceId);
-
-                entity.Property(x => x.Status)
-                    .IsRequired()
-                    .HasDefaultValue(Fiebo.Domain.Enums.TransactionStatus.Success);
-
-                entity.Property(x => x.Description)
-                    .HasMaxLength(255);
 
                 entity.HasIndex(x => x.WalletId);
 
@@ -594,7 +588,7 @@ namespace Fiebo.Persistence.Data
                 entity.HasOne(x => x.VenueServiceItem)
                       .WithMany(v => v.BookingServiceItems)
                       .HasForeignKey(x => x.VenueServiceItemId)
-                      .OnDelete(DeleteBehavior.Restrict); 
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // SubscriptionPlan
@@ -615,7 +609,7 @@ namespace Fiebo.Persistence.Data
                 entity.Property(x => x.OwnerId).HasMaxLength(450).IsRequired();
                 entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
                 entity.Property(x => x.Status).HasConversion<int>();
-                
+
                 entity.HasOne(op => op.Plan)
                       .WithMany(sp => sp.OwnerPlans)
                       .HasForeignKey(op => op.PlanId)
@@ -625,6 +619,101 @@ namespace Fiebo.Persistence.Data
                       .WithMany()
                       .HasForeignKey(op => op.OwnerId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // PayoutBatch
+            modelBuilder.Entity<PayoutBatch>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.FromDate)
+                    .IsRequired();
+
+                entity.Property(e => e.ToDate)
+                    .IsRequired();
+
+                entity.Property(e => e.TotalAmount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasMany(e => e.Payouts)
+                    .WithOne(p => p.Batch)
+                    .HasForeignKey(p => p.BatchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.FromDate, e.ToDate })
+                    .IsUnique();
+            });
+
+            // Payout
+            modelBuilder.Entity<Payout>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Amount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasIndex(e => e.BatchId);
+                entity.HasIndex(e => e.OwnerId);
+
+                entity.HasIndex(e => new { e.BatchId, e.OwnerId })
+                    .IsUnique();
+            });
+
+            // PayoutDetail
+            modelBuilder.Entity<PayoutDetail>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Amount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasOne(e => e.Payout)
+                    .WithMany(p => p.PayoutDetails)
+                    .HasForeignKey(e => e.PayoutId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.BookingId)
+                    .IsUnique();
+            });
+
+            // CancelBooking
+            modelBuilder.Entity<CancelBooking>(entity =>
+            {
+                entity.ToTable("CancelBookings");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.CancelReason)
+                    .HasMaxLength(255)
+                    .IsRequired(false);
+
+                entity.Property(e => e.RefundAmount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasIndex(e => e.BookingId)
+                    .IsUnique();
+
+                // Relationship 1-1
+                entity.HasOne(e => e.Booking)
+                .WithOne(b => b.CancelBooking)
+                .HasForeignKey<CancelBooking>(e => e.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
             });
 
             // UserBankAccount
@@ -642,7 +731,6 @@ namespace Fiebo.Persistence.Data
                       .HasForeignKey(x => x.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-
         }
     }
 }
