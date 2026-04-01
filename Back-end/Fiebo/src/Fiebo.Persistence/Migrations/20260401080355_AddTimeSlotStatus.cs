@@ -5,7 +5,7 @@
 namespace Fiebo.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTimeSlotDeleteStatus : Migration
+    public partial class AddTimeSlotStatus : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

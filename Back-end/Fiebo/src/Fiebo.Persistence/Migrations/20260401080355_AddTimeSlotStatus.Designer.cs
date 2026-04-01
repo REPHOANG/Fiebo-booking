@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fiebo.Persistence.Migrations
 {
     [DbContext(typeof(FieboDbContext))]
-    [Migration("20260330154640_AddTimeSlotDeleteStatus")]
-    partial class AddTimeSlotDeleteStatus
+    [Migration("20260401080355_AddTimeSlotStatus")]
+    partial class AddTimeSlotStatus
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -116,6 +116,35 @@ namespace Fiebo.Persistence.Migrations
                     b.ToTable("BookingDetails");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.BookingServiceItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(65,30)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VenueServiceItemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("VenueServiceItemId");
+
+                    b.ToTable("BookingServiceItems");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
                 {
                     b.Property<int>("Id")
@@ -173,6 +202,53 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("FieldId");
 
                     b.ToTable("FieldImages");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.OwnerPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("OwnerPlans");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Province", b =>
@@ -320,6 +396,37 @@ namespace Fiebo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SportTypes");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SubscriptionPlans");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
@@ -474,8 +581,7 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasIndex("SportTypeId");
 
-                    b.HasIndex("VenueId", "SportTypeId", "DayOfWeek", "StartTime")
-                        .IsUnique();
+                    b.HasIndex("VenueId");
 
                     b.ToTable("TimeSlots");
                 });
@@ -633,6 +739,48 @@ namespace Fiebo.Persistence.Migrations
                     b.HasIndex("DocumentId");
 
                     b.ToTable("VenueDocumentImages", (string)null);
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.VenueServiceItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("VenueServiceItems", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.VenueStaff", b =>
@@ -987,6 +1135,25 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("TimeSlot");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.BookingServiceItem", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Booking", "Booking")
+                        .WithMany("BookingServiceItems")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.VenueServiceItem", "VenueServiceItem")
+                        .WithMany("BookingServiceItems")
+                        .HasForeignKey("VenueServiceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("VenueServiceItem");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.SportType", "SportType")
@@ -1015,6 +1182,23 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Field");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.OwnerPlan", b =>
+                {
+                    b.HasOne("Fiebo.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.SubscriptionPlan", "Plan")
+                        .WithMany("OwnerPlans")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Report", b =>
@@ -1171,6 +1355,16 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.VenueServiceItem", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany("VenueServiceItems")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.VenueStaff", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
@@ -1268,6 +1462,8 @@ namespace Fiebo.Persistence.Migrations
                 {
                     b.Navigation("BookingDetails");
 
+                    b.Navigation("BookingServiceItems");
+
                     b.Navigation("Review");
                 });
 
@@ -1297,6 +1493,11 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("TimeSlots");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.SubscriptionPlan", b =>
+                {
+                    b.Navigation("OwnerPlans");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
                 {
                     b.Navigation("Details");
@@ -1319,12 +1520,19 @@ namespace Fiebo.Persistence.Migrations
 
                     b.Navigation("TimeSlots");
 
+                    b.Navigation("VenueServiceItems");
+
                     b.Navigation("VenueStaffs");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.VenueDocument", b =>
                 {
                     b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.VenueServiceItem", b =>
+                {
+                    b.Navigation("BookingServiceItems");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Wallet", b =>

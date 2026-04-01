@@ -18,7 +18,7 @@ namespace Fiebo.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<List<VenueTimeSlotResponse>> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId)
+        public async Task<VenueTimeSlotResponse> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId)
         {
             if (userId == null)
             {
@@ -30,17 +30,22 @@ namespace Fiebo.Application.Services
                 throw new UnauthorizedException("Bạn không có quyền xem khung giờ sân này");
             }
             var result = await _unitOfWork.TimeSlots.GetVenueTimeSlotAsync(venueId, sportTypeId);
-            return [.. result.Select(t => new VenueTimeSlotResponse
+            return new VenueTimeSlotResponse
             {
-                Id = t.Id,
-                StartTime = t.StartTime,
-                EndTime = t.EndTime,
-                Price = t.Price,
-                DayOfWeek = t.DayOfWeek.ToString()
-            })];
+                OpenTime = venue.OpenTime,
+                CloseTime = venue.CloseTime,
+                TimeSlots = [.. result.Select(ts => new VenueTimeSlotDto
+                {
+                    Id = ts.Id,
+                    StartTime = ts.StartTime,
+                    EndTime = ts.EndTime,
+                    Price = ts.Price,
+                    DayOfWeek = ts.DayOfWeek.ToString()
+                })]
+            };
         }
 
-        public async Task<VenueTimeSlotResponse> CreateVenueTimeSlotAsync(int venueId, CreateVenueTimeSlotRequest request, string? ownerId)
+        public async Task<VenueTimeSlotDto> CreateVenueTimeSlotAsync(int venueId, CreateVenueTimeSlotRequest request, string? ownerId)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
             if (venue.OwnerId != ownerId)
@@ -50,6 +55,20 @@ namespace Fiebo.Application.Services
             if (request.StartTime >= request.EndTime)
             {
                 throw new BadRequestException("Giờ bắt đầu phải trước giờ kết thúc");
+            }
+            if (request.StartTime < venue.OpenTime || request.EndTime > venue.CloseTime)
+            {
+                throw new BadRequestException("Khung giờ phải nằm trong thời gian mở cửa");
+            }
+            var duration = request.EndTime - request.StartTime;
+
+            if (duration < TimeSpan.FromMinutes(30))
+            {
+                throw new BadRequestException("Khung giờ tối thiểu là 30 phút");
+            }
+            if (request.StartTime.Minute % 30 != 0 || request.EndTime.Minute % 30 != 0)
+            {
+                throw new BadRequestException("Thời gian phải theo mốc 30 phút");
             }
             if (!Enum.TryParse<DayOfWeek>(request.DayOfWeek, true, out var dayOfWeek))
             {
@@ -72,7 +91,7 @@ namespace Fiebo.Application.Services
             };
             _unitOfWork.TimeSlots.Add(newSlot);
             await _unitOfWork.SaveChangesAsync();
-            return new VenueTimeSlotResponse
+            return new VenueTimeSlotDto
             {
                 Id = newSlot.Id,
                 StartTime = newSlot.StartTime,
@@ -82,7 +101,7 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task<VenueTimeSlotResponse> UpdateVenueTimeSlotAsync(int timeSlotId, UpdateVenueTimeSlotRequest request, string? ownerId)
+        public async Task<VenueTimeSlotDto> UpdateVenueTimeSlotAsync(int timeSlotId, UpdateVenueTimeSlotRequest request, string? ownerId)
         {
             var timeSlot = await _unitOfWork.TimeSlots.GetByIdAsync(timeSlotId) ?? throw new NotFoundException("Không tìm thấy khung giờ");
             var venue = await _unitOfWork.Venues.GetByIdAsync(timeSlot.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
@@ -93,6 +112,37 @@ namespace Fiebo.Application.Services
             if (request.StartTime >= request.EndTime)
             {
                 throw new BadRequestException("Giờ bắt đầu phải trước giờ kết thúc");
+            }
+            if (request.StartTime < venue.OpenTime || request.EndTime > venue.CloseTime)
+            {
+                throw new BadRequestException("Khung giờ phải nằm trong thời gian mở cửa");
+            }
+            if (timeSlot.IsDeleted)
+            {
+                throw new BadRequestException("Khung giờ này đã bị xóa. Vui lòng tạo khung giờ mới.");
+            }
+            var duration = request.EndTime - request.StartTime;
+
+            if (duration < TimeSpan.FromMinutes(30))
+            {
+                throw new BadRequestException("Khung giờ tối thiểu là 30 phút");
+            }
+            if (request.StartTime.Minute % 30 != 0 || request.EndTime.Minute % 30 != 0)
+            {
+                throw new BadRequestException("Thời gian phải theo mốc 30 phút");
+            }
+            if (request.StartTime == timeSlot.StartTime &&
+                request.EndTime == timeSlot.EndTime &&
+                request.Price == timeSlot.Price)
+            {
+                return new VenueTimeSlotDto
+                {
+                    Id = timeSlot.Id,
+                    StartTime = timeSlot.StartTime,
+                    EndTime = timeSlot.EndTime,
+                    Price = timeSlot.Price,
+                    DayOfWeek = timeSlot.DayOfWeek.ToString()
+                };
             }
             var overlap = await _unitOfWork.TimeSlots.IsTimeSlotOverlapping(venue.Id, timeSlot.SportTypeId, timeSlot.DayOfWeek, request.StartTime, request.EndTime, timeSlotId);
             if (overlap)
@@ -111,7 +161,7 @@ namespace Fiebo.Application.Services
             };
             _unitOfWork.TimeSlots.Add(newSlot);
             await _unitOfWork.SaveChangesAsync();
-            return new VenueTimeSlotResponse
+            return new VenueTimeSlotDto
             {
                 Id = newSlot.Id,
                 StartTime = newSlot.StartTime,
@@ -119,6 +169,22 @@ namespace Fiebo.Application.Services
                 Price = newSlot.Price,
                 DayOfWeek = timeSlot.DayOfWeek.ToString()
             };
+        }
+
+        public async Task DeleteVenueTimeSlotAsync(int timeSlotId, string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để xem khung giờ sân");
+            }
+            var timeSlot = await _unitOfWork.TimeSlots.GetByIdAsync(timeSlotId) ?? throw new NotFoundException("Không tìm thấy khung giờ");
+            var venue = await _unitOfWork.Venues.GetByIdAsync(timeSlot.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
+            if (venue.OwnerId != ownerId)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem khung giờ sân này");
+            }
+            timeSlot.IsDeleted = true;
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

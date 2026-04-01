@@ -9,8 +9,9 @@ namespace Fiebo.Application.Interfaces
 {
     public interface ITimeSlotService
     {
-        Task<List<VenueTimeSlotResponse>> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId);
-        Task<VenueTimeSlotResponse> CreateVenueTimeSlotAsync(int venueId, CreateVenueTimeSlotRequest request, string? ownerId);
-        Task<VenueTimeSlotResponse> UpdateVenueTimeSlotAsync(int timeSlotId, UpdateVenueTimeSlotRequest request, string? ownerId);
+        Task<VenueTimeSlotResponse> GetVenueTimeSlotAsync(int venueId, int sportTypeId, string? userId);
+        Task<VenueTimeSlotDto> CreateVenueTimeSlotAsync(int venueId, CreateVenueTimeSlotRequest request, string? ownerId);
+        Task<VenueTimeSlotDto> UpdateVenueTimeSlotAsync(int timeSlotId, UpdateVenueTimeSlotRequest request, string? ownerId);
+        Task DeleteVenueTimeSlotAsync(int timeSlotId, string? ownerId);
     }
 }

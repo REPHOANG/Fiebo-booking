@@ -488,7 +488,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner edits an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPut("/api/owner/services/{serviceId}")] 
+        [HttpPut("/api/owner/services/{serviceId}")]
         public async Task<IActionResult> UpdateVenueService(
             [FromRoute] int serviceId,
             [FromForm] UpdateVenueServiceRequest request,
@@ -510,7 +510,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner deletes an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpDelete("/api/owner/services/{serviceId}")] 
+        [HttpDelete("/api/owner/services/{serviceId}")]
         public async Task<IActionResult> DeleteVenueService(
             [FromRoute] int serviceId,
             CancellationToken cancellationToken)
@@ -560,14 +560,13 @@ namespace Fiebo.API.Controllers
         /// <param name="sportTypeId"></param>
         /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet]
-        [Route("/api/owner/venue/{id}/time-slot")]
+        [HttpGet("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> GetOwnerVenueSchedule(
             [FromRoute] int id, [FromQuery] int sportTypeId)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var result = await _timeSlotService.GetVenueTimeSlotAsync(id, sportTypeId, ownerId);
-            return Ok(new ApiResponse<List<VenueTimeSlotResponse>>
+            return Ok(new ApiResponse<VenueTimeSlotResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy lịch sân thành công",
@@ -575,16 +574,21 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Create time slots for a venue by sport type
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPost]
-        [Route("/api/owner/venue/{id}/time-slot")]
+        [HttpPost("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> CreateVenueTimeSlot(
             [FromRoute] int id,
             [FromBody] CreateVenueTimeSlotRequest request)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var result = await _timeSlotService.CreateVenueTimeSlotAsync(id, request, ownerId);
-            return Ok(new ApiResponse<VenueTimeSlotResponse>
+            return Ok(new ApiResponse<VenueTimeSlotDto>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tạo khung giờ sân thành công",
@@ -592,6 +596,12 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Soft detele and create a new slot to replace
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
         [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPut("/api/owner/time-slots/{id}")]
         public async Task<IActionResult> UpdateVenueTimeSlot(
@@ -600,11 +610,30 @@ namespace Fiebo.API.Controllers
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var result = await _timeSlotService.UpdateVenueTimeSlotAsync(id, request, ownerId);
-            return Ok(new ApiResponse<VenueTimeSlotResponse>
+            return Ok(new ApiResponse<VenueTimeSlotDto>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Cập nhật khung giờ sân thành công",
                 Data = result
+            });
+        }
+
+        /// <summary>
+        /// Soft delete the time slot for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpDelete("/api/owner/time-slots/{id}")]
+        public async Task<IActionResult> DeleteVenueTimeSlot(
+            [FromRoute] int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _timeSlotService.DeleteVenueTimeSlotAsync(id, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xóa khung giờ sân thành công"
             });
         }
     }
