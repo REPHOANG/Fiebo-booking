@@ -39,6 +39,7 @@ namespace Fiebo.Domain.Repositories
         IVenueServiceItemRepository VenueServiceItems { get; }
         ISubscriptionPlanRepository SubscriptionPlans { get; }
         IOwnerPlanRepository OwnerPlans { get; }
+        ICancelBookingRepository CancelBooking { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

@@ -77,7 +77,7 @@ const AppRoutes = () => (
     <Route path="/owner/events" element={<OwnerEvents />} />
     <Route path="/owner/events/create" element={<CreateEvent />} />
     <Route path="/owner/events/:id" element={<OwnerEventDetail />} />
-    <Route path="/owner/venue/:id/services" element={<ServiceManagement/>} />
+    <Route path="/owner/venue/:venueId/services" element={<ServiceManagement/>} />
     </Route>
 
     {/* Layout (Header + Footer): home, venues, booking */}

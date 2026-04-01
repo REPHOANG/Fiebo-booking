@@ -463,7 +463,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner adds a new service to a venue.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPost("/api/owner/venue/{venueId}/services")]
+        [HttpPost("/api/owner/venue/{venueId}/service")]
         public async Task<IActionResult> AddVenueService(
             [FromRoute] int venueId,
             [FromForm] AddVenueServiceRequest request)
@@ -488,7 +488,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner edits an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpPut("/api/owner/services/{serviceId}")]
+        [HttpPut("/api/owner/service/{serviceId}")]
         public async Task<IActionResult> UpdateVenueService(
             [FromRoute] int serviceId,
             [FromForm] UpdateVenueServiceRequest request,
@@ -510,7 +510,7 @@ namespace Fiebo.API.Controllers
         /// Field Owner deletes an existing venue service.
         /// </summary>
         [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpDelete("/api/owner/services/{serviceId}")]
+        [HttpDelete("/api/owner/service/{serviceId}")]
         public async Task<IActionResult> DeleteVenueService(
             [FromRoute] int serviceId,
             CancellationToken cancellationToken)
@@ -530,20 +530,13 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Lấy danh sách dịch vụ của sân, có hỗ trợ phân trang, tìm kiếm và lọc.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet("/api/owner/venue/{venueId}/services")]
+        [HttpGet("/api/venue/{venueId}/services")]
         public async Task<IActionResult> GetVenueServices(
             [FromRoute] int venueId,
             [FromQuery] GetVenueServicesRequest request,
             CancellationToken cancellationToken)
         {
-            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(ownerId))
-            {
-                throw new UnauthorizedAccessException("Cannot identify current owner.");
-            }
-
-            var result = await _venueService.GetVenueServicesAsync(venueId, ownerId, request, cancellationToken);
+            var result = await _venueService.GetVenueServicesAsync(venueId, request, cancellationToken);
 
             return Ok(new ApiResponse<PagedResult<VenueServiceDetailResponse>>
             {

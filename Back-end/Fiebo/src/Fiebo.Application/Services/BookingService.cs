@@ -579,6 +579,11 @@ namespace Fiebo.Application.Services
                 booking.Status = BookingStatus.CustomerCancelled;
                 booking.UpdatedAt = DateTime.Now;
                 _unitOfWork.Bookings.Update(booking);
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    RefundAmount = refundAmount
+                });
 
                 // Refund to wallet (if refundAmount > 0)
                 if (refundAmount > 0)
@@ -687,9 +692,14 @@ namespace Fiebo.Application.Services
             {
                 // Update booking status + reason
                 trackedBooking.Status = BookingStatus.OwnerCancelled;
-                trackedBooking.CancelReason = cancelReason;
                 trackedBooking.UpdatedAt = DateTime.Now;
                 _unitOfWork.Bookings.Update(trackedBooking);
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    CancelReason = cancelReason,
+                    RefundAmount = refundAmount
+                });
 
                 // BR-46: Refund to customer's wallet
                 if (refundAmount > 0)

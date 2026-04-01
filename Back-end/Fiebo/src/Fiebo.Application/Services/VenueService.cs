@@ -906,14 +906,8 @@ namespace Fiebo.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, string ownerId, GetVenueServicesRequest request, CancellationToken cancellationToken = default)
+        public async Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, GetVenueServicesRequest request, CancellationToken cancellationToken = default)
         {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null || venue.OwnerId != ownerId)
-            {
-                throw new UnauthorizedException("Bạn không có quyền xem dịch vụ của sân này");
-            }
-
             var pagedResult = await _unitOfWork.VenueServiceItems.GetPagedServicesAsync(
                 venueId,
                 request.SearchKeyword,
