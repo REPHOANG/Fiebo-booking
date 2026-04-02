@@ -823,5 +823,109 @@ namespace Fiebo.Application.Services
                 Items = items
             };
         }
+        public async Task<OwnerBookingAnalyticsResponse> GetOwnerBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
+        {
+            // Default to last 1 month if no fromDate is provided
+            var effectiveFromDate = fromDate ?? DateTime.Now.AddMonths(-1);
+
+            var bookings = await _unitOfWork.Bookings.GetBookingAnalyticsAsync(ownerId, effectiveFromDate, toDate);
+
+            var result = new OwnerBookingAnalyticsResponse
+            {
+                TotalBookings = bookings.Count,
+                CompletedBookings = bookings.Count(b => b.Status == BookingStatus.Completed),
+                CancelledBookings = bookings.Count(b => b.Status is BookingStatus.OwnerCancelled or BookingStatus.CustomerCancelled),
+
+                BookingTrends = bookings
+                    .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                    .Select(g => new BookingTrendItem
+                    {
+                        Date = g.Key,
+                        Count = g.Count()
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList(),
+
+                VenueAnalytics = bookings
+                    .GroupBy(b => new { b.VenueId, b.Venue.Name })
+                    .Select(vg => new VenueAnalyticsItem
+                    {
+                        VenueId = vg.Key.VenueId,
+                        VenueName = vg.Key.Name,
+                        TotalBookings = vg.Count(),
+                        CompletedBookings = vg.Count(b => b.Status == BookingStatus.Completed),
+                        CancelledBookings = vg.Count(b => b.Status is BookingStatus.OwnerCancelled or BookingStatus.CustomerCancelled),
+                        BookingTrends = vg
+                            .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                            .Select(g => new BookingTrendItem
+                            {
+                                Date = g.Key,
+                                Count = g.Count()
+                            })
+                            .OrderBy(x => x.Date)
+                            .ToList()
+                    })
+                    .ToList()
+            };
+
+            return result;
+        }
+        public async Task<OwnerFinancialSummaryResponse> GetOwnerFinancialSummaryAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
+        {
+            var start = fromDate ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var end = toDate ?? DateTime.Now;
+
+            var bookings = await _unitOfWork.Bookings.GetFinancialSummaryDataAsync(ownerId, start, end);
+
+            var completedBookings = bookings.Where(b => b.Status == BookingStatus.Completed).ToList();
+            var cancelledBookings = bookings.Where(b => b.Status is BookingStatus.OwnerCancelled or BookingStatus.CustomerCancelled).ToList();
+
+            var wallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
+            var pendingPayout = await _unitOfWork.Payouts.GetPendingPayoutAmountAsync(ownerId);
+
+            var result = new OwnerFinancialSummaryResponse
+            {
+                TotalRevenue = completedBookings.Sum(b => b.TotalPrice),
+                TotalBookings = bookings.Count,
+                CompletedBookings = completedBookings.Count,
+                CancelledBookings = cancelledBookings.Count,
+                PendingPayoutAmount = pendingPayout,
+                CurrentWalletBalance = wallet?.Balance ?? 0,
+
+                RevenueTrends = completedBookings
+                    .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                    .Select(g => new RevenueTrendItem
+                    {
+                        Date = g.Key,
+                        Revenue = g.Sum(b => b.TotalPrice)
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList(),
+
+                BookingTrends = bookings
+                    .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                    .Select(g => new FinancialBookingTrendItem
+                    {
+                        Date = g.Key,
+                        TotalCount = g.Count(),
+                        CompletedCount = g.Count(b => b.Status == BookingStatus.Completed)
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList(),
+
+                VenuePerformances = bookings
+                    .GroupBy(b => new { b.VenueId, b.Venue.Name })
+                    .Select(g => new VenuePerformanceItem
+                    {
+                        VenueId = g.Key.VenueId,
+                        VenueName = g.Key.Name,
+                        BookingCount = g.Count(),
+                        Revenue = g.Where(b => b.Status == BookingStatus.Completed).Sum(b => b.TotalPrice)
+                    })
+                    .ToList()
+            };
+
+            return result;
+        }
     }
 }

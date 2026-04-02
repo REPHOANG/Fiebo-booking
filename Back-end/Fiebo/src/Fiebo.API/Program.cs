@@ -1,4 +1,4 @@
-﻿using DotNetEnv;
+using DotNetEnv;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
 using Fiebo.API.Wrappers;

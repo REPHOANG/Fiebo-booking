@@ -1,6 +1,7 @@
 ﻿using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
+using Fiebo.Domain.Enums;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -35,6 +36,12 @@ namespace Fiebo.Persistence.Repositories
                 PageSize = pageSize,
                 TotalItems = totalItems
             };
+        public async Task<decimal> GetPendingPayoutAmountAsync(string ownerId)
+        {
+            return await _context.Payouts
+                .Where(p => p.Status == PayoutStatus.Pending)
+                .Where(p => p.PayoutDetails.Any(pd => pd.Booking.Venue.OwnerId == ownerId))
+                .SumAsync(p => p.Amount);
         }
     }
 }

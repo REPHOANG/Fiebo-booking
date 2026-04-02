@@ -11,5 +11,6 @@ namespace Fiebo.Domain.Repositories
     public interface IPayoutRepository : IRepository<Payout>
     {
         Task<PagedResult<Payout>> GetOwnerPayouts(string? ownerId, int page, int pageSize);
+        Task<decimal> GetPendingPayoutAmountAsync(string ownerId);
     }
 }

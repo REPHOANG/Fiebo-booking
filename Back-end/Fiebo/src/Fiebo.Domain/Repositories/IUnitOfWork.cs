@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
