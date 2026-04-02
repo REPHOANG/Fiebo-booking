@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import localforage from "localforage";
 import { BrowserRouter as Router } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getProfile } from "./services/authService";
 import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
-import SplashScreen from "./components/ui/SplashScreen/SplashScreen";
 import AppRoutes from "./routers/router";
-import { setCredentials, setProfileLoading } from "./store/authSlice";
+import store from "./store";
+import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
-const SPLASH_MIN_MS = 800;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +31,17 @@ const queryClient = new QueryClient({
 });
 const App = () => {
   const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth?.token ?? null);
+
+  // Khi accessToken hết hạn thì tự đăng xuất và xóa storage
+  useEffect(() => {
+    if (!token) return;
+    if (isTokenExpired(token)) {
+      dispatch(logout());
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+  }, [token, dispatch]);
+
 
   // Persist react-query cache to IndexedDB via localforage
   React.useEffect(() => {
@@ -65,19 +75,20 @@ const App = () => {
 
     persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
   }, [queryClient]);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
+  const initRanRef = useRef(false);
 
-  // Splash = loading cho đến khi restore auth + API khởi tạo xong
+
+  // Tránh gọi getProfile 2 lần khi React Strict Mode double-invoke effect (development)
   useEffect(() => {
-    let cancelled = false;
+    if (initRanRef.current) return;
+    initRanRef.current = true;
 
+    let cancelled = false;
     const init = async () => {
       console.log("🚀 App initializing...");
-      dispatch(setProfileLoading(true));
 
-      const minDelay = new Promise((r) => setTimeout(r, SPLASH_MIN_MS));
 
       const apiReady = getProfile()
         .then((profile) => {
@@ -85,19 +96,16 @@ const App = () => {
             dispatch(
               setCredentials({
                 user: profile,
-              }),
+              })
             );
           }
         })
-        .catch(() => {
-          console.log("No valid auth token found, starting as guest.");
-        });
+      .catch(() => {});
 
-      await Promise.all([minDelay, apiReady]);
+      await Promise.all([apiReady]);
 
       if (!cancelled) {
-        dispatch(setProfileLoading(false));
-        setIsInitialLoading(false);
+
         if (!localStorage.getItem("locationPromptAsked")) {
           setShowLocationPrompt(true);
         }
@@ -127,7 +135,6 @@ const App = () => {
       }
     >
       <QueryClientProvider client={queryClient}>
-        <SplashScreen isVisible={isInitialLoading} />
         {showLocationPrompt && (
           <LocationPrompt onConfirm={handleLocationConfirm} />
         )}

@@ -10,13 +10,14 @@ namespace Fiebo.Domain.Entities
     public class Venue : BaseEntity
     {
         public required string Name { get; set; }
-        public TimeSpan OpenTime { get; set; }
+        public TimeOnly OpenTime { get; set; }
 
-        public TimeSpan CloseTime { get; set; }
+        public TimeOnly CloseTime { get; set; }
 
         public string? Description { get; set; }
 
         public string? AddressDetail { get; set; }
+        public string? ThumbnailUrl { get; set; }
 
         public int ProvinceId { get; set; }
 
@@ -29,6 +30,7 @@ namespace Fiebo.Domain.Entities
         public double Latitude { get; set; }
 
         public VenueStatus Status { get; set; }
+        public string? RejectionReason { get; set; }
 
 
         // Navigation
@@ -37,5 +39,8 @@ namespace Fiebo.Domain.Entities
         public ICollection<Field> Fields { get; set; } = [];
         public ICollection<TimeSlot> TimeSlots { get; set; } = [];
         public ICollection<Booking> Bookings { get; set; } = [];
+        public ICollection<VenueStaff> VenueStaffs { get; set; } = [];
+        public ICollection<VenueDocument> Documents { get; set; } = [];
+        public ICollection<VenueServiceItem> VenueServiceItems { get; set; } = [];
     }
 }

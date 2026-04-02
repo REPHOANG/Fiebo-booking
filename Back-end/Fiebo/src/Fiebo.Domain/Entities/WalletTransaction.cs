@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Enums;
+using Fiebo.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +21,10 @@ namespace Fiebo.Domain.Entities
         public TransactionType TransactionType { get; set; }
 
         public int? ReferenceId { get; set; }
+
+        public TransactionStatus Status { get; set; } = TransactionStatus.Success;
+
+        public string? Description { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

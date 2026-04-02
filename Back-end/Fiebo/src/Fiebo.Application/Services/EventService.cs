@@ -5,6 +5,7 @@ using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -46,10 +47,14 @@ namespace Fiebo.Application.Services
                 var field = await _unitOfWork.Fields.GetByIdAsync(detail.FieldId);
                 if (field == null)
                     throw new NotFoundException($"Không tìm thấy sân với ID {detail.FieldId}.");
+                if (field.Status != FieldStatus.Active)
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
 
                 var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
                 if (venue == null || venue.OwnerId != userId)
                     throw new UnauthorizedAccessException("Bạn không có quyền tạo sự kiện cho sân này.");
+                if (venue.Status != VenueStatus.Active)
+                    throw new BadRequestException("Cơ sở này hiện không hoạt động.");
 
                 if (venueId == null)
                     venueId = venue.Id;
@@ -152,7 +157,7 @@ namespace Fiebo.Application.Services
             var eventDetail = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
             if (eventDetail == null)
             {
-                throw new NotFoundException("Không tìm thấy sự kiện");
+                throw new NotFoundException("Sự kiện này không tồn tại");
             }
             var firstDetail = eventDetail.Details.First();
             var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}"; var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
@@ -186,7 +191,7 @@ namespace Fiebo.Application.Services
             var participant = await _unitOfWork.TicketParticipants.GetTicketDetailAsync(ticketId);
             if (participant == null)
             {
-                throw new NotFoundException("Không tìm thấy vé");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             if (participant.UserId != userId)
             {
@@ -243,15 +248,25 @@ namespace Fiebo.Application.Services
                 }
 
                 // 2. Get event
-                var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
+                var dropInEvent = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
                 if (dropInEvent == null)
                 {
-                    throw new NotFoundException("Không tìm thấy sự kiện");
+                    throw new NotFoundException("Sự kiện này không tồn tại");
+                }
+
+                // Check Venue and Field active status
+                var firstDetail = dropInEvent.Details.FirstOrDefault();
+                if (firstDetail != null)
+                {
+                    if (firstDetail.Field.Status != FieldStatus.Active)
+                        throw new BadRequestException("Sân hiện tại không hoạt động.");
+                    if (firstDetail.Field.Venue?.Status != VenueStatus.Active)
+                        throw new BadRequestException("Cơ sở này hiện không hoạt động.");
                 }
 
                 if (dropInEvent.Status != TicketEventStatus.Pending)
                 {
-                    throw new BadRequestException("Sự kiện không có sẵn");
+                    throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
                 }
 
                 // 3. Check slot capacity (fix bug quantity)
@@ -303,7 +318,7 @@ namespace Fiebo.Application.Services
             var participant = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId);
             if (participant == null)
             {
-                throw new NotFoundException("Không tìm thấy vé");
+                throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
             if (participant.UserId != userId)
             {
@@ -316,7 +331,7 @@ namespace Fiebo.Application.Services
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
             if (wallet == null)
             {
-                throw new NotFoundException("Không tìm thấy ví của người dùng");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
             if (wallet.Balance < participant.TotalPrice)
             {
@@ -418,23 +433,23 @@ namespace Fiebo.Application.Services
             var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
             if (dropInEvent == null)
             {
-                throw new NotFoundException("Không tìm thấy sự kiện");
+                throw new NotFoundException("Sự kiện này không tồn tại");
             }
             var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(eventId);
-            if(earliestSlot == null)
+            if (earliestSlot == null)
             {
                 throw new BadRequestException("Sự kiện không có slot");
             }
-            if(dropInEvent.OwnerId != ownerId)
+            if (dropInEvent.OwnerId != ownerId)
             {
                 throw new BadRequestException("Bạn không có quyền chỉnh sửa sự kiện này");
             }
-            if(dropInEvent.Status != TicketEventStatus.Pending)
+            if (dropInEvent.Status != TicketEventStatus.Pending)
             {
                 throw new BadRequestException("Chỉ sự kiện với trạng thái đang chờ mới có thể sửa");
             }
             var currentPlayer = await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId);
-            if(currentPlayer > 0)
+            if (currentPlayer > 0)
             {
                 throw new BadRequestException("Không thể chỉnh sửa sự kiện khi đã có người đăng kí");
             }
@@ -444,6 +459,79 @@ namespace Fiebo.Application.Services
             dropInEvent.MaxPlayer = request.MaxPlayer;
             dropInEvent.Description = request.Description;
             await _unitOfWork.SaveChangesAsync();
+        }
+        public async Task<List<OwnerDropInEventListItemResponse>> GetOwnerEventListAsync(string ownerId)
+        {
+            var events = await _unitOfWork.TicketEvents.GetOwnerEventListAsync(ownerId);
+
+            return events.Select(e =>
+            {
+                var firstDetail = e.Details.FirstOrDefault();
+                var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
+
+                return new OwnerDropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    TotalTicketQuantity = e.MaxPlayer,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Status = e.Status.ToString(),
+                    CreatedAt = e.CreatedAt,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
+        }
+
+        public async Task<PagedResult<CustomerEventHistoryResponse>> GetCustomerEventHistoryAsync(string userId, EventHistoryFilter filter)
+        {
+            var (items, totalRecords) = await _unitOfWork.TicketParticipants.GetCustomerEventHistoryAsync(
+                userId,
+                filter.PageIndex,
+                filter.PageSize);
+
+            var mappedItems = items.Select(tp =>
+            {
+                var firstDetail = tp.Event.Details.FirstOrDefault();
+
+                return new CustomerEventHistoryResponse
+                {
+                    TicketParticipantId = tp.Id,
+                    EventId = tp.EventId,
+                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = tp.Event.EventDate,
+                    TicketQuantity = tp.TicketQuantity,
+                    TotalAmount = tp.TotalPrice,
+                    EventStatus = tp.Event.Status.ToString(),
+                    ParticipantStatus = tp.Status.ToString(),
+                    Slots = tp.Event.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
+
+            return new PagedResult<CustomerEventHistoryResponse>
+            {
+                Items = mappedItems,
+                TotalItems = totalRecords,
+                Page = filter.PageIndex,   
+                PageSize = filter.PageSize
+            };
         }
     }
 }

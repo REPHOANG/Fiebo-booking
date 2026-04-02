@@ -93,7 +93,17 @@ builder.Services.AddScoped<IWalletTransactionRepository, WalletTransactionReposi
 builder.Services.AddScoped<ITicketEventRepository, TicketEventRepository>();
 builder.Services.AddScoped<ITicketParticipantRepository, TicketParticipantRepository>();
 builder.Services.AddScoped<ITicketEventDetailRepository, TicketEventDetailRepository>();
-
+builder.Services.AddScoped<IVenueStaffRepository, VenueStaffRepository>();
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<IWardRepository, WardRepository>();
+builder.Services.AddScoped<IVenueDocumentRepository, VenueDocumentRepository>();
+builder.Services.AddScoped<IVenueDocumentImageRepository, VenueDocumentImageRepository>();
+builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
+builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemRepository>();
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
+builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
+builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
@@ -118,7 +128,11 @@ builder.Services.AddHostedService<BookingCompleteJob>();
 builder.Services.AddSingleton<SseService>();
 builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
-
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IAddressService, AddressService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
+builder.Services.AddScoped<IPayoutService, MockPayoutService>();
 
 builder.Services.AddHttpClient();
 
@@ -252,3 +266,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

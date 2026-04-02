@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Review;
+using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
@@ -32,16 +32,16 @@ namespace Fiebo.Application.Services
             var booking = await _unitOfWork.Bookings.GetByIdAsync(request.BookingId);
 
             if (booking == null || booking.UserId != userId)
-                throw new NotFoundException("Booking không tồn tại hoặc không thuộc quyền của bạn.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
 
             // Chỉ cho phép đánh giá nếu đã hoàn thành 
             if (booking.Status != BookingStatus.Completed)
-                throw new BadRequestException("Chỉ được đánh giá sau khi đã hoàn thành sử dụng sân.");
+                throw new BadRequestException("Chưa đến thời gian đánh giá.");
 
             // Kiểm tra xem đã review chưa
             var isReviewed = await _unitOfWork.Reviews.HasReviewForBookingAsync(request.BookingId);
             if (isReviewed)
-                throw new BadRequestException("Bạn đã đánh giá trải nghiệm đặt sân này rồi.");
+                throw new BadRequestException("Không thể đánh giá đơn đã đánh giá.");
 
             // 2. Map dữ liệu thành Entity Review
             var review = new Review
@@ -86,7 +86,7 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Định dạng ảnh không hợp lệ.");
                     try
                     {
-                        var imageUrl = await _cloudinaryService.UploadImageAsync(file);
+                        var imageUrl = (await _cloudinaryService.UploadImageAsync(file)).Url;
 
                         reviewImages.Add(new ReviewImage
                         {
@@ -97,7 +97,7 @@ namespace Fiebo.Application.Services
                     catch (System.Exception ex)
                     {
                         _logger.LogError($"Lỗi upload ảnh: {ex.Message}");
-                        throw new BadRequestException("Lỗi xử lý ảnh, vui lòng thử lại sau.");
+                        throw new BadRequestException("Tải ảnh lên thất bại vui lòng thử lại.");
                     }
                 }
             }

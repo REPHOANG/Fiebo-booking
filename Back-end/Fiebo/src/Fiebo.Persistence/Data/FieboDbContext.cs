@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Persistence.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +35,18 @@ namespace Fiebo.Persistence.Data
         public DbSet<TicketEvent> TicketEvents { get; set; }
         public DbSet<TicketParticipant> TicketParticipants { get; set; }
         public DbSet<TicketEventDetail> TicketEventDetails { get; set; }
+        public DbSet<VenueStaff> VenueStaff { get; set; }
+        public DbSet<VenueDocument> VenueDocuments { get; set; }
+        public DbSet<VenueDocumentImage> VenueDocumentImages { get; set; }
+        public DbSet<VenueServiceItem> VenueServiceItems { get; set; }
+        public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
+        public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        public DbSet<OwnerPlan> OwnerPlans { get; set; }
+        public DbSet<PayoutBatch> PayoutBatches { get; set; }
+        public DbSet<Payout> Payouts { get; set; }
+        public DbSet<PayoutDetail> PayoutDetails { get; set; }
+        public DbSet<CancelBooking> CancelBookings { get; set; }
+        public DbSet<UserBankAccount> UserBankAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +77,10 @@ namespace Fiebo.Persistence.Data
 
                 entity.HasIndex(x => x.UserId)
                       .IsUnique();
+
+                entity.Property(x => x.RowVersion)
+                      .IsConcurrencyToken()
+                      .ValueGeneratedOnAddOrUpdate();
             });
 
             modelBuilder.Entity<ApplicationUser>()
@@ -95,8 +111,6 @@ namespace Fiebo.Persistence.Data
             modelBuilder.Entity<FieldImage>(entity =>
             {
                 entity.HasKey(x => x.Id);
-                entity.Property(x => x.Id)
-                      .ValueGeneratedOnAdd();
 
                 entity.Property(x => x.ImageUrl)
                       .HasMaxLength(255);
@@ -192,9 +206,9 @@ namespace Fiebo.Persistence.Data
                 entity.HasIndex(e => e.BookingId)
                         .IsUnique();
 
-                    entity.HasMany(r => r.Images)
-                          .WithOne(i => i.Review)
-                          .HasForeignKey(i => i.ReviewId);
+                entity.HasMany(r => r.Images)
+                      .WithOne(i => i.Review)
+                      .HasForeignKey(i => i.ReviewId);
             });
 
             // Booking
@@ -207,9 +221,6 @@ namespace Fiebo.Persistence.Data
                 entity.Property(b => b.UserId)
                       .IsRequired()
                       .HasMaxLength(50);
-
-                entity.Property(b => b.CancelReason)
-                      .HasMaxLength(255);
 
                 entity.HasOne(e => e.Venue)
                       .WithMany(v => v.Bookings)
@@ -294,15 +305,6 @@ namespace Fiebo.Persistence.Data
                       .WithMany(s => s.TimeSlots)
                       .HasForeignKey(x => x.SportTypeId)
                       .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(x => new
-                {
-                    x.VenueId,
-                    x.SportTypeId,
-                    x.DayOfWeek,
-                    x.StartTime
-                })
-                .IsUnique();
             });
             // ReviewImage
             modelBuilder.Entity<ReviewImage>(entity =>
@@ -401,6 +403,13 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(x => x.ReferenceId);
 
+                entity.Property(x => x.Status)
+                    .IsRequired()
+                    .HasDefaultValue(Fiebo.Domain.Enums.TransactionStatus.Success);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(255);
+
                 entity.HasIndex(x => x.WalletId);
 
                 entity.HasOne(x => x.Wallet)
@@ -440,8 +449,8 @@ namespace Fiebo.Persistence.Data
 
                 // Relationships
                 entity.HasMany(e => e.Details)
-                .WithOne(d => d.Event)        
-                .HasForeignKey(d => d.EventId)        
+                .WithOne(d => d.Event)
+                .HasForeignKey(d => d.EventId)
                 .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasMany(e => e.Participants)
@@ -498,6 +507,236 @@ namespace Fiebo.Persistence.Data
 
                 entity.HasIndex(d => new { d.EventId, d.FieldId, d.SlotId })
                     .IsUnique();
+            });
+
+            // VenueStaff
+            modelBuilder.Entity<VenueStaff>(entity =>
+            {
+                entity.HasKey(vs => vs.Id);
+
+                entity.HasOne(vs => vs.Venue)
+                      .WithMany(v => v.VenueStaffs)
+                      .HasForeignKey(vs => vs.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // VenueDocument
+            modelBuilder.Entity<VenueDocument>(entity =>
+            {
+                entity.ToTable("VenueDocuments");
+
+                entity.HasKey(e => e.Id);
+
+                // Id tự tăng
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.VenueId)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Venue)
+                    .WithMany(v => v.Documents)
+                    .HasForeignKey(e => e.VenueId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.Images)
+                    .WithOne(i => i.Document)
+                    .HasForeignKey(i => i.DocumentId);
+            });
+
+            // VenueDocumentImage
+            modelBuilder.Entity<VenueDocumentImage>(entity =>
+            {
+                entity.ToTable("VenueDocumentImages");
+
+                entity.HasKey(e => e.Id);
+
+                // Id tự tăng
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.DocumentId)
+                    .IsRequired();
+
+                entity.Property(e => e.ImageUrl)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Document)
+                    .WithMany(d => d.Images)
+                    .HasForeignKey(e => e.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<VenueServiceItem>(entity =>
+            {
+                entity.ToTable("VenueServiceItems");
+
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+
+                entity.HasOne(x => x.Venue)
+                      .WithMany(v => v.VenueServiceItems)
+                      .HasForeignKey(x => x.VenueId)
+                      .OnDelete(DeleteBehavior.Cascade)
+                      .IsRequired(false);
+            });
+            modelBuilder.Entity<BookingServiceItem>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.HasOne(x => x.Booking)
+                      .WithMany(b => b.BookingServiceItems)
+                      .HasForeignKey(x => x.BookingId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.VenueServiceItem)
+                      .WithMany(v => v.BookingServiceItems)
+                      .HasForeignKey(x => x.VenueServiceItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // SubscriptionPlan
+            modelBuilder.Entity<SubscriptionPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.DurationDays).IsRequired();
+            });
+
+            // OwnerPlan
+            modelBuilder.Entity<OwnerPlan>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.OwnerId).HasMaxLength(450).IsRequired();
+                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.Status).HasConversion<int>();
+
+                entity.HasOne(op => op.Plan)
+                      .WithMany(sp => sp.OwnerPlans)
+                      .HasForeignKey(op => op.PlanId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(op => op.OwnerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // PayoutBatch
+            modelBuilder.Entity<PayoutBatch>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.FromDate)
+                    .IsRequired();
+
+                entity.Property(e => e.ToDate)
+                    .IsRequired();
+
+                entity.Property(e => e.TotalAmount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasMany(e => e.Payouts)
+                    .WithOne(p => p.Batch)
+                    .HasForeignKey(p => p.BatchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.FromDate, e.ToDate })
+                    .IsUnique();
+            });
+
+            // Payout
+            modelBuilder.Entity<Payout>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Amount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasIndex(e => e.BatchId);
+                entity.HasIndex(e => e.OwnerId);
+
+                entity.HasIndex(e => new { e.BatchId, e.OwnerId })
+                    .IsUnique();
+            });
+
+            // PayoutDetail
+            modelBuilder.Entity<PayoutDetail>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Amount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasOne(e => e.Payout)
+                    .WithMany(p => p.PayoutDetails)
+                    .HasForeignKey(e => e.PayoutId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.BookingId)
+                    .IsUnique();
+            });
+
+            // CancelBooking
+            modelBuilder.Entity<CancelBooking>(entity =>
+            {
+                entity.ToTable("CancelBookings");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.CancelReason)
+                    .HasMaxLength(255)
+                    .IsRequired(false);
+
+                entity.Property(e => e.RefundAmount)
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+
+                entity.HasIndex(e => e.BookingId)
+                    .IsUnique();
+
+                // Relationship 1-1
+                entity.HasOne(e => e.Booking)
+                .WithOne(b => b.CancelBooking)
+                .HasForeignKey<CancelBooking>(e => e.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // UserBankAccount
+            modelBuilder.Entity<UserBankAccount>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+                entity.Property(x => x.BankName).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.AccountNumber).HasMaxLength(50).IsRequired();
+                entity.Property(x => x.AccountHolderName).HasMaxLength(100).IsRequired();
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(x => x.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

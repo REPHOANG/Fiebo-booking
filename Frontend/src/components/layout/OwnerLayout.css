@@ -1,0 +1,141 @@
+.owner-layout {
+  min-height: 100vh;
+  display: flex;
+  background: #f5f7fb;
+}
+
+.owner-sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid rgba(15, 23, 42, 0.06);
+  padding: 18px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.owner-sidebar-top {
+  display: grid;
+  gap: 10px;
+}
+
+.owner-logo {
+  font-weight: 800;
+  font-size: 18px;
+  color: #139a44;
+}
+
+.owner-home-btn {
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111827;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.owner-home-btn:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.owner-user-name {
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.owner-sidebar-nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.owner-sidebar-link {
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+  font-weight: 600;
+}
+
+.owner-sidebar-link:hover {
+  background: rgba(19, 154, 68, 0.06);
+  color: #139a44;
+}
+
+.owner-sidebar-link.active {
+  background: rgba(19, 154, 68, 0.12);
+  color: #0f172a;
+  box-shadow: 0 6px 20px rgba(19, 154, 68, 0.10);
+}
+
+.owner-sidebar-divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.06);
+  margin: 8px 0;
+}
+
+.owner-sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.owner-logout-btn {
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #ef4444;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
+  width: 100%;
+  font-weight: 800;
+}
+
+.owner-logout-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.owner-content {
+  flex: 1;
+  padding: 20px 24px 32px;
+}
+
+@media (max-width: 900px) {
+  .owner-sidebar {
+    width: 220px;
+  }
+}
+
+@media (max-width: 720px) {
+  .owner-layout {
+    flex-direction: column;
+  }
+  .owner-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  }
+  .owner-content {
+    padding: 16px 12px 24px;
+  }
+  .owner-sidebar-footer {
+    margin-top: 10px;
+  }
+}
+

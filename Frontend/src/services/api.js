@@ -1,17 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
+import store from "../store";
+import { logout, AUTH_STORAGE_KEY, isTokenExpired } from "../store/authSlice";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
+const getTokenFromRedux = () => store.getState()?.auth?.token ?? null;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT,
 });
-// attach token to every request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken") || (() => {
-    })();
+    const token = getTokenFromRedux();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -22,41 +25,19 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    // Nếu lỗi 401 và là lỗi hết hạn
+    const currentToken = getTokenFromRedux();
     if (
-      error.response &&
-      error.response.status === 401 &&
-      !originalRequest.url.includes("/auth/login")
-      // !originalRequest.url.includes("/auth/refresh-token")
+      error.response?.status === 401 &&
+      !error.config?.url?.includes("/auth/login") &&
+      !error.config?.url?.includes("/auth/refresh-token")
     ) {
-      localStorage.removeItem("accessToken");
-      // queryClient.removeQueries({ queryKey: ["profile"] });
-
+      // Chỉ auto-logout khi token hiện tại đã hết hạn.
+      // Tránh trường hợp 401 do phân quyền/endpoint đặc thù làm user bị đá ra sai.
+      if (currentToken && isTokenExpired(currentToken)) {
+        store.dispatch(logout());
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
     }
-
-    return Promise.reject(error);
-  }
-);
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Các lỗi khác
-    if (
-      error.response &&
-      error.response.status === 401 &&
-      !originalRequest.url.includes("/auth/login") &&
-      !originalRequest.url.includes("/auth/refresh-token")
-    ) {
-      localStorage.removeItem("accessToken");
-      // queryClient.removeQueries({ queryKey: ["profile"] });
-      // window.location.href = "/";
-    }
-
     return Promise.reject(error);
   }
 );

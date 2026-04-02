@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/landing/Header";
+import BookingTypeModal from "../../components/common/BookingTypeModal/BookingTypeModal";
 import { getVenueDetail, getVenueFields, getVenueReviews } from "../../services/fieldService";
 import "./VenueDetail.css";
 import { clearDraft } from '../../store/bookingDraftSlice';
@@ -291,6 +292,7 @@ const VenueDetail = () => {
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
   const prefillTime = searchParams.get('time') || '';
+  const openBookingModal = searchParams.get('book') === '1';
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [venue, setVenue] = useState(null);
@@ -302,6 +304,7 @@ const VenueDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
 
   // Fetch venue detail + fields + reviews on mount
   useEffect(() => {
@@ -328,6 +331,12 @@ const VenueDetail = () => {
     };
     fetchData();
   }, [id]);
+
+  // Open booking type modal when navigated with ?book=1
+  useEffect(() => {
+    if (!openBookingModal) return;
+    setShowBookingTypeModal(true);
+  }, [openBookingModal, isAuthenticated]);
 
   // Load more reviews
   const loadMoreReviews = async () => {
@@ -396,6 +405,7 @@ const VenueDetail = () => {
                 <Star size={14} fill="#f59e0b" stroke="#f59e0b" /> {venue.averageRating?.toFixed(1) || "0.0"}
                 <span className="vd-reviews-count">({venue.ratingCount || 0} đánh giá)</span>
                 <span className="vd-booking-count">{venue.bookingCount || 0} lượt đặt</span>
+                <span className="vd-fields-count">{fields.length} sân</span>
               </div>
               <div className="vd-quick-info">
                 {address && (
@@ -467,12 +477,12 @@ const VenueDetail = () => {
             <span className="vd-booking-bar-time">
               <Clock size={14} /> {formatTime(venue.openTime)} – {formatTime(venue.closeTime)}
             </span>
+            <span className="vd-booking-bar-fields">{fields.length} sân</span>
           </div>
           <button
             className="vd-booking-btn"
             onClick={() => {
-              try { dispatch(clearDraft(String(id))); } catch (e) {}
-              navigate(`/venue/${id}/booking${prefillDate || prefillTime ? `?date=${prefillDate || ''}&time=${prefillTime || ''}` : ''}`, { state: { forceReload: true } });
+              setShowBookingTypeModal(true);
             }}
           >
             <Calendar size={18} />
@@ -482,6 +492,13 @@ const VenueDetail = () => {
       </div>
 
       {/* <Footer /> */}
+      <BookingTypeModal
+        open={showBookingTypeModal}
+        onClose={() => setShowBookingTypeModal(false)}
+        venueId={id}
+        onSelectRegular={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
+        onSelectEvent={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
+      />
     </div>
   );
 };

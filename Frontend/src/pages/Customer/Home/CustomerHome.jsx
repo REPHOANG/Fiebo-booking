@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
-import {
-  MapPin,
-  TrendingUp,
-  Navigation,
-} from "lucide-react";
+import { MapPin, TrendingUp, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SearchBar from "../../../components/common/SearchBar/SearchBar";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../../store/authSlice";
+import { logout, AUTH_STORAGE_KEY } from "../../../store/authSlice";
 import {
   getNearbyFields,
   getTopBookingFields,
@@ -15,7 +11,10 @@ import {
 import "./CustomerHome.css";
 import { useQuery } from "@tanstack/react-query";
 import { mapVenue } from "../../../utils/helperFunction";
-import { VenueCard } from './VenueCard';
+import { VenueCard } from "./VenueCard";
+import LoadingPage from "../../../components/ui/Loading/LoadingPage";
+import { VenueCardSkeleton } from "../../../components/ui/Loading/VenueCardSkeleton";
+import ErrorPage from "../../../components/ui/Error/ErrorPage";
 
 // Hà Nội mặc định khi không lấy được vị trí
 const DEFAULT_LOCATION = { lat: 21.0285, lng: 105.8542, name: "Hà Nội" };
@@ -102,8 +101,6 @@ const CustomerHome = () => {
     gcTime: 30 * 60 * 1000,
   });
 
-  
-
   const handleSearch = () => {
     if (searchQuery.trim()) {
       navigate(`/venues?search=${encodeURIComponent(searchQuery.trim())}`);
@@ -113,10 +110,14 @@ const CustomerHome = () => {
   const handleLogout = () => {
     dispatch(logout());
     localStorage.removeItem("token");
-    localStorage.removeItem("authState");
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem("token");
     navigate("/login");
   };
+
+  if(nearbyError || popularError) {
+    return <ErrorPage />
+  }
 
   return (
     <div className="customer-home">
@@ -151,18 +152,21 @@ const CustomerHome = () => {
           </div>
           <div className="ch-venue-grid">
             {nearbyLoading ? (
-              <p className="ch-loading-text">Đang tải sân gần bạn...</p>
-            ) : nearbyError ? (
-              <p className="ch-error-text">{nearbyError}</p>
+              Array.from({ length: 3 }).map((_, i) => (
+                <VenueCardSkeleton key={i} />
+              ))
             ) : nearbyVenues.length === 0 ? (
               <p className="ch-empty-text">Không tìm thấy sân nào gần bạn</p>
             ) : (
               nearbyVenues.map((v) => {
                 const venue = mapVenue(v);
-                return <VenueCard key={venue.id} 
-                venue={venue} 
-                isAuthenticated={isAuthenticated}
-                navigate={navigate} />;
+                return (
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    isAuthenticated={isAuthenticated}
+                  />
+                );
               })
             )}
           </div>
@@ -180,15 +184,21 @@ const CustomerHome = () => {
           </div>
           <div className="ch-venue-grid">
             {popularLoading ? (
-              <p className="ch-loading-text">Đang tải sân nổi bật...</p>
-            ) : popularError ? (
-              <p className="ch-error-text">{popularError}</p>
+              Array.from({ length: 3 }).map((_, i) => (
+                <VenueCardSkeleton key={i} />
+              ))
             ) : popularVenues.length === 0 ? (
               <p className="ch-empty-text">Không tìm thấy sân nổi bật</p>
             ) : (
               popularVenues.map((v) => {
                 const venue = mapVenue(v);
-                return <VenueCard key={venue.id} venue={venue} />;
+                return (
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    isAuthenticated={isAuthenticated}
+                  />
+                );
               })
             )}
           </div>

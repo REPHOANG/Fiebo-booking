@@ -49,7 +49,7 @@ namespace Fiebo.Application.Services
         {
             if (bookingId <= 0)
             {
-                throw new BadRequestException("BookingId must be greater than 0.");
+                throw new BadRequestException("Không có dữ liệu hợp lệ.");
             }
 
             if (string.IsNullOrWhiteSpace(userId))
@@ -63,7 +63,7 @@ namespace Fiebo.Application.Services
 
             if (booking is null)
             {
-                throw new NotFoundException("Booking not found for current user.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
             }
 
             EnsureBookingCanBePaid(booking.Status);
@@ -74,12 +74,12 @@ namespace Fiebo.Application.Services
                 booking.UpdatedAt = DateTime.Now;
                 _unitOfWork.Bookings.Update(booking);
                 await _unitOfWork.SaveChangesAsync();
-                throw new BadRequestException("Booking đã hết hạn thanh toán. Vui lòng tạo booking mới.");
+                throw new BadRequestException("Thời gian giữ chỗ và thanh toán đã hết. Vui lòng đặt lại.");
             }
 
             if (booking.TotalPrice <= 0)
             {
-                throw new BadRequestException("Booking total price must be greater than 0.");
+                throw new BadRequestException("Không có dữ liệu hợp lệ.");
             }
 
             var wallet = (await _unitOfWork.Wallets
@@ -88,12 +88,12 @@ namespace Fiebo.Application.Services
 
             if (wallet is null)
             {
-                throw new NotFoundException("Wallet not found. Please perform UC-29_Top Up Wallet first.");
+                throw new NotFoundException("Không tìm thấy ví.");
             }
 
             if (wallet.Balance < booking.TotalPrice)
             {
-                throw new BadRequestException("Insufficient wallet balance. Please perform UC-29_Top Up Wallet before payment.");
+                throw new BadRequestException("Không thể lấy số dư ví vào lúc này.");
             }
 
             // Transaction: deduct wallet + update booking status atomically
@@ -142,20 +142,20 @@ namespace Fiebo.Application.Services
 
             if (status is BookingStatus.Booked or BookingStatus.Completed)
             {
-                throw new BadRequestException("Booking has already been paid.");
+                throw new BadRequestException("Không có dữ liệu hợp lệ.");
             }
 
             if (status == BookingStatus.CustomerCancelled || status == BookingStatus.OwnerCancelled)
             {
-                throw new BadRequestException("Cancelled booking cannot be paid.");
+                throw new BadRequestException("Không có dữ liệu hợp lệ.");
             }
 
             if (status == BookingStatus.Expired)
             {
-                throw new BadRequestException("Expired booking cannot be paid.");
+                throw new BadRequestException("Thời gian giữ chỗ và thanh toán đã hết. Vui lòng đặt lại.");
             }
 
-            throw new BadRequestException("Booking status is not valid for payment.");
+            throw new BadRequestException("Không có dữ liệu hợp lệ.");
         }
         // OTP for booking verification: cancelled
         #region
@@ -190,7 +190,7 @@ namespace Fiebo.Application.Services
             var isValid = await _otpService.ValidateBookingOtpAsync(phoneNumber, otpCode);
             if (!isValid)
             {
-                throw new BadRequestException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+                throw new BadRequestException("Mã OTP không hợp lệ. Vui lòng thử lại.");
             }
             var user = await _identityService.GetUserProfileByEmailOrPhoneAsync(phoneNumber);
             if (user == null)
@@ -206,6 +206,22 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
+            if (venue == null || venue.Status != VenueStatus.Active)
+            {
+                throw new BadRequestException("Cơ sở này hiện không hoạt động.");
+            }
+
+            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
+            foreach (var fieldId in uniqueFieldIds)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+                if (field == null || field.Status != FieldStatus.Active)
+                {
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
+                }
+            }
+
             // 1. Build lock keys for each slot
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
@@ -223,13 +239,13 @@ namespace Fiebo.Application.Services
                     if (lockValue is null)
                     {
                         _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
-                        throw new ResourceConflictException("Slot đang được người khác đặt, vui lòng thử lại sau giây lát.");
+                throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
                     }
 
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -237,7 +253,17 @@ namespace Fiebo.Application.Services
 
                     if (!isAvailable)
                     {
-                        throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                        _logger.LogWarning("Slot is already booked");
+                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        _logger.LogWarning("Slot is already used by event");
+                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
                     }
                 }
 
@@ -307,11 +333,11 @@ namespace Fiebo.Application.Services
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
             if (booking == null)
             {
-                throw new NotFoundException("Booking not found.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
             }
             if (booking.UserId != userId)
             {
-                throw new UnauthorizedAccessException("You are not authorized to view this booking.");
+                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
             }
             return new BookingDetailResponse
             {
@@ -375,6 +401,22 @@ namespace Fiebo.Application.Services
 
         public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId)
         {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
+            if (venue == null || venue.Status != VenueStatus.Active)
+            {
+                throw new BadRequestException("Cơ sở này hiện không hoạt động.");
+            }
+
+            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
+            foreach (var fieldId in uniqueFieldIds)
+            {
+                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
+                if (field == null || field.Status != FieldStatus.Active)
+                {
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
+                }
+            }
+
             // 1. Build lock keys for each slot
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
@@ -392,13 +434,13 @@ namespace Fiebo.Application.Services
                     if (lockValue is null)
                     {
                         _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
-                        throw new ResourceConflictException("Slot đang được người khác đặt, vui lòng thử lại sau giây lát.");
+                        throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
                     }
 
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability
+                // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
                     var isAvailable = await _unitOfWork.BookingDetails
@@ -406,7 +448,15 @@ namespace Fiebo.Application.Services
 
                     if (!isAvailable)
                     {
-                        throw new ResourceConflictException("Slot đã được đặt. Vui lòng chọn slot khác.");
+                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
+                    }
+
+                    var isUsedByEvent = await _unitOfWork.TicketEvents
+                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+
+                    if (isUsedByEvent)
+                    {
+                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
                     }
                 }
 
@@ -470,18 +520,18 @@ namespace Fiebo.Application.Services
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
-                throw new NotFoundException("Booking not found.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
 
             if (booking.UserId != userId)
-                throw new UnauthorizedAccessException("You are not authorized to cancel this booking.");
+                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
 
             if (booking.Status != BookingStatus.Booked)
-                throw new BadRequestException("Only booked bookings can be cancelled.");
+                throw new BadRequestException("Lịch không thể hủy");
 
             var bookingStartTime = GetBookingStartTime(booking);
 
             if (DateTime.Now >= bookingStartTime)
-                throw new BadRequestException("Cannot cancel a booking after the start time.");
+                throw new BadRequestException("Lịch không thể hủy");
 
             var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
             var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
@@ -498,15 +548,15 @@ namespace Fiebo.Application.Services
                 .FirstOrDefault();
 
             if (booking is null)
-                throw new NotFoundException("Booking not found.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
 
             // BR-25: Only owner can cancel
             if (booking.UserId != userId)
-                throw new UnauthorizedAccessException("You are not authorized to cancel this booking.");
+                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
 
             // Only Booked status can be cancelled
             if (booking.Status != BookingStatus.Booked)
-                throw new BadRequestException("Only booked bookings can be cancelled.");
+                throw new BadRequestException("Lịch không thể hủy");
 
             // Load booking details with TimeSlot for start time calculation
             var bookingWithDetails = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
@@ -514,7 +564,7 @@ namespace Fiebo.Application.Services
 
             // BR-26: Can only cancel before start time
             if (DateTime.Now >= bookingStartTime)
-                throw new BadRequestException("Cannot cancel a booking after the start time.");
+                throw new BadRequestException("Lịch không thể hủy");
 
             // BR-28: Calculate refund
             var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
@@ -529,6 +579,11 @@ namespace Fiebo.Application.Services
                 booking.Status = BookingStatus.CustomerCancelled;
                 booking.UpdatedAt = DateTime.Now;
                 _unitOfWork.Bookings.Update(booking);
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    RefundAmount = refundAmount
+                });
 
                 // Refund to wallet (if refundAmount > 0)
                 if (refundAmount > 0)
@@ -538,7 +593,7 @@ namespace Fiebo.Application.Services
                         .FirstOrDefault();
 
                     if (wallet is null)
-                        throw new NotFoundException("Wallet not found.");
+                        throw new NotFoundException("Không tìm thấy ví.");
 
                     wallet.Balance += refundAmount;
                     _unitOfWork.Wallets.Update(wallet);
@@ -608,11 +663,11 @@ namespace Fiebo.Application.Services
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
-                throw new NotFoundException("Booking not found.");
+                throw new NotFoundException("Không tìm thấy lịch đặt");
 
             // BR-43: Only the owner of the venue can cancel
             if (booking.Venue.OwnerId != ownerId)
-                throw new UnauthorizedAccessException("Bạn không có quyền hủy booking này.");
+                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
 
             // E1: Booking must be in Booked status
             if (booking.Status != BookingStatus.Booked)
@@ -637,9 +692,14 @@ namespace Fiebo.Application.Services
             {
                 // Update booking status + reason
                 trackedBooking.Status = BookingStatus.OwnerCancelled;
-                trackedBooking.CancelReason = cancelReason;
                 trackedBooking.UpdatedAt = DateTime.Now;
                 _unitOfWork.Bookings.Update(trackedBooking);
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    CancelReason = cancelReason,
+                    RefundAmount = refundAmount
+                });
 
                 // BR-46: Refund to customer's wallet
                 if (refundAmount > 0)
@@ -649,7 +709,7 @@ namespace Fiebo.Application.Services
                         .FirstOrDefault();
 
                     if (customerWallet is null)
-                        throw new NotFoundException("Customer wallet not found.");
+                        throw new NotFoundException("Không tìm thấy ví.");
 
                     customerWallet.Balance += refundAmount;
                     _unitOfWork.Wallets.Update(customerWallet);
@@ -701,7 +761,10 @@ namespace Fiebo.Application.Services
         {
             var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
 
-            if (booking == null) return null;
+            if (booking == null)
+            {
+                throw new NotFoundException("Không tìm thấy lịch đặt");
+            }
 
             return new OwnerBookingDetailResponse
             {

@@ -1,30 +1,103 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-const initialState = {
-    user: null,
-    isAuthenticated: false,
+// Chỉ lưu accessToken trong localStorage; restore phiên bằng cách decode JWT lấy user.
+export const AUTH_STORAGE_KEY = 'accessToken';
 
+const CLAIM_NAME = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
+const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+
+/** Decode JWT payload (không verify chữ ký). */
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+/** Tạo object user từ payload JWT (để restore khi chỉ có accessToken). */
+function userFromJwtPayload(payload) {
+  if (!payload) return null;
+  return {
+    id: payload.sub ?? payload.userId ?? payload.id ?? 'unknown',
+    email: payload.email ?? '',
+    phone: payload.phone ?? payload.phoneNumber ?? '',
+    name: payload[CLAIM_NAME] ?? payload.name ?? payload.fullName ?? '',
+    role: payload[CLAIM_ROLE] ?? payload.role ?? 'customer',
+    status: payload.status ?? 'active',
+  };
+}
+
+/** Kiểm tra accessToken đã hết hạn chưa (exp trong JWT là seconds since epoch). */
+export function isTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload || payload.exp == null) return true;
+  const expMs = payload.exp * 1000;
+  const nowMs = Date.now();
+  return expMs < nowMs;
+}
+
+/** Đọc auth từ storage (token + user từ JWT), dùng cho restore sau reload. */
+function getStoredAuth() {
+  try {
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!token) return null;
+    if (isTokenExpired(token)) {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    const payload = decodeJwtPayload(token);
+    const user = userFromJwtPayload(payload);
+    if (!user) return null;
+
+    return { token, user };
+  } catch {
+    return null;
+  }
+}
+
+const getInitialState = () => {
+  const stored = getStoredAuth();
+  return {
+    user: stored?.user ?? null,
+    token: stored?.token ?? null,
+    isAuthenticated: Boolean(stored?.token && stored?.user),
     profile: null,
     profileLoading: false,
-
     registrationPending: false,
     registrationEmail: null,
     registrationPhone: null,
-
     resetEmail: null,
     resetPending: false,
-
     isLoading: false,
     error: null,
   };
+};
+
+export { getStoredAuth };
+
+const initialState = getInitialState();
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Set authenticated credentials
+    // Set authenticated credentials (token optional so getProfile can refresh user without clearing token)
     setCredentials: (state, action) => {
-      state.user = action.payload.user;
+      state.user = action.payload.user ?? state.user;
+      const nextToken = action.payload.token ?? action.payload.accessToken;
+      if (nextToken !== undefined) state.token = nextToken;
       state.isAuthenticated = true;
       state.error = null;
       state.registrationPending = false;
@@ -51,7 +124,6 @@ const authSlice = createSlice({
 
     // Logout
     logout: (state) => {
-      localStorage.removeItem('accessToken');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;

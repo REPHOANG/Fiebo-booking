@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -35,7 +35,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Tạo đánh giá thành công."
+                Message = "Gửi đánh giá thành công."
             });
         }
     }

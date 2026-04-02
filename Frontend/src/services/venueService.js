@@ -1,66 +1,12 @@
 // Venue Service - API calls for venue management (Owner)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+import api from './api';
 
-const fetchAPI = async (endpoint, options = {}) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+/** Swagger: GET/PATCH `/api/owner/venues` — danh sách / cập nhật (vô hiệu hóa) cơ sở */
+export const OWNER_VENUES_BASE = '/api/owner/venues';
 
-  try {
-    const rawToken = localStorage.getItem('accessToken');
-    const token = rawToken || (() => {
-      try {
-        const a = JSON.parse(localStorage.getItem('authState'));
-        return a?.token || a?.accessToken || null;
-      } catch (e) {
-        return null;
-      }
-    })();
-    const fetchOptions = {
-      signal: controller.signal,
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-    };
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchOptions);
-    clearTimeout(timeoutId);
-
-    const contentType = response.headers.get('content-type');
-    let data = null;
-    if (contentType?.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      throw {
-        status: response.status,
-        message: data?.message || `HTTP Error: ${response.status}`,
-        data,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw { status: 408, message: `Request timeout (${API_TIMEOUT}ms)` };
-    }
-    if (error instanceof TypeError || String(error.message).includes('Failed to fetch')) {
-      throw {
-        status: 0,
-        message: 'Cannot reach backend. Please check the server or network.',
-        details: error.message,
-      };
-    }
-    throw error;
-  }
-};
+/** Swagger: GET `/api/owner/venue/{id}/schedule?date=` — lịch (path dùng số ít `venue`) */
+export const ownerVenueScheduleUrl = (venueId) =>
+  `/api/owner/venue/${venueId}/schedule`;
 
 /**
  * Create a new venue with fields
@@ -78,9 +24,82 @@ const fetchAPI = async (endpoint, options = {}) => {
  * @returns {Promise<Object>}
  */
 export const createVenue = async (payload) => {
-  const response = await fetchAPI('/api/Field', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-  return response.data ?? response;
+  const response = await api.post('/api/Field', payload);
+  return response.data?.data ?? response.data ?? response;
 };
+
+/**
+ * GET `/api/owner/venues` — danh sách cơ sở của chủ đăng nhập (Bearer, FieldOwner).
+ * @returns {Promise<Array>}
+ */
+export const getOwnerVenues = async () => {
+  const response = await api.get(OWNER_VENUES_BASE);
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
+};
+
+/**
+ * PATCH `/api/owner/venues/{id}` — vô hiệu hóa cơ sở (backend: DeactivateVenue).
+ */
+export const deactivateOwnerVenue = async (venueId) => {
+  const response = await api.patch(`${OWNER_VENUES_BASE}/${venueId}`);
+  return response.data?.data ?? response.data ?? response;
+};
+
+/**
+ * GET `/api/owner/venue/{id}/schedule` — lịch sân theo ngày (query `date` yyyy-MM-dd).
+ * @param {number|string} venueId
+ * @param {string} date - yyyy-MM-dd
+ */
+export const getOwnerVenueSchedule = async (venueId, date) => {
+  const response = await api.get(ownerVenueScheduleUrl(venueId), {
+    params: { date },
+  });
+  return response.data?.data ?? response.data ?? response;
+};
+
+export const getVenueServices = async (venueId) => {
+  const response = await api.get(`/api/venue/${venueId}/services`);
+  return response.data.data;
+}
+
+export const addVenueService = async (venueId, serviceData) => {
+  const formData = new FormData();
+  formData.append("ServiceName", serviceData.serviceName);
+  formData.append("Price", serviceData.price);
+  if (serviceData.description) {
+    formData.append("Description", serviceData.description);
+  }
+  if (serviceData.imageFile) {
+    formData.append("Image", serviceData.imageFile);
+  }
+  const response = await api.post(
+    `/api/owner/venue/${venueId}/service`,
+    formData
+  );
+  return response.data?.data ?? response.data ?? response;
+};
+
+export const updateVenueService = async (venueId, serviceId, serviceData) => {
+  const formData = new FormData();
+
+  formData.append("ServiceName", serviceData.serviceName);
+  formData.append("Description", serviceData.description || "");
+  formData.append("Price", serviceData.price);
+
+  if (serviceData.imageFile) {
+    formData.append("Image", serviceData.imageFile);
+  }
+
+  const response = await api.put(
+    `/api/owner/service/${serviceId}`,
+    formData
+  );
+
+  return response.data?.data ?? response.data ?? response;
+};
+
+export const deleteVenueService = async (serviceId) => {
+  const response = await api.delete(`/api/owner/service/${serviceId}`);
+  return response.data?.data ?? response.data ?? response;
+}

@@ -1,23 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Calendar, MapPin } from "lucide-react";
 import "./Banner.css";
-// import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
 const Banner = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [featuredEvents, setFeaturedEvents] = useState([]);
   const navigate = useNavigate();
-  // useEffect(() => {
-  //   axios
-  //     .get("")
-  //     .then((res) => {
-  //       console.log(res.data);
-
-  //      setFeaturedEvents(res.data.data);
-  //     })
-  //     .catch((err) => console.error(err));
-  // }, []);
-
 
   useEffect(() => {
     const timer = setInterval(() => {

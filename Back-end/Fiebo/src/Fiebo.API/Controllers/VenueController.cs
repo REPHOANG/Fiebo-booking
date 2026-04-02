@@ -1,10 +1,14 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Shared;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Fiebo.API.Controllers
 {
@@ -15,16 +19,19 @@ namespace Fiebo.API.Controllers
         private readonly IVenueService _venueService;
         private readonly ILogger<VenueController> _logger;
         private readonly IFieldService _fieldService;
+        private readonly ITimeSlotService _timeSlotService;
 
         public VenueController(
             IVenueService venueService,
             ILogger<VenueController> logger,
-            IFieldService fieldService
+            IFieldService fieldService,
+            ITimeSlotService timeSlotService
             )
         {
             _venueService = venueService;
             _logger = logger;
             _fieldService = fieldService;
+            _timeSlotService = timeSlotService;
         }
 
         /// <summary>
@@ -157,7 +164,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "page must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -166,7 +173,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "pageSize must be greater than 0"
+                    Message = "Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu."
                 });
             }
 
@@ -175,7 +182,7 @@ namespace Fiebo.API.Controllers
                 return BadRequest(new ApiResponse<object>
                 {
                     StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "time cannot be provided without date"
+                    Message = "Ngày tìm kiếm không hợp lệ."
                 });
             }
 
@@ -186,6 +193,440 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Search venues successfully",
                 Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venues")]
+        public async Task<IActionResult> GetOwnerVenues()
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetVenuesByOwnerAsync(ownerId);
+            return Ok(new ApiResponse<List<OwnerVenueListResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Get owner's venues successfully",
+                Data = [.. result]
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPatch]
+        [Route("/api/owner/venues/{id}")]
+        public async Task<IActionResult> DeactivateVenue([FromRoute] int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            await _venueService.DeactivateVenueAsync(id, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Vô hiệu hoá sân thành công"
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{id}/schedule")]
+        public async Task<IActionResult> GetOwnerVenueSchedule([FromRoute] int id, [FromQuery] DateOnly date)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            var result = await _venueService.GetOwnerVenueScheduleAsync(id, ownerId, date);
+            return Ok(new ApiResponse<VenueSlotsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// UC-41: Get all fields under a specific venue for the Field Owner.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/venue/{venueId}/fields")]
+        public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
+
+            if (result.Count == 0)
+            {
+                return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Chưa có sân nào được tạo trong cơ sở này.",
+                    Data = result
+                });
+            }
+
+            return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách sân thành công.",
+                Data = result
+            });
+        }
+
+
+        /// <summary>
+        /// UC-44: Change the status of a specific field (Active/Inactive).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPatch]
+        [Route("/api/owner/venue/{venueId}/fields/{fieldId}")]
+        public async Task<IActionResult> ChangeFieldStatus(
+            [FromRoute] int venueId,
+            [FromRoute] int fieldId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+            await _fieldService.ChangeFieldStatusAsync(venueId, fieldId, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Vô hiệu hoá sân thành công"
+            });
+        }
+
+        /// <summary>
+        /// UC: Create a new field for a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [HttpPost("/api/owner/venues/{venueId}/fields")]
+        public async Task<IActionResult> CreateField([FromRoute] int venueId, [FromForm] CreateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định người dùng.");
+            }
+
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId, userRole);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân thành công.",
+                Data = new { FieldId = fieldId }
+            });
+        }
+
+        /// <summary>
+        /// API for owner to create new venue.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venue/draft")]
+        public async Task<IActionResult> CreateVenue([FromForm] CreateVenueRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _venueService.CreateVenueAsync(request, ownerId);
+            return Ok(new ApiResponse<CreateVenueResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Upload venue document images when create venue
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venues/{venueId}/documents")]
+        public async Task<IActionResult> UploadVenueDocument([FromRoute] int venueId, [FromForm] CreateVenueDocumentRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.UploadVenueDocumentAsync(venueId, ownerId, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải lên tài liệu sân thành công."
+            });
+        }
+
+        /// <summary>
+        /// Get the draft venue detail (for preview before submit) or view detail of draft venue
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venues/{venueId}/detail")]
+        public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _venueService.GetOwnerVenueDetailAsync(venueId, ownerId);
+            return Ok(new ApiResponse<OwnerVenueDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin sân nháp thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Submit drafted venue for approval.
+        /// </summary>
+        /// <param name="venueId"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/venues/{venueId}/submit")]
+        public async Task<IActionResult> SubmitVenueDraft([FromRoute] int venueId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.SubmitVenueDraftAsync(venueId, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Nộp duyệt sân thành công."
+            });
+
+        }
+
+        /// <summary>
+        /// Update field information for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/field/{id}")]
+        public async Task<IActionResult> UpdateField(
+            [FromRoute] int id,
+            [FromForm] UpdateFieldRequest request)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _fieldService.UpdateFieldAsync(request, userId, id);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật thông tin sân thành công."
+            });
+        }
+
+        /// <summary>
+        /// Edit Venue Details: allows the Owner to update venue information.
+        /// Status transitions are handled automatically via State Machine (BR-01, BR-02).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/venues/{venueId}")]
+        public async Task<IActionResult> UpdateVenue(
+            [FromRoute] int venueId,
+            [FromForm] UpdateVenueRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định người dùng.");
+            }
+
+            await _venueService.UpdateVenueAsync(venueId, request, ownerId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật cơ sở thành công."
+            });
+        }
+
+        /// <summary>
+        /// Field Owner adds a new service to a venue.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venue/{venueId}/service")]
+        public async Task<IActionResult> AddVenueService(
+            [FromRoute] int venueId,
+            [FromForm] AddVenueServiceRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+            }
+
+            var serviceId = await _venueService.AddVenueServiceAsync(venueId, ownerId, request);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Thêm dịch vụ thành công.",
+                Data = new { ServiceId = serviceId }
+            });
+        }
+
+        /// <summary>
+        /// Field Owner edits an existing venue service.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/service/{serviceId}")]
+        public async Task<IActionResult> UpdateVenueService(
+            [FromRoute] int serviceId,
+            [FromForm] UpdateVenueServiceRequest request,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
+
+            await _venueService.UpdateVenueServiceAsync(serviceId, ownerId, request, cancellationToken);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật dịch vụ thành công.",
+            });
+        }
+
+        /// <summary>
+        /// Field Owner deletes an existing venue service.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpDelete("/api/owner/service/{serviceId}")]
+        public async Task<IActionResult> DeleteVenueService(
+            [FromRoute] int serviceId,
+            CancellationToken cancellationToken)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId)) throw new UnauthorizedAccessException("Cannot identify current owner.");
+
+            await _venueService.DeleteVenueServiceAsync(serviceId, ownerId, cancellationToken);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xóa dịch vụ thành công."
+            });
+        }
+
+        /// <summary>
+        /// Lấy danh sách dịch vụ của sân, có hỗ trợ phân trang, tìm kiếm và lọc.
+        /// </summary>
+        [HttpGet("/api/venue/{venueId}/services")]
+        public async Task<IActionResult> GetVenueServices(
+            [FromRoute] int venueId,
+            [FromQuery] GetVenueServicesRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _venueService.GetVenueServicesAsync(venueId, request, cancellationToken);
+
+            return Ok(new ApiResponse<PagedResult<VenueServiceDetailResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách dịch vụ thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Get time slots by venue and sport type for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sportTypeId"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venue/{id}/time-slot")]
+        public async Task<IActionResult> GetOwnerVenueSchedule(
+            [FromRoute] int id, [FromQuery] int sportTypeId)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _timeSlotService.GetVenueTimeSlotAsync(id, sportTypeId, ownerId);
+            return Ok(new ApiResponse<VenueTimeSlotResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy lịch sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Create time slots for a venue by sport type
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/venue/{id}/time-slot")]
+        public async Task<IActionResult> CreateVenueTimeSlot(
+            [FromRoute] int id,
+            [FromBody] CreateVenueTimeSlotRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _timeSlotService.CreateVenueTimeSlotAsync(id, request, ownerId);
+            return Ok(new ApiResponse<VenueTimeSlotDto>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo khung giờ sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Soft detele and create a new slot to replace
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPut("/api/owner/time-slots/{id}")]
+        public async Task<IActionResult> UpdateVenueTimeSlot(
+            [FromRoute] int id,
+            [FromBody] UpdateVenueTimeSlotRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _timeSlotService.UpdateVenueTimeSlotAsync(id, request, ownerId);
+            return Ok(new ApiResponse<VenueTimeSlotDto>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật khung giờ sân thành công",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Soft delete the time slot for owner
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpDelete("/api/owner/time-slots/{id}")]
+        public async Task<IActionResult> DeleteVenueTimeSlot(
+            [FromRoute] int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _timeSlotService.DeleteVenueTimeSlotAsync(id, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xóa khung giờ sân thành công"
             });
         }
     }

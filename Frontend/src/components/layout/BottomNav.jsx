@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Home, MapPin, Compass, Star, User, Map, Info, Phone, MoreHorizontal, X } from "lucide-react";
+import { Home, MapPin, Compass, Star, User, Map, CalendarDays, Phone, MoreHorizontal, X } from "lucide-react";
 import "./BottomNav.css";
 
 const BottomNav = () => {
@@ -15,7 +15,7 @@ const BottomNav = () => {
 
   const more = [
     { to: "/featured", label: "Nổi bật", icon: <Star size={20} /> },
-    { to: "/about", label: "About", icon: <Info size={20} /> },
+    { to: "/events", label: "Sự kiện", icon: <CalendarDays size={20} /> },
     { to: "/contact", label: "Contact", icon: <Phone size={20} /> },
     { to: "/profile", label: "Tài khoản", icon: <User size={20} /> },
   ];
@@ -23,6 +23,23 @@ const BottomNav = () => {
   return (
     <>
       <nav className={`bottom-nav ${mobileOpen ? "expanded" : ""}`}>
+        {/* Expanded row (slides up inside the bar) */}
+        <div className={`bottom-nav-expanded-row ${mobileOpen ? "open" : ""}`}>
+          {more.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+              onClick={() => setMobileOpen(false)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Main row */}
+        <div className="bottom-nav-main-row">
         {primary.map((item) => (
           <NavLink
             key={item.to}
@@ -45,6 +62,7 @@ const BottomNav = () => {
           {mobileOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
           <span>{mobileOpen ? "Đóng" : "Thêm"}</span>
         </button>
+        </div>
 
         {/* Desktop: render all items in sidebar below primary */}
         <div className="more-desktop">
@@ -61,23 +79,6 @@ const BottomNav = () => {
           ))}
         </div>
       </nav>
-
-      {/* Mobile expanded panel */}
-      <div className={`mobile-expand-overlay ${mobileOpen ? "open" : ""}`} onClick={() => setMobileOpen(false)}>
-        <div className="mobile-expand" onClick={(e) => e.stopPropagation()}>
-          {more.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
-              onClick={() => setMobileOpen(false)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </div>
     </>
   );
 };

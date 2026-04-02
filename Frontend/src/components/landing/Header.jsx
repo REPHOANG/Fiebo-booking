@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
+import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import {
   SearchIcon,
   ShoppingCartIcon,
@@ -15,20 +15,25 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Logohomepage from "../../assets/images/Logo Fiebo.png";
 import "./Header.css";
+import LoginPopup from "../common/LoginPopup/LoginPopup";
 
 const Header = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
   
   // Get user from Redux
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
+  const isOwner =
+    (user?.role || user?.roles || "")
+      .toString()
+      .toLowerCase() === "fieldowner";
   
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [loginPopupOpen, setLoginPopupOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,10 +47,9 @@ const Header = () => {
   const handleLogout = () => {
     dispatch(logout());
     localStorage.removeItem('token');
-    localStorage.removeItem('authState');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem('token');
     setUserMenuOpen(false);
-    navigate("/login");
   };
 
   return (
@@ -62,30 +66,33 @@ const Header = () => {
             <NavLink to="/" end>Trang chủ</NavLink>
 
             {/* Mega Menu */}
-            
-              <NavLink to="/venues">Sân</NavLink>
 
-              {/* <div className="mega-menu">
+              <div className="mega-wrapper">
+                <NavLink to="/venues" className="mega-link">Sân</NavLink>
+
+                <div className="mega-menu">
                 <div className="mega-column">
                   <h4>Loại sân</h4>
-                  <Link to="/venues/football">Sân bóng đá</Link>
-                  <Link to="/venues/badminton">Sân cầu lông</Link>
-                  <Link to="/venues/tennis">Sân tennis</Link>
+                  <Link to="/venues?sport=1">Sân bóng đá</Link>
+                  <Link to="/venues?sport=2">Sân bóng rổ</Link>
+                  <Link to="/venues?sport=3">Sân tennis</Link>
+                  <Link to="/venues?sport=4">Sân pickleball</Link>
                 </div>
 
                 <div className="mega-column">
                   <h4>Khu vực</h4>
-                  <Link to="/venues/hanoi">Hà Nội</Link>
-                  <Link to="/venues/hcm">TP HCM</Link>
-                  <Link to="/venues/danang">Đà Nẵng</Link>
+                  <Link to="/venues?search=Hà%20Nội">Hà Nội</Link>
+                  <Link to="/venues?search=TP%20HCM">TP HCM</Link>
+                  <Link to="/venues?search=Đà%20Nẵng">Đà Nẵng</Link>
                 </div>
-              </div> */}
+              </div>
+              </div>
             
 
             <NavLink to="/map">Bản đồ</NavLink>
             <NavLink to="/discover">Khám phá</NavLink>
             <NavLink to="/featured">Nổi bật</NavLink>
-            <NavLink to="/about">About</NavLink>
+            <NavLink to="/events">Sự kiện</NavLink>
             <NavLink to="/contact">Contact</NavLink>
           </nav>
         </div>
@@ -134,6 +141,8 @@ const Header = () => {
                   >
                     <Link to="/profile">Hồ sơ</Link>
                     <Link to="/bookings">Sân đã đặt</Link>
+                    <Link to="/wallet">Ví của tôi</Link>
+                    {isOwner && <Link to="/owner/venues">Sân của tôi</Link>}
 
                     <div className="dropdown-divider" />
 
@@ -186,29 +195,20 @@ const Header = () => {
               </div>
             </div>
           ) : (
-            <Link to="/login" className="login-btn">
+            <button
+              type="button"
+              className="login-btn"
+              onClick={() => setLoginPopupOpen(true)}
+            >
               Đăng nhập
-            </Link>
+            </button>
           )}
         </div>
 
         {/* Mobile Toggle */}
-        <div className="menu-toggle">
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <XIcon size={24} /> : <MenuIcon size={24} />}
-          </button>
-        </div>
+       
+      <LoginPopup open={loginPopupOpen} onClose={() => setLoginPopupOpen(false)} />
       </div>
-
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <nav className="menu-mobile">
-          <Link to="/" onClick={() => setIsMenuOpen(false)}>Trang chủ</Link>
-          <Link to="/venues" onClick={() => setIsMenuOpen(false)}>Sân</Link>
-          <Link to="/about" onClick={() => setIsMenuOpen(false)}>Về chúng tôi</Link>
-          <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Liên hệ</Link>
-        </nav>
-      )}
     </header>
   );
 };

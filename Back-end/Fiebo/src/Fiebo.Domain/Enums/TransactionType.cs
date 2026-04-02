@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,5 +13,6 @@ namespace Fiebo.Domain.Enums
         Refund = 2,
         Withdraw = 3,
         EventBooking = 4,
+        Subscription = 5
     }
 }

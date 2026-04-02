@@ -45,23 +45,17 @@ namespace Fiebo.Persistence.BackgroundJobs
             var db = scope.ServiceProvider.GetRequiredService<FieboDbContext>();
 
             var now = DateTime.Now;
+            var today = DateOnly.FromDateTime(now);
+            var currentTime = TimeOnly.FromDateTime(now);
 
             var affected = await db.Bookings
                 .Where(b => b.Status == BookingStatus.Booked)
-                .Where(b => db.BookingDetails.Any(d => d.BookingId == b.Id))
                 .Where(b =>
-                    !db.BookingDetails
-                        .Where(d => d.BookingId == b.Id)
-                        .Any(d =>
-                            new DateTime(
-                                b.BookingDate.Year,
-                                b.BookingDate.Month,
-                                b.BookingDate.Day,
-                                d.TimeSlot!.EndTime.Hour,
-                                d.TimeSlot.EndTime.Minute,
-                                0
-                            ) > now
-                        )
+                    !b.BookingDetails.Any(d =>
+                        b.BookingDate > today ||
+                        (b.BookingDate == today &&
+                         d.TimeSlot!.EndTime > currentTime)
+                    )
                 )
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(b => b.Status, BookingStatus.Completed),

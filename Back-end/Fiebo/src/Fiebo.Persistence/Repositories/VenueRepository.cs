@@ -285,5 +285,59 @@ namespace Fiebo.Persistence.Repositories
                 v.Longitude >= userLng - lngRange &&
                 v.Longitude <= userLng + lngRange);
         }
+
+        public async Task<List<Venue>> GetVenuesByOwnerAsync(string ownerId)
+        {
+            return await _context.Venues
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(v => v.OwnerId == ownerId)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .Include(v => v.Fields)
+                .ToListAsync();
+        }
+
+        public async Task<List<Venue>> GetVenuesWithStaffAsync(string ownerId)
+        {
+            return await _context.Venues
+                .AsNoTracking()
+                .Where(v => v.OwnerId == ownerId)
+                .Include(v => v.VenueStaffs)
+                .ToListAsync();
+        }
+
+        public async Task<Venue?> GetVenueWithDocumentsAsync(int venueId)
+        {
+            return await _context.Venues
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(v => v.Id == venueId)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .Include(v => v.Documents)
+                .ThenInclude(d => d.Images)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<Venue?> GetVenueWithDocumentsTrackedAsync(int venueId)
+        {
+            return await _context.Venues
+                .AsSplitQuery()
+                .Where(v => v.Id == venueId)
+                .Include(v => v.Province)
+                .Include(v => v.Ward)
+                .Include(v => v.Documents)
+                .ThenInclude(d => d.Images)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> IsVenueNameExistsForOwnerAsync(string ownerId, string name, int excludeVenueId)
+        {
+            return await _context.Venues
+                .AnyAsync(v => v.OwnerId == ownerId
+                            && v.Name == name
+                            && v.Id != excludeVenueId);
+        }
     }
 }
