@@ -129,7 +129,7 @@ const OwnerAddField = () => {
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
-          <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/create-field`}>
+          <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/time-slot`}>
             <Calendar size={16} />
             Quản lý time slot
           </Link>

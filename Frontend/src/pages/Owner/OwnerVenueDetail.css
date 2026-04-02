@@ -353,6 +353,115 @@
   border-radius: 999px;
 }
 
+/* Local file preview grid (OwnerEditVenue) */
+.ovd-doc-preview-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ovd-doc-preview-item {
+  position: relative;
+  width: 110px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: zoom-in;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.ovd-doc-preview-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.ovd-doc-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ovd-doc-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.65);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ovd-doc-remove-btn:hover {
+  background: rgba(15, 23, 42, 0.85);
+  transform: translateY(-1px);
+}
+
+.ovd-doc-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Lightbox zoom modal for document images */
+.ovd-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.ovd-lightbox {
+  position: relative;
+  max-width: 980px;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ovd-lightbox-img {
+  width: 100%;
+  height: min(70vh, 720px);
+  object-fit: contain;
+  display: block;
+  background: #0b1220;
+}
+
+.ovd-lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+
+.ovd-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .ovd-subtitle {
   margin: 0 0 10px 0;
   font-size: 16px;

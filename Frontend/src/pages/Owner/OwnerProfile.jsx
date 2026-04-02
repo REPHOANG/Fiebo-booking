@@ -3,13 +3,12 @@ import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { User, Lock, Mail, Phone, Cake, SquarePen, Wallet } from "lucide-react";
+import { User, Lock, Mail, Phone, Cake, SquarePen } from "lucide-react";
 import {
   getProfile,
   updateProfile as updateProfileAPI,
   changePassword as changePasswordAPI,
 } from "../../services/authService";
-import { getWalletBalance } from "../../services/walletService";
 import { updateProfile as updateProfileRedux } from "../../store/authSlice";
 import "./OwnerProfile.css";
 
@@ -39,10 +38,6 @@ const OwnerProfile = () => {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["owner-profile"],
     queryFn: getProfile,
-  });
-  const { data: walletInfo, isLoading: walletLoading } = useQuery({
-    queryKey: ["wallet-balance"],
-    queryFn: getWalletBalance,
   });
 
   useEffect(() => {
@@ -109,16 +104,6 @@ const OwnerProfile = () => {
 
   return (
     <div className="owner-profile">
-      <header className="op-header">
-        <div>
-          <h1>Hồ sơ chủ sân</h1>
-          <p className="op-sub">Thông tin tài khoản, đổi mật khẩu và đăng ký gói trên cùng một trang.</p>
-        </div>
-        <Link to="/owner" className="op-btn op-btn--ghost">
-          ← Tổng quan
-        </Link>
-      </header>
-
       <section className="op-hero">
         <div className="op-hero-main">
           <div className="op-hero-avatar">{avatarLetter}</div>
@@ -132,96 +117,113 @@ const OwnerProfile = () => {
         </Link>
       </section>
 
-      <section className="op-card op-info-card">
-        <div className="op-info-head">
-          <h2 className="op-card-title" style={{ marginBottom: 0 }}>
-            <User size={18} aria-hidden />
-            Thông tin cá nhân
-          </h2>
-          <button
-            type="button"
-            className="op-btn op-btn--secondary"
-            onClick={() => setEditingProfile((v) => !v)}
-          >
-            <SquarePen size={16} />
-            {editingProfile ? "Ẩn chỉnh sửa" : "Chỉnh sửa"}
-          </button>
-        </div>
-
-        {profileLoading && !profile ? (
-          <p className="op-muted">Đang tải…</p>
-        ) : editingProfile ? (
-          <form className="op-form op-edit-form" onSubmit={handleProfileSubmit}>
-            <label className="op-field">
-              <span>Họ tên</span>
-              <input
-                name="fullName"
-                value={profileData.fullName}
-                onChange={(e) => setProfileData((p) => ({ ...p, fullName: e.target.value }))}
-              />
-            </label>
-            <label className="op-field">
-              <span>Email</span>
-              <input value={profileData.email} disabled className="op-input-disabled" />
-            </label>
-            <label className="op-field">
-              <span>Số điện thoại</span>
-              <input
-                name="phoneNumber"
-                value={profileData.phoneNumber}
-                onChange={(e) => setProfileData((p) => ({ ...p, phoneNumber: e.target.value }))}
-              />
-            </label>
-            <label className="op-field">
-              <span>Ngày sinh</span>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={profileData.dateOfBirth}
-                onChange={(e) => setProfileData((p) => ({ ...p, dateOfBirth: e.target.value }))}
-              />
-            </label>
-            <button type="submit" className="op-btn op-btn--primary" disabled={savingProfile}>
-              {savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}
+      <div className="op-profile-grid">
+        <section className="op-card op-info-card">
+          <div className="op-info-head">
+            <h2 className="op-card-title" style={{ marginBottom: 0 }}>
+              <User size={18} aria-hidden />
+              Thông tin cá nhân
+            </h2>
+            <button
+              type="button"
+              className="op-btn op-btn--edit"
+              onClick={() => setEditingProfile((v) => !v)}
+            >
+              <SquarePen size={16} />
+              {editingProfile ? "Ẩn chỉnh sửa" : "Chỉnh sửa"}
             </button>
-          </form>
-        ) : (
-          <div className="op-info-grid">
-            <div className="op-info-item">
-              <span className="op-info-icon"><User size={18} /></span>
-              <div>
-                <p className="op-info-label">Họ và tên</p>
-                <p className="op-info-value">{profileName}</p>
-              </div>
-            </div>
-            <div className="op-info-item">
-              <span className="op-info-icon"><Mail size={18} /></span>
-              <div>
-                <p className="op-info-label">Email</p>
-                <p className="op-info-value">{profileEmail}</p>
-              </div>
-            </div>
-            <div className="op-info-item">
-              <span className="op-info-icon"><Phone size={18} /></span>
-              <div>
-                <p className="op-info-label">Số điện thoại</p>
-                <p className="op-info-value">{profilePhone}</p>
-              </div>
-            </div>
-            <div className="op-info-item">
-              <span className="op-info-icon"><Cake size={18} /></span>
-              <div>
-                <p className="op-info-label">Ngày sinh</p>
-                <p className="op-info-value">{profileDob}</p>
-              </div>
-            </div>
           </div>
-        )}
-      </section>
 
-      <div className="op-grid">
+          {profileLoading && !profile ? (
+            <p className="op-muted">Đang tải…</p>
+          ) : editingProfile ? (
+            <form className="op-form op-edit-form" onSubmit={handleProfileSubmit}>
+              <label className="op-field">
+                <span>Họ tên</span>
+                <input
+                  name="fullName"
+                  value={profileData.fullName}
+                  onChange={(e) =>
+                    setProfileData((p) => ({ ...p, fullName: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="op-field">
+                <span>Email</span>
+                <input value={profileData.email} disabled className="op-input-disabled" />
+              </label>
+              <label className="op-field">
+                <span>Số điện thoại</span>
+                <input
+                  name="phoneNumber"
+                  value={profileData.phoneNumber}
+                  onChange={(e) =>
+                    setProfileData((p) => ({ ...p, phoneNumber: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="op-field">
+                <span>Ngày sinh</span>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={profileData.dateOfBirth}
+                  onChange={(e) =>
+                    setProfileData((p) => ({ ...p, dateOfBirth: e.target.value }))
+                  }
+                />
+              </label>
+              <button
+                type="submit"
+                className="op-btn op-btn--primary"
+                disabled={savingProfile}
+              >
+                {savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}
+              </button>
+            </form>
+          ) : (
+            <div className="op-info-grid">
+              <div className="op-info-item">
+                <span className="op-info-icon">
+                  <User size={18} />
+                </span>
+                <div>
+                  <p className="op-info-label">Họ và tên</p>
+                  <p className="op-info-value">{profileName}</p>
+                </div>
+              </div>
+              <div className="op-info-item">
+                <span className="op-info-icon">
+                  <Mail size={18} />
+                </span>
+                <div>
+                  <p className="op-info-label">Email</p>
+                  <p className="op-info-value">{profileEmail}</p>
+                </div>
+              </div>
+              <div className="op-info-item">
+                <span className="op-info-icon">
+                  <Phone size={18} />
+                </span>
+                <div>
+                  <p className="op-info-label">Số điện thoại</p>
+                  <p className="op-info-value">{profilePhone}</p>
+                </div>
+              </div>
+              <div className="op-info-item">
+                <span className="op-info-icon">
+                  <Cake size={18} />
+                </span>
+                <div>
+                  <p className="op-info-label">Ngày sinh</p>
+                  <p className="op-info-value">{profileDob}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
-        <section className="op-card">
+        <section className="op-card op-password-card">
           <h2 className="op-card-title">
             <Lock size={18} aria-hidden />
             Đổi mật khẩu
@@ -258,31 +260,10 @@ const OwnerProfile = () => {
                 }
               />
             </label>
-            <button type="submit" className="op-btn op-btn--secondary" disabled={savingPassword}>
+            <button type="submit" className="op-btn op-btn--primary" disabled={savingPassword}>
               {savingPassword ? "Đang cập nhật…" : "Cập nhật mật khẩu"}
             </button>
           </form>
-        </section>
-
-        <section className="op-card op-sub-wallet-card">
-          <div className="op-card-title" style={{ marginBottom: 10 }}>
-            <Wallet size={18} aria-hidden />
-            Số dư ví
-          </div>
-          {walletLoading && walletInfo == null ? (
-            <p className="op-muted">Đang tải số dư…</p>
-          ) : (
-            <div className="op-sub-wallet-inner">
-              <div className="op-sub-wallet-balance">
-                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                  Number(walletInfo?.balance ?? 0),
-                )}
-              </div>
-              <Link to="/wallet/top-up" className="op-btn op-btn--secondary op-btn--sm">
-                Nạp tiền
-              </Link>
-            </div>
-          )}
         </section>
       </div>
 

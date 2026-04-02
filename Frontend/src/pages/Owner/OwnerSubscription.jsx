@@ -44,6 +44,23 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
   const shortfall = Math.max(0, planPrice - balance);
   const sufficient = selectedPlan && balance >= planPrice;
 
+  const planVariant = (plan, idx) => {
+    const name = String(plan?.name || "").toLowerCase();
+    if (name.includes("vip")) return "vip";
+    if (name.includes("chuy") || name.includes("pro") || name.includes("chuyên")) return "pro";
+    if (name.includes("basic") || name.includes("cơ bản")) return "basic";
+    // Fallback theo thứ tự để vẫn có màu sắc giống layout mock.
+    if (idx === 0) return "basic";
+    if (idx === 1) return "pro";
+    return "vip";
+  };
+
+  const planPillLabel = (variant) => {
+    if (variant === "vip") return "Gói VIP";
+    if (variant === "pro") return "Gói Chuyên nghiệp";
+    return "Gói cơ bản";
+  };
+
   const handleSubscribe = async () => {
     if (!selectedPlan || !sufficient) return;
     setSubscribing(true);
@@ -83,7 +100,7 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
         </header>
       ) : null}
 
-      {showWalletCard ? (
+      {showWalletCard && embedded ? (
         <section className="op-card op-sub-wallet-card">
           <div className="op-card-title" style={{ marginBottom: 10 }}>
             <Wallet size={18} aria-hidden />
@@ -108,32 +125,47 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
             <CreditCard size={17} aria-hidden />
             Gói có sẵn
           </h3>
-          <p className="op-muted op-subsection-hint">
-            Chọn một dòng để xem chi tiết và thanh toán bên cột bên phải.
-          </p>
+          <p className="op-muted op-subsection-hint">Chọn một gói để xem tóm tắt và thanh toán.</p>
           {plansLoading ? (
             <p className="op-muted">Đang tải danh sách gói…</p>
           ) : plans.length === 0 ? (
             <p className="op-muted">Chưa có gói đăng ký nào được cấu hình.</p>
           ) : (
-            <ul className="op-sub-plan-pick-list">
-              {plans.map((p) => {
+            <ul className="op-sub-plan-card-grid">
+              {plans.map((p, idx) => {
                 const active = Number(selectedPlanId) === Number(p.id);
+                const variant = planVariant(p, idx);
+                const pill = planPillLabel(variant);
                 return (
                   <li key={p.id}>
                     <button
                       type="button"
-                      className={`op-sub-plan-pick ${active ? "is-selected" : ""}`}
+                      className={`op-sub-plan-card op-sub-plan-card--${variant} ${
+                        active ? "is-selected" : ""
+                      }`}
                       onClick={() => setSelectedPlanId(p.id)}
                     >
-                      <div className="op-sub-plan-pick-main">
-                        <span className="op-sub-plan-pick-name">{p.name || `Gói #${p.id}`}</span>
-                        <span className="op-sub-plan-pick-meta">
-                          Thời hạn: <strong>{p.durationDays ? `${p.durationDays} ngày` : "—"}</strong>
+                      <div className="op-sub-plan-card-top">
+                        <span className="op-sub-plan-pill">{pill}</span>
+                        {active ? (
+                          <CheckCircle2 size={18} className="op-sub-plan-check" aria-hidden />
+                        ) : null}
+                      </div>
+
+                      <div className="op-sub-plan-card-body">
+                        <div className="op-sub-plan-name">{p.name || `Gói #${p.id}`}</div>
+                        <div className="op-sub-plan-meta">
+                          Thời hạn:{" "}
+                          <strong>{p.durationDays ? `${p.durationDays} ngày` : "—"}</strong>
+                        </div>
+                        <div className="op-sub-plan-price">{formatMoney(p.price)}</div>
+                      </div>
+
+                      <div className="op-sub-plan-card-footer">
+                        <span className="op-sub-plan-cta">
+                          {active ? "Đang chọn" : "Chọn gói"}
                         </span>
                       </div>
-                      <div className="op-sub-plan-pick-price">{formatMoney(p.price)}</div>
-                      {active ? <CheckCircle2 size={18} className="op-sub-plan-pick-check" aria-hidden /> : null}
                     </button>
                   </li>
                 );
@@ -143,39 +175,54 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
         </section>
 
         <section className="op-card op-sub-checkout">
-          <h3 className="op-subsection-title">Chi tiết &amp; thanh toán</h3>
+          <h3 className="op-subsection-title">Tóm tắt đăng ký</h3>
           {!selectedPlan ? (
-            <p className="op-muted">Chọn một gói bên trái để xem tóm tắt.</p>
+            <div className="op-sub-empty-state">
+              <div className="op-sub-empty-title">Bạn chưa đăng kí gói dịch vụ nào</div>
+              <div className="op-sub-empty-desc">
+                Hãy chọn một gói bên trái để xem chi tiết và thực hiện đăng ký.
+              </div>
+
+              <div className="op-sub-empty-wallet">
+                <div className="op-sub-empty-wallet-row">
+                  <span>Số dư ví</span>
+                  <strong>
+                    {walletLoading && walletInfo == null ? "Đang tải…" : formatMoney(balance)}
+                  </strong>
+                </div>
+                <Link to="/wallet/top-up" className="op-btn op-btn--secondary op-btn--sm">
+                  Nạp tiền
+                </Link>
+              </div>
+            </div>
           ) : (
             <>
-              <div className="op-sub-detail-block">
-                <div className="op-sub-detail-row">
-                  <span>Tên gói</span>
-                  <strong>{selectedPlan.name}</strong>
+              <div className="op-sub-checkout-hero">
+                <div className="op-sub-checkout-hero-title">
+                  <CreditCard size={16} aria-hidden /> {selectedPlan.name}
                 </div>
-                <div className="op-sub-detail-row">
-                  <span>Thời hạn</span>
-                  <strong>{selectedPlan.durationDays ? `${selectedPlan.durationDays} ngày` : "—"}</strong>
-                </div>
-                <div className="op-sub-detail-row op-sub-detail-row--emphasis">
-                  <span>Phí gói</span>
-                  <strong>{formatMoney(planPrice)}</strong>
+                <div className="op-sub-checkout-hero-meta">
+                  Thời hạn:{" "}
+                  <strong>
+                    {selectedPlan.durationDays ? `${selectedPlan.durationDays} ngày` : "—"}
+                  </strong>
                 </div>
               </div>
 
-              <div className="op-sub-summary">
-                <p className="op-sub-summary-title">Tóm tắt thanh toán</p>
-                <div className="op-sub-detail-row">
-                  <span>Số dư ví hiện tại</span>
+              <div className="op-sub-summary-card">
+                <div className="op-sub-summary-row">
+                  <span>Số dư ví</span>
                   <strong>{formatMoney(balance)}</strong>
                 </div>
-                <div className="op-sub-detail-row">
+                <div className="op-sub-summary-row">
                   <span>Phí đăng ký</span>
                   <strong>{formatMoney(planPrice)}</strong>
                 </div>
-                <div className="op-sub-detail-divider" />
+
+                <div className="op-sub-summary-divider" />
+
                 {shortfall > 0 ? (
-                  <div className="op-sub-detail-row op-sub-detail-row--warn">
+                  <div className="op-sub-summary-row op-sub-summary-row--warn">
                     <span>
                       <AlertCircle size={16} className="op-sub-inline-icon" aria-hidden />
                       Còn thiếu
@@ -183,7 +230,7 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
                     <strong>{formatMoney(shortfall)}</strong>
                   </div>
                 ) : (
-                  <div className="op-sub-detail-row op-sub-detail-row--ok">
+                  <div className="op-sub-summary-row op-sub-summary-row--ok">
                     <span>Sau khi trừ (dự kiến)</span>
                     <strong>{formatMoney(balance - planPrice)}</strong>
                   </div>
@@ -192,7 +239,7 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
 
               {shortfall > 0 ? (
                 <p className="op-sub-warn-text">
-                  Số dư không đủ (E1). Vui lòng <Link to="/wallet/top-up">nạp thêm ví</Link> trước khi đăng ký.
+                  Số dư không đủ. Vui lòng <Link to="/wallet/top-up">nạp thêm ví</Link> trước khi đăng ký.
                 </p>
               ) : null}
 
@@ -202,7 +249,7 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
                 disabled={subscribing || !sufficient}
                 onClick={handleSubscribe}
               >
-                {subscribing ? "Đang xử lý…" : "Đăng ký"}
+                {subscribing ? "Đang xử lý…" : "Đăng ký & Thanh toán"}
               </button>
               <p className="op-muted op-sub-footnote">
                 Sau khi bấm Đăng ký, hệ thống kiểm tra số dư, trừ ví, ghi nhận giao dịch và kích hoạt gói

@@ -5,7 +5,7 @@ import './LoginPopup.css';
 
 /**
  * Popup đăng nhập riêng — overlay + modal, bên trong dùng trang Login.
- * Khi đăng nhập thành công gọi onClose (giữ nguyên trang hiện tại).
+ * Khi đăng nhập thành công gọi onClose. Chủ sân (Field Owner) được chuyển sang /owner.
  */
 const LoginPopup = ({ open, onClose }) => {
   if (!open) return null;

@@ -366,7 +366,7 @@ const OwnerVenueDetail = () => {
         <div className="ovd-actions">
           <Link
             className={`ovd-btn ${!canCreateField ? "is-disabled" : ""}`}
-            to={canCreateField ? `/owner/venues/${id}/create-field` : "#"}
+            to={canCreateField ? `/owner/venues/${id}/time-slot` : "#"}
             onClick={(e) => {
               if (!canCreateField) e.preventDefault();
             }}

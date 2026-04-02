@@ -540,6 +540,7 @@
 /* CARD */
 .bl-list-item {
   display: flex;
+  align-items: stretch;
   justify-content: space-between;
   gap: 16px;
   padding: 12px 14px;
@@ -618,18 +619,23 @@
 }
 
 .bl-card-media {
-  width: 124px;
-  min-width: 124px;
-  height: 112px;
-  border-radius: 4px;
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 132px;
+  min-width: 132px;
+  min-height: 120px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .bl-card-media img {
   width: 100%;
   height: 100%;
+  min-height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -683,46 +689,49 @@
   flex: 1 1 auto;
 }
 
+/* Ribbon “đuôi chẻ / nuốt én” — mép phải có khía chữ V cắt vào trong (fishtail) */
 .bl-type-tag {
   position: relative;
   display: inline-flex;
   align-items: center;
   margin: -24px 0 14px -24px;
-  padding: 8px 22px 8px 16px;
+  padding: 10px 22px 10px 16px;
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: #fff;
   line-height: 1;
-  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.12));
+  filter: drop-shadow(0 3px 10px rgba(15, 23, 42, 0.14));
   z-index: 1;
-}
-
-.bl-type-tag::after {
-  content: "";
-  position: absolute;
-  right: -24px;
-  top: 0;
-  width: 0;
-  height: 0;
-  border-top: 15px solid transparent;
-  border-bottom: 15px solid transparent;
+  /* độ sâu khía so với cạnh phải (đỉnh V hướng vào trong tag) */
+  --tag-notch: 15px;
+  --tag-corner: 5px;
+  -webkit-clip-path: polygon(
+    var(--tag-corner) 0,
+    100% 0,
+    calc(100% - var(--tag-notch)) 50%,
+    100% 100%,
+    var(--tag-corner) 100%,
+    0 calc(100% - var(--tag-corner)),
+    0 var(--tag-corner)
+  );
+  clip-path: polygon(
+    var(--tag-corner) 0,
+    100% 0,
+    calc(100% - var(--tag-notch)) 50%,
+    100% 100%,
+    var(--tag-corner) 100%,
+    0 calc(100% - var(--tag-corner)),
+    0 var(--tag-corner)
+  );
 }
 
 .bl-type-tag--daily {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-}
-
-.bl-type-tag--daily::after {
-  border-left: 24px solid #10b981;
+  background: linear-gradient(135deg, #059669 0%, #10b981 52%, #0d9488 100%);
 }
 
 .bl-type-tag--event {
-  background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%);
-}
-
-.bl-type-tag--event::after {
-  border-left: 24px solid #c084fc;
+  background: linear-gradient(135deg, #9333ea 0%, #a855f7 45%, #c084fc 100%);
 }
 
 .bl-list-venue {
@@ -1344,12 +1353,18 @@
 
   .bl-list-item {
     flex-direction: column;
+    align-items: stretch;
     padding: 20px 18px 22px;
   }
 
   .bl-card-media {
     width: 100%;
-    height: 160px;
+    min-width: 0;
+    min-height: 168px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    align-self: stretch;
+    border-radius: var(--radius-lg);
   }
 
   .bl-list-venue {

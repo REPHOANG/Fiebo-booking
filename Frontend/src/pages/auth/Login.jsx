@@ -142,7 +142,10 @@ const Login = ({ onLoginSuccess }) => {
         position: 'top-right', autoClose: 3000,
       });
 
-      if (typeof onLoginSuccess === 'function') {
+      if (typeof onLoginSuccess === "function") {
+        if (hasOwnerRole(response.user) || isOwner) {
+          navigate("/owner", { replace: true });
+        }
         onLoginSuccess();
         return;
       }
@@ -201,6 +204,9 @@ const Login = ({ onLoginSuccess }) => {
         autoClose: 3000,
       });
       if (typeof onLoginSuccess === "function") {
+        if (hasOwnerRole(response.user) || isOwner) {
+          navigate("/owner", { replace: true });
+        }
         onLoginSuccess();
         return;
       }

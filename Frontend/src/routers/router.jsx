@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import CustomerHome from '../pages/Customer/Home/CustomerHome';
 import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
@@ -18,7 +18,7 @@ import CreateVenue from '../pages/Owner/CreateVenue';
 import OwnerVenues from '../pages/Owner/OwnerVenues';
 import OwnerOfflineBooking from '../pages/Owner/OwnerOfflineBooking';
 import OwnerVenueDetail from '../pages/Owner/OwnerVenueDetail';
-import OwnerCreateField from '../pages/Owner/OwnerCreateField';
+import OwnerTimeSlot from '../pages/Owner/OwnerTimeSlot';
 import OwnerAddField from '../pages/Owner/OwnerAddField';
 import OwnerEditVenue from '../pages/Owner/OwnerEditVenue';
 import OwnerEvents from '../pages/Owner/Event/OwnerEvents';
@@ -44,6 +44,12 @@ import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
 import OwnerProfile from '../pages/Owner/OwnerProfile';
 import OwnerSubscription from '../pages/Owner/OwnerSubscription';
 
+
+/** Chuyển URL cũ `/create-field` sang `/time-slot`. */
+const OwnerVenueTimeSlotLegacyRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/owner/venues/${id}/time-slot`} replace />;
+};
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -81,7 +87,8 @@ const AppRoutes = () => (
       <Route path="/owner/subscription" element={<OwnerSubscription />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
       <Route path="/owner/venues/:id" element={<OwnerVenueDetail />} />
-      <Route path="/owner/venues/:id/create-field" element={<OwnerCreateField />} />
+      <Route path="/owner/venues/:id/time-slot" element={<OwnerTimeSlot />} />
+      <Route path="/owner/venues/:id/create-field" element={<OwnerVenueTimeSlotLegacyRedirect />} />
       <Route path="/owner/venues/:id/add-field" element={<OwnerAddField />} />
       <Route path="/owner/venues/:id/edit" element={<OwnerEditVenue />} />
       <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -28,6 +28,8 @@ const OwnerLayout = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [venuesOpen, setVenuesOpen] = useState(true);
   const [eventsOpen, setEventsOpen] = useState(true);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   const activePath = location?.pathname || "";
   const isVenuesSectionActive = useMemo(() => {
@@ -57,6 +59,27 @@ const OwnerLayout = () => {
   const handleSidebarNavigate = () => {
     setMenuOpen(false);
   };
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+
+    const onPointerDown = (e) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setUserMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [userMenuOpen]);
 
   return (
     <div className="owner-layout">
@@ -232,16 +255,52 @@ const OwnerLayout = () => {
             <button type="button" className="owner-topbar-icon" aria-label="notifications">
               <Bell size={15} />
             </button>
-            <Link
-              to="/owner/profile"
-              className="owner-topbar-user"
-              onClick={() => setMenuOpen(false)}
-            >
-              <span className="owner-topbar-avatar">
-                {(user?.name || user?.email || "O").charAt(0).toUpperCase()}
-              </span>
-              <span className="owner-topbar-name">{user?.name || user?.email || "Owner"}</span>
-            </Link>
+            <div className="owner-user-menu-wrap" ref={userMenuRef}>
+              <button
+                type="button"
+                className="owner-topbar-user"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                onClick={() => {
+                  setUserMenuOpen((v) => !v);
+                  setMenuOpen(false);
+                }}
+              >
+                <span className="owner-topbar-avatar">
+                  {(user?.name || user?.email || "O").charAt(0).toUpperCase()}
+                </span>
+                <span className="owner-topbar-name">{user?.name || user?.email || "Owner"}</span>
+              </button>
+
+              {userMenuOpen ? (
+                <div className="owner-user-menu" role="menu" aria-label="User menu">
+                  <Link
+                    to="/owner/profile"
+                    className="owner-user-menu-item"
+                    role="menuitem"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    Hồ sơ
+                  </Link>
+                  <Link
+                    to="/wallet"
+                    className="owner-user-menu-item"
+                    role="menuitem"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    Ví
+                  </Link>
+                  <button
+                    type="button"
+                    className="owner-user-menu-item owner-user-menu-logout"
+                    role="menuitem"
+                    onClick={handleLogout}
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
         <Outlet />

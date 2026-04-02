@@ -1,0 +1,1020 @@
+/* Owner time slot — Quản lý khung giờ (theme xanh lá) */
+:root {
+  --ots-green: #006442;
+  --ots-green-hover: #005038;
+  --ots-green-soft: #e8f4ef;
+  --ots-bg: #f4faf7;
+  --ots-card: #ffffff;
+  --ots-border: #c5ddd2;
+  --ots-text: #1a2e24;
+  --ots-muted: #5c7268;
+  --ots-danger: #c62828;
+  --ots-peak: #006442;
+  --ots-apply-blue: #1565c0;
+  --ots-radius: 12px;
+  --ots-radius-sm: 8px;
+  --ots-shadow: 0 8px 28px rgba(0, 100, 66, 0.08);
+}
+
+.ots-page {
+  min-height: calc(100vh - 80px);
+  padding: 0 1.25rem 5rem;
+  background: var(--ots-bg);
+  color: var(--ots-text);
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.ots-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.25rem 0 1rem;
+  border-bottom: 1px solid var(--ots-border);
+  margin-bottom: 1.25rem;
+}
+
+.ots-topbar-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.5rem 2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.ots-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ots-muted);
+  margin-bottom: 4px;
+}
+
+.ots-page-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ots-green);
+}
+
+.ots-venue-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.ots-venue-tab {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ots-muted);
+  background: var(--ots-card);
+  border: 1px solid var(--ots-border);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.ots-venue-tab:hover {
+  color: var(--ots-green);
+  border-color: var(--ots-green);
+}
+
+.ots-venue-tab.is-active {
+  color: #fff;
+  background: var(--ots-green);
+  border-color: var(--ots-green);
+}
+
+.ots-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.ots-btn-apply {
+  padding: 0.55rem 1rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--ots-border);
+  border-radius: var(--ots-radius-sm);
+  background: var(--ots-card);
+  color: var(--ots-text);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ots-btn-apply:hover:not(:disabled) {
+  background: var(--ots-green-soft);
+  border-color: var(--ots-green);
+}
+
+.ots-btn-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ots-btn-save {
+  padding: 0.65rem 1.35rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: none;
+  border-radius: var(--ots-radius-sm);
+  background: var(--ots-green);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 100, 66, 0.35);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.ots-btn-save:hover:not(:disabled) {
+  background: var(--ots-green-hover);
+  transform: translateY(-1px);
+}
+
+.ots-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ots-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ots-muted);
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+}
+
+.ots-back-link:hover {
+  color: var(--ots-green);
+}
+
+.ots-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.ots-hero-text h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ots-text);
+}
+
+.ots-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ots-muted);
+}
+
+.ots-hours strong {
+  color: var(--ots-text);
+}
+
+.ots-sport-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.ots-sport-pill {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--ots-border);
+  background: #fff;
+  color: var(--ots-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ots-sport-pill:hover {
+  border-color: var(--ots-green);
+  color: var(--ots-green);
+}
+
+.ots-sport-pill.is-active {
+  background: var(--ots-green);
+  border-color: var(--ots-green);
+  color: #fff;
+}
+
+.ots-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .ots-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ots-sidebar {
+  background: var(--ots-card);
+  border-radius: var(--ots-radius);
+  border: 1px solid var(--ots-border);
+  box-shadow: var(--ots-shadow);
+  padding: 1.1rem 1rem;
+  position: sticky;
+  top: 88px;
+}
+
+@media (max-width: 1024px) {
+  .ots-sidebar {
+    position: static;
+  }
+}
+
+.ots-sidebar-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ots-muted);
+  margin-bottom: 0.45rem;
+}
+
+.ots-sidebar-select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ots-radius-sm);
+  border: 1px solid var(--ots-border);
+  font-size: 14px;
+  background: var(--ots-green-soft);
+  color: var(--ots-text);
+  margin-bottom: 1.25rem;
+}
+
+.ots-sidebar-select:focus {
+  outline: 2px solid rgba(0, 100, 66, 0.35);
+  outline-offset: 1px;
+}
+
+.ots-fields-heading {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ots-muted);
+  margin: 0 0 0.65rem;
+}
+
+.ots-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  padding-right: 4px;
+}
+
+.ots-field-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.65rem;
+  border-radius: var(--ots-radius-sm);
+  border: 2px solid var(--ots-border);
+  background: #f8fbfa;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.ots-field-card:hover {
+  border-color: rgba(0, 100, 66, 0.45);
+}
+
+.ots-field-card.is-selected {
+  border-color: var(--ots-green);
+  background: var(--ots-green-soft);
+  box-shadow: 0 2px 10px rgba(0, 100, 66, 0.12);
+}
+
+.ots-field-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--ots-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  background: #fff;
+  margin-top: 2px;
+}
+
+.ots-field-card.is-selected .ots-field-check {
+  background: var(--ots-green);
+  border-color: var(--ots-green);
+}
+
+.ots-field-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.ots-field-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ots-text);
+  margin-bottom: 4px;
+}
+
+.ots-field-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ots-muted);
+}
+
+.ots-field-status.is-paused {
+  color: #b45309;
+}
+
+.ots-info {
+  display: flex;
+  gap: 10px;
+  padding: 0.75rem;
+  border-radius: var(--ots-radius-sm);
+  background: var(--ots-green-soft);
+  border: 1px solid rgba(0, 100, 66, 0.2);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ots-text);
+}
+
+.ots-info-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ots-green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ots-sidebar-links {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--ots-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ots-sidebar-links a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ots-green);
+}
+
+.ots-editor {
+  background: var(--ots-card);
+  border-radius: var(--ots-radius);
+  border: 1px solid var(--ots-border);
+  box-shadow: var(--ots-shadow);
+  overflow: hidden;
+}
+
+.ots-editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, var(--ots-green-soft) 0%, #fff 100%);
+  border-bottom: 1px solid var(--ots-border);
+}
+
+.ots-day-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ots-day-pill {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ots-muted);
+  cursor: pointer;
+}
+
+.ots-day-pill:hover {
+  background: rgba(0, 100, 66, 0.08);
+  color: var(--ots-green);
+}
+
+.ots-day-pill.is-active {
+  background: var(--ots-green);
+  color: #fff;
+}
+
+.ots-apply-days {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 0.85rem;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--ots-radius-sm);
+  background: #e3f2fd;
+  color: var(--ots-apply-blue);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ots-apply-days:hover:not(:disabled) {
+  background: #bbdefb;
+}
+
+.ots-apply-days:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ots-slot-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  background: #fafcfb;
+  border-bottom: 1px solid var(--ots-border);
+}
+
+.ots-slot-duration {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ots-muted);
+}
+
+.ots-slot-duration select {
+  margin-left: 6px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--ots-border);
+  font-size: 13px;
+  background: #fff;
+}
+
+.ots-slot-toolbar-day {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ots-muted);
+}
+
+.ots-table-head {
+  display: grid;
+  grid-template-columns: 1fr minmax(140px, 200px) 48px;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--ots-muted);
+  background: #fff;
+  border-bottom: 1px solid var(--ots-border);
+}
+
+.ots-slot-rows {
+  padding: 0.75rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ots-slot-col {
+  min-width: 0;
+}
+
+.ots-slot-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(140px, 200px) 48px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ots-radius-sm);
+  background: var(--ots-green-soft);
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ots-slot-row.is-peak {
+  border-color: var(--ots-peak);
+  box-shadow: 0 0 0 1px rgba(0, 100, 66, 0.15);
+  background: #dff3eb;
+}
+
+.ots-slot-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ots-slot-time select {
+  padding: 0.4rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--ots-border);
+  font-size: 13px;
+  background: #fff;
+  max-width: 88px;
+}
+
+.ots-slot-time span {
+  color: var(--ots-muted);
+  font-weight: 600;
+}
+
+.ots-peak-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: var(--ots-green);
+  color: #fff;
+}
+
+.ots-slot-peak-toggle {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ots-green);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ots-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--ots-border);
+  border-radius: var(--ots-radius-sm);
+  padding: 0 0.65rem;
+  min-height: 40px;
+}
+
+.ots-price-wrap input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0.45rem 0;
+  background: transparent;
+}
+
+.ots-price-wrap input:focus {
+  outline: none;
+}
+
+.ots-price-suffix {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ots-muted);
+  flex-shrink: 0;
+}
+
+.ots-del-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border: none;
+  border-radius: var(--ots-radius-sm);
+  background: rgba(198, 40, 40, 0.1);
+  color: var(--ots-danger);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ots-del-btn:hover:not(:disabled) {
+  background: rgba(198, 40, 40, 0.2);
+}
+
+.ots-del-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ots-add-row {
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem 1.15rem;
+}
+
+.ots-add-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.55rem 1.25rem;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px dashed var(--ots-border);
+  border-radius: var(--ots-radius-sm);
+  background: #fff;
+  color: var(--ots-green);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ots-add-row button:hover:not(:disabled) {
+  border-color: var(--ots-green);
+  background: var(--ots-green-soft);
+}
+
+.ots-add-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ots-fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 40;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ots-green);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 100, 66, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.ots-fab:hover:not(:disabled) {
+  transform: scale(1.06);
+  background: var(--ots-green-hover);
+}
+
+.ots-fab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ots-muted-block {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--ots-muted);
+  font-size: 14px;
+}
+
+.ots-loading {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--ots-muted);
+}
+
+/* —— Responsive —— */
+
+@media (max-width: 1200px) {
+  .ots-layout {
+    grid-template-columns: minmax(240px, 280px) 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ots-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ots-sport-pills {
+    justify-content: flex-start;
+  }
+
+  .ots-topbar-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .ots-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ots-top-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ots-btn-apply,
+  .ots-btn-save {
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 768px) {
+  .ots-page {
+    padding: 0 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ots-table-head,
+  .ots-slot-row {
+    grid-template-columns: 1fr minmax(100px, 140px) 44px;
+    gap: 0.5rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .ots-table-head {
+    font-size: 10px;
+  }
+
+  .ots-slot-time select {
+    max-width: 76px;
+    font-size: 12px;
+  }
+
+  .ots-editor-head {
+    padding: 0.75rem 0.65rem;
+  }
+
+  .ots-peak-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ots-page {
+    padding: 0 max(0.65rem, env(safe-area-inset-left, 0px))
+      calc(5.75rem + env(safe-area-inset-bottom, 0px))
+      max(0.65rem, env(safe-area-inset-right, 0px));
+    min-height: calc(100vh - 120px);
+  }
+
+  .ots-topbar {
+    padding: 1rem 0 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .ots-page-title {
+    font-size: 1.12rem;
+    line-height: 1.25;
+  }
+
+  .ots-hero-text h2 {
+    font-size: 1rem;
+  }
+
+  .ots-hours {
+    font-size: 13px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .ots-venue-tabs,
+  .ots-sport-pills,
+  .ots-day-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+    margin-left: -0.15rem;
+    margin-right: -0.15rem;
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+    max-width: 100%;
+  }
+
+  .ots-venue-tabs::-webkit-scrollbar,
+  .ots-sport-pills::-webkit-scrollbar,
+  .ots-day-pills::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .ots-venue-tabs::-webkit-scrollbar-thumb,
+  .ots-sport-pills::-webkit-scrollbar-thumb,
+  .ots-day-pills::-webkit-scrollbar-thumb {
+    background: var(--ots-border);
+    border-radius: 4px;
+  }
+
+  .ots-venue-tab,
+  .ots-sport-pill,
+  .ots-day-pill {
+    flex: 0 0 auto;
+  }
+
+  .ots-editor-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .ots-apply-days {
+    width: 100%;
+    justify-content: center;
+    font-size: 10px;
+    padding: 0.55rem 0.5rem;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+  }
+
+  .ots-slot-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .ots-slot-duration {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+  }
+
+  .ots-slot-duration select {
+    margin-left: 0;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .ots-slot-toolbar-day {
+    font-size: 11px;
+  }
+
+  .ots-field-list {
+    max-height: 240px;
+  }
+
+  .ots-table-head {
+    display: none;
+  }
+
+  .ots-slot-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.85rem 0.7rem;
+    gap: 0.65rem;
+  }
+
+  .ots-slot-col--time::before,
+  .ots-slot-col--price::before,
+  .ots-slot-col--actions::before {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--ots-muted);
+    margin-bottom: 6px;
+  }
+
+  .ots-slot-col--time::before {
+    content: "KHUNG GIỜ";
+  }
+
+  .ots-slot-col--price::before {
+    content: "GIÁ NIÊM YẾT (đ)";
+  }
+
+  .ots-slot-col--actions::before {
+    content: "THAO TÁC";
+  }
+
+  .ots-slot-time {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ots-slot-time select {
+    max-width: none;
+    flex: 1 1 72px;
+    min-width: 68px;
+  }
+
+  .ots-price-wrap {
+    width: 100%;
+  }
+
+  .ots-del-btn {
+    width: 100%;
+    margin: 0;
+    height: 44px;
+  }
+
+  .ots-add-row {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  .ots-add-row button {
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+  }
+
+  .ots-fab {
+    right: max(0.85rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+    width: 52px;
+    height: 52px;
+  }
+
+  .ots-info {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ots-page-title {
+    font-size: 1rem;
+  }
+
+  .ots-eyebrow {
+    font-size: 10px;
+  }
+
+  .ots-sport-pill {
+    padding: 0.4rem 0.75rem;
+    font-size: 12px;
+  }
+
+  .ots-day-pill {
+    padding: 0.35rem 0.55rem;
+    font-size: 11px;
+  }
+
+  .ots-top-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ots-btn-save:hover:not(:disabled),
+  .ots-fab:hover:not(:disabled) {
+    transform: none;
+  }
+}

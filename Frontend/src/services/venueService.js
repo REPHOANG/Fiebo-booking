@@ -104,6 +104,38 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
     form.append('ThumbnailImage', payload.thumbnailFile);
   }
 
+  // Optional — update legal documents (BusinessDocument + LandUseDocument).
+  // Backend expects nested form fields:
+  // - BusinessDocument.IssueDate / ExpiryDate / Images[]
+  // - LandUseDocument.IssueDate / ExpiryDate / Images[]
+  const businessDocument = payload?.businessDocument;
+  if (businessDocument) {
+    if (businessDocument.issueDate) {
+      form.append("BusinessDocument.IssueDate", String(businessDocument.issueDate));
+    }
+    if (businessDocument.expiryDate) {
+      form.append("BusinessDocument.ExpiryDate", String(businessDocument.expiryDate));
+    }
+    const files = Array.isArray(businessDocument.files) ? businessDocument.files : [];
+    for (const file of files) {
+      if (file) form.append("BusinessDocument.Images", file);
+    }
+  }
+
+  const landUseDocument = payload?.landUseDocument;
+  if (landUseDocument) {
+    if (landUseDocument.issueDate) {
+      form.append("LandUseDocument.IssueDate", String(landUseDocument.issueDate));
+    }
+    if (landUseDocument.expiryDate) {
+      form.append("LandUseDocument.ExpiryDate", String(landUseDocument.expiryDate));
+    }
+    const files = Array.isArray(landUseDocument.files) ? landUseDocument.files : [];
+    for (const file of files) {
+      if (file) form.append("LandUseDocument.Images", file);
+    }
+  }
+
   const response = await api.put(`/api/owner/venues/${venueId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000,
