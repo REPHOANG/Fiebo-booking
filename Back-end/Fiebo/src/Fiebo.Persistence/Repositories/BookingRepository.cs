@@ -157,5 +157,24 @@ namespace Fiebo.Persistence.Repositories
                 Items = items
             };
         }
+        public async Task<List<Booking>> GetBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
+        {
+            var query = _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Where(b => b.Venue.OwnerId == ownerId);
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(b => b.CreatedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(b => b.CreatedAt <= toDate.Value);
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }

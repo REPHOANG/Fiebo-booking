@@ -276,5 +276,26 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/analytics")]
+        public async Task<IActionResult> GetBookingAnalytics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetOwnerBookingAnalyticsAsync(ownerId, fromDate, toDate);
+
+            return Ok(new ApiResponse<OwnerBookingAnalyticsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải dữ liệu phân tích thành công.",
+                Data = result
+            });
+        }
     }
 }

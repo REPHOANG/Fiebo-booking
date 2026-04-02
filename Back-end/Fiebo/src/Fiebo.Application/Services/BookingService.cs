@@ -823,5 +823,52 @@ namespace Fiebo.Application.Services
                 Items = items
             };
         }
+        public async Task<OwnerBookingAnalyticsResponse> GetOwnerBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
+        {
+            // Default to last 1 month if no fromDate is provided
+            var effectiveFromDate = fromDate ?? DateTime.Now.AddMonths(-1);
+
+            var bookings = await _unitOfWork.Bookings.GetBookingAnalyticsAsync(ownerId, effectiveFromDate, toDate);
+
+            var result = new OwnerBookingAnalyticsResponse
+            {
+                TotalBookings = bookings.Count,
+                CompletedBookings = bookings.Count(b => b.Status == BookingStatus.Completed),
+                CancelledBookings = bookings.Count(b => b.Status is BookingStatus.OwnerCancelled or BookingStatus.CustomerCancelled),
+
+                BookingTrends = bookings
+                    .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                    .Select(g => new BookingTrendItem
+                    {
+                        Date = g.Key,
+                        Count = g.Count()
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList(),
+
+                VenueAnalytics = bookings
+                    .GroupBy(b => new { b.VenueId, b.Venue.Name })
+                    .Select(vg => new VenueAnalyticsItem
+                    {
+                        VenueId = vg.Key.VenueId,
+                        VenueName = vg.Key.Name,
+                        TotalBookings = vg.Count(),
+                        CompletedBookings = vg.Count(b => b.Status == BookingStatus.Completed),
+                        CancelledBookings = vg.Count(b => b.Status is BookingStatus.OwnerCancelled or BookingStatus.CustomerCancelled),
+                        BookingTrends = vg
+                            .GroupBy(b => DateOnly.FromDateTime(b.CreatedAt))
+                            .Select(g => new BookingTrendItem
+                            {
+                                Date = g.Key,
+                                Count = g.Count()
+                            })
+                            .OrderBy(x => x.Date)
+                            .ToList()
+                    })
+                    .ToList()
+            };
+
+            return result;
+        }
     }
 }
