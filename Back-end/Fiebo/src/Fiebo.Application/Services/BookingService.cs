@@ -723,23 +723,20 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task<PagedResult<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
+        public async Task<List<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters)
         {
             var domainFilter = new Fiebo.Domain.Shared.OwnerBookingHistoryFilter
             {
                 BookingId = parameters.BookingId,
-                VenueId = parameters.VenueId,
                 VenueName = parameters.VenueName,
                 FieldName = parameters.FieldName,
                 FromDate = parameters.FromDate,
                 ToDate = parameters.ToDate,
-                Status = parameters.Status,
-                PageNumber = parameters.PageNumber,
-                PageSize = parameters.PageSize
+                Status = parameters.Status
             };
             var result = await _unitOfWork.Bookings.GetBookingListForOwnerAsync(ownerId, domainFilter);
 
-            var items = result.Items.Select(b => new OwnerBookingListResponse
+            return result.Select(b => new OwnerBookingListResponse
             {
                 BookingId = b.Id,
                 CustomerName = b.Fullname,
@@ -751,14 +748,6 @@ namespace Fiebo.Application.Services
                 Status = b.Status.ToString(),
                 CreatedAt = b.CreatedAt
             }).ToList();
-
-            return new PagedResult<OwnerBookingListResponse>
-            {
-                Page = result.Page,
-                PageSize = result.PageSize,
-                TotalItems = result.TotalItems,
-                Items = items
-            };
         }
     }
 }
