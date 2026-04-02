@@ -10,7 +10,7 @@ namespace Fiebo.Domain.Entities
     public class Payout : BaseEntity
     {
         public int BatchId { get; set; }
-        public int OwnerId { get; set; }
+        public required string OwnerId { get; set; }
 
         public decimal Amount { get; set; }
 

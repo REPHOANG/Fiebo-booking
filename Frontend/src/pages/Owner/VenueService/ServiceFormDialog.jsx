@@ -48,6 +48,7 @@ export default function ServiceFormDialog({
   onSubmit,
   initialData,
   mode,
+  isLoading,
 }) {
   const [imagePreview, setImagePreview] = useState('');
 
@@ -56,7 +57,7 @@ export default function ServiceFormDialog({
     handleSubmit,
     reset,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     resolver: yupResolver(serviceSchema),
     defaultValues: {
@@ -96,8 +97,6 @@ export default function ServiceFormDialog({
 
       reader.onloadend = () => {
         setImagePreview(reader.result);
-
-        // ❗ FIX QUAN TRỌNG
         setValue('imageFile', file, { shouldValidate: true });
       };
 
@@ -119,8 +118,6 @@ export default function ServiceFormDialog({
     } else {
       onSubmit(payload);
     }
-
-    onClose();
   };
 
   return (
@@ -241,7 +238,7 @@ export default function ServiceFormDialog({
 
         <DialogActions>
           <Button onClick={onClose}>Hủy</Button>
-          <Button type="submit" variant="contained" loading={isSubmitting}>
+          <Button type="submit" variant="contained" loading={isLoading}>
             {mode === 'edit' ? 'Cập nhật' : 'Thêm'}
           </Button>
         </DialogActions>

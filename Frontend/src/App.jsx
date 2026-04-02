@@ -11,7 +11,6 @@ import { getProfile } from "./services/authService";
 import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
 import AppRoutes from "./routers/router";
-import store from "./store";
 import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
 
