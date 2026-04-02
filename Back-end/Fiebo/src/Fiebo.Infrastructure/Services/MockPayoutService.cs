@@ -1,4 +1,6 @@
+using Fiebo.Application.DTOs.Payout;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,6 +17,11 @@ namespace Fiebo.Infrastructure.Services
         public MockPayoutService(ILogger<MockPayoutService> logger)
         {
             _logger = logger;
+        }
+
+        public Task<PagedResult<OwnerPayoutsResponse>> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<bool> ProcessPayoutAsync(int transactionId, decimal amount, string bankName, string accountNumber, string accountHolderName)

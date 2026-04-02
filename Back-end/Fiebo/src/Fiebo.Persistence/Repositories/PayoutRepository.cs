@@ -36,6 +36,7 @@ namespace Fiebo.Persistence.Repositories
                 PageSize = pageSize,
                 TotalItems = totalItems
             };
+        }
         public async Task<decimal> GetPendingPayoutAmountAsync(string ownerId)
         {
             return await _context.Payouts

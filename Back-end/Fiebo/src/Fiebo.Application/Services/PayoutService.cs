@@ -39,6 +39,11 @@ namespace Fiebo.Application.Services
                 })]
             };
         }
+
+        public Task<bool> ProcessPayoutAsync(int transactionId, decimal amount, string bankName, string accountNumber, string accountHolderName)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

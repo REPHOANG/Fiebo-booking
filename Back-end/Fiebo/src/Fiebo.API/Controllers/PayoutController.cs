@@ -29,7 +29,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<PagedResult<OwnerPayoutsResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "",
+                Message = "Lấy danh sách payout thành công",
                 Data = await _payoutService.GetOwnerPayoutsAsync(ownerId, page, pageSize)
             });
         }
