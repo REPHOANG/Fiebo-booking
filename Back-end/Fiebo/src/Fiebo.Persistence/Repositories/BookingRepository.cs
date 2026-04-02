@@ -157,7 +157,7 @@ namespace Fiebo.Persistence.Repositories
                 Items = items
             };
         }
-        public async Task<List<Booking>> GetBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
+        public async Task<List<Booking>>    GetBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate)
         {
             var query = _context.Bookings
                 .AsNoTracking()

@@ -133,7 +133,7 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
-builder.Services.AddScoped<IPayoutService, MockPayoutService>();
+builder.Services.AddScoped<IPayoutService, MockPayoutService>();builder.Services.AddScoped<IPayoutService, PayoutService>();
 
 builder.Services.AddHttpClient();
 

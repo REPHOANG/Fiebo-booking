@@ -19,6 +19,7 @@ import {
   Tooltip,
   useMediaQuery,
   useTheme,
+  Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -38,18 +39,16 @@ import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 
-
+const toastId = "service-toast";
 export default function ServiceManagement() {
   const { venueId } = useParams();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const queryClient = useQueryClient();
 
   // ================= STATE =================
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 10;
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -58,8 +57,8 @@ export default function ServiceManagement() {
   // ================= DEBOUNCE =================
   useEffect(() => {
     const timeout = setTimeout(() => {
+      setPage(1); // reset page khi tìm kiếm
       setDebouncedSearch(searchTerm);
-      setPage(1);
     }, 500);
 
     return () => clearTimeout(timeout);
@@ -74,58 +73,40 @@ export default function ServiceManagement() {
     keepPreviousData: true,
   });
 
-  const services = data?.items ?? [];
-  const totalPages = data?.totalPages ?? 0;
-  const totalItems = data?.totalItems ?? 0;
-
-  // ================= PREFETCH =================
-  useEffect(() => {
-    if (page < totalPages) {
-      queryClient.prefetchQuery({
-        queryKey: ["services", venueId, page + 1, pageSize, debouncedSearch],
-        queryFn: () =>
-          getVenueServices(
-            Number(venueId),
-            page + 1,
-            pageSize,
-            debouncedSearch,
-          ),
-      });
-    }
-  }, [page, totalPages, debouncedSearch, queryClient, venueId]);
-
   // ================= MUTATIONS =================
   const addMutation = useMutation({
     mutationFn: (data) => addVenueService(venueId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", venueId] });
-      toast.success("Thêm dịch vụ thành công");
+      toast.success("Thêm dịch vụ thành công", { toastId });
+      setFormDialogOpen(false);
     },
     onError: () => {
-      toast.error("Thêm dịch vụ thất bại");
-    }
+      toast.error("Thêm dịch vụ thất bại", { toastId });
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => updateVenueService(venueId, id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", venueId] });
-      toast.success("Cập nhật dịch vụ thành công");
+      toast.success("Cập nhật dịch vụ thành công", { toastId });
+      setFormDialogOpen(false);
     },
     onError: () => {
-      toast.error("Cập nhật dịch vụ thất bại");
-    }
+      toast.error("Cập nhật dịch vụ thất bại", { toastId });
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteVenueService(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", venueId] });
-      toast.success("Xóa dịch vụ thành công");
+      toast.success("Xóa dịch vụ thành công", { toastId });
     },
     onError: () => {
-      toast.error("Xóa dịch vụ thất bại");
-    }
+      toast.error("Xóa dịch vụ thất bại", { toastId });
+    },
   });
 
   // ================= HANDLERS =================
@@ -142,21 +123,21 @@ export default function ServiceManagement() {
   };
 
   const handleDeleteClick = (service) => {
-  Swal.fire({
-    title: "Bạn có chắc chắn muốn xóa dịch vụ này?",
-    text: service.serviceName,
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#ef4444",
-    cancelButtonColor: "#9ca3af",
-    confirmButtonText: "Xóa",
-    cancelButtonText: "Hủy"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      deleteMutation.mutate(service.id);
-    }
-  });
-};
+    Swal.fire({
+      title: "Bạn có chắc chắn muốn xóa dịch vụ này?",
+      text: service.serviceName,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#9ca3af",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(service.id);
+      }
+    });
+  };
 
   const handleFormSubmit = (data) => {
     if (formMode === "add") {
@@ -164,7 +145,6 @@ export default function ServiceManagement() {
     } else {
       updateMutation.mutate({ id: data.id, data });
     }
-    setFormDialogOpen(false);
   };
 
   // ================= RENDER =================
@@ -236,38 +216,26 @@ export default function ServiceManagement() {
         </Paper>
 
         {/* SEARCH */}
-        <Paper
-          elevation={0}
+        <TextField
+          fullWidth
+          label="Tìm kiếm"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
-            p: { xs: 2, md: 3 },
-            mb: 3,
-            borderRadius: 3,
-            border: "1px solid #e2e8f0",
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "40px",
+            },
+            mb: 2,
           }}
-        >
-          <TextField
-            fullWidth
-            label="Tìm kiếm"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "40px",
-              },
-              mb: 2,
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        </Paper>
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
 
         {/* TABLE */}
         <Paper
@@ -301,8 +269,8 @@ export default function ServiceManagement() {
               </TableHead>
 
               <TableBody>
-                {services.length > 0 ? (
-                  services.map((service) => (
+                {data.items.length > 0 ? (
+                  data.items.map((service) => (
                     <TableRow
                       key={service.id}
                       sx={{
@@ -333,7 +301,7 @@ export default function ServiceManagement() {
                                 sx={{
                                   mt: 0.5,
                                   display: "-webkit-box",
-                                  WebkitLineClamp: 2, // giới hạn 2 dòng
+                                  WebkitLineClamp: 2,
                                   WebkitBoxOrient: "vertical",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
@@ -400,37 +368,15 @@ export default function ServiceManagement() {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                p: 2,
-                borderTop: "1px solid #e2e8f0",
-              }}
-            >
-              <Typography variant="body2" color="#64748b">
-                Hiển thị {services.length} / {totalItems} dịch vụ
-              </Typography>
-
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(e, value) => setPage(value)}
-                size={isMobile ? "small" : "medium"}
-                sx={{
-                  "& .Mui-selected": {
-                    backgroundColor: "#16a34a !important",
-                    color: "white",
-                  },
-                }}
-              />
-            </Box>
-          )}
         </Paper>
+        <Stack justifyContent="center" alignItems="center" sx={{ mt: 4 }}>
+                  <Pagination
+                    page={parseInt(page)}
+                    count={data.totalPages}
+                    onChange={(e, v) => setPage(v)}
+                    color="success"
+                  />
+                </Stack>
 
         {/* DIALOG */}
         <ServiceFormDialog
@@ -439,6 +385,7 @@ export default function ServiceManagement() {
           onSubmit={handleFormSubmit}
           initialData={selectedService}
           mode={formMode}
+          isLoading={addMutation.isPending || updateMutation.isPending}
         />
       </Container>
     </Box>
