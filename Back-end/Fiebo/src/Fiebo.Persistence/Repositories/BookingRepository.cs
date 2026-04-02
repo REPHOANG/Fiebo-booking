@@ -92,8 +92,11 @@ namespace Fiebo.Persistence.Repositories
                 .FirstOrDefaultAsync(b => b.Id == bookingId && b.Venue.OwnerId == ownerId);
         }
 
-        public async Task<List<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters)
+        public async Task<PagedResult<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters)
         {
+            var page = parameters.PageNumber <= 0 ? 1 : parameters.PageNumber;
+            var pageSize = parameters.PageSize <= 0 ? 10 : parameters.PageSize;
+
             var query = _context.Bookings
                 .AsNoTracking()
                 .Include(b => b.Venue)
@@ -104,6 +107,11 @@ namespace Fiebo.Persistence.Repositories
             if (parameters.BookingId.HasValue)
             {
                 query = query.Where(b => b.Id == parameters.BookingId.Value);
+            }
+
+            if (parameters.VenueId.HasValue)
+            {
+                query = query.Where(b => b.VenueId == parameters.VenueId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(parameters.VenueName))
@@ -133,9 +141,21 @@ namespace Fiebo.Persistence.Repositories
                 query = query.Where(b => b.Status == parameters.Status.Value);
             }
 
-            return await query
+            var totalItems = await query.CountAsync();
+
+            var items = await query
                 .OrderByDescending(b => b.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Booking>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
         }
     }
 }

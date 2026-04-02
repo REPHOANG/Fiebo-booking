@@ -2,6 +2,7 @@ using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -61,7 +62,7 @@ namespace Fiebo.API.Controllers
 
             var result = await _bookingService.GetBookingListForOwnerAsync(ownerId, filter);
 
-            return Ok(new ApiResponse<List<OwnerBookingListResponse>>
+            return Ok(new ApiResponse<PagedResult<OwnerBookingListResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải danh sách đơn hàng thành công.",
