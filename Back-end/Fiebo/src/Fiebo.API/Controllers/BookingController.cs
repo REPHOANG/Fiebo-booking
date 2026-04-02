@@ -269,7 +269,7 @@ namespace Fiebo.API.Controllers
 
             var result = await _bookingService.GetBookingListForOwnerAsync(ownerId, filter);
 
-            return Ok(new ApiResponse<List<OwnerBookingListResponse>>
+            return Ok(new ApiResponse<PagedResult<OwnerBookingListResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải danh sách đơn hàng thành công.",

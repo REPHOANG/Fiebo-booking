@@ -46,6 +46,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<Payout> Payouts { get; set; }
         public DbSet<PayoutDetail> PayoutDetails { get; set; }
         public DbSet<CancelBooking> CancelBookings { get; set; }
+        public DbSet<UserBankAccount> UserBankAccounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +77,10 @@ namespace Fiebo.Persistence.Data
 
                 entity.HasIndex(x => x.UserId)
                       .IsUnique();
+
+                entity.Property(x => x.RowVersion)
+                      .IsConcurrencyToken()
+                      .ValueGeneratedOnAddOrUpdate();
             });
 
             modelBuilder.Entity<ApplicationUser>()
@@ -398,6 +403,13 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(x => x.ReferenceId);
 
+                entity.Property(x => x.Status)
+                    .IsRequired()
+                    .HasDefaultValue(Fiebo.Domain.Enums.TransactionStatus.Success);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(255);
+
                 entity.HasIndex(x => x.WalletId);
 
                 entity.HasOne(x => x.Wallet)
@@ -709,6 +721,22 @@ namespace Fiebo.Persistence.Data
                 .WithOne(b => b.CancelBooking)
                 .HasForeignKey<CancelBooking>(e => e.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // UserBankAccount
+            modelBuilder.Entity<UserBankAccount>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+                entity.Property(x => x.BankName).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.AccountNumber).HasMaxLength(50).IsRequired();
+                entity.Property(x => x.AccountHolderName).HasMaxLength(100).IsRequired();
+
+                entity.HasOne<ApplicationUser>()
+                      .WithMany()
+                      .HasForeignKey(x => x.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

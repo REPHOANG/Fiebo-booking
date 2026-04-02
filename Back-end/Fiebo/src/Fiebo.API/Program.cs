@@ -1,4 +1,4 @@
-using DotNetEnv;
+﻿using DotNetEnv;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
@@ -103,6 +103,7 @@ builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemReposito
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
 builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
+builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
 builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -130,8 +131,9 @@ builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
-builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
-builder.Services.AddScoped<IPayoutService, PayoutService>();
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
+builder.Services.AddScoped<IPayoutService, MockPayoutService>();builder.Services.AddScoped<IPayoutService, PayoutService>();
 
 builder.Services.AddHttpClient();
 

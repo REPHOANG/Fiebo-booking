@@ -40,6 +40,7 @@ namespace Fiebo.Domain.Repositories
         ISubscriptionPlanRepository SubscriptionPlans { get; }
         IOwnerPlanRepository OwnerPlans { get; }
         ICancelBookingRepository CancelBooking { get; }
+        IUserBankAccountRepository UserBankAccounts { get; }
         IPayoutRepository Payouts { get; }
 
         Task<int> SaveChangesAsync();
