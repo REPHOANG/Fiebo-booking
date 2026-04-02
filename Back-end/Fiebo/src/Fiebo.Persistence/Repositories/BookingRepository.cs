@@ -176,5 +176,17 @@ namespace Fiebo.Persistence.Repositories
 
             return await query.ToListAsync();
         }
+        public async Task<List<Booking>> GetFinancialSummaryDataAsync(string ownerId, DateTime fromDate, DateTime toDate)
+        {
+            return await _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Field)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.TimeSlot)
+                .Where(b => b.Venue.OwnerId == ownerId && b.CreatedAt >= fromDate && b.CreatedAt <= toDate)
+                .ToListAsync();
+        }
     }
 }

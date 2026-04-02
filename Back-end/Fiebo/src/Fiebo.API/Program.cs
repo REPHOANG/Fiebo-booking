@@ -1,4 +1,4 @@
-﻿using DotNetEnv;
+using DotNetEnv;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
@@ -104,6 +104,7 @@ builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanReposito
 builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
 builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
 builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
+builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
