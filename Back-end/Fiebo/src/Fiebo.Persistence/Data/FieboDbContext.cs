@@ -403,6 +403,13 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(x => x.ReferenceId);
 
+                entity.Property(x => x.Status)
+                    .IsRequired()
+                    .HasDefaultValue(Fiebo.Domain.Enums.TransactionStatus.Success);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(255);
+
                 entity.HasIndex(x => x.WalletId);
 
                 entity.HasOne(x => x.Wallet)

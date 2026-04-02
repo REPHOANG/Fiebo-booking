@@ -16,5 +16,11 @@ namespace Fiebo.Application.Interfaces
         Task<PagedResult<WalletTransactionResponse>> GetWalletTransactionsAsync
             (string userId, int pageNumber, int pageSize, DateTime? from, DateTime? to);
         Task<WithdrawResponse> WithdrawAsync(string userId, string userRole, WithdrawRequest request);
+
+        // UserBankAccount CRUD
+        Task<IEnumerable<BankAccountResponse>> GetUserBankAccountsAsync(string userId);
+        Task<BankAccountResponse> CreateBankAccountAsync(string userId, CreateBankAccountRequest request);
+        Task UpdateBankAccountAsync(string userId, int id, UpdateBankAccountRequest request);
+        Task DeleteBankAccountAsync(string userId, int id);
     }
 }

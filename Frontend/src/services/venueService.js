@@ -123,8 +123,14 @@ export const getOwnerVenueSchedule = async (venueId, date) => {
   return unwrap(response) ?? response;
 };
 
-export const getVenueServices = async (venueId) => {
-  const response = await api.get(`/api/venue/${venueId}/services`);
+export const getVenueServices = async (venueId, page, pageSize, searchKeyword) => {
+  const response = await api.get(`/api/venue/${venueId}/services`, {
+    params: {
+      page,
+      pageSize,
+      ...(searchKeyword ? { searchKeyword } : {}), // chỉ gửi khi có giá trị
+    }
+  });
   return response.data.data;
 }
 

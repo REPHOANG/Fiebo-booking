@@ -215,7 +215,7 @@ export default function WalletTransactionHistory({
             page={parseInt(page)}
             count={totalPages}
             onChange={(e, v) => changePage(v)}
-            color="primary"
+            color="success"
           />
         </Stack>
       </div>

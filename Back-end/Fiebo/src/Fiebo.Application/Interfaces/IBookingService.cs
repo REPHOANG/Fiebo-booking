@@ -17,6 +17,8 @@ namespace Fiebo.Application.Interfaces
         Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId);
         Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);
         Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason);
-        Task<List<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters);
+        Task<PagedResult<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters);
+        Task<OwnerBookingAnalyticsResponse> GetOwnerBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate);
+        Task<OwnerFinancialSummaryResponse> GetOwnerFinancialSummaryAsync(string ownerId, DateTime? fromDate, DateTime? toDate);
     }
 }

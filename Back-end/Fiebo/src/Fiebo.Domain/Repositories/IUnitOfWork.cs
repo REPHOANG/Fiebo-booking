@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +41,7 @@ namespace Fiebo.Domain.Repositories
         IOwnerPlanRepository OwnerPlans { get; }
         ICancelBookingRepository CancelBooking { get; }
         IUserBankAccountRepository UserBankAccounts { get; }
+        IPayoutRepository Payouts { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

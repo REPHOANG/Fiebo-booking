@@ -14,6 +14,8 @@ namespace Fiebo.Domain.Repositories
         Task<Booking?> GetBookingForReportAsync(int bookingId, string userId);
         Task<Booking?> GetBookingDetailByBookingId(int id);
         Task<Booking?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);
-        Task<List<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters);
+        Task<PagedResult<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters);
+        Task<List<Booking>> GetBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate);
+        Task<List<Booking>> GetFinancialSummaryDataAsync(string ownerId, DateTime fromDate, DateTime toDate);
     }
 }

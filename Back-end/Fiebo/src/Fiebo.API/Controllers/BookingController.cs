@@ -269,10 +269,52 @@ namespace Fiebo.API.Controllers
 
             var result = await _bookingService.GetBookingListForOwnerAsync(ownerId, filter);
 
-            return Ok(new ApiResponse<List<OwnerBookingListResponse>>
+            return Ok(new ApiResponse<PagedResult<OwnerBookingListResponse>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải danh sách đơn hàng thành công.",
+                Data = result
+            });
+        }
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/analytics")]
+        public async Task<IActionResult> GetBookingAnalytics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetOwnerBookingAnalyticsAsync(ownerId, fromDate, toDate);
+
+            return Ok(new ApiResponse<OwnerBookingAnalyticsResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải dữ liệu phân tích thành công.",
+                Data = result
+            });
+        }
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet]
+        [Route("/api/owner/financial-summary")]
+        public async Task<IActionResult> GetFinancialSummary([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _bookingService.GetOwnerFinancialSummaryAsync(ownerId, fromDate, toDate);
+
+            return Ok(new ApiResponse<OwnerFinancialSummaryResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải báo cáo tài chính thành công.",
                 Data = result
             });
         }
