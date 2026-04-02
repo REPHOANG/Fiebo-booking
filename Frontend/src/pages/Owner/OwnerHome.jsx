@@ -41,11 +41,11 @@ const OwnerHome = () => {
       try {
         const [v, b] = await Promise.all([
           getOwnerVenues(),
-          getOwnerBookingList(),
+          getOwnerBookingList({ pageNumber: 1, pageSize: 200 }),
         ]);
         if (!mounted) return;
         setVenues(Array.isArray(v) ? v : []);
-        setBookings(Array.isArray(b) ? b : []);
+        setBookings(Array.isArray(b?.items) ? b.items : []);
       } catch (e) {
         if (!mounted) return;
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được dữ liệu dashboard.");

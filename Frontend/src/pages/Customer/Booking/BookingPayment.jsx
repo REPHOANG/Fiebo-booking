@@ -28,6 +28,7 @@ import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
 import { callPaymentWebhook } from "../../../services/bookingService";
+import { useAuthModal } from "../../../context/AuthModalContext";
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -43,6 +44,7 @@ const BookingPayment = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
+  const { openLogin } = useAuthModal();
 
   const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
@@ -405,9 +407,7 @@ const BookingPayment = () => {
 
   const handlePay = async () => {
     if (!token) {
-      navigate("/auth/login", {
-        state: { returnTo: location.pathname, returnState: effectiveState },
-      });
+      openLogin();
       return;
     }
     if (!isEnough || paying || expired) {
@@ -683,14 +683,7 @@ const BookingPayment = () => {
             {!token && (
               <button
                 className="bp-login-btn"
-                onClick={() =>
-                  navigate("/auth/login", {
-                    state: {
-                      returnTo: location.pathname,
-                      returnState: effectiveState,
-                    },
-                  })
-                }
+                onClick={() => openLogin()}
                 disabled={paying}
                 aria-disabled={paying}
               >

@@ -608,11 +608,34 @@ const OwnerEditVenue = () => {
                         disabled={!canEdit}
                         onChange={(e) => {
                           const picked = Array.from(e.target.files || []).filter(Boolean);
-                          setDocsForm((p) => {
-                            const prevFiles = Array.isArray(p.land.files) ? p.land.files : [];
-                            const combined = [...prevFiles, ...picked].filter(Boolean).slice(0, 5);
-                            return { ...p, land: { ...p.land, files: combined } };
-                          });
+                          const maxImages = 5;
+                          const prevFiles = Array.isArray(docsForm.land.files) ? docsForm.land.files : [];
+
+                          if (picked.length > maxImages) {
+                            const id = "land-max-images";
+                            if (!toast.isActive(id)) {
+                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Vui lòng chọn lại.`, { toastId: id });
+                            }
+                            e.target.value = "";
+                            return;
+                          }
+
+                          if (prevFiles.length + picked.length > maxImages) {
+                            const id = "land-max-total-images";
+                            if (!toast.isActive(id)) {
+                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
+                            }
+                            e.target.value = "";
+                            return;
+                          }
+
+                          setDocsForm((p) => ({
+                            ...p,
+                            land: {
+                              ...p.land,
+                              files: [...prevFiles, ...picked],
+                            },
+                          }));
                           e.target.value = "";
                         }}
                       />
@@ -708,11 +731,34 @@ const OwnerEditVenue = () => {
                         disabled={!canEdit}
                         onChange={(e) => {
                           const picked = Array.from(e.target.files || []).filter(Boolean);
-                          setDocsForm((p) => {
-                            const prevFiles = Array.isArray(p.business.files) ? p.business.files : [];
-                            const combined = [...prevFiles, ...picked].filter(Boolean).slice(0, 5);
-                            return { ...p, business: { ...p.business, files: combined } };
-                          });
+                          const maxImages = 5;
+                          const prevFiles = Array.isArray(docsForm.business.files) ? docsForm.business.files : [];
+
+                          if (picked.length > maxImages) {
+                            const id = "business-max-images";
+                            if (!toast.isActive(id)) {
+                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Vui lòng chọn lại.`, { toastId: id });
+                            }
+                            e.target.value = "";
+                            return;
+                          }
+
+                          if (prevFiles.length + picked.length > maxImages) {
+                            const id = "business-max-total-images";
+                            if (!toast.isActive(id)) {
+                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
+                            }
+                            e.target.value = "";
+                            return;
+                          }
+
+                          setDocsForm((p) => ({
+                            ...p,
+                            business: {
+                              ...p.business,
+                              files: [...prevFiles, ...picked],
+                            },
+                          }));
                           e.target.value = "";
                         }}
                       />
@@ -767,6 +813,14 @@ const OwnerEditVenue = () => {
             </div>
 
             <div className="ovd-create-actions">
+              <button
+                type="button"
+                className="ovd-btn ovd-btn--secondary"
+                disabled={saving}
+                onClick={() => navigate(`/owner/venues/${id}`)}
+              >
+                Hủy
+              </button>
               <button
                 type="button"
                 className="ovd-btn ovd-btn--primary"

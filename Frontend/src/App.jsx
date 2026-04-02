@@ -12,6 +12,7 @@ import { getProfile } from "./services/authService";
 import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
 import AppRoutes from "./routers/router";
+import { AuthModalProvider, AuthModalRouteSync } from "./context/AuthModalContext";
 import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
 
 
@@ -39,6 +40,12 @@ const App = () => {
     if (isTokenExpired(token)) {
       dispatch(logout());
       localStorage.removeItem(AUTH_STORAGE_KEY);
+      if (typeof window !== "undefined") {
+        const path = window.location.pathname;
+        if (path !== "/" && !path.startsWith("/owner/login")) {
+          window.location.replace("/");
+        }
+      }
     }
   }, [token, dispatch]);
 
@@ -139,7 +146,10 @@ const App = () => {
           <LocationPrompt onConfirm={handleLocationConfirm} />
         )}
         <Router>
-          <AppRoutes />
+          <AuthModalProvider>
+            <AuthModalRouteSync />
+            <AppRoutes />
+          </AuthModalProvider>
         </Router>
         <ToastContainer
           position="top-right"

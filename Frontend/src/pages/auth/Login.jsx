@@ -33,7 +33,7 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess }) => {
+const Login = ({ onLoginSuccess, onOpenRegister }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -72,6 +72,17 @@ const Login = ({ onLoginSuccess }) => {
           setValue("identifier", identifier);
           setRememberMe(true);
         }
+      }
+    } catch (_) {}
+  }, [setValue]);
+
+  // Sau xác minh OTP — điền email từ bước đăng ký
+  useEffect(() => {
+    try {
+      const pre = sessionStorage.getItem("postVerifyLoginEmail");
+      if (pre) {
+        setValue("identifier", pre);
+        sessionStorage.removeItem("postVerifyLoginEmail");
       }
     } catch (_) {}
   }, [setValue]);
@@ -379,9 +390,19 @@ const Login = ({ onLoginSuccess }) => {
 
             <div className="signup-prompt">
               <span>Chưa có tài khoản? </span>
-              <Link to="/register" className="signup-link">
-                Đăng ký tại đây
-              </Link>
+              {typeof onOpenRegister === "function" ? (
+                <button
+                  type="button"
+                  className="signup-link auth-inline-link"
+                  onClick={onOpenRegister}
+                >
+                  Đăng ký tại đây
+                </button>
+              ) : (
+                <Link to="/register" className="signup-link">
+                  Đăng ký tại đây
+                </Link>
+              )}
             </div>
           </form>
 

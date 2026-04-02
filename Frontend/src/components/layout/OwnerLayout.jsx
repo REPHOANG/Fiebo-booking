@@ -52,7 +52,7 @@ const OwnerLayout = () => {
     } catch (e) {
       // ignore
     }
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
     setMenuOpen(false);
   };
 

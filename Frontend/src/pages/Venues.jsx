@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
-  MapPin, Star, Search, SlidersHorizontal, Frown, X, Clock,
+  MapPin, Star, Search, Frown, X, Clock,
   Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
   MessageSquare, User, Loader2,
 } from "lucide-react";
@@ -11,14 +11,26 @@ import { clearDraft } from '../store/bookingDraftSlice';
 import { searchVenues, getVenueDetail, getVenueFields, getVenueReviews } from "../services/fieldService";
 import "./Venues.css";
 
-const SPORTS = [
-  { label: "Tất cả", id: null },
-  { label: "Bóng đá", id: 1 },
-  { label: "Bóng rổ", id: 2 },
-  { label: "Tennis", id: 3 },
-  { label: "Pickleball", id: 4 },
-  // { label: "Cầu lông", id: 5 },
+/** Chỉ dùng để map `?sport=` từ URL (số hoặc tên gần đúng). */
+const SPORT_URL_ALIASES = [
+  { id: 1, label: "Bóng đá" },
+  { id: 2, label: "Bóng rổ" },
+  { id: 3, label: "Tennis" },
+  { id: 4, label: "Pickleball" },
 ];
+
+function sportTypeIdFromUrlParam(sportParam) {
+  if (!sportParam) return null;
+  const n = Number(sportParam);
+  if (!Number.isNaN(n)) return n;
+  const q = String(sportParam).toLowerCase();
+  const row = SPORT_URL_ALIASES.find(
+    (s) =>
+      s.label.toLowerCase().includes(q) ||
+      q.includes(s.label.toLowerCase()),
+  );
+  return row?.id ?? null;
+}
 
 const PAGE_SIZE = 8;
 
@@ -293,17 +305,10 @@ const Venues = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const sportParam = searchParams.get("sport");
-  let initialSportFromUrl = null;
-  if (sportParam) {
-    const n = Number(sportParam);
-    if (!Number.isNaN(n)) {
-      initialSportFromUrl = n;
-    } else {
-      // try match by label (case-insensitive, fuzzy)
-      const sp = SPORTS.find((s) => s.label && s.label.toLowerCase().includes(String(sportParam).toLowerCase()));
-      if (sp) initialSportFromUrl = sp.id;
-    }
-  }
+  const sportTypeIdFromUrl = useMemo(
+    () => sportTypeIdFromUrlParam(sportParam),
+    [sportParam],
+  );
 
   const [venues, setVenues] = useState([]);
   const [page, setPage] = useState(1);
@@ -311,54 +316,99 @@ const Venues = () => {
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [inputValue, setInputValue] = useState(initialSearch);
-  const [activeSport, setActiveSport] = useState(initialSportFromUrl); // null = all
-  const [bookingDate, setBookingDate] = useState("");
-  const [bookingTime, setBookingTime] = useState("");
   const [totalItems, setTotalItems] = useState(0);
-  // ...existing code...
+  const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
 
   const observer = useRef();
+  const prevFiltersKeyRef = useRef(undefined);
 
-  const loadPage = useCallback(async (pageToLoad, location, sportTypeId, date, time, reset = false) => {
-    setLoading(true);
+  useEffect(() => {
     try {
-      const data = await searchVenues({
-        location: location || undefined,
-        date: date || undefined,
-        time: time ? `${time}:00` : undefined,
-        sportTypeId: sportTypeId || undefined,
-        page: pageToLoad,
-        pageSize: PAGE_SIZE,
-      });
-
-      const items = data?.items || [];
-      if (reset) {
-        setVenues(items);
-      } else {
-        setVenues((p) => [...p, ...items]);
+      const raw = localStorage.getItem("userLocation");
+      if (!raw) return;
+      const j = JSON.parse(raw);
+      if (j?.lat != null && j?.lng != null) {
+        setUserGeo({ userLat: Number(j.lat), userLng: Number(j.lng) });
       }
-      setTotalItems(data?.totalItems || 0);
-      setHasMore(pageToLoad < (data?.totalPages || 0));
-    } catch (err) {
-      console.error("Failed to search venues:", err);
-      if (reset) setVenues([]);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-    }
+    } catch (_) {}
   }, []);
 
-  // Initial load + reload on filter change
-  useEffect(() => {
-    setPage(1);
-    loadPage(1, searchTerm, activeSport, bookingDate, bookingTime, true);
-  }, [searchTerm, activeSport, bookingDate, bookingTime, loadPage]);
+  const filtersKey = useMemo(
+    () =>
+      [
+        searchTerm,
+        sportTypeIdFromUrl ?? "",
+        userGeo.userLat ?? "",
+        userGeo.userLng ?? "",
+      ].join("|"),
+    [searchTerm, sportTypeIdFromUrl, userGeo.userLat, userGeo.userLng],
+  );
 
-  // Infinite scroll — load more
+  const loadPage = useCallback(
+    async (pageToLoad, reset = false) => {
+      setLoading(true);
+      const location = searchTerm?.trim() || undefined;
+      const sportTypeId =
+        sportTypeIdFromUrl != null ? Number(sportTypeIdFromUrl) : undefined;
+
+      try {
+        const data = await searchVenues({
+          location,
+          sportTypeId: Number.isFinite(sportTypeId) ? sportTypeId : undefined,
+          page: pageToLoad,
+          pageSize: PAGE_SIZE,
+          ...(userGeo.userLat != null &&
+          userGeo.userLng != null &&
+          Number.isFinite(userGeo.userLat) &&
+          Number.isFinite(userGeo.userLng)
+            ? { userLat: userGeo.userLat, userLng: userGeo.userLng }
+            : {}),
+        });
+
+        const items = data?.items || [];
+        if (reset) {
+          setVenues(items);
+        } else {
+          setVenues((p) => [...p, ...items]);
+        }
+        const ti = data?.totalItems ?? 0;
+        const tp = data?.totalPages ?? 0;
+        setTotalItems(ti);
+        const moreFromPages = tp > 0 ? pageToLoad < tp : false;
+        const moreFromCount =
+          items.length >= PAGE_SIZE && pageToLoad * PAGE_SIZE < ti;
+        setHasMore(moreFromPages || moreFromCount);
+      } catch (err) {
+        console.error("Failed to search venues:", err);
+        if (reset) setVenues([]);
+        setTotalItems(0);
+        setHasMore(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchTerm, sportTypeIdFromUrl, userGeo.userLat, userGeo.userLng],
+  );
+
+  /**
+   * Một luồng tải: đổi bộ lọc → reset trang 1 + tải lại; chỉ gọi load trang > 1 khi bộ lọc không đổi
+   * (tránh race của hai useEffect cũ: đổi lọc vẫn còn page cũ thì gọi nhầm trang 2).
+   */
   useEffect(() => {
-    if (page <= 1) return;
-    loadPage(page, searchTerm, activeSport, bookingDate, bookingTime, false);
-  }, [page, loadPage, searchTerm, activeSport, bookingDate, bookingTime]);
+    const isFirst = prevFiltersKeyRef.current === undefined;
+    const filterChanged =
+      !isFirst && prevFiltersKeyRef.current !== filtersKey;
+
+    if (isFirst || filterChanged) {
+      if (filterChanged) setPage(1);
+      prevFiltersKeyRef.current = filtersKey;
+      loadPage(1, true);
+      return;
+    }
+    if (page > 1) {
+      loadPage(page, false);
+    }
+  }, [filtersKey, page, loadPage]);
 
   const lastVenueRef = useCallback(
     (node) => {
@@ -382,7 +432,6 @@ const Venues = () => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       setSearchTerm(val);
-      setPage(1);
     }, 400);
   };
 
@@ -398,10 +447,6 @@ const Venues = () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };
   }, []);
-
-  const handleSportClick = (sportId) => {
-    setActiveSport(sportId);
-  };
 
   const getLocation = (venue) => {
     const parts = [venue.ward, venue.province].filter(Boolean);
@@ -448,34 +493,6 @@ const Venues = () => {
             onChange={handleSearchChange}
           />
         </div>
-
-        <div className="venues-datetime">
-          <label className="vd-label">Ngày:</label>
-          <input
-            type="date"
-            value={bookingDate}
-            onChange={(e) => setBookingDate(e.target.value)}
-          />
-          <label className="vd-label">Giờ:</label>
-          <input
-            type="time"
-            value={bookingTime}
-            onChange={(e) => setBookingTime(e.target.value)}
-          />
-          <button className="vd-clear-dt" onClick={() => { setBookingDate(''); setBookingTime(''); }}>
-            <X size={14} />
-          </button>
-        </div>
-
-        {SPORTS.map((s) => (
-          <button
-            key={s.label}
-            className={`filter-chip ${activeSport === s.id ? "active" : ""}`}
-            onClick={() => handleSportClick(s.id)}
-          >
-            {s.label}
-          </button>
-        ))}
       </div>
 
       {/* Grid */}
@@ -493,7 +510,7 @@ const Venues = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.15 }}
-                onClick={() => navigate(`/venue/${venue.venueId}${bookingDate || bookingTime ? `?date=${bookingDate || ''}&time=${bookingTime || ''}` : ''}`)}
+                onClick={() => navigate(`/venue/${venue.venueId}`)}
                 style={{ cursor: "pointer" }}
               >
                 <div className="venue-image">
@@ -519,7 +536,7 @@ const Venues = () => {
                       <MapPin size={13} /> {venue.distanceKm.toFixed(1)} km
                     </p>
                   )}
-                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); navigate(`/venue/${venue.venueId}${bookingDate || bookingTime ? `?date=${bookingDate || ''}&time=${bookingTime || ''}` : ''}`); }}>
+                  <button className="book-btn" onClick={(e) => { e.stopPropagation(); navigate(`/venue/${venue.venueId}`); }}>
                     Xem chi tiết
                   </button>
                 </div>

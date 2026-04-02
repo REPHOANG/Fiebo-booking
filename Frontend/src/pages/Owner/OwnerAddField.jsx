@@ -1,18 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2, X } from "lucide-react";
 import { toast } from "react-toastify";
-import { createOwnerField, getOwnerVenueFields } from "../../services/fieldService";
+import {
+  createOwnerField,
+  getOwnerVenueFields,
+  updateOwnerField,
+  uploadOwnerFieldImages,
+} from "../../services/fieldService";
 import { getSportTypes } from "../../services/sportTypeService";
 import { getVenueDraft } from "../../services/venueService";
 import "./OwnerVenueDetail.css";
-
-const normalizeText = (value) =>
-  String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "—";
@@ -20,20 +18,29 @@ const formatTime = (timeSpan) => {
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
 };
 
+const normSportKey = (v) =>
+  String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
 const OwnerAddField = () => {
-  const { id } = useParams();
+  const { id, fieldId } = useParams();
   const navigate = useNavigate();
+  const isEdit = Boolean(fieldId);
   const [sportTypes, setSportTypes] = useState([]);
-  const [venueFields, setVenueFields] = useState([]);
-  const [creatingField, setCreatingField] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [venueOpenTime, setVenueOpenTime] = useState(null);
   const [venueCloseTime, setVenueCloseTime] = useState(null);
+  const [editReady, setEditReady] = useState(!isEdit);
   const [newField, setNewField] = useState({
     name: "",
     sportTypeId: "",
     description: "",
     images: [],
   });
+  const fileInputRef = useRef(null);
 
   const sportTypeOptions = useMemo(
     () =>
@@ -42,19 +49,6 @@ const OwnerAddField = () => {
       ),
     [sportTypes],
   );
-
-  const selectedSportTypeName = useMemo(() => {
-    const found = sportTypeOptions.find((s) => String(s.id) === String(newField.sportTypeId));
-    return found?.name ?? "";
-  }, [sportTypeOptions, newField.sportTypeId]);
-
-  const existingFieldsBySelectedType = useMemo(() => {
-    if (!selectedSportTypeName) return venueFields;
-    const selectedKey = normalizeText(selectedSportTypeName);
-    return (venueFields || []).filter(
-      (f) => normalizeText(f?.sportType ?? f?.SportType ?? "") === selectedKey,
-    );
-  }, [venueFields, selectedSportTypeName]);
 
   useEffect(() => {
     let mounted = true;
@@ -97,21 +91,52 @@ const OwnerAddField = () => {
   }, [id]);
 
   useEffect(() => {
-    let mounted = true;
+    if (!isEdit) {
+      setEditReady(true);
+      return;
+    }
+    setEditReady(false);
+  }, [fieldId, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit || !id || !fieldId) return;
+    if (!sportTypeOptions.length) return;
+    let cancelled = false;
     (async () => {
       try {
         const list = await getOwnerVenueFields(id);
-        if (mounted) setVenueFields(Array.isArray(list) ? list : []);
+        const raw = (Array.isArray(list) ? list : []).find(
+          (x) => String(x?.fieldId ?? x?.FieldId) === String(fieldId),
+        );
+        if (cancelled) return;
+        if (!raw) {
+          toast.error("Không tìm thấy sân.");
+          navigate(`/owner/venues/${id}`, { replace: true });
+          return;
+        }
+        const sportLabel = String(raw?.sportType ?? raw?.SportType ?? "").trim();
+        const st = sportTypeOptions.find((s) => normSportKey(s.name) === normSportKey(sportLabel));
+        setNewField({
+          name: String(raw?.fieldName ?? raw?.FieldName ?? "").trim(),
+          sportTypeId: st ? String(st.id) : "",
+          description: String(raw?.description ?? raw?.Description ?? "").trim(),
+          images: [],
+        });
+        setEditReady(true);
       } catch {
-        if (mounted) setVenueFields([]);
+        if (!cancelled) {
+          toast.error("Không tải được thông tin sân.");
+          navigate(`/owner/venues/${id}`, { replace: true });
+        }
       }
     })();
     return () => {
-      mounted = false;
+      cancelled = true;
     };
-  }, [id]);
+  }, [isEdit, id, fieldId, sportTypeOptions, navigate]);
 
   useEffect(() => {
+    if (isEdit) return;
     if (!sportTypeOptions.length) return;
     const exists = sportTypeOptions.some((s) => String(s.id) === String(newField.sportTypeId));
     if (!exists) {
@@ -120,7 +145,38 @@ const OwnerAddField = () => {
         sportTypeId: String(sportTypeOptions[0].id),
       }));
     }
-  }, [sportTypeOptions, newField.sportTypeId]);
+  }, [isEdit, sportTypeOptions, newField.sportTypeId]);
+
+  const imagePreviewUrls = useMemo(
+    () => (newField.images || []).map((f) => URL.createObjectURL(f)),
+    [newField.images],
+  );
+
+  useEffect(() => {
+    const urls = imagePreviewUrls;
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [imagePreviewUrls]);
+
+  const removeImageAt = (index) => {
+    setNewField((p) => {
+      const next = p.images.filter((_, i) => i !== index);
+      if (next.length === 0 && fileInputRef.current) fileInputRef.current.value = "";
+      return { ...p, images: next };
+    });
+  };
+
+  if (isEdit && !editReady) {
+    return (
+      <div className="owner-venue-detail">
+        <div className="ovd-loading">
+          <Loader2 size={28} className="ovd-spinner" />
+          <p>Đang tải thông tin sân...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="owner-venue-detail">
@@ -142,7 +198,7 @@ const OwnerAddField = () => {
       <div className="ovd-card">
         <div className="ovd-title-row">
           <h3 className="ovd-subtitle">
-            <Calendar size={18} /> Thêm sân mới
+            <Calendar size={18} /> {isEdit ? "Sửa sân" : "Thêm sân mới"}
           </h3>
         </div>
         <p className="ovd-muted">
@@ -150,23 +206,17 @@ const OwnerAddField = () => {
           <strong>
             {formatTime(venueOpenTime)} - {formatTime(venueCloseTime)}
           </strong>
-          . Chọn <strong>bất kỳ môn nào</strong> trong hệ thống (giống trang quản lý time slot).
+          .{" "}
+          {isEdit ? (
+            <>
+              Khi <strong>sửa sân</strong>, loại sân/môn được giữ nguyên (không đổi trên form này).
+            </>
+          ) : (
+            <>
+              Chọn <strong>bất kỳ môn nào</strong> trong hệ thống (giống trang quản lý time slot).
+            </>
+          )}
         </p>
-
-        {sportTypeOptions.length > 0 ? (
-          <div className="ovd-sport-chips" role="group" aria-label="Chọn môn nhanh">
-            {sportTypeOptions.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`ovd-sport-chip ${String(newField.sportTypeId) === String(s.id) ? "is-active" : ""}`}
-                onClick={() => setNewField((p) => ({ ...p, sportTypeId: String(s.id) }))}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         <div className="ovd-create-grid">
           <label className="ovd-label">
@@ -174,6 +224,8 @@ const OwnerAddField = () => {
             <select
               className="ovd-input"
               value={newField.sportTypeId}
+              disabled={isEdit}
+              title={isEdit ? "Loại sân không đổi khi chỉnh sửa sân đã tạo" : undefined}
               onChange={(e) => setNewField((p) => ({ ...p, sportTypeId: e.target.value }))}
             >
               <option value="">-- Chọn môn --</option>
@@ -206,6 +258,7 @@ const OwnerAddField = () => {
           <label className="ovd-label ovd-full">
             Ảnh sân
             <input
+              ref={fileInputRef}
               className="ovd-input"
               type="file"
               multiple
@@ -217,49 +270,37 @@ const OwnerAddField = () => {
                 }))
               }
             />
+            {imagePreviewUrls.length > 0 ? (
+              <div className="ovd-image-preview-grid" aria-live="polite">
+                {imagePreviewUrls.map((url, idx) => (
+                  <div key={`${url}-${idx}`} className="ovd-image-preview-item">
+                    <img src={url} alt={newField.images[idx]?.name || `Ảnh ${idx + 1}`} />
+                    <button
+                      type="button"
+                      className="ovd-image-preview-remove"
+                      onClick={() => removeImageAt(idx)}
+                      aria-label={`Bỏ ảnh ${idx + 1}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="ovd-image-preview-empty">
+                {isEdit
+                  ? "Chưa chọn ảnh mới — có thể thêm ảnh bổ sung sau khi lưu."
+                  : "Chưa chọn ảnh — có thể thêm nhiều file."}
+              </p>
+            )}
           </label>
-        </div>
-
-        <div className="ovd-fields">
-          <p className="ovd-muted">
-            Sân hiện có ({selectedSportTypeName || "tất cả môn"}):{" "}
-            <strong>{existingFieldsBySelectedType.length}</strong>
-          </p>
-          {existingFieldsBySelectedType.length === 0 ? (
-            <p className="ovd-muted">Chưa có sân cho loại môn này.</p>
-          ) : (
-            existingFieldsBySelectedType.map((f) => {
-              const fieldId = f?.fieldId ?? f?.FieldId;
-              const fieldName = f?.fieldName ?? f?.FieldName ?? "—";
-              const sportName = f?.sportType ?? f?.SportType ?? "—";
-              const status = f?.status ?? f?.Status ?? "—";
-              const minPrice = f?.minPrice ?? f?.MinPrice;
-              const maxPrice = f?.maxPrice ?? f?.MaxPrice;
-              const priceLabel =
-                minPrice != null && maxPrice != null
-                  ? `${Number(minPrice).toLocaleString("vi-VN")} – ${Number(maxPrice).toLocaleString("vi-VN")} đ`
-                  : "—";
-              return (
-                <div key={fieldId ?? fieldName} className="ovd-field-row">
-                  <div className="ovd-field-main">
-                    <strong className="ovd-field-name">{fieldName}</strong>
-                    <span className="ovd-field-meta">{sportName}</span>
-                  </div>
-                  <div className="ovd-field-right">
-                    <span className="ovd-field-price">{priceLabel}</span>
-                    <span className="ovd-field-status">{status}</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
         </div>
 
         <div className="ovd-create-actions">
           <button
             type="button"
             className="ovd-btn ovd-btn--primary"
-            disabled={creatingField}
+            disabled={submitting}
             onClick={async () => {
               if (!newField.name.trim()) {
                 toast.error("Vui lòng nhập tên sân.");
@@ -269,24 +310,43 @@ const OwnerAddField = () => {
                 toast.error("Vui lòng chọn môn thể thao.");
                 return;
               }
-              setCreatingField(true);
+              setSubmitting(true);
               try {
-                await createOwnerField(id, {
-                  name: newField.name.trim(),
-                  sportTypeId: Number(newField.sportTypeId),
-                  description: newField.description?.trim() || undefined,
-                  images: newField.images,
-                });
-                toast.success("Tạo sân thành công.");
+                if (isEdit) {
+                  await updateOwnerField(
+                    fieldId,
+                    {
+                      name: newField.name.trim(),
+                      sportTypeId: Number(newField.sportTypeId),
+                      description: newField.description?.trim() ?? "",
+                    },
+                    id,
+                  );
+                  const extra = newField.images || [];
+                  if (extra.length) await uploadOwnerFieldImages(fieldId, extra);
+                  toast.success("Cập nhật sân thành công.");
+                } else {
+                  await createOwnerField(id, {
+                    name: newField.name.trim(),
+                    sportTypeId: Number(newField.sportTypeId),
+                    description: newField.description?.trim() || undefined,
+                    images: newField.images,
+                  });
+                  toast.success("Tạo sân thành công.");
+                }
                 navigate(`/owner/venues/${id}`);
               } catch (e) {
-                toast.error(e?.response?.data?.message ?? e?.message ?? "Không tạo được sân.");
+                toast.error(
+                  e?.response?.data?.message ??
+                    e?.message ??
+                    (isEdit ? "Không cập nhật được sân." : "Không tạo được sân."),
+                );
               } finally {
-                setCreatingField(false);
+                setSubmitting(false);
               }
             }}
           >
-            {creatingField ? "Đang tạo..." : "Tạo sân"}
+            {submitting ? (isEdit ? "Đang lưu..." : "Đang tạo...") : isEdit ? "Lưu thay đổi" : "Tạo sân"}
           </button>
         </div>
       </div>

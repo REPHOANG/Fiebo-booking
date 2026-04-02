@@ -12,6 +12,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: lpFadeIn 0.22s ease-out;
+  overscroll-behavior: contain;
 }
 
 @keyframes lpFadeIn {
@@ -258,4 +259,8 @@
 .login-popup-content .signup-link:hover {
   text-decoration: underline;
   color: #334155;
+}
+
+.login-popup-content button.signup-link.auth-inline-link {
+  display: inline;
 }

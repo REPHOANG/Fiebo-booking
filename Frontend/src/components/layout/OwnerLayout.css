@@ -239,6 +239,8 @@
   flex: 1;
   padding: 0 24px 32px;
   min-width: 0;
+  /* Chiều cao vùng owner-topbar (padding + min-height) — dùng cho sticky con (vd. BookingSchedule) */
+  --owner-topbar-offset: 78px;
 }
 
 .owner-topbar-menu {
@@ -268,7 +270,7 @@
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 30;
 }
 
 .owner-topbar-search {
@@ -525,6 +527,9 @@
   }
   .owner-topbar-menu {
     display: inline-flex;
+  }
+  .owner-content {
+    --owner-topbar-offset: 72px;
   }
   .owner-topbar {
     grid-template-columns: auto minmax(120px, 1fr) auto;

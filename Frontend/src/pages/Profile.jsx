@@ -165,7 +165,7 @@ const Profile = () => {
     sessionStorage.removeItem('token');
     toast.success("Đăng xuất thành công!");
     setMobileMenuOpen(false);
-    navigate("/login");
+    navigate("/");
   };
 
   const avatarLetter = (profileData.fullName || profileData.email || "U")

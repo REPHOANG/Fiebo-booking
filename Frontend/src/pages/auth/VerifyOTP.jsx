@@ -6,6 +6,7 @@ import { verifyOTP } from '../../services/authService';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import './VerifyOTP.css';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const VerifyOTP = () => {
   // Redirect if no pending registration
   useEffect(() => {
     if (!registrationPending || !registrationEmail) {
-      navigate('/register');
+      navigate('/', { replace: true, state: { [OPEN_AUTH_STATE_KEY]: 'register' } });
     }
   }, [registrationPending, registrationEmail, navigate]);
 
@@ -113,11 +114,12 @@ const VerifyOTP = () => {
       
       // Auto-redirect to login with email pre-filled
       setTimeout(() => {
-        navigate('/login', {
-          state: {
-            email: registrationEmail,
-            verified: true,
-          },
+        try {
+          sessionStorage.setItem('postVerifyLoginEmail', registrationEmail);
+        } catch (_) {}
+        navigate('/', {
+          replace: true,
+          state: { [OPEN_AUTH_STATE_KEY]: 'login' },
         });
       }, 1500);
     } catch (error) {

@@ -68,13 +68,37 @@ export const getVenueFields = async (venueId, page = 1, pageSize = 20) => {
   return response.data?.data ?? response.data;
 };
 
+/** Tất cả sân (paginated) để lọc lịch theo đúng môn — DTO có sportType + name. */
+export const fetchVenueFieldCatalog = async (venueId) => {
+  const pageSize = 100;
+  let page = 1;
+  const all = [];
+  for (;;) {
+    const data = await getVenueFields(venueId, page, pageSize);
+    const items = data?.items ?? data?.Items ?? [];
+    all.push(...items);
+    const total = Number(data?.totalItems ?? data?.TotalItems);
+    if (!items.length || items.length < pageSize) break;
+    if (Number.isFinite(total) && total > 0 && all.length >= total) break;
+    page += 1;
+  }
+  return all;
+};
+
 /**
  * Get venue schedule (slots + unavailable bookings) for a specific date
+ * @param {string|number} venueId
+ * @param {string|Date} date
+ * @param {{ sportTypeId?: number|string }} [options] optional filter (nếu API hỗ trợ query sportTypeId)
  */
-export const getVenueSchedule = async (venueId, date) => {
+export const getVenueSchedule = async (venueId, date, options = {}) => {
   const q = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
+  const params = { date: q };
+  if (options.sportTypeId != null && options.sportTypeId !== '') {
+    params.sportTypeId = options.sportTypeId;
+  }
   const response = await api.get(`/api/Venue/${venueId}/schedule`, {
-    params: { date: q },
+    params,
   });
   return response.data?.data ?? response.data;
 };
@@ -142,13 +166,27 @@ export const createOwnerField = async (venueId, payload) => {
 };
 
 /**
- * Owner: Update a field
- * Try multiple route variants for backend compatibility.
+ * Owner: Update a field (Fiebo: PUT multipart `/api/owner/field/{id}` — name, description, sportTypeId)
  * @param {number|string} fieldId
- * @param {{name?:string,description?:string,sportTypeId?:number|string,status?:string}} payload
- * @param {number|string} [venueId]
+ * @param {{name:string,description?:string,sportTypeId:number|string,status?:string}} payload
+ * @param {number|string} [venueId] fallback PATCH routes
  */
 export const updateOwnerField = async (fieldId, payload, venueId) => {
+  const form = new FormData();
+  form.append("name", String(payload?.name ?? ""));
+  form.append("description", payload?.description != null ? String(payload.description) : "");
+  form.append("sportTypeId", String(payload?.sportTypeId ?? ""));
+
+  try {
+    const response = await api.put(`/api/owner/field/${fieldId}`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data?.data ?? response.data;
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status !== 404 && status !== 405) throw e;
+  }
+
   const body = {
     ...(payload?.name != null ? { name: payload.name } : {}),
     ...(payload?.description != null ? { description: payload.description } : {}),
@@ -169,11 +207,23 @@ export const updateOwnerField = async (fieldId, payload, venueId) => {
       return response.data?.data ?? response.data;
     } catch (error) {
       lastError = error;
-      const status = error?.response?.status;
-      if (status !== 404 && status !== 405) throw error;
+      const st = error?.response?.status;
+      if (st !== 404 && st !== 405) throw error;
     }
   }
   throw lastError;
+};
+
+/** Owner: thêm ảnh cho sân đã tồn tại (POST `/api/Media/field/{id}/upload`) */
+export const uploadOwnerFieldImages = async (fieldId, files) => {
+  const arr = Array.isArray(files) ? files.filter(Boolean) : [];
+  if (!arr.length) return null;
+  const form = new FormData();
+  arr.forEach((file) => form.append("files", file));
+  const response = await api.post(`/api/Media/field/${fieldId}/upload`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data?.data ?? response.data;
 };
 
 /**
@@ -205,10 +255,28 @@ export const searchVenues = async ({
   if (location) params.location = location;
   if (date) params.date = date;
   if (time) params.time = time;
-  if (sportTypeId != null) params.sportTypeId = sportTypeId;
+  if (sportTypeId != null && sportTypeId !== '') params.sportTypeId = sportTypeId;
   if (radiusKm != null) params.radiusKm = radiusKm;
   if (userLat != null) params.userLat = userLat;
   if (userLng != null) params.userLng = userLng;
   const response = await api.get('/api/Venue/search', { params });
-  return response.data?.data ?? response.data;
+  const raw = response.data?.data ?? response.data ?? {};
+  const items = raw.items ?? raw.Items ?? [];
+  const totalItems = Number(raw.totalItems ?? raw.TotalItems ?? 0) || 0;
+  const ps = Number(raw.pageSize ?? raw.PageSize ?? pageSize) || pageSize;
+  const pg = Number(raw.page ?? raw.Page ?? page) || page;
+  const fromApi = Number(raw.totalPages ?? raw.TotalPages);
+  const totalPages =
+    Number.isFinite(fromApi) && fromApi > 0
+      ? fromApi
+      : totalItems > 0
+        ? Math.ceil(totalItems / ps)
+        : 0;
+  return {
+    items: Array.isArray(items) ? items : [],
+    totalItems,
+    totalPages,
+    page: pg,
+    pageSize: ps,
+  };
 };

@@ -474,8 +474,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   padding: 0.65rem 1rem;
   background: #fafcfb;
   border-bottom: 1px solid var(--ots-border);
@@ -520,6 +520,102 @@
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+
+/* Vùng chèn slot: co mặc định, chỉ mở rộng khi hover / focus */
+.ots-row-insert-zone {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 1px 0 2px;
+  border-radius: 8px;
+  margin: -2px 0;
+  transition:
+    padding 0.22s ease,
+    background 0.2s ease;
+}
+
+.ots-row-insert-zone:hover,
+.ots-row-insert-zone:focus-visible {
+  padding: 8px 0 10px;
+  background: rgba(0, 100, 66, 0.06);
+}
+
+.ots-row-insert-line {
+  display: block;
+  height: 2px;
+  margin: 0 auto;
+  max-width: 100px;
+  border-radius: 3px;
+  background: rgba(0, 100, 66, 0.28);
+  opacity: 0.5;
+  transition:
+    height 0.2s ease,
+    max-width 0.22s ease,
+    opacity 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ots-row-insert-zone:hover .ots-row-insert-line,
+.ots-row-insert-zone:focus-visible .ots-row-insert-line {
+  height: 4px;
+  max-width: 220px;
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--ots-green), transparent);
+  box-shadow: 0 0 0 1px rgba(0, 100, 66, 0.12);
+}
+
+.ots-row-insert-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ots-green);
+  letter-spacing: 0.02em;
+  transform: translateY(-6px);
+  transition:
+    max-height 0.24s ease,
+    opacity 0.2s ease,
+    margin-top 0.22s ease,
+    transform 0.22s ease;
+}
+
+.ots-row-insert-zone:hover .ots-row-insert-label,
+.ots-row-insert-zone:focus-visible .ots-row-insert-label {
+  max-height: 48px;
+  opacity: 1;
+  margin-top: 8px;
+  transform: translateY(0);
+}
+
+/* Mobile: vẫn co; chạm giữ focus sẽ mở (focus-visible), hoặc bám theo :active tạm thời */
+@media (hover: none) {
+  .ots-row-insert-zone:active {
+    padding: 8px 0 10px;
+    background: rgba(0, 100, 66, 0.06);
+  }
+
+  .ots-row-insert-zone:active .ots-row-insert-line {
+    height: 4px;
+    max-width: 220px;
+    opacity: 1;
+    background: linear-gradient(90deg, transparent, var(--ots-green), transparent);
+  }
+
+  .ots-row-insert-zone:active .ots-row-insert-label {
+    max-height: 48px;
+    opacity: 1;
+    margin-top: 8px;
+    transform: translateY(0);
+  }
 }
 
 .ots-slot-col {
@@ -773,9 +869,26 @@
     padding: 0 1rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
   }
 
+  .ots-layout {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .ots-sidebar {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 0.85rem;
+    padding: 0.85rem 0.85rem;
+  }
+
+  .ots-editor {
+    width: 100%;
+  }
+
   .ots-table-head,
   .ots-slot-row {
-    grid-template-columns: 1fr minmax(100px, 140px) 44px;
+    grid-template-columns: 1fr minmax(95px, 120px) 42px;
     gap: 0.5rem;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
@@ -786,7 +899,7 @@
   }
 
   .ots-slot-time select {
-    max-width: 76px;
+    max-width: 72px;
     font-size: 12px;
   }
 
@@ -797,6 +910,11 @@
   .ots-peak-badge {
     font-size: 9px;
     padding: 2px 6px;
+  }
+
+  .ots-fab {
+    right: 0.85rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

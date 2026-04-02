@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "react-toastify";
-import { getOwnerVenueFields, getVenueDetail, updateOwnerField } from "../../services/fieldService";
+import { getOwnerVenueFields, getVenueDetail } from "../../services/fieldService";
 import { deactivateOwnerVenue, getVenueDraft } from "../../services/venueService";
 import "./OwnerVenueDetail.css";
 
@@ -139,12 +139,6 @@ const OwnerVenueDetail = () => {
   const [deactivating, setDeactivating] = useState(false);
   const [fields, setFields] = useState([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
-  const [editingFieldId, setEditingFieldId] = useState(null);
-  const [savingFieldEdit, setSavingFieldEdit] = useState(false);
-  const [editFieldData, setEditFieldData] = useState({
-    name: "",
-    description: "",
-  });
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sportFilter, setSportFilter] = useState("all");
@@ -318,20 +312,6 @@ const OwnerVenueDetail = () => {
     );
     return Array.from(set);
   }, [fields]);
-
-  const beginEditField = (field) => {
-    const fieldId = field?.fieldId ?? field?.FieldId;
-    setEditingFieldId(fieldId);
-    setEditFieldData({
-      name: field?.fieldName ?? field?.FieldName ?? "",
-      description: field?.description ?? field?.Description ?? "",
-    });
-  };
-
-  const cancelEditField = () => {
-    setEditingFieldId(null);
-    setEditFieldData({ name: "", description: "" });
-  };
 
   if (loading) {
     return (
@@ -649,89 +629,11 @@ const OwnerVenueDetail = () => {
                         <span className="ovd-field-price">{priceLabel}</span>
                         <span className="ovd-field-status">{status}</span>
                       </div>
-                      {canEditVenue ? (
+                      {canEditVenue && fieldId != null ? (
                         <div className="ovd-field-actions">
-                          <button
-                            type="button"
-                            className="ovd-toggle-btn"
-                            onClick={() => beginEditField(f)}
-                          >
-                            Sửa
-                          </button>
-                        </div>
-                      ) : null}
-                      {canEditVenue && editingFieldId === fieldId ? (
-                        <div className="ovd-field-edit">
-                          <label className="ovd-label">
-                            Tên sân
-                            <input
-                              className="ovd-input"
-                              value={editFieldData.name}
-                              onChange={(e) =>
-                                setEditFieldData((prev) => ({ ...prev, name: e.target.value }))
-                              }
-                              placeholder="Nhập tên sân"
-                            />
-                          </label>
-                          <label className="ovd-label">
-                            Mô tả
-                            <textarea
-                              className="ovd-input"
-                              rows={2}
-                              value={editFieldData.description}
-                              onChange={(e) =>
-                                setEditFieldData((prev) => ({ ...prev, description: e.target.value }))
-                              }
-                              placeholder="Mô tả sân"
-                            />
-                          </label>
-                          <div className="ovd-create-actions">
-                            <button
-                              type="button"
-                              className="ovd-btn"
-                              onClick={cancelEditField}
-                              disabled={savingFieldEdit}
-                            >
-                              Hủy
-                            </button>
-                            <button
-                              type="button"
-                              className="ovd-btn ovd-btn--primary"
-                              disabled={savingFieldEdit}
-                              onClick={async () => {
-                                if (!fieldId) return;
-                                if (!editFieldData.name.trim()) {
-                                  toast.error("Tên sân không được để trống.");
-                                  return;
-                                }
-                                setSavingFieldEdit(true);
-                                try {
-                                  await updateOwnerField(
-                                    fieldId,
-                                    {
-                                      name: editFieldData.name.trim(),
-                                      description: editFieldData.description?.trim() || "",
-                                    },
-                                    id,
-                                  );
-                                  toast.success("Cập nhật sân thành công.");
-                                  const list = await getOwnerVenueFields(id);
-                                  setFields(Array.isArray(list) ? list : []);
-                                  cancelEditField();
-                                } catch (e) {
-                                  toast.error(
-                                    e?.response?.data?.message ??
-                                      e?.message ??
-                                      "Không cập nhật được sân.",
-                                  );
-                                } finally {
-                                  setSavingFieldEdit(false);
-                                }
-                              }}
-                            >
-                              {savingFieldEdit ? "Đang lưu..." : "Lưu"}
-                            </button>
-                          </div>
+                          <Link className="ovd-toggle-btn" to={`/owner/venues/${id}/edit-field/${fieldId}`}>
+                            Chỉnh sửa
+                          </Link>
                         </div>
                       ) : null}
                     </div>

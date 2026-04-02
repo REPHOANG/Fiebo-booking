@@ -1,12 +1,15 @@
 import React from 'react';
 import './SearchBar.css';
-import { Search, SlidersHorizontal, Map, CheckSquare, Heart } from 'lucide-react';
+import { Search, SlidersHorizontal, Map, CheckSquare, Heart, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, FormControl } from 'react-bootstrap';
+import { useAuthModal } from '../../../context/AuthModalContext';
+import VenuesMegaMenu from '../VenuesMegaMenu/VenuesMegaMenu';
 
 
 const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenticated, variant = 'icon' }) => {
   const navigate = useNavigate();
+  const { openLogin } = useAuthModal();
 
   const renderSearchButton = () => {
     if (variant === 'none') return null;
@@ -45,23 +48,36 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenti
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onSearch()}
         />
-        <Button variant="light" className="ms-2 ch-filter-btn">
+        <div className="ch-mega-wrapper">
+          <button type="button" className="ch-mega-trigger" aria-haspopup="true" aria-expanded="false">
+            Sân
+            <ChevronDown size={16} className="ch-mega-chevron" aria-hidden />
+          </button>
+          <VenuesMegaMenu align="end" />
+        </div>
+        <Button
+          variant="light"
+          className="ms-2 ch-filter-btn"
+          type="button"
+          aria-label="Mở trang tìm sân"
+          onClick={() => navigate("/venues")}
+        >
           <SlidersHorizontal size={18} />
         </Button>
       </div>
 
       <div className="ch-nav-tabs d-flex gap-2 mt-2">
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/')}>
+        <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/map')}>
           <Map size={16} /> <span className="ms-1">Bản đồ</span>
         </Button>
         <Button
           variant="link"
           className="ch-nav-tab p-0"
-          onClick={() => (isAuthenticated ? navigate('/bookings') : navigate('/login'))}
+          onClick={() => (isAuthenticated ? navigate('/bookings') : openLogin())}
         >
           <CheckSquare size={16} /> <span className="ms-1">Sân đã đặt</span>
         </Button>
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && navigate('/login')}>
+        <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && openLogin()}>
           <Heart size={16} fill="#22c55e" /> <span className="ms-1">Yêu thích</span>
         </Button>
       </div>

@@ -5,10 +5,9 @@ import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
 import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
 import BookingPayment from '../pages/Customer/Booking/BookingPayment';
-import Login from '../pages/auth/Login';
 import OwnerLogin from '../pages/auth/OwnerLogin';
 import OwnerHome from '../pages/Owner/OwnerHome';
-import Register from '../pages/auth/Register';
+import { OPEN_AUTH_STATE_KEY } from '../context/AuthModalContext';
 import Profile from '../pages/Profile';
 import Venues from '../pages/Venues';
 import ForgotPassword from '../pages/auth/ForgotPassword';
@@ -57,9 +56,19 @@ const OwnerVenueTimeSlotLegacyRedirect = () => {
  */
 const AppRoutes = () => (
   <Routes>
-    <Route path="/login" element={<Login />} />
+    <Route
+      path="/login"
+      element={
+        <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "login" }} />
+      }
+    />
     <Route path="/owner/login" element={<OwnerLogin />} />
-    <Route path="/register" element={<Register />} />
+    <Route
+      path="/register"
+      element={
+        <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "register" }} />
+      }
+    />
     <Route path="/verify-otp" element={<VerifyOTP />} />
     <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -90,6 +99,7 @@ const AppRoutes = () => (
       <Route path="/owner/venues/:id/time-slot" element={<OwnerTimeSlot />} />
       <Route path="/owner/venues/:id/create-field" element={<OwnerVenueTimeSlotLegacyRedirect />} />
       <Route path="/owner/venues/:id/add-field" element={<OwnerAddField />} />
+      <Route path="/owner/venues/:id/edit-field/:fieldId" element={<OwnerAddField />} />
       <Route path="/owner/venues/:id/edit" element={<OwnerEditVenue />} />
       <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />
       <Route path="/owner/venues/:id/offline-booking/confirm" element={<BookingConfirmation />} />

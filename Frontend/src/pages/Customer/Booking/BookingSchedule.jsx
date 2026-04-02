@@ -3,12 +3,10 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { getVenueDetail, getVenueFields } from "../../../services/fieldService";
+import { getVenueDetail, getVenueSchedule, fetchVenueFieldCatalog } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
-import { getVenueSchedule } from '../../../services/fieldService';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
-import { getEventList } from "../../../services/eventService";
-import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
+import { useAuthModal } from "../../../context/AuthModalContext";
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -36,6 +34,48 @@ const normalizeSlotTime = (t) => {
 };
 
 const normalizeText = (v) => String(v || "").trim().toLowerCase();
+
+/** Lọc từng nhóm môn: chỉ giữ sân thuộc đúng sportType (backend có thể nhân bản cùng fields cho mọi SportTypes). */
+const filterScheduleByFieldCatalog = (res, allowedKeySet) => {
+  if (!res?.sportTypes?.length || !allowedKeySet || allowedKeySet.size === 0) return res;
+  const sportTypes = res.sportTypes.map((st) => {
+    const sportType = String(st.sportTypeName || st.sportType || "").trim();
+    const sportKey = normalizeText(sportType);
+    const fields = (st.fields || []).filter((f) => {
+      const name = String(f.fieldName || f.name || "").trim();
+      if (!name) return false;
+      return allowedKeySet.has(`${sportKey}|${normalizeText(name)}`);
+    });
+    return { ...st, fields };
+  });
+  return { ...res, sportTypes };
+};
+
+/** Danh sách sân + môn từ GET lịch. Thứ tự theo sportTypes.fields trên response. */
+const buildFieldsFromVenueSchedule = (res) => {
+  const out = [];
+  const seen = new Set();
+  (res?.sportTypes || []).forEach((st) => {
+    const sportType = String(st.sportTypeName || st.sportType || "").trim();
+    const sportKey = normalizeText(sportType);
+    (st.fields || []).forEach((f) => {
+      const name = String(f.fieldName || f.name || "").trim();
+      if (!name) return;
+      const key = `${sportKey}|${normalizeText(name)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({
+        ...f,
+        name,
+        sportType,
+        fieldName: f.fieldName ?? f.name,
+        id: f.fieldId ?? f.id ?? f.FieldId ?? f.fieldID,
+        fieldId: f.fieldId ?? f.id ?? f.FieldId,
+      });
+    });
+  });
+  return out;
+};
 
 /** Độ dài một khung slot từ API (phút) */
 const apiSlotDurationMinutes = (s) => {
@@ -205,6 +245,8 @@ const BookingSchedule = () => {
 
   const [venue, setVenue] = useState(null);
   const [fields, setFields] = useState([]);
+  /** undefined = đang tải catalogue sân; null = không lọc; Set = cặp môn|tên hợp lệ từ GET /fields */
+  const [fieldCatalogKeySet, setFieldCatalogKeySet] = useState(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(todayStr());
@@ -214,7 +256,7 @@ const BookingSchedule = () => {
   const dispatch = useDispatch();
   const draft = useSelector((s) => s.bookingDrafts?.[id]);
   const { isAuthenticated } = useSelector((state) => state.auth || {});
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const { openLogin } = useAuthModal();
   const [zoomLevel, setZoomLevel] = useState(50); // 50px to 100px column width
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
@@ -231,12 +273,8 @@ const BookingSchedule = () => {
   const calendarRef = useRef(null);
   const zoomSliderRef = useRef(null);
   const [venueSchedule, setVenueSchedule] = useState(null);
-  /** Slot sự kiện từ GET list Event (theo tên sân + ngày) */
-  const [listEventSlots, setListEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
-  /** Slot bị chặn bởi sự kiện từ API lịch (unavailableSlots có eventId) */
+  /** Slot bị chặn bởi sự kiện từ API lịch (unavailableSlots có eventId). Không gọi GET /Event list. */
   const [scheduleEventSlots, setScheduleEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
-  /** Danh sách drop-in event (cùng sân + ngày) — dùng RemainingTicketQuantity để tô vàng/tím */
-  const [dropInEventsForVenueDate, setDropInEventsForVenueDate] = useState([]);
   // Cập nhật mỗi phút để slot "đã qua" (Khoá) được tính lại khi đang xem ngày hôm nay
   const [timeTick, setTimeTick] = useState(() => Date.now());
   useEffect(() => {
@@ -245,20 +283,42 @@ const BookingSchedule = () => {
     return () => clearInterval(id);
   }, [selectedDate]);
 
-  // Fetch venue & fields
+  // Tải chi tiết sân + catalogue GET /fields (sportType + name) để lọc hàng sân trên lịch đúng từng môn.
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setFields([]);
+      setFieldCatalogKeySet(undefined);
+      setVenue(null);
       try {
-        const [v, f] = await Promise.all([
-          getVenueDetail(id),
-          getVenueFields(id),
-        ]);
-        // Đảm bảo venue luôn có property id
+        const v = await getVenueDetail(id);
+        let catalogRows = [];
+
+        // Lưu ý: tránh gọi GET /fields hai lần trong tình huống hàng tồn tại từ getVenueDetail:
+        // - Nếu getVenueDetail trả về 'fields' hoặc 'venueFields' thì dùng luôn.
+        // - Chỉ gọi fetchVenueFieldCatalog(id) khi dữ liệu này không có sẵn (fallback).
+        // Điều này ngăn việc gọi API field hai lần cùng lúc và giảm tải máy chủ.
+        if (Array.isArray(v?.fields) && v.fields.length > 0) {
+          catalogRows = v.fields;
+        } else if (Array.isArray(v?.venueFields) && v.venueFields.length > 0) {
+          catalogRows = v.venueFields;
+        } else {
+          catalogRows = await fetchVenueFieldCatalog(id).catch(() => []);
+        }
+
+        const allowed = new Set();
+        for (const r of catalogRows || []) {
+          const sport = String(r?.sportType ?? r?.SportType ?? "").trim();
+          const name = String(r?.name ?? r?.Name ?? "").trim();
+          if (!sport || !name) continue;
+          allowed.add(`${normalizeText(sport)}|${normalizeText(name)}`);
+        }
+
+        setFieldCatalogKeySet(allowed.size > 0 ? allowed : null);
         setVenue({ ...v, id });
-        setFields(f?.items || []);
       } catch (err) {
         setError(err.message || "Không thể tải thông tin sân");
+        setFieldCatalogKeySet(null);
       } finally {
         setLoading(false);
       }
@@ -355,13 +415,18 @@ const BookingSchedule = () => {
 
   // Fetch server schedule (booked/unavailable slots) when venue or date changes
   useEffect(() => {
-    if (!venue || !selectedDate) return;
+    if (!venue || !selectedDate || fieldCatalogKeySet === undefined) return;
     let mounted = true;
 
     const fetchAndDispatch = async () => {
         try {
-          const res = await getVenueSchedule(id, selectedDate);
+          const raw = await getVenueSchedule(id, selectedDate);
           if (!mounted) return;
+          const res =
+            fieldCatalogKeySet && fieldCatalogKeySet.size > 0
+              ? filterScheduleByFieldCatalog(raw, fieldCatalogKeySet)
+              : raw;
+          const fieldList = buildFieldsFromVenueSchedule(res);
           const serverSlots = [];
           (res?.sportTypes || []).forEach((st) => {
             (st.slots || []).forEach((s) => serverSlots.push(s));
@@ -397,10 +462,10 @@ const BookingSchedule = () => {
             const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
             (st.fields || []).forEach((f) => {
               const nameKey = (f.fieldName || f.name || '').trim();
-              const fieldIdx = fields.findIndex(
+              const fieldIdx = fieldList.findIndex(
                 (ff) =>
-                  (String(ff.name || '').trim() === nameKey) &&
-                  (String(ff.sportType || '').trim().toLowerCase() === sportKey)
+                  normalizeText(ff.name || "") === normalizeText(nameKey) &&
+                  normalizeText(ff.sportType || "") === sportKey
               );
               if (fieldIdx < 0) return;
               (f.unavailableSlots || []).forEach((us) => {
@@ -435,6 +500,7 @@ const BookingSchedule = () => {
 
           if (mounted) {
             setVenueSchedule(res);
+            setFields(fieldList);
             setScheduleEventSlots(scheduleEvents);
             // Chỉ slot "đã đặt" (không gắn sự kiện) — slot có eventId hiển thị riêng + click xem chi tiết
             try {
@@ -451,76 +517,49 @@ const BookingSchedule = () => {
     // Call once on mount/when venue or date changes. Polling removed to avoid repeated API calls.
     fetchAndDispatch();
     return () => { mounted = false; };
-  }, [venue, selectedDate, id, fields, dispatch]);
+  }, [venue, selectedDate, id, dispatch, fieldCatalogKeySet]);
 
-  // Fetch event slots (drop-in events) for this venue + date, then map to grid indices
-  useEffect(() => {
-    if (!venue?.name || !selectedDate || !slots?.length || !fields?.length) {
-      setListEventSlots([]);
-      setDropInEventsForVenueDate([]);
-      return;
-    }
-    let mounted = true;
+  /** Mỗi môn: tập nhãn bắt đầu slot có trên API — cột không thuộc tập này là “khung trống”, không đặt được */
+  const configuredSlotStartsBySport = useMemo(() => {
+    const m = new Map();
+    if (!venueSchedule?.sportTypes?.length) return m;
+    venueSchedule.sportTypes.forEach((st) => {
+      const key = normalizeText(st.sportTypeName || st.sportType || "");
+      if (!key) return;
+      const list = st.slots || [];
+      if (!list.length) return;
+      const set = new Set();
+      list.forEach((s) => {
+        const t = normalizeSlotTime(s.startTime ?? s.StartTime);
+        if (t) set.add(t);
+      });
+      if (set.size) m.set(key, set);
+    });
+    return m;
+  }, [venueSchedule]);
 
-    const loadEventSlots = async () => {
-      try {
-        const all = await getEventList();
-        const list = Array.isArray(all) ? all : [];
-        const venueNameKey = normalizeText(venue.name);
-        const dateKey = String(selectedDate).slice(0, 10);
+  /** Môn đã có trên lịch nhưng chưa cấu hình khung giờ (slots rỗng) → chỉ hiển thị lưới trống, không đặt được. */
+  const sportKeysWithNoTimeSlots = useMemo(() => {
+    const s = new Set();
+    if (!venueSchedule?.sportTypes?.length) return s;
+    venueSchedule.sportTypes.forEach((st) => {
+      const key = normalizeText(st.sportTypeName || st.sportType || "");
+      if (!key) return;
+      const list = st.slots || [];
+      if (!list.length) s.add(key);
+    });
+    return s;
+  }, [venueSchedule]);
 
-        const filtered = list.filter(
-          (e) =>
-            normalizeText(e?.venueName) === venueNameKey &&
-            String(e?.eventDate).slice(0, 10) === dateKey
-        );
-
-        const mapped = [];
-        filtered.forEach((e) => {
-          const evId = e?.eventId ?? e?.EventId;
-          (e?.slots || []).forEach((s) => {
-            const fieldName = String(s?.fieldName || "").trim();
-            const startLabel = normalizeSlotTime(s?.startTime);
-            const fieldIdx = fields.findIndex((f) => String(f?.name || "").trim() === fieldName);
-            const slotIdx = slots.findIndex((sl) => sl?.label === startLabel);
-            if (fieldIdx >= 0 && slotIdx >= 0) {
-              const n = evId != null && evId !== '' ? Number(evId) : NaN;
-              mapped.push({
-                fieldIdx,
-                slotIdx,
-                eventId: Number.isNaN(n) ? undefined : n,
-              });
-            }
-          });
-        });
-
-        // Deduplicate (ưu tiên bản có eventId)
-        const seen = new Map();
-        mapped.forEach((x) => {
-          const key = `${x.fieldIdx}_${x.slotIdx}`;
-          const prev = seen.get(key);
-          if (!prev || (x.eventId != null && prev.eventId == null)) seen.set(key, x);
-        });
-        const unique = Array.from(seen.values());
-
-        if (mounted) {
-          setListEventSlots(unique);
-          setDropInEventsForVenueDate(filtered);
-        }
-      } catch (e) {
-        // If event list fails, don't block booking UI
-        if (mounted) {
-          setListEventSlots([]);
-          setDropInEventsForVenueDate([]);
-        }
-      }
-    };
-
-    loadEventSlots();
-    return () => {
-      mounted = false;
-    };
-  }, [venue?.name, selectedDate, slots, fields]);
+  const isUnconfiguredSlotStart = useCallback(
+    (sportKey, startLabel) => {
+      if (!sportKey || !startLabel) return false;
+      const set = configuredSlotStartsBySport.get(sportKey);
+      if (!set || set.size === 0) return false;
+      return !set.has(startLabel);
+    },
+    [configuredSlotStartsBySport],
+  );
 
   // Determine locked slots (past time for today) — phụ thuộc timeTick để cập nhật mỗi phút
   const lockedBefore = useMemo(() => {
@@ -569,9 +608,8 @@ const BookingSchedule = () => {
   const eventBlocks = useMemo(() => {
     const keys = new Set();
     scheduleEventSlots.forEach((x) => keys.add(`${x.fieldIdx}_${x.slotIdx}`));
-    listEventSlots.forEach((x) => keys.add(`${x.fieldIdx}_${x.slotIdx}`));
     return keys;
-  }, [scheduleEventSlots, listEventSlots]);
+  }, [scheduleEventSlots]);
 
   const eventIdByCell = useMemo(() => {
     const m = new Map();
@@ -580,33 +618,16 @@ const BookingSchedule = () => {
         m.set(`${x.fieldIdx}_${x.slotIdx}`, Number(x.eventId));
       }
     });
-    listEventSlots.forEach((x) => {
-      const k = `${x.fieldIdx}_${x.slotIdx}`;
-      if (!m.has(k) && x.eventId != null && !Number.isNaN(Number(x.eventId))) {
-        m.set(k, Number(x.eventId));
-      }
-    });
     return m;
-  }, [scheduleEventSlots, listEventSlots]);
+  }, [scheduleEventSlots]);
 
   const getEventIdForCell = useCallback(
     (fieldIdx, slotIdx) => eventIdByCell.get(`${fieldIdx}_${slotIdx}`) ?? null,
     [eventIdByCell]
   );
 
-  /** eventId → vé còn lại (GET /api/Event list). 0 = đã đầy → tím; >0 hoặc chưa có = vàng */
-  const remainingByEventId = useMemo(() => {
-    const m = new Map();
-    dropInEventsForVenueDate.forEach((e) => {
-      const eid = e?.eventId ?? e?.EventId;
-      if (eid == null || eid === "") return;
-      const rem = e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity;
-      if (rem != null && !Number.isNaN(Number(rem))) {
-        m.set(Number(eid), Number(rem));
-      }
-    });
-    return m;
-  }, [dropInEventsForVenueDate]);
+  /** Không còn gọi GET Event list → không có số vé còn lại; ô sự kiện từ lịch luôn kiểu "còn chỗ" (vàng) trừ khi sau này API lịch trả thêm. */
+  const remainingByEventId = useMemo(() => new Map(), []);
 
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
@@ -660,6 +681,9 @@ const BookingSchedule = () => {
   const toggleSlot = (fieldIdx, slotIdx) => {
     // Allow selecting slots even when the user is not authenticated.
     // Authentication will be required when pressing the "TIẾP THEO" button.
+    const sk = normalizeText(fields[fieldIdx]?.sportType || "");
+    if (sportKeysWithNoTimeSlots.has(sk)) return;
+    if (isUnconfiguredSlotStart(sk, slots[slotIdx]?.label)) return;
     if (isLocked(slotIdx) || isBooked(fieldIdx, slotIdx) || isEventBlock(fieldIdx, slotIdx)) return;
     setSelectedSlots((prev) => {
       const exists = prev.find((s) => s.fieldIdx === fieldIdx && s.slotIdx === slotIdx);
@@ -669,6 +693,8 @@ const BookingSchedule = () => {
   };
 
   const getCellClass = (fieldIdx, slotIdx) => {
+    const skRow = normalizeText(fields[fieldIdx]?.sportType || "");
+    if (sportKeysWithNoTimeSlots.has(skRow)) return "bs-cell no-config";
     if (isLocked(slotIdx)) return "bs-cell locked";
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
@@ -678,6 +704,9 @@ const BookingSchedule = () => {
     }
     if (isEventBlock(fieldIdx, slotIdx)) return "bs-cell event";
     if (isBooked(fieldIdx, slotIdx)) return "bs-cell booked";
+    const sk = skRow;
+    const startLabel = slots[slotIdx]?.label;
+    if (startLabel && isUnconfiguredSlotStart(sk, startLabel)) return "bs-cell locked";
     if (isSelected(fieldIdx, slotIdx)) return "bs-cell selected";
     return "bs-cell available";
   };
@@ -738,6 +767,9 @@ const BookingSchedule = () => {
   );
 
   const handleCellClick = (fieldIdx, slotIdx) => {
+    const sk = normalizeText(fields[fieldIdx]?.sportType || "");
+    if (sportKeysWithNoTimeSlots.has(sk)) return;
+    if (isUnconfiguredSlotStart(sk, slots[slotIdx]?.label)) return;
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
       navigate(`/event/${evId}`, {
@@ -1079,7 +1111,7 @@ const BookingSchedule = () => {
           <div className="bs-legend-item">
             <span className="bs-legend-box booked" /> Đã đặt
           </div>
-          <div className="bs-legend-item">
+          <div className="bs-legend-item bs-legend-item--locked">
             <span className="bs-legend-box locked" /> Khoá
           </div>
           <div className="bs-legend-item">
@@ -1131,6 +1163,8 @@ const BookingSchedule = () => {
               {groupedFields.map((group, gi) => {
                 const gSlots = groupSlotsBySportKey.get(normalizeText(group.sportType)) || [];
                 if (!gSlots.length) return null;
+                const groupSportKeyNorm = normalizeText(group.sportType);
+                const isNoScheduleGroup = sportKeysWithNoTimeSlots.has(groupSportKeyNorm);
                 const gTimeLabelsRow = buildTimeLabels(gSlots);
                 return (
                   <div key={`${normalizeText(group.sportType)}-${gi}`} className="bs-sport-block">
@@ -1154,13 +1188,18 @@ const BookingSchedule = () => {
                         <span className="bs-sport-header-name">{group.sportType}</span>
                         <span className="bs-sport-header-count">{group.fields.length} sân</span>
                         <span className="bs-sport-header-hours">
-                          {gSlots[0]?.label} –{" "}
-                          {(() => {
-                            const last = gSlots[gSlots.length - 1];
-                            const step = last?.stepMinutes ?? 60;
-                            const endMin = (last?.h ?? 0) * 60 + (last?.m ?? 0) + step;
-                            return formatSlot(Math.floor(endMin / 60), endMin % 60);
-                          })()}
+                          <span className="bs-sport-header-hours-range">
+                            {gSlots[0]?.label} –{" "}
+                            {(() => {
+                              const last = gSlots[gSlots.length - 1];
+                              const step = last?.stepMinutes ?? 60;
+                              const endMin = (last?.h ?? 0) * 60 + (last?.m ?? 0) + step;
+                              return formatSlot(Math.floor(endMin / 60), endMin % 60);
+                            })()}
+                          </span>
+                          {isNoScheduleGroup ? (
+                            <span className="bs-sport-header-empty-label">Lịch trống</span>
+                          ) : null}
                         </span>
                       </div>
 
@@ -1205,10 +1244,13 @@ const BookingSchedule = () => {
                           {gSlots.map((gs, si) => {
                             const globalSi = globalIdxForSlotLabel(gs.label);
                             const eid =
-                              globalSi >= 0 ? getEventIdForCell(field.originalIdx, globalSi) : null;
+                              !isNoScheduleGroup && globalSi >= 0
+                                ? getEventIdForCell(field.originalIdx, globalSi)
+                                : null;
                             const rem = eid != null ? remainingByEventId.get(eid) : undefined;
-                            const cellClass =
-                              globalSi >= 0
+                            const cellClass = isNoScheduleGroup
+                              ? "bs-cell no-config"
+                              : globalSi >= 0
                                 ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)}`.trim()
                                 : "bs-cell locked";
                             return (
@@ -1216,16 +1258,22 @@ const BookingSchedule = () => {
                                 key={`${field.originalIdx}-${si}-${gs.label}`}
                                 className={cellClass}
                                 onClick={() =>
-                                  globalSi >= 0 ? handleCellClick(field.originalIdx, globalSi) : undefined
-                                }
-                                role={eid != null ? "link" : "button"}
-                                data-event-nav={eid != null ? "true" : undefined}
-                                title={
-                                  eid != null
-                                    ? rem === 0
-                                      ? "Sự kiện đã đầy — xem chi tiết"
-                                      : "Sự kiện còn chỗ — xem chi tiết"
+                                  !isNoScheduleGroup && globalSi >= 0
+                                    ? handleCellClick(field.originalIdx, globalSi)
                                     : undefined
+                                }
+                                role={
+                                  isNoScheduleGroup ? undefined : eid != null ? "link" : "button"
+                                }
+                                data-event-nav={!isNoScheduleGroup && eid != null ? "true" : undefined}
+                                title={
+                                  isNoScheduleGroup
+                                    ? "Lịch trống — chưa cấu hình khung giờ cho môn này"
+                                    : eid != null
+                                      ? rem === 0
+                                        ? "Sự kiện đã đầy — xem chi tiết"
+                                        : "Sự kiện còn chỗ — xem chi tiết"
+                                      : undefined
                                 }
                               />
                             );
@@ -1277,7 +1325,7 @@ const BookingSchedule = () => {
           disabled={selectedSlots.length === 0}
           onClick={() => {
             if (!isOwnerOffline && !isAuthenticated) {
-              setShowLoginPopup(true);
+              openLogin();
               return;
             }
             if (isOwnerOffline) {
@@ -1317,33 +1365,17 @@ const BookingSchedule = () => {
         )}
       </div>
 
-      {/* Tooltip phóng to: ảnh sân + tên đầy đủ */}
+      {/* Tooltip phóng to: chỉ tên sân (không tải ảnh) */}
       {tooltipField ? (
         <div
           className="bs-field-tooltip"
           style={{ left: tooltipPos.x, top: tooltipPos.y }}
           role="tooltip"
         >
-          {(() => {
-            const imgs = getFieldImageList(tooltipField);
-            const title = getFieldDisplayName(tooltipField);
-            return (
-              <>
-                {imgs[0] ? (
-                  <img src={imgs[0]} alt={title} />
-                ) : (
-                  <div className="bs-field-tooltip-placeholder" aria-hidden>
-                    Chưa có ảnh
-                  </div>
-                )}
-                <span className="bs-field-tooltip-name">{title}</span>
-              </>
-            );
-          })()}
+          <span className="bs-field-tooltip-name">{getFieldDisplayName(tooltipField)}</span>
         </div>
       ) : null}
 
-      <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
     </motion.div>
   );
 };

@@ -40,6 +40,7 @@
   position: sticky;
   top: 70px;
   z-index: 99;
+  overflow: visible;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
@@ -63,13 +64,15 @@
   align-items: center;
   background: #f1f5f9;
   border-radius: 14px;
-  padding: 0 14px;
+  padding: 0 10px 0 14px;
   height: 44px;
-  gap: 10px;
+  gap: 6px;
   border: 1px solid var(--border-light);
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   flex: 1;
   min-width: 0;
+  overflow: visible;
+  position: relative;
 }
 
 .ch-search-bar:focus-within {

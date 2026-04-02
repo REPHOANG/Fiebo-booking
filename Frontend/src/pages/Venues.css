@@ -87,69 +87,6 @@
   color: rgba(15,23,42,0.45);
 }
 
-.venues-datetime {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(15,23,42,0.06);
-}
-
-.venues-datetime input[type="date"],
-.venues-datetime input[type="time"] {
-  background: transparent;
-  border: none;
-  color: #0f172a;
-  padding: 6px 8px;
-  border-radius: 8px;
-}
-
-.vd-label {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin-right: 4px;
-}
-
-.vd-clear-dt {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(15,23,42,0.06);
-  background: #fff;
-  color: #0f172a;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  user-select: none;
-}
-
-.filter-chip:hover {
-  background: #f8fafc;
-}
-
-.filter-chip.active {
-  background: linear-gradient(135deg,#22c55e,#3b82f6);
-  color: white;
-  border-color: transparent;
-}
-
 /* ── Venue grid ──────────────────────────────────────────────── */
 .venues-grid {
   display: grid;

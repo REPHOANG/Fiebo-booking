@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useR
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
-import { getOwnerVenueFields } from "../../services/fieldService";
+// import { getOwnerVenueFields } from "../../services/fieldService";
 import { getSportTypes } from "../../services/sportTypeService";
 import { getVenueDraft, getOwnerVenues } from "../../services/venueService";
 import {
@@ -13,15 +13,15 @@ import {
 } from "../../services/venueTimeSlotService";
 import "./OwnerTimeSlot.css";
 
-const translateFieldStatus = (raw) => {
-  const s = String(raw ?? "")
-    .trim()
-    .toLowerCase();
-  if (s === "active" || s === "1") return { label: "Đang hoạt động", paused: false };
-  if (s === "inactive" || s === "draft" || s === "0") return { label: "Tạm dừng", paused: true };
-  if (!s || s === "—") return { label: "Đang hoạt động", paused: false };
-  return { label: String(raw), paused: /inactive|pause|draft/i.test(s) };
-};
+// const translateFieldStatus = (raw) => {
+//   const s = String(raw ?? "")
+//     .trim()
+//     .toLowerCase();
+//   if (s === "active" || s === "1") return { label: "Đang hoạt động", paused: false };
+//   if (s === "inactive" || s === "draft" || s === "0") return { label: "Tạm dừng", paused: true };
+//   if (!s || s === "—") return { label: "Đang hoạt động", paused: false };
+//   return { label: String(raw), paused: /inactive|pause|draft/i.test(s) };
+// };
 
 const DOTNET_DAY_NAMES = [
   "Sunday",
@@ -39,12 +39,12 @@ const formatTime = (timeSpan) => {
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
 };
 
-const normalizeText = (value) =>
-  String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+// const normalizeText = (value) =>
+//   String(value ?? "")
+//     .normalize("NFD")
+//     .replace(/[\u0300-\u036f]/g, "")
+//     .toLowerCase()
+//     .trim();
 
 const toIsoDate = (d) => {
   const y = d.getFullYear();
@@ -94,58 +94,56 @@ const toTimeOnly = (hhmm) => {
   return s;
 };
 
-const mergeApiSlotsIntoRows = (apiSlots, generatedSlots, weekDates) => {
+/** Chỉ các khung giờ đang có trong DB (gộp theo start–end, giá/slotId theo ngày). */
+const rowsFromApiOnly = (apiSlots, weekDates) => {
   const dateKeyByDayName = {};
   weekDates.forEach((d) => {
     dateKeyByDayName[DOTNET_DAY_NAMES[d.getDay()]] = toIsoDate(d);
   });
 
-  const base = generatedSlots.map((r) => ({
-    ...r,
-    prices: { ...(r.prices || {}) },
-    slotIds: {},
-    isPeak: Boolean(r.isPeak),
-  }));
-
-  const findOrAddRow = (start, end) => {
-    let row = base.find((x) => x.start === start && x.end === end);
-    if (!row) {
-      const key = `${start}-${end}`;
-      row = { id: key, start, end, prices: {}, slotIds: {}, isPeak: false };
-      base.push(row);
-    }
-    return row;
-  };
-
+  const byKey = new Map();
   for (const s of apiSlots || []) {
     const start = formatTime(s.startTime ?? s.StartTime);
     const end = formatTime(s.endTime ?? s.EndTime);
-    const row = findOrAddRow(start, end);
+    const key = `${start}|${end}`;
+    let row = byKey.get(key);
+    if (!row) {
+      row = {
+        id: `${start}-${end}`,
+        start,
+        end,
+        prices: {},
+        slotIds: {},
+        isPeak: Boolean(s.isPeak ?? s.IsPeak),
+      };
+      byKey.set(key, row);
+    }
     const dayName = s.dayOfWeek ?? s.DayOfWeek;
     const dk = dateKeyByDayName[dayName];
     if (!dk) continue;
     row.prices[dk] = Number(s.price ?? s.Price ?? 0);
     row.slotIds[dk] = s.id ?? s.Id;
+    if (s.isPeak ?? s.IsPeak) row.isPeak = true;
   }
 
-  return base.sort((a, b) => parseHour(a.start) - parseHour(b.start));
+  return Array.from(byKey.values()).sort((a, b) => parseHour(a.start) - parseHour(b.start));
 };
 
 /** Quản lý time slot theo loại sân (môn) — route `/owner/venues/:id/time-slot` */
 const OwnerTimeSlot = () => {
   const { id } = useParams();
   const [sportTypes, setSportTypes] = useState([]);
-  const [venueFields, setVenueFields] = useState([]);
+  // const [venueFields, setVenueFields] = useState([]);
   const [slotRows, setSlotRows] = useState([]);
-  const [slotDuration, setSlotDuration] = useState(60);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [venueOpenTime, setVenueOpenTime] = useState(null);
   const [venueCloseTime, setVenueCloseTime] = useState(null);
   const [sportTypeId, setSportTypeId] = useState("");
+  const [slotDuration, setSlotDuration] = useState(60);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
-  const [selectedFieldIds, setSelectedFieldIds] = useState(() => new Set());
+  // const [selectedFieldIds, setSelectedFieldIds] = useState(() => new Set());
   const otsPageRef = useRef(null);
 
   /** Không cho lăn chuột đổi giá trị: ô giá (number), mọi select (giờ, môn, độ dài slot…) */
@@ -170,35 +168,35 @@ const OwnerTimeSlot = () => {
     [sportTypes],
   );
 
-  const selectedSportTypeName = useMemo(() => {
-    const found = sportTypeOptions.find((s) => String(s.id) === String(sportTypeId));
-    return found?.name ?? "";
-  }, [sportTypeOptions, sportTypeId]);
+  // const selectedSportTypeName = useMemo(() => {
+  //   const found = sportTypeOptions.find((s) => String(s.id) === String(sportTypeId));
+  //   return found?.name ?? "";
+  // }, [sportTypeOptions, sportTypeId]);
 
-  const existingFieldsBySelectedType = useMemo(() => {
-    if (!selectedSportTypeName) return venueFields;
-    const selectedKey = normalizeText(selectedSportTypeName);
-    return (venueFields || []).filter(
-      (f) => normalizeText(f?.sportType ?? f?.SportType ?? "") === selectedKey,
-    );
-  }, [venueFields, selectedSportTypeName]);
+  // const existingFieldsBySelectedType = useMemo(() => {
+  //   if (!selectedSportTypeName) return venueFields;
+  //   const selectedKey = normalizeText(selectedSportTypeName);
+  //   return (venueFields || []).filter(
+  //     (f) => normalizeText(f?.sportType ?? f?.SportType ?? "") === selectedKey,
+  //   );
+  // }, [venueFields, selectedSportTypeName]);
 
-  const fieldIdsKey = useMemo(
-    () =>
-      existingFieldsBySelectedType
-        .map((f) => String(f?.fieldId ?? f?.FieldId ?? ""))
-        .filter(Boolean)
-        .sort()
-        .join("|"),
-    [existingFieldsBySelectedType],
-  );
+  // const fieldIdsKey = useMemo(
+  //   () =>
+  //     existingFieldsBySelectedType
+  //       .map((f) => String(f?.fieldId ?? f?.FieldId ?? ""))
+  //       .filter(Boolean)
+  //       .sort()
+  //       .join("|"),
+  //   [existingFieldsBySelectedType],
+  // );
 
-  useEffect(() => {
-    const ids = existingFieldsBySelectedType
-      .map((f) => f?.fieldId ?? f?.FieldId)
-      .filter((x) => x != null);
-    setSelectedFieldIds(new Set(ids.map((x) => String(x))));
-  }, [fieldIdsKey]);
+  // useEffect(() => {
+  //   const ids = existingFieldsBySelectedType
+  //     .map((f) => f?.fieldId ?? f?.FieldId)
+  //     .filter((x) => x != null);
+  //   setSelectedFieldIds(new Set(ids.map((x) => String(x))));
+  // }, [fieldIdsKey]);
 
   const weekDates = useMemo(() => {
     const base = new Date();
@@ -220,6 +218,18 @@ const OwnerTimeSlot = () => {
     [weekDates, activeDayKey],
   );
 
+  /** Chỉ dòng có slot/giá cho ngày đang chọn — mỗi ngày có thể khác nhau. */
+  const rowsForActiveDay = useMemo(() => {
+    const dk = activeDayKey;
+    return slotRows
+      .map((row, idx) => ({ row, idx }))
+      .filter(
+        ({ row }) =>
+          row.slotIds?.[dk] != null ||
+          row.prices?.[dk] !== undefined,
+      );
+  }, [slotRows, activeDayKey]);
+
   /** Gắn thêm trên từng ô giá (một số trình duyệt chỉ chặn ổn định khi listener trên chính input) */
   useEffect(() => {
     const root = otsPageRef.current;
@@ -232,58 +242,23 @@ const OwnerTimeSlot = () => {
 
   const timeOptions = useMemo(() => buildTimeOptions(venueOpenTime, venueCloseTime), [venueOpenTime, venueCloseTime]);
 
-  const generatedSlots = useMemo(() => {
-    const openMin = timeToMinutes(venueOpenTime);
-    const closeMin = timeToMinutes(venueCloseTime);
-    if (openMin == null || closeMin == null || closeMin <= openMin) return [];
-    const step = Number(slotDuration) === 30 ? 30 : 60;
-    const rows = [];
-    for (let cur = openMin; cur + step <= closeMin; cur += step) {
-      const start = minutesToHHMM(cur);
-      const end = minutesToHHMM(cur + step);
-      rows.push({
-        id: `${start}-${end}`,
-        start,
-        end,
-        prices: {},
-        slotIds: {},
-        isPeak: false,
-      });
-    }
-    return rows;
-  }, [venueOpenTime, venueCloseTime, slotDuration]);
-
   const reloadSlots = useCallback(async () => {
     const sid = Number(sportTypeId);
-    if (!sid || !generatedSlots.length) {
-      setSlotRows(
-        generatedSlots.map((r) => ({
-          ...r,
-          prices: { ...r.prices },
-          slotIds: {},
-          isPeak: Boolean(r.isPeak),
-        })),
-      );
+    if (!sid) {
+      setSlotRows([]);
       return;
     }
     setLoadingSlots(true);
     try {
       const { timeSlots } = await getOwnerVenueTimeSlots(id, sid);
-      setSlotRows(mergeApiSlotsIntoRows(timeSlots, generatedSlots, weekDates));
+      setSlotRows(rowsFromApiOnly(timeSlots, weekDates));
     } catch {
       toast.error("Không tải được khung giờ từ máy chủ.");
-      setSlotRows(
-        generatedSlots.map((r) => ({
-          ...r,
-          prices: { ...r.prices },
-          slotIds: {},
-          isPeak: Boolean(r.isPeak),
-        })),
-      );
+      setSlotRows([]);
     } finally {
       setLoadingSlots(false);
     }
-  }, [id, sportTypeId, generatedSlots, weekDates]);
+  }, [id, sportTypeId, weekDates]);
 
   const togglePeakRow = (rowIdx) => {
     setSlotRows((prev) =>
@@ -291,16 +266,16 @@ const OwnerTimeSlot = () => {
     );
   };
 
-  const toggleFieldCard = (fid) => {
-    const key = String(fid ?? "");
-    if (!key) return;
-    setSelectedFieldIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  // const toggleFieldCard = (fid) => {
+  //   const key = String(fid ?? "");
+  //   if (!key) return;
+  //   setSelectedFieldIds((prev) => {
+  //     const next = new Set(prev);
+  //     if (next.has(key)) next.delete(key);
+  //     else next.add(key);
+  //     return next;
+  //   });
+  // };
 
   const applyCurrentDayToAllOtherDays = () => {
     if (!slotRows.length || !otherDayKeys.length) return;
@@ -321,6 +296,43 @@ const OwnerTimeSlot = () => {
     );
     toast.success("Đã áp dụng giá của ngày này cho các ngày còn lại trong tuần (lưu để đồng bộ máy chủ).");
   };
+
+  const addSlotForActiveDay = useCallback(
+    (startHHMM, endHHMM) => {
+      const endM = timeToMinutes(endHHMM);
+      const venueCloseMin = timeToMinutes(venueCloseTime);
+      if (venueCloseMin != null && endM != null && endM > venueCloseMin) {
+        toast.info("Đã chạm giờ đóng cửa, không thể thêm slot.");
+        return;
+      }
+      setSlotRows((prev) => {
+        const dup = prev.some((r) => r.start === startHHMM && r.end === endHHMM);
+        if (dup) {
+          return prev.map((r) =>
+            r.start === startHHMM && r.end === endHHMM
+              ? {
+                  ...r,
+                  prices: { ...(r.prices || {}), [activeDayKey]: r.prices?.[activeDayKey] ?? 0 },
+                }
+              : r,
+          );
+        }
+        const next = [
+          ...prev,
+          {
+            id: `${startHHMM}-${endHHMM}`,
+            start: startHHMM,
+            end: endHHMM,
+            prices: { [activeDayKey]: 0 },
+            slotIds: {},
+            isPeak: false,
+          },
+        ];
+        return next.sort((a, b) => parseHour(a.start) - parseHour(b.start));
+      });
+    },
+    [activeDayKey, venueCloseTime],
+  );
 
   const sortedOwnerVenues = useMemo(() => {
     return [...ownerVenuesList].sort((a, b) => {
@@ -385,20 +397,20 @@ const OwnerTimeSlot = () => {
     };
   }, [id]);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const list = await getOwnerVenueFields(id);
-        if (mounted) setVenueFields(Array.isArray(list) ? list : []);
-      } catch {
-        if (mounted) setVenueFields([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
+  // useEffect(() => {
+  //   let mounted = true;
+  //   (async () => {
+  //     try {
+  //       const list = await getOwnerVenueFields(id);
+  //       if (mounted) setVenueFields(Array.isArray(list) ? list : []);
+  //     } catch {
+  //       if (mounted) setVenueFields([]);
+  //     }
+  //   })();
+  //   return () => {
+  //     mounted = false;
+  //   };
+  // }, [id]);
 
   useEffect(() => {
     if (!sportTypeOptions.length) return;
@@ -462,23 +474,46 @@ const OwnerTimeSlot = () => {
   };
 
   const removeRow = async (rowIdx) => {
+    const dk = activeDayKey;
+
+    const stripDayFromRow = (r) => {
+      const prices = { ...(r?.prices || {}) };
+      const slotIds = { ...(r?.slotIds || {}) };
+      delete prices[dk];
+      delete slotIds[dk];
+      return { ...r, prices, slotIds };
+    };
+
+    const rowStillHasData = (r) =>
+      weekDates.some((d) => {
+        const k = toIsoDate(d);
+        if (r.slotIds?.[k] != null && r.slotIds[k] !== "") return true;
+        const p = r.prices?.[k];
+        return p !== undefined && p !== "" && Number(p) > 0;
+      });
+
+    const applyStrip = (prev) => {
+      const cur = prev[rowIdx];
+      if (!cur) return prev;
+      const next = stripDayFromRow(cur);
+      if (!rowStillHasData(next)) return prev.filter((_, i) => i !== rowIdx);
+      return prev.map((x, i) => (i === rowIdx ? next : x));
+    };
+
     const row = slotRows[rowIdx];
-    const ids = new Set();
-    weekDates.forEach((d) => {
-      const sid = row.slotIds?.[toIsoDate(d)];
-      if (sid) ids.add(sid);
-    });
-    if (ids.size === 0) {
-      setSlotRows((prev) => prev.filter((_, i) => i !== rowIdx));
+    if (!row) return;
+    const slotId = row.slotIds?.[dk];
+
+    if (!slotId) {
+      setSlotRows((prev) => applyStrip(prev));
       return;
     }
+
     setSaving(true);
     try {
-      for (const slotId of ids) {
-        await deleteOwnerVenueTimeSlot(slotId);
-      }
-      setSlotRows((prev) => prev.filter((_, i) => i !== rowIdx));
-      toast.success("Đã xóa khung giờ trên máy chủ.");
+      await deleteOwnerVenueTimeSlot(slotId);
+      setSlotRows((prev) => applyStrip(prev));
+      toast.success(`Đã xóa slot (${weekDayLabels[activeDayIndex]}).`);
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được khung giờ.");
     } finally {
@@ -552,20 +587,6 @@ const OwnerTimeSlot = () => {
             </span>
           </div>
         </div>
-        {sportTypeOptions.length > 0 ? (
-          <div className="ots-sport-pills" role="group" aria-label="Chọn môn">
-            {sportTypeOptions.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`ots-sport-pill ${String(sportTypeId) === String(s.id) ? "is-active" : ""}`}
-                onClick={() => setSportTypeId(String(s.id))}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <div className="ots-layout">
@@ -587,6 +608,7 @@ const OwnerTimeSlot = () => {
             ))}
           </select>
 
+          {/*
           <h3 className="ots-fields-heading">DANH SÁCH CÁC SÂN ÁP DỤNG</h3>
           <div className="ots-field-list">
             {existingFieldsBySelectedType.length === 0 ? (
@@ -632,6 +654,7 @@ const OwnerTimeSlot = () => {
               trái giúp bạn đối chiếu sân đang dùng bảng giá này.
             </div>
           </div>
+          */}
 
           <div className="ots-sidebar-links">
             <Link to={`/owner/venues/${id}/add-field`}>+ Thêm sân mới</Link>
@@ -666,17 +689,6 @@ const OwnerTimeSlot = () => {
           </div>
 
           <div className="ots-slot-toolbar">
-            <div className="ots-slot-duration">
-              <Calendar size={16} />
-              <span>Độ dài khung</span>
-              <select
-                value={slotDuration}
-                onChange={(e) => setSlotDuration(Number(e.target.value) === 30 ? 30 : 60)}
-              >
-                <option value={60}>60 phút</option>
-                <option value={30}>30 phút</option>
-              </select>
-            </div>
             <span className="ots-slot-toolbar-day">{weekDayLabels[activeDayIndex]}</span>
           </div>
 
@@ -684,23 +696,85 @@ const OwnerTimeSlot = () => {
             <div className="ots-loading">Đang tải khung giờ…</div>
           ) : !sportTypeId ? (
             <div className="ots-muted-block">Chọn môn / loại sân để xem và chỉnh khung giờ.</div>
-          ) : slotRows.length === 0 ? (
-            <div className="ots-muted-block">
-              Chưa có khung giờ (kiểm tra giờ mở cửa cơ sở hoặc độ dài slot).
-            </div>
           ) : (
             <>
+              {slotRows.length === 0 ? (
+                <div className="ots-muted-block">
+                  Chưa có khung giờ nào trên máy chủ cho môn này. Thêm khung bên dưới sẽ chỉ tạo cho{" "}
+                  <strong>{weekDayLabels[activeDayIndex]}</strong> (sau khi lưu).
+                </div>
+              ) : rowsForActiveDay.length === 0 ? (
+                <div className="ots-muted-block">
+                  <strong>{weekDayLabels[activeDayIndex]}</strong> hiện chưa có slot — có thể khác các
+                  ngày khác. Thêm khung bên dưới chỉ áp dụng cho ngày này.
+                </div>
+              ) : null}
+              {rowsForActiveDay.length > 0 ? (
+                <>
               <div className="ots-table-head">
                 <span>KHUNG GIỜ</span>
                 <span>GIÁ NIÊM YẾT (đ)</span>
                 <span />
               </div>
               <div className="ots-slot-rows">
-                {slotRows.map((row, rowIdx) => {
+                {rowsForActiveDay.map(({ row, idx: originalIdx }, visIdx) => {
+                  const step = Number(slotDuration) === 30 ? 30 : 60;
+                  const openMin =
+                    timeToMinutes(venueOpenTime ? formatTime(venueOpenTime) : null) ?? 6 * 60;
+                  let insertBefore = null;
+                  if (visIdx === 0) {
+                    const firstStart = timeToMinutes(row.start);
+                    if (firstStart != null && firstStart - openMin >= step) {
+                      const s0 = minutesToHHMM(openMin);
+                      const e0 = minutesToHHMM(openMin + step);
+                      insertBefore = (
+                        <button
+                          key={`ins-open-${s0}`}
+                          type="button"
+                          className="ots-row-insert-zone"
+                          aria-label={`Thêm khung ${s0} – ${e0}`}
+                          onClick={() => addSlotForActiveDay(s0, e0)}
+                        >
+                          <span className="ots-row-insert-line" aria-hidden />
+                          <span className="ots-row-insert-label">
+                            <Plus size={14} strokeWidth={2.5} />
+                            {s0} – {e0}
+                          </span>
+                        </button>
+                      );
+                    }
+                  }
+                  let insertBetween = null;
+                  if (visIdx > 0) {
+                    const prevR = rowsForActiveDay[visIdx - 1].row;
+                    const prevEnd = timeToMinutes(prevR.end);
+                    const curStart = timeToMinutes(row.start);
+                    if (prevEnd != null && curStart != null && curStart - prevEnd >= step) {
+                      const s1 = minutesToHHMM(prevEnd);
+                      const e1 = minutesToHHMM(prevEnd + step);
+                      insertBetween = (
+                        <button
+                          key={`ins-${s1}-${originalIdx}`}
+                          type="button"
+                          className="ots-row-insert-zone"
+                          aria-label={`Thêm khung ${s1} – ${e1}`}
+                          onClick={() => addSlotForActiveDay(s1, e1)}
+                        >
+                          <span className="ots-row-insert-line" aria-hidden />
+                          <span className="ots-row-insert-label">
+                            <Plus size={14} strokeWidth={2.5} />
+                            {s1} – {e1}
+                          </span>
+                        </button>
+                      );
+                    }
+                  }
                   const value = row.prices?.[activeDayKey];
                   return (
+                    <React.Fragment key={`${activeDayKey}-${row.id ?? originalIdx}-${originalIdx}`}>
+                      {insertBefore}
+                      {insertBetween}
                     <div
-                      key={`${activeDayKey}-${row.id ?? rowIdx}`}
                       className={`ots-slot-row ${row.isPeak ? "is-peak" : ""}`}
                     >
                       <div className="ots-slot-col ots-slot-col--time">
@@ -712,7 +786,7 @@ const OwnerTimeSlot = () => {
                               const nextStart = e.target.value;
                               setSlotRows((prev) =>
                                 prev.map((r, i) =>
-                                  i === rowIdx
+                                  i === originalIdx
                                     ? { ...r, start: nextStart, id: `${nextStart}-${r.end}` }
                                     : r,
                                 ),
@@ -733,7 +807,7 @@ const OwnerTimeSlot = () => {
                               const nextEnd = e.target.value;
                               setSlotRows((prev) =>
                                 prev.map((r, i) =>
-                                  i === rowIdx
+                                  i === originalIdx
                                     ? { ...r, end: nextEnd, id: `${r.start}-${nextEnd}` }
                                     : r,
                                 ),
@@ -753,7 +827,7 @@ const OwnerTimeSlot = () => {
                         <button
                           type="button"
                           className="ots-slot-peak-toggle"
-                          onClick={() => togglePeakRow(rowIdx)}
+                          onClick={() => togglePeakRow(originalIdx)}
                         >
                           {row.isPeak ? "Bỏ đánh cao điểm" : "Đánh dấu cao điểm"}
                         </button>
@@ -770,7 +844,7 @@ const OwnerTimeSlot = () => {
                               const nextRaw = e.target.value;
                               setSlotRows((prev) =>
                                 prev.map((r, i) =>
-                                  i === rowIdx
+                                  i === originalIdx
                                     ? {
                                         ...r,
                                         prices: {
@@ -785,7 +859,7 @@ const OwnerTimeSlot = () => {
                             onBlur={() => {
                               setSlotRows((prev) =>
                                 prev.map((r, i) =>
-                                  i === rowIdx
+                                  i === originalIdx
                                     ? {
                                         ...r,
                                         prices: {
@@ -809,48 +883,44 @@ const OwnerTimeSlot = () => {
                           type="button"
                           className="ots-del-btn"
                           disabled={saving}
-                          title="Xóa khung giờ"
-                          onClick={() => removeRow(rowIdx)}
+                          title={`Xóa slot ngày ${weekDayLabels[activeDayIndex]} (một slot id)`}
+                          onClick={() => removeRow(originalIdx)}
                         >
                           <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
               </div>
+                </>
+              ) : null}
+
               <div className="ots-add-row">
                 <button
                   type="button"
                   disabled={saving || !sportTypeId}
                   onClick={() => {
                     const step = Number(slotDuration) === 30 ? 30 : 60;
-                    const last = slotRows[slotRows.length - 1];
-                    const venueCloseMin = timeToMinutes(venueCloseTime);
+                    const visibleEnds = rowsForActiveDay.map(({ row }) => timeToMinutes(row.end) ?? 0);
+                    const lastInDay =
+                      rowsForActiveDay.length > 0
+                        ? Math.max(...visibleEnds)
+                        : null;
                     const fallbackStart = venueOpenTime ? formatTime(venueOpenTime) : "06:00";
-                    const lastEnd = last?.end ?? fallbackStart;
-                    const nextStartMin = timeToMinutes(lastEnd) ?? timeToMinutes(fallbackStart) ?? 360;
+                    const baseMin =
+                      lastInDay != null && Number.isFinite(lastInDay)
+                        ? lastInDay
+                        : (timeToMinutes(fallbackStart) ?? 360);
+                    const nextStartMin = baseMin;
                     const nextEndMin = nextStartMin + step;
-                    if (venueCloseMin != null && nextEndMin > venueCloseMin) {
-                      toast.info("Đã chạm giờ đóng cửa, không thể thêm slot.");
-                      return;
-                    }
                     const start = minutesToHHMM(nextStartMin);
                     const end = minutesToHHMM(nextEndMin);
-                    setSlotRows((prev) => [
-                      ...prev,
-                      {
-                        id: `${start}-${end}`,
-                        start,
-                        end,
-                        prices: { [activeDayKey]: 0 },
-                        slotIds: {},
-                        isPeak: false,
-                      },
-                    ]);
+                    addSlotForActiveDay(start, end);
                   }}
                 >
-                  <Plus size={16} /> Thêm khung giờ mới cho {weekDayLabels[activeDayIndex]}
+                  <Plus size={16} /> Thêm khung (chỉ {weekDayLabels[activeDayIndex]})
                 </button>
               </div>
             </>

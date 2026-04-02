@@ -41,6 +41,15 @@
   flex-wrap: nowrap;
 }
 
+/* Trang lịch trong OwnerLayout: sticky phải nằm dưới owner-topbar, không đè Search/mail. */
+.owner-content .bs-topbar {
+  top: var(--owner-topbar-offset, 78px);
+  z-index: 10;
+  background: rgba(241, 245, 249, 0.97);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 .bs-back {
   width: 40px;
   height: 40px;
@@ -317,6 +326,12 @@
   font-size: 0.88rem;
   font-weight: 600;
   color: #374151;
+}
+
+.bs-legend-item--locked {
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
 }
 
 .bs-legend-box {
@@ -732,12 +747,29 @@
 
 .bs-sport-header-hours {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 10px;
   font-weight: 700;
   color: #475569;
   font-size: 0.7rem;
   letter-spacing: 0.02em;
-  white-space: nowrap;
   padding-left: 10px;
+}
+.bs-sport-header-hours-range {
+  white-space: nowrap;
+}
+.bs-sport-header-empty-label {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 /* ── Cells ───────────────────────────────────────────────────── */
@@ -789,9 +821,22 @@
   border-bottom-right-radius: 7px;
 }
 
+/* Khóa (giờ qua / cột không mở bán) — cùng tông với ô Khoá trong chú thích */
 .bs-cell.locked {
-  background: #9ca3af;
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
   cursor: default;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Chưa cấu hình khung giờ — không đặt được, nhìn như trạng thái Khoá */
+.bs-cell.no-config {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: default;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.bs-cell.no-config:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
 }
 
 /* Sự kiện còn chỗ (RemainingTicketQuantity > 0) — vàng */

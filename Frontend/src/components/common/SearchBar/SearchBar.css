@@ -19,3 +19,41 @@
 .ch-search-input{
   border-radius: 999px;
 }
+
+/* Mega “Sân” — cùng nội dung với Header */
+.ch-mega-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ch-mega-wrapper:hover .venues-mega-panel,
+.ch-mega-wrapper:focus-within .venues-mega-panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.ch-mega-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.ch-mega-trigger:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.ch-mega-chevron {
+  opacity: 0.75;
+}

@@ -8,6 +8,7 @@ import fieboLogo from '../../assets/images/Logo với chữ.png';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Login.css';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 
 const OwnerLogin = () => {
   const navigate = useNavigate();
@@ -106,7 +107,13 @@ const OwnerLogin = () => {
 
           <div className="signup-prompt">
             <span>Muốn đăng nhập tài khoản khách? </span>
-            <Link to="/login" className="signup-link">Chuyển sang</Link>
+            <Link
+              to="/"
+              className="signup-link"
+              state={{ [OPEN_AUTH_STATE_KEY]: 'login' }}
+            >
+              Chuyển sang
+            </Link>
           </div>
         </form>
       </div>

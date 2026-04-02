@@ -9,7 +9,7 @@ import { getVenueSchedule } from "../../../services/fieldService";
 import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
-import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
+import { useAuthModal } from "../../../context/AuthModalContext";
 import "./BookingConfirmation.css";
 import { toast } from 'react-toastify';
 
@@ -101,10 +101,10 @@ const BookingConfirmation = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth || {});
+  const { openLogin } = useAuthModal();
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   // Tách prefill user và user tự edit:
   // - Khi user đã nhập/xóa, không tự động override lại giá trị cũ.
@@ -842,11 +842,10 @@ const BookingConfirmation = () => {
               <button
                 type="button"
                 className="bc-login-btn-primary"
-                onClick={() => setShowLoginPopup(true)}
+                onClick={() => openLogin()}
               >
                 Đăng nhập
               </button>
-              <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
             </div>
           )}
         </div>
