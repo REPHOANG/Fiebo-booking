@@ -273,7 +273,7 @@ const BookingConfirmation = () => {
       slotCount: g.slotCount,
       pricePerSlot: g.pricePerSlot,
       subtotal: g.slotCount * g.pricePerSlot,
-      duration: `${Math.floor((g.slotCount * 60) / 60)}h${(g.slotCount * 60) % 60 > 0 ? (g.slotCount * 60) % 60 + "p" : ""}`,
+      duration: `${Math.floor((g.totalMinutes ?? g.slotCount * 60) / 60)}h${(g.totalMinutes ?? g.slotCount * 60) % 60 > 0 ? (g.totalMinutes ?? g.slotCount * 60) % 60 + "p" : ""}`,
     }));
   }, [slotSummary]);
 

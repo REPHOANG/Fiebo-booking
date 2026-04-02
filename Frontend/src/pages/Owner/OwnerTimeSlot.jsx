@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
@@ -146,6 +146,20 @@ const OwnerTimeSlot = () => {
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
   const [selectedFieldIds, setSelectedFieldIds] = useState(() => new Set());
+  const otsPageRef = useRef(null);
+
+  /** Không cho lăn chuột đổi giá trị: ô giá (number), mọi select (giờ, môn, độ dài slot…) */
+  useLayoutEffect(() => {
+    const root = otsPageRef.current;
+    if (!root) return;
+    const onWheelCapture = (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest('input[type="number"], select')) e.preventDefault();
+    };
+    root.addEventListener("wheel", onWheelCapture, { passive: false, capture: true });
+    return () => root.removeEventListener("wheel", onWheelCapture, true);
+  }, []);
 
   /** Tất cả môn trong hệ thống — cho phép cấu hình time slot trước khi có sân thuộc môn đó. */
   const sportTypeOptions = useMemo(
@@ -205,6 +219,16 @@ const OwnerTimeSlot = () => {
     () => weekDates.map((d) => toIsoDate(d)).filter((k) => k !== activeDayKey),
     [weekDates, activeDayKey],
   );
+
+  /** Gắn thêm trên từng ô giá (một số trình duyệt chỉ chặn ổn định khi listener trên chính input) */
+  useEffect(() => {
+    const root = otsPageRef.current;
+    if (!root) return;
+    const nodes = root.querySelectorAll('input[type="number"]');
+    const prevent = (e) => e.preventDefault();
+    nodes.forEach((el) => el.addEventListener("wheel", prevent, { passive: false }));
+    return () => nodes.forEach((el) => el.removeEventListener("wheel", prevent));
+  }, [slotRows, activeDayKey, sportTypeId, loadingSlots]);
 
   const timeOptions = useMemo(() => buildTimeOptions(venueOpenTime, venueCloseTime), [venueOpenTime, venueCloseTime]);
 
@@ -467,7 +491,7 @@ const OwnerTimeSlot = () => {
   const saveDisabled = saving || !sportTypeId || loadingSlots;
 
   return (
-    <div className="ots-page">
+    <div className="ots-page" ref={otsPageRef}>
       <Link to={`/owner/venues/${id}`} className="ots-back-link">
         <ArrowLeft size={16} /> Quay lại chi tiết cơ sở
       </Link>
@@ -737,6 +761,7 @@ const OwnerTimeSlot = () => {
                       <div className="ots-slot-col ots-slot-col--price">
                         <div className="ots-price-wrap">
                           <input
+                            className="ots-price-input"
                             type="number"
                             min="0"
                             placeholder="0"

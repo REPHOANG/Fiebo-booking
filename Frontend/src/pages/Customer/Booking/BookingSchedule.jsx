@@ -37,7 +37,97 @@ const normalizeSlotTime = (t) => {
 
 const normalizeText = (v) => String(v || "").trim().toLowerCase();
 
-/** Generate time slots: stepMinutes = 60 (mỗi slot 1 tiếng) */
+/** Độ dài một khung slot từ API (phút) */
+const apiSlotDurationMinutes = (s) => {
+  const st = normalizeSlotTime(s?.startTime ?? s?.StartTime ?? "");
+  const en = normalizeSlotTime(s?.endTime ?? s?.EndTime ?? "");
+  if (!st || !en) return null;
+  const a = parseTime(st);
+  const b = parseTime(en);
+  if (!a || !b) return null;
+  return b.h * 60 + b.m - (a.h * 60 + a.m);
+};
+
+/**
+ * Suy ra bước lưới (30, 60, …) từ danh sách slot một môn trên lịch.
+ * Owner có thể cấu hình 30p/slot nhưng client trước đây luôn sinh lưới 60p.
+ */
+const inferStepMinutesFromApiSlots = (list) => {
+  if (!list?.length) return 60;
+  const durs = [];
+  for (const s of list) {
+    const d = apiSlotDurationMinutes(s);
+    if (d != null && d > 0 && d <= 24 * 60) durs.push(d);
+  }
+  if (durs.length) {
+    const m = Math.min(...durs);
+    if (m >= 15 && m <= 120) return m;
+  }
+  const labels = [
+    ...new Set(
+      list.map((s) => normalizeSlotTime(s?.startTime ?? s?.StartTime ?? "")).filter(Boolean),
+    ),
+  ].sort();
+  if (labels.length >= 2) {
+    const toMin = (lab) => {
+      const p = parseTime(lab);
+      return p ? p.h * 60 + p.m : NaN;
+    };
+    let minGap = Infinity;
+    for (let i = 1; i < labels.length; i++) {
+      const g = toMin(labels[i]) - toMin(labels[i - 1]);
+      if (g > 0) minGap = Math.min(minGap, g);
+    }
+    if (Number.isFinite(minGap) && minGap >= 15 && minGap <= 120) return minGap;
+  }
+  return 60;
+};
+
+const scheduleGlobalStepMinutes = (sportTypes) => {
+  if (!sportTypes?.length) return 60;
+  return sportTypes.reduce(
+    (acc, st) => Math.min(acc, inferStepMinutesFromApiSlots(st.slots || [])),
+    60,
+  );
+};
+
+/** Tên đầy đủ hiển thị / tooltip */
+const getFieldDisplayName = (field) =>
+  String(field?.name ?? field?.fieldName ?? field?.Name ?? field?.FieldName ?? "Sân").trim() || "Sân";
+
+/** Danh sách URL ảnh sân từ nhiều dạng DTO */
+const getFieldImageList = (field) => {
+  if (!field) return [];
+  const raw =
+    field.images ??
+    field.Images ??
+    field.imageUrls ??
+    field.ImageUrls ??
+    field.photos ??
+    field.thumbnailUrl ??
+    field.ThumbnailUrl ??
+    null;
+  if (Array.isArray(raw)) return raw.map((x) => (x == null ? "" : String(x))).filter(Boolean);
+  if (typeof raw === "string" && raw.trim()) return [raw.trim()];
+  return [];
+};
+
+const tooltipPositionFromEvent = (e) => {
+  const margin = 12;
+  const tw = 200;
+  const th = 200;
+  let x = e.clientX + margin;
+  let y = e.clientY + margin;
+  if (typeof window !== "undefined") {
+    x = Math.min(x, window.innerWidth - tw - margin);
+    y = Math.min(y, window.innerHeight - th - margin);
+    x = Math.max(margin, x);
+    y = Math.max(margin, y);
+  }
+  return { x, y };
+};
+
+/** Generate time slots; stepMinutes 30 hoặc 60 theo cấu hình sân. */
 const generateSlots = (openTime, closeTime, stepMinutes = 60) => {
   const start = parseTime(openTime);
   const end = parseTime(closeTime);
@@ -49,7 +139,7 @@ const generateSlots = (openTime, closeTime, stepMinutes = 60) => {
   const endMin = end.h * 60 + end.m;
 
   while (h * 60 + m < endMin) {
-    slots.push({ h, m, label: formatSlot(h, m) });
+    slots.push({ h, m, label: formatSlot(h, m), stepMinutes });
     m += stepMinutes;
     if (m >= 60) {
       h += Math.floor(m / 60);
@@ -57,6 +147,17 @@ const generateSlots = (openTime, closeTime, stepMinutes = 60) => {
     }
   }
   return slots;
+};
+
+/** Nhãn trục thời gian N+1: cột cuối = mốc kết thúc sau step của slot cuối. */
+const buildTimeLabels = (slotArr) => {
+  if (!slotArr.length) return [];
+  const last = slotArr[slotArr.length - 1];
+  const step = last.stepMinutes ?? 60;
+  const endMin = last.h * 60 + last.m + step;
+  const endH = Math.floor(endMin / 60);
+  const endM = endMin % 60;
+  return [...slotArr, { h: endH, m: endM, label: formatSlot(endH, endM), stepMinutes: step }];
 };
 
 const todayStr = () => {
@@ -128,6 +229,7 @@ const BookingSchedule = () => {
   });
   const [tempDate, setTempDate] = useState(null);
   const calendarRef = useRef(null);
+  const zoomSliderRef = useRef(null);
   const [venueSchedule, setVenueSchedule] = useState(null);
   /** Slot sự kiện từ GET list Event (theo tên sân + ngày) */
   const [listEventSlots, setListEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
@@ -224,7 +326,6 @@ const BookingSchedule = () => {
           (st.slots || []).forEach((s) => allSlots.push(s));
         });
         if (allSlots.length) {
-          // Tìm min StartTime và max EndTime từ DB, sau đó sinh lưới 30 phút giữa hai mốc đó
           const minStart = allSlots.reduce(
             (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
             allSlots[0].startTime
@@ -233,7 +334,8 @@ const BookingSchedule = () => {
             (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
             allSlots[0].endTime
           );
-          return generateSlots(minStart, maxEnd);
+          const step = scheduleGlobalStepMinutes(venueSchedule.sportTypes);
+          return generateSlots(minStart, maxEnd, step);
         }
       }
     } catch (e) {
@@ -241,6 +343,15 @@ const BookingSchedule = () => {
     }
     return venue ? generateSlots(venue.openTime, venue.closeTime) : [];
   }, [venue, venueSchedule]);
+
+  // Không cho lăn chuột thay đổi % zoom (range input mặc định của trình duyệt)
+  useEffect(() => {
+    const el = zoomSliderRef.current;
+    if (!el) return;
+    const preventWheel = (e) => e.preventDefault();
+    el.addEventListener("wheel", preventWheel, { passive: false });
+    return () => el.removeEventListener("wheel", preventWheel);
+  }, [slots.length]);
 
   // Fetch server schedule (booked/unavailable slots) when venue or date changes
   useEffect(() => {
@@ -267,7 +378,8 @@ const BookingSchedule = () => {
               (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
               serverSlots[0].endTime
             );
-            slotsForMap = generateSlots(minStart, maxEnd);
+            const step = scheduleGlobalStepMinutes(res?.sportTypes);
+            slotsForMap = generateSlots(minStart, maxEnd, step);
           } else if (venue?.openTime && venue?.closeTime) {
             slotsForMap = generateSlots(venue.openTime, venue.closeTime);
           }
@@ -409,16 +521,6 @@ const BookingSchedule = () => {
       mounted = false;
     };
   }, [venue?.name, selectedDate, slots, fields]);
-
-  // Labels = slots + closing time (N+1 labels cho N cột)
-  const timeLabels = useMemo(() => {
-    if (!slots.length) return [];
-    // Nhãn cuối = sau slot cuối 1 tiếng (mỗi slot = 1h)
-    const last = slots[slots.length - 1];
-    const endH = last.h + 1;
-    const endM = last.m;
-    return [...slots, { h: endH, m: endM, label: formatSlot(endH, endM) }];
-  }, [slots]);
 
   // Determine locked slots (past time for today) — phụ thuộc timeTick để cập nhật mỗi phút
   const lockedBefore = useMemo(() => {
@@ -667,6 +769,47 @@ const BookingSchedule = () => {
     return groups;
   }, [fields]);
 
+  /** Khung giờ hiển thị riêng theo từng môn (min–max từ venueSchedule.sportTypes[].slots, fallback giờ cơ sở). */
+  const groupSlotsBySportKey = useMemo(() => {
+    const map = new Map();
+    for (const g of groupedFields) {
+      const key = normalizeText(g.sportType);
+      if (map.has(key)) continue;
+      let arr = [];
+      if (venueSchedule?.sportTypes?.length) {
+        const st = venueSchedule.sportTypes.find(
+          (x) => normalizeText(x.sportTypeName || x.sportType) === key,
+        );
+        const list = st?.slots || [];
+        if (list.length) {
+          const minStart = list.reduce(
+            (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
+            list[0].startTime,
+          );
+          const maxEnd = list.reduce(
+            (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
+            list[0].endTime,
+          );
+          const step = inferStepMinutesFromApiSlots(list);
+          arr = generateSlots(minStart, maxEnd, step);
+        }
+      }
+      if (!arr.length && venue?.openTime && venue?.closeTime) {
+        arr = generateSlots(venue.openTime, venue.closeTime);
+      }
+      map.set(key, arr);
+    }
+    return map;
+  }, [groupedFields, venueSchedule, venue]);
+
+  const globalIdxForSlotLabel = useCallback(
+    (label) => {
+      if (!label || !slots.length) return -1;
+      return slots.findIndex((s) => s.label === label);
+    },
+    [slots],
+  );
+
   // Build grouped slot summary for the bottom bar.
   // Price comes from venueSchedule (server slot: SlotId, StartTime, EndTime, Price) when available.
   const slotSummary = useMemo(() => {
@@ -720,17 +863,37 @@ const BookingSchedule = () => {
       const fieldId = (field && (field.id ?? field.fieldId)) ?? fiNum;
       const rangeLabels = ranges.map((r) => {
         const startLabel = slots[r.from]?.label || "";
-        // Mỗi slot = 1h → kết thúc = slot cuối + 1h
-        const endH = (slots[r.to]?.h ?? 0) + 1;
-        const endM = slots[r.to]?.m ?? 0;
-        const endLabel = formatSlot(endH, endM);
+        const endNext = slots[r.to + 1];
+        let endLabel;
+        if (endNext) endLabel = endNext.label;
+        else {
+          const last = slots[r.to];
+          const step = last?.stepMinutes ?? 60;
+          const endMin = (last?.h ?? 0) * 60 + (last?.m ?? 0) + step;
+          endLabel = formatSlot(Math.floor(endMin / 60), endMin % 60);
+        }
         return `${startLabel} - ${endLabel}`;
       });
 
-      return { fieldName, ranges: rangeLabels, slotCount: sorted.length, pricePerSlot, fieldId };
+      const groupTotalMinutes = sorted.reduce((sum, idx) => {
+        const cur = slots[idx];
+        const next = slots[idx + 1];
+        if (cur && next) return sum + (next.h * 60 + next.m - (cur.h * 60 + cur.m));
+        if (cur) return sum + (cur.stepMinutes ?? 60);
+        return sum;
+      }, 0);
+
+      return {
+        fieldName,
+        ranges: rangeLabels,
+        slotCount: sorted.length,
+        pricePerSlot,
+        fieldId,
+        totalMinutes: groupTotalMinutes,
+      };
     });
 
-    const totalMinutes = selectedSlots.length * 60; // mỗi slot = 1 tiếng
+    const totalMinutes = groups.reduce((sum, g) => sum + (g.totalMinutes || 0), 0);
     const totalPrice = groups.reduce((sum, g) => sum + g.slotCount * g.pricePerSlot, 0);
     return { groups, totalMinutes, totalPrice };
   }, [selectedSlots, slots, fields, venue, venueSchedule]);
@@ -933,6 +1096,7 @@ const BookingSchedule = () => {
             <div className="bs-time-filter-label">🔍 {Math.round((zoomLevel / 50) * 100)}%</div>
             <div className="bs-time-range-container">
               <input
+                ref={zoomSliderRef}
                 type="range"
                 min="50"
                 max="100"
@@ -964,87 +1128,116 @@ const BookingSchedule = () => {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-            <div className="bs-grid" style={{ gridTemplateColumns: `120px repeat(${slots.length}, ${zoomLevel}px) 0px` }}>
-              {/* Row 1 — time labels (N+1 for N columns) */}
-              <div className="bs-corner" />
-              {timeLabels.map((s, i) => (
-                <div key={i} className={`bs-time-label${s.m === 0 ? ' hour' : ' half'}${i === 0 ? ' first' : ''}${i === timeLabels.length - 1 ? ' last' : ''}`}>
-                  <span>{s.label}</span>
-                </div>
-              ))}
-
-              {/* Row 2 — teal bar with tick marks */}
-              <div className="bs-bar-corner" />
-              {slots.map((_, i) => (
-                <div key={i} className="bs-tick-cell">
-                  <span className="bs-tick" />
-                </div>
-              ))}
-              <div className="bs-tick-cell" style={{ background: 'transparent', borderBottom: '1px solid #d1d5db' }} />
-
-              {/* Field rows grouped by sport type */}
-              {groupedFields.map((group, gi) => (
-                <React.Fragment key={gi}>
-                  {/* Sport type header */}
-                  <div
-                    className="bs-sport-header"
-                    style={{
-                      gridColumn: `1 / -1`,
-                      background: sportTypeColors[gi % sportTypeColors.length],
-                      borderLeft: `4px solid ${['#10b981','#3b82f6','#f59e0b','#8b5cf6','#06b6d4','#ef4444'][gi % 6]}`,
-                    }}
-                  >
-                    <span className="bs-sport-header-icon">{['⚽','🏸','🎾','🏐','⚾','🏓'][gi % 6]}</span>
-                    <span className="bs-sport-header-name">{group.sportType}</span>
-                    <span className="bs-sport-header-count">{group.fields.length} sân</span>
-                  </div>
-
-                  {group.fields.map((field) => (
-                    <React.Fragment key={field.originalIdx}>
+              {groupedFields.map((group, gi) => {
+                const gSlots = groupSlotsBySportKey.get(normalizeText(group.sportType)) || [];
+                if (!gSlots.length) return null;
+                const gTimeLabelsRow = buildTimeLabels(gSlots);
+                return (
+                  <div key={`${normalizeText(group.sportType)}-${gi}`} className="bs-sport-block">
+                    <div
+                      className="bs-grid"
+                      style={{
+                        gridTemplateColumns: `minmax(72px, 88px) repeat(${gSlots.length}, ${zoomLevel}px) 0px`,
+                      }}
+                    >
                       <div
-                        className="bs-field-label"
-                        style={{ background: sportTypeColors[gi % sportTypeColors.length] }}
-                        onMouseEnter={(e) => {
-                          if (field.images && field.images.length > 0) {
-                            setTooltipField(field);
-                            setTooltipPos({ x: e.clientX + 12, y: e.clientY - 60 });
-                          }
+                        className="bs-sport-header"
+                        style={{
+                          gridColumn: "1 / -1",
+                          background: sportTypeColors[gi % sportTypeColors.length],
+                          borderLeft: `4px solid ${["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#06b6d4", "#ef4444"][gi % 6]}`,
                         }}
-                        onMouseMove={(e) => {
-                          if (tooltipField) {
-                            setTooltipPos({ x: e.clientX + 12, y: e.clientY - 60 });
-                          }
-                        }}
-                        onMouseLeave={() => setTooltipField(null)}
                       >
-                        <span className="bs-field-name">{field.name}</span>
+                        <span className="bs-sport-header-icon">
+                          {["⚽", "🏸", "🎾", "🏐", "⚾", "🏓"][gi % 6]}
+                        </span>
+                        <span className="bs-sport-header-name">{group.sportType}</span>
+                        <span className="bs-sport-header-count">{group.fields.length} sân</span>
+                        <span className="bs-sport-header-hours">
+                          {gSlots[0]?.label} –{" "}
+                          {(() => {
+                            const last = gSlots[gSlots.length - 1];
+                            const step = last?.stepMinutes ?? 60;
+                            const endMin = (last?.h ?? 0) * 60 + (last?.m ?? 0) + step;
+                            return formatSlot(Math.floor(endMin / 60), endMin % 60);
+                          })()}
+                        </span>
                       </div>
-                      {slots.map((_, si) => {
-                        const eid = getEventIdForCell(field.originalIdx, si);
-                        const rem = eid != null ? remainingByEventId.get(eid) : undefined;
-                        return (
+
+                      <div className="bs-corner" />
+                      {gTimeLabelsRow.map((s, i) => (
                         <div
-                          key={si}
-                          className={`${getCellClass(field.originalIdx, si)} ${getEventRunExtraClass(field.originalIdx, si)} ${getBookedRunExtraClass(field.originalIdx, si)}`.trim()}
-                          onClick={() => handleCellClick(field.originalIdx, si)}
-                          role={eid != null ? "link" : "button"}
-                          data-event-nav={eid != null ? "true" : undefined}
-                          title={
-                            eid != null
-                              ? rem === 0
-                                ? "Sự kiện đã đầy — xem chi tiết"
-                                : "Sự kiện còn chỗ — xem chi tiết"
-                              : undefined
-                          }
-                        />
-                      );})}
-                      <div />
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              ))}
+                          key={i}
+                          className={`bs-time-label${s.m === 0 ? " hour" : " half"}${i === 0 ? " first" : ""}${i === gTimeLabelsRow.length - 1 ? " last" : ""}`}
+                        >
+                          <span>{s.label}</span>
+                        </div>
+                      ))}
+
+                      <div className="bs-bar-corner" />
+                      {gSlots.map((_, i) => (
+                        <div key={i} className="bs-tick-cell">
+                          <span className="bs-tick" />
+                        </div>
+                      ))}
+                      <div
+                        className="bs-tick-cell"
+                        style={{ background: "transparent", borderBottom: "1px solid #d1d5db" }}
+                      />
+
+                      {group.fields.map((field) => (
+                        <React.Fragment key={field.originalIdx}>
+                          <div
+                            className="bs-field-label"
+                            style={{ background: sportTypeColors[gi % sportTypeColors.length] }}
+                            title={getFieldDisplayName(field)}
+                            onMouseEnter={(e) => {
+                              setTooltipField(field);
+                              setTooltipPos(tooltipPositionFromEvent(e));
+                            }}
+                            onMouseMove={(e) => {
+                              setTooltipPos(tooltipPositionFromEvent(e));
+                            }}
+                            onMouseLeave={() => setTooltipField(null)}
+                          >
+                            <span className="bs-field-name">{getFieldDisplayName(field)}</span>
+                          </div>
+                          {gSlots.map((gs, si) => {
+                            const globalSi = globalIdxForSlotLabel(gs.label);
+                            const eid =
+                              globalSi >= 0 ? getEventIdForCell(field.originalIdx, globalSi) : null;
+                            const rem = eid != null ? remainingByEventId.get(eid) : undefined;
+                            const cellClass =
+                              globalSi >= 0
+                                ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)}`.trim()
+                                : "bs-cell locked";
+                            return (
+                              <div
+                                key={`${field.originalIdx}-${si}-${gs.label}`}
+                                className={cellClass}
+                                onClick={() =>
+                                  globalSi >= 0 ? handleCellClick(field.originalIdx, globalSi) : undefined
+                                }
+                                role={eid != null ? "link" : "button"}
+                                data-event-nav={eid != null ? "true" : undefined}
+                                title={
+                                  eid != null
+                                    ? rem === 0
+                                      ? "Sự kiện đã đầy — xem chi tiết"
+                                      : "Sự kiện còn chỗ — xem chi tiết"
+                                    : undefined
+                                }
+                              />
+                            );
+                          })}
+                          <div />
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
           </div>
         ) : (
           <div className="bs-empty">
@@ -1124,16 +1317,31 @@ const BookingSchedule = () => {
         )}
       </div>
 
-      {/* Field image tooltip */}
-      {tooltipField && tooltipField.images && tooltipField.images.length > 0 && (
+      {/* Tooltip phóng to: ảnh sân + tên đầy đủ */}
+      {tooltipField ? (
         <div
           className="bs-field-tooltip"
-          style={{ display: 'block', left: tooltipPos.x, top: tooltipPos.y }}
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          role="tooltip"
         >
-          <img src={tooltipField.images[0]} alt={tooltipField.name} />
-          <span className="bs-field-tooltip-name">{tooltipField.name}</span>
+          {(() => {
+            const imgs = getFieldImageList(tooltipField);
+            const title = getFieldDisplayName(tooltipField);
+            return (
+              <>
+                {imgs[0] ? (
+                  <img src={imgs[0]} alt={title} />
+                ) : (
+                  <div className="bs-field-tooltip-placeholder" aria-hidden>
+                    Chưa có ảnh
+                  </div>
+                )}
+                <span className="bs-field-tooltip-name">{title}</span>
+              </>
+            );
+          })()}
         </div>
-      )}
+      ) : null}
 
       <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
     </motion.div>

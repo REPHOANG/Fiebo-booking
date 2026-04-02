@@ -121,7 +121,7 @@ export const getOwnerVenueFields = async (venueId) => {
 
 /**
  * Owner: Create a new field in venue
- * POST `/api/owner/venue/{venueId}/fields`
+ * POST `/api/owner/venues/{venueId}/fields` — khớp VenueController.CreateField (số nhiều `venues`)
  * Body (multipart/form-data): name, sportTypeId, description?, images[]
  * @param {number|string} venueId
  * @param {{name:string,sportTypeId:number|string,description?:string,images?:File[]}} payload
@@ -135,7 +135,7 @@ export const createOwnerField = async (venueId, payload) => {
   images.forEach((file) => {
     if (file) form.append("images", file);
   });
-  const response = await api.post(`/api/owner/venue/${venueId}/fields`, form, {
+  const response = await api.post(`/api/owner/venues/${venueId}/fields`, form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data?.data ?? response.data;

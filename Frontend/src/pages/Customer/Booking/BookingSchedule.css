@@ -477,10 +477,15 @@
 /* ── Grid Wrapper ──────────────────────────────────────────────── */
 .bs-grid-wrapper-outer {
   margin-bottom: 18px;
+  margin-left: -10px;
+  margin-right: -10px;
+  width: calc(100% + 20px);
+  max-width: none;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #d1d5db;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-sizing: border-box;
 }
 
 /* Notice bar */
@@ -499,6 +504,14 @@
   flex-shrink: 0;
 }
 
+
+/* Một môn = một khối lưới (trục giờ riêng) */
+.bs-sport-block {
+  border-bottom: 1px solid #cbd5e1;
+}
+.bs-sport-block:last-child {
+  border-bottom: none;
+}
 
 .bs-grid-wrapper {
   overflow-x: auto;
@@ -525,12 +538,13 @@
   padding: 0;
 }
 
-/* Corner cell (top-left, labels row) */
+/* Corner cell (top-left, nhãn giờ) — trong suốt để lộ nền trang */
 .bs-corner {
   position: sticky;
   left: 0;
   z-index: 3;
-  background: #ffffff;
+  background: transparent;
+  min-width: 0;
 }
 
 /* ── Row 1: Time labels ─────────────────────────────────────── */
@@ -545,6 +559,8 @@
   text-align: left;
   overflow: visible;
   position: relative;
+  justify-self: stretch;
+  box-sizing: border-box;
 }
 .bs-time-label > span {
   display: inline-block;
@@ -552,8 +568,12 @@
   position: relative;
   z-index: 2;
 }
+.bs-time-label.first {
+  padding-left: 0;
+}
 .bs-time-label.first > span {
   transform: none;
+  margin-left: 0;
 }
 .bs-time-label.last > span {
   transform: translateX(-100%);
@@ -572,8 +592,9 @@
   position: sticky;
   left: 0;
   z-index: 3;
-  background: #ffffff;
+  background: transparent;
   border-bottom: 1px solid #d1d5db;
+  min-width: 0;
 }
 
 .bs-tick-cell {
@@ -601,7 +622,7 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  padding: 0 14px 0 20px;
+  padding: 0 8px 0 10px;
   font-size: 0.82rem;
   font-weight: 600;
   color: #1e293b;
@@ -609,9 +630,11 @@
   border-right: 1px solid #d1d5db;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
-  max-width: 120px;
+  max-width: none;
+  min-width: 0;
   min-height: 38px;
   transition: background 0.2s;
+  box-sizing: border-box;
 }
 .bs-field-name {
   display: block;
@@ -620,30 +643,59 @@
   max-width: 100%;
 }
 .bs-field-tooltip {
-  display: none;
   position: fixed;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  padding: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 8px;
   z-index: 9999;
-  width: 180px;
+  width: 220px;
+  max-width: min(220px, calc(100vw - 24px));
   pointer-events: none;
+  animation: bs-tooltip-in 0.12s ease-out;
+}
+@keyframes bs-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .bs-field-tooltip img {
   width: 100%;
-  height: 110px;
+  height: 128px;
   object-fit: cover;
   border-radius: 8px;
   display: block;
 }
+.bs-field-tooltip-placeholder {
+  width: 100%;
+  height: 128px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e2e8f0 0%, #f1f5f9 100%);
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
 .bs-field-tooltip-name {
   display: block;
   text-align: center;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: #1e293b;
-  padding: 6px 4px 2px;
+  padding: 8px 4px 2px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 .bs-field-label:hover {
   filter: brightness(0.96);
@@ -676,6 +728,16 @@
   color: #6b7280;
   font-size: 0.72rem;
   margin-left: 4px;
+}
+
+.bs-sport-header-hours {
+  margin-left: auto;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding-left: 10px;
 }
 
 /* ── Cells ───────────────────────────────────────────────────── */
@@ -1029,6 +1091,11 @@
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -6px;
+    margin-right: -6px;
+    width: calc(100% + 12px);
+  }
   .bs-main {
     padding: 20px 16px 140px;
   }
@@ -1061,6 +1128,11 @@
 }
 
 @media (max-width: 480px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -4px;
+    margin-right: -4px;
+    width: calc(100% + 8px);
+  }
   .bs-main {
     padding: 16px 12px 140px;
   }
