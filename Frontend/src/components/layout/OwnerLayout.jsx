@@ -7,6 +7,8 @@ import {
   Mail,
   Menu,
   X,
+  Home,
+  ChevronRight,
   ChevronDown,
   LayoutDashboard,
   Building2,
@@ -44,6 +46,19 @@ const OwnerLayout = () => {
     return activePath.startsWith("/owner/events");
   }, [activePath]);
 
+  const breadcrumbItems = useMemo(() => {
+    if (activePath === "/owner") return ["Tổng quan"];
+    if (activePath.startsWith("/owner/offline-booking")) return ["Cơ sở", "Đặt sân offline"];
+    if (activePath.startsWith("/owner/venues")) return ["Cơ sở", "Cơ sở của tôi"];
+    if (activePath.startsWith("/owner/create-venue")) return ["Cơ sở", "Tạo cơ sở"];
+    if (activePath.startsWith("/owner/profile")) return ["Hồ sơ cá nhân"];
+    if (activePath.startsWith("/owner/bookings")) return ["Đơn đặt sân"];
+    if (activePath.startsWith("/owner/staff")) return ["Nhân viên"];
+    if (activePath.startsWith("/owner/events/create")) return ["Sự kiện", "Tạo sự kiện"];
+    if (activePath.startsWith("/owner/events")) return ["Sự kiện", "Danh sách sự kiện"];
+    return ["Danh mục"];
+  }, [activePath]);
+
   const handleLogout = () => {
     dispatch(logout());
     try {
@@ -54,6 +69,18 @@ const OwnerLayout = () => {
     }
     navigate("/", { replace: true });
     setMenuOpen(false);
+  };
+
+  const getBreadcrumbIcon = (label) => {
+    if (label === "Tổng quan") return <LayoutDashboard size={12} />;
+    if (label === "Cơ sở") return <Building2 size={12} />;
+    if (label === "Đặt sân offline") return <CalendarClock size={12} />;
+    if (label === "Cơ sở của tôi" || label === "Tạo cơ sở") return <Building2 size={12} />;
+    if (label === "Hồ sơ cá nhân") return <UserCircle size={12} />;
+    if (label === "Đơn đặt sân") return <ReceiptText size={12} />;
+    if (label === "Nhân viên") return <UserCircle size={12} />;
+    if (label === "Sự kiện" || label === "Danh sách sự kiện" || label === "Tạo sự kiện") return <CalendarDays size={12} />;
+    return null;
   };
 
   const handleSidebarNavigate = () => {
@@ -244,10 +271,17 @@ const OwnerLayout = () => {
           >
             {menuOpen ? <X size={16} /> : <Menu size={16} />}
           </button>
-          <label className="owner-topbar-search">
-            <Search size={14} />
-            <input type="text" placeholder="Search..." />
-          </label>
+          <div className="owner-topbar-breadcrumb" aria-label="Breadcrumb">
+            {breadcrumbItems.map((item, idx) => (
+              <React.Fragment key={`${item}-${idx}`}>
+                {idx > 0 ? <ChevronRight size={12} /> : null}
+                <span className={idx === breadcrumbItems.length - 1 ? "owner-breadcrumb-active" : ""}>
+                  <span className="owner-breadcrumb-item-icon">{getBreadcrumbIcon(item)}</span>
+                  {item}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
           <div className="owner-topbar-right">
             <button type="button" className="owner-topbar-icon" aria-label="mail">
               <Mail size={15} />
