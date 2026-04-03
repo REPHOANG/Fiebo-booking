@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import {
   MapPin, Star, Search, Frown, X, Clock,
   Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
-  MessageSquare, User, Loader2,
+  MessageSquare, User, Loader2, SlidersHorizontal, Heart, Navigation,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -30,6 +30,15 @@ const formatTime = (timeSpan) => {
   if (!timeSpan) return "";
   const parts = String(timeSpan).split(":");
   return `${parts[0]}:${parts[1]}`;
+};
+
+/** Query `time` cho API search venue (TimeOnly). */
+const formatTimeForApi = (t) => {
+  if (!t || !String(t).trim()) return undefined;
+  const s = String(t).trim();
+  if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+  if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+  return undefined;
 };
 
 const cardVariants = {
@@ -330,6 +339,30 @@ const Venues = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
 
+  // Add filter panel state
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filterMode, setFilterMode] = useState("khu-vuc");
+  const [province, setProvince] = useState("");
+  const [district, setDistrict] = useState("");
+  const [distanceKm, setDistanceKm] = useState("");
+  /** Bán kính đã áp dụng → gửi `radiusKm` + tọa độ (giống Swagger). */
+  const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
+  /** `YYYY-MM-DD` / `HH:mm` — khớp API GET `/api/Venue/search` (date + time lọc slot trống). */
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingTime, setBookingTime] = useState("");
+  const [activeKeyword, setActiveKeyword] = useState("");
+  const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
+
+  const hasPanelDraft = Boolean(
+    province.trim() ||
+      district.trim() ||
+      distanceKm ||
+      activeKeyword ||
+      bookingDate ||
+      bookingTime ||
+      appliedRadiusKm != null,
+  );
+
   const observer = useRef();
   const prevFiltersKeyRef = useRef(undefined);
 
@@ -351,8 +384,19 @@ const Venues = () => {
         sportTypeIdFromUrl ?? "",
         userGeo.userLat ?? "",
         userGeo.userLng ?? "",
+        bookingDate,
+        bookingTime,
+        appliedRadiusKm ?? "",
       ].join("|"),
-    [searchTerm, sportTypeIdFromUrl, userGeo.userLat, userGeo.userLng],
+    [
+      searchTerm,
+      sportTypeIdFromUrl,
+      userGeo.userLat,
+      userGeo.userLng,
+      bookingDate,
+      bookingTime,
+      appliedRadiusKm,
+    ],
   );
 
   const loadPage = useCallback(
@@ -361,10 +405,17 @@ const Venues = () => {
       const location = searchTerm?.trim() || undefined;
       const sportTypeId =
         sportTypeIdFromUrl != null ? Number(sportTypeIdFromUrl) : undefined;
+      const dateParam = bookingDate?.trim() || undefined;
+      const timeParam =
+        dateParam && bookingTime?.trim()
+          ? formatTimeForApi(bookingTime)
+          : undefined;
 
       try {
         const data = await searchVenues({
           location,
+          date: dateParam,
+          time: timeParam,
           sportTypeId: Number.isFinite(sportTypeId) ? sportTypeId : undefined,
           page: pageToLoad,
           pageSize: PAGE_SIZE,
@@ -373,6 +424,11 @@ const Venues = () => {
           Number.isFinite(userGeo.userLat) &&
           Number.isFinite(userGeo.userLng)
             ? { userLat: userGeo.userLat, userLng: userGeo.userLng }
+            : {}),
+          ...(appliedRadiusKm != null &&
+          Number.isFinite(appliedRadiusKm) &&
+          appliedRadiusKm > 0
+            ? { radiusKm: appliedRadiusKm }
             : {}),
         });
 
@@ -398,7 +454,15 @@ const Venues = () => {
         setLoading(false);
       }
     },
-    [searchTerm, sportTypeIdFromUrl, userGeo.userLat, userGeo.userLng],
+    [
+      searchTerm,
+      sportTypeIdFromUrl,
+      userGeo.userLat,
+      userGeo.userLng,
+      bookingDate,
+      bookingTime,
+      appliedRadiusKm,
+    ],
   );
 
   /**
@@ -464,6 +528,95 @@ const Venues = () => {
     return parts.length > 0 ? parts.join(", ") : venue.addressDetail || "Không rõ vị trí";
   };
 
+  const getAreaFilterText = () => {
+    const parts = [province, district].filter(Boolean);
+    return parts.join(" ");
+  };
+
+  const applyAreaFilter = () => {
+    setAppliedRadiusKm(null);
+    const text = getAreaFilterText();
+    if (text) {
+      setSearchTerm(text);
+      setInputValue(text);
+      setActiveKeyword("");
+    }
+    setShowFilterPanel(false);
+  };
+
+  const applyDistanceFilter = () => {
+    const raw = String(distanceKm ?? "").trim();
+    if (!raw) {
+      setAppliedRadiusKm(null);
+      setShowFilterPanel(false);
+      return;
+    }
+    const r = parseFloat(raw, 10);
+    if (!Number.isFinite(r) || r <= 0) return;
+
+    const finish = (lat, lng) => {
+      setUserGeo({ userLat: lat, userLng: lng });
+      try {
+        localStorage.setItem("userLocation", JSON.stringify({ lat, lng }));
+      } catch (_) {}
+      setAppliedRadiusKm(r);
+      setActiveKeyword("");
+      setShowFilterPanel(false);
+    };
+
+    if (
+      userGeo.userLat != null &&
+      userGeo.userLng != null &&
+      Number.isFinite(userGeo.userLat) &&
+      Number.isFinite(userGeo.userLng)
+    ) {
+      finish(userGeo.userLat, userGeo.userLng);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      window.alert(
+        "Trình duyệt không hỗ trợ định vị. Không thể lọc theo khoảng cách.",
+      );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => finish(pos.coords.latitude, pos.coords.longitude),
+      () => {
+        window.alert(
+          "Không lấy được vị trí. Hãy cho phép truy cập vị trí để lọc theo km.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 },
+    );
+  };
+
+  const applyFilterPanel = () => {
+    if (filterMode === "khoang-cach") applyDistanceFilter();
+    else applyAreaFilter();
+  };
+
+  const handleKeywordClick = (keyword) => {
+    setActiveKeyword(keyword);
+    setSearchTerm(keyword);
+    setInputValue(keyword);
+    setShowFilterPanel(false);
+  };
+
+  const clearFilters = () => {
+    setProvince("");
+    setDistrict("");
+    setDistanceKm("");
+    setAppliedRadiusKm(null);
+    setBookingDate("");
+    setBookingTime("");
+    setActiveKeyword("");
+    setSearchTerm("");
+    setInputValue("");
+    setShowFilterPanel(false);
+  };
+
   return (
     <div className="venues-screen screen-bg screen-bg-sport-static">
       <div className="venues-page">
@@ -493,17 +646,208 @@ const Venues = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="venues-filters">
-        <div className="venues-search">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Tìm theo tên sân hoặc địa điểm..."
-            value={inputValue}
-            onChange={handleSearchChange}
-          />
+      {/* Search + advanced filters */}
+      <div className={`venues-search-block ${showFilterPanel ? "venues-search-block--open" : ""}`}>
+        <div className="venues-search-bar">
+          <button
+            type="button"
+            className={`venues-filter-toggle ${showFilterPanel ? "is-active" : ""}`}
+            onClick={() => setShowFilterPanel((v) => !v)}
+            aria-expanded={showFilterPanel}
+            aria-controls="venues-advanced-filter"
+          >
+            <SlidersHorizontal size={18} strokeWidth={2} />
+            <span>Bộ lọc</span>
+            {hasPanelDraft && !showFilterPanel && <span className="venues-filter-dot" aria-hidden />}
+          </button>
+          <div className="venues-search-divider" aria-hidden />
+          <label className="venues-search-field">
+            <Search size={19} className="venues-search-icon" aria-hidden />
+            <input
+              type="text"
+              enterKeyHint="search"
+              autoComplete="off"
+              placeholder="Tìm theo tên sân hoặc địa điểm..."
+              value={inputValue}
+              onChange={handleSearchChange}
+            />
+            {inputValue && (
+              <button
+                type="button"
+                className="venues-search-clear"
+                onClick={() => {
+                  setInputValue("");
+                  setSearchTerm("");
+                }}
+                aria-label="Xóa ô tìm kiếm"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </label>
         </div>
+
+        <AnimatePresence initial={false}>
+          {showFilterPanel && (
+            <motion.div
+              id="venues-advanced-filter"
+              className="venues-filter-panel"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <div className="filter-panel-inner">
+                <div className="filter-header">
+                  <div className="filter-header-text">
+                    <h4>Bộ lọc nâng cao</h4>
+                    <p>Lọc khu vực, khoảng cách, ngày giờ đặt sân hoặc gợi ý nhanh.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="filter-close"
+                    onClick={() => setShowFilterPanel(false)}
+                    aria-label="Đóng bộ lọc"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="filter-mode-seg" role="tablist" aria-label="Kiểu lọc">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={filterMode === "khu-vuc"}
+                    className={filterMode === "khu-vuc" ? "is-selected" : ""}
+                    onClick={() => setFilterMode("khu-vuc")}
+                  >
+                    <MapPin size={16} />
+                    Khu vực
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={filterMode === "khoang-cach"}
+                    className={filterMode === "khoang-cach" ? "is-selected" : ""}
+                    onClick={() => setFilterMode("khoang-cach")}
+                  >
+                    <Navigation size={16} />
+                    Khoảng cách
+                  </button>
+                </div>
+
+                {filterMode === "khu-vuc" && (
+                  <div className="filter-body filter-body--grid">
+                    <div className="input-group">
+                      <label htmlFor="venues-province">Tỉnh / TP</label>
+                      <input
+                        id="venues-province"
+                        type="text"
+                        value={province}
+                        onChange={(e) => setProvince(e.target.value)}
+                        placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label htmlFor="venues-district">Quận / Huyện</label>
+                      <input
+                        id="venues-district"
+                        type="text"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        placeholder="VD: Quận 1, Thanh Xuân"
+                      />
+                    </div>
+                    <div className="filter-save-wrap">
+                      <button className="venues-save-location" type="button">
+                        <Heart size={17} strokeWidth={2} />
+                        Lưu địa điểm
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {filterMode === "khoang-cach" && (
+                  <div className="filter-body filter-body--distance">
+                    <div className="input-group input-group--grow">
+                      <label htmlFor="venues-distance">Bán kính tối đa</label>
+                      <div className="distance-input-wrap">
+                        <input
+                          id="venues-distance"
+                          type="number"
+                          value={distanceKm}
+                          onChange={(e) => setDistanceKm(e.target.value)}
+                          placeholder="5"
+                          min="0"
+                          step="0.5"
+                        />
+                        <span className="distance-suffix">km</span>
+                      </div>
+                      <p className="filter-hint">
+                        Cần vị trí: dùng tọa độ đã lưu hoặc trình duyệt sẽ xin quyền khi bạn chọn &quot;Áp
+                        dụng&quot;.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="filter-body--schedule">
+                  <div className="input-group">
+                    <label htmlFor="venues-booking-date">
+                      <Calendar size={14} aria-hidden /> Ngày đặt
+                    </label>
+                    <input
+                      id="venues-booking-date"
+                      type="date"
+                      value={bookingDate}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setBookingDate(v);
+                        if (!v) setBookingTime("");
+                      }}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label htmlFor="venues-booking-time">Giờ đặt (cùng ngày)</label>
+                    <input
+                      id="venues-booking-time"
+                      type="time"
+                      value={bookingTime}
+                      onChange={(e) => setBookingTime(e.target.value)}
+                      disabled={!bookingDate}
+                      title={!bookingDate ? "Chọn ngày trước" : undefined}
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-quick">
+                  <span className="filter-quick-label">Gợi ý nhanh</span>
+                  <div className="keywords-row">
+                    {filterKeywords.map((keyword) => (
+                      <button
+                        key={keyword}
+                        type="button"
+                        className={`keyword-chip ${activeKeyword === keyword ? "active" : ""}`}
+                        onClick={() => handleKeywordClick(keyword)}
+                      >
+                        {keyword}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="filter-actions">
+                  <button type="button" className="filter-btn-primary" onClick={applyFilterPanel}>
+                    Áp dụng bộ lọc
+                  </button>
+                  <button type="button" className="filter-btn-ghost" onClick={clearFilters}>
+                    Xóa tất cả
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Grid */}
@@ -559,7 +903,10 @@ const Venues = () => {
         <div className="venues-empty">
           <Frown size={52} />
           <h3>Không tìm thấy sân nào</h3>
-          <p>Hãy thử thay đổi bộ lọc hoặc từ khoá tìm kiếm.</p>
+          <p>
+            Thử tên địa điểm cụ thể, chọn ngày/giờ trong bộ lọc hoặc chọn môn từ trang chủ. Hệ thống chỉ
+            khớp từ khoá với tên sân và địa chỉ, không hiểu câu tự nhiên kiểu &quot;sân bóng gần nhất&quot;.
+          </p>
         </div>
       ) : null}
 
