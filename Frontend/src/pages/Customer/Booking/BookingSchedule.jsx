@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { getVenueDetail, getVenueSchedule, fetchVenueFieldCatalog } from "../../../services/fieldService";
+import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
 import { useAuthModal } from "../../../context/AuthModalContext";
@@ -34,22 +34,6 @@ const normalizeSlotTime = (t) => {
 };
 
 const normalizeText = (v) => String(v || "").trim().toLowerCase();
-
-/** Lọc từng nhóm môn: chỉ giữ sân thuộc đúng sportType (backend có thể nhân bản cùng fields cho mọi SportTypes). */
-const filterScheduleByFieldCatalog = (res, allowedKeySet) => {
-  if (!res?.sportTypes?.length || !allowedKeySet || allowedKeySet.size === 0) return res;
-  const sportTypes = res.sportTypes.map((st) => {
-    const sportType = String(st.sportTypeName || st.sportType || "").trim();
-    const sportKey = normalizeText(sportType);
-    const fields = (st.fields || []).filter((f) => {
-      const name = String(f.fieldName || f.name || "").trim();
-      if (!name) return false;
-      return allowedKeySet.has(`${sportKey}|${normalizeText(name)}`);
-    });
-    return { ...st, fields };
-  });
-  return { ...res, sportTypes };
-};
 
 /** Danh sách sân + môn từ GET lịch. Thứ tự theo sportTypes.fields trên response. */
 const buildFieldsFromVenueSchedule = (res) => {
@@ -245,8 +229,6 @@ const BookingSchedule = () => {
 
   const [venue, setVenue] = useState(null);
   const [fields, setFields] = useState([]);
-  /** undefined = đang tải catalogue sân; null = không lọc; Set = cặp môn|tên hợp lệ từ GET /fields */
-  const [fieldCatalogKeySet, setFieldCatalogKeySet] = useState(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(todayStr());
@@ -283,42 +265,17 @@ const BookingSchedule = () => {
     return () => clearInterval(id);
   }, [selectedDate]);
 
-  // Tải chi tiết sân + catalogue GET /fields (sportType + name) để lọc hàng sân trên lịch đúng từng môn.
+  // Tải chi tiết venue (metadata + fallback giờ mở cửa). Danh sách sân & slot lấy từ GET schedule.
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setFields([]);
-      setFieldCatalogKeySet(undefined);
       setVenue(null);
       try {
         const v = await getVenueDetail(id);
-        let catalogRows = [];
-
-        // Lưu ý: tránh gọi GET /fields hai lần trong tình huống hàng tồn tại từ getVenueDetail:
-        // - Nếu getVenueDetail trả về 'fields' hoặc 'venueFields' thì dùng luôn.
-        // - Chỉ gọi fetchVenueFieldCatalog(id) khi dữ liệu này không có sẵn (fallback).
-        // Điều này ngăn việc gọi API field hai lần cùng lúc và giảm tải máy chủ.
-        if (Array.isArray(v?.fields) && v.fields.length > 0) {
-          catalogRows = v.fields;
-        } else if (Array.isArray(v?.venueFields) && v.venueFields.length > 0) {
-          catalogRows = v.venueFields;
-        } else {
-          catalogRows = await fetchVenueFieldCatalog(id).catch(() => []);
-        }
-
-        const allowed = new Set();
-        for (const r of catalogRows || []) {
-          const sport = String(r?.sportType ?? r?.SportType ?? "").trim();
-          const name = String(r?.name ?? r?.Name ?? "").trim();
-          if (!sport || !name) continue;
-          allowed.add(`${normalizeText(sport)}|${normalizeText(name)}`);
-        }
-
-        setFieldCatalogKeySet(allowed.size > 0 ? allowed : null);
         setVenue({ ...v, id });
       } catch (err) {
         setError(err.message || "Không thể tải thông tin sân");
-        setFieldCatalogKeySet(null);
       } finally {
         setLoading(false);
       }
@@ -415,17 +372,13 @@ const BookingSchedule = () => {
 
   // Fetch server schedule (booked/unavailable slots) when venue or date changes
   useEffect(() => {
-    if (!venue || !selectedDate || fieldCatalogKeySet === undefined) return;
+    if (!venue || !selectedDate) return;
     let mounted = true;
 
     const fetchAndDispatch = async () => {
         try {
-          const raw = await getVenueSchedule(id, selectedDate);
+          const res = await getVenueSchedule(id, selectedDate);
           if (!mounted) return;
-          const res =
-            fieldCatalogKeySet && fieldCatalogKeySet.size > 0
-              ? filterScheduleByFieldCatalog(raw, fieldCatalogKeySet)
-              : raw;
           const fieldList = buildFieldsFromVenueSchedule(res);
           const serverSlots = [];
           (res?.sportTypes || []).forEach((st) => {
@@ -517,7 +470,7 @@ const BookingSchedule = () => {
     // Call once on mount/when venue or date changes. Polling removed to avoid repeated API calls.
     fetchAndDispatch();
     return () => { mounted = false; };
-  }, [venue, selectedDate, id, dispatch, fieldCatalogKeySet]);
+  }, [venue, selectedDate, id, dispatch]);
 
   /** Mỗi môn: tập nhãn bắt đầu slot có trên API — cột không thuộc tập này là “khung trống”, không đặt được */
   const configuredSlotStartsBySport = useMemo(() => {

@@ -10,6 +10,7 @@ import VenuesMegaMenu from '../VenuesMegaMenu/VenuesMegaMenu';
 const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenticated, variant = 'icon' }) => {
   const navigate = useNavigate();
   const { openLogin } = useAuthModal();
+  const [venuesMegaActive, setVenuesMegaActive] = React.useState(false);
 
   const renderSearchButton = () => {
     if (variant === 'none') return null;
@@ -48,12 +49,16 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenti
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onSearch()}
         />
-        <div className="ch-mega-wrapper">
+        <div
+          className="ch-mega-wrapper"
+          onMouseEnter={() => setVenuesMegaActive(true)}
+          onFocusCapture={() => setVenuesMegaActive(true)}
+        >
           <button type="button" className="ch-mega-trigger" aria-haspopup="true" aria-expanded="false">
             Sân
             <ChevronDown size={16} className="ch-mega-chevron" aria-hidden />
           </button>
-          <VenuesMegaMenu align="end" />
+          <VenuesMegaMenu align="end" active={venuesMegaActive} />
         </div>
         <Button
           variant="light"

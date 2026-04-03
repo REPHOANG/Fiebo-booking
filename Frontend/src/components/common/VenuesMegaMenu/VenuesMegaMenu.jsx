@@ -7,12 +7,14 @@ const regionLink = (q) => `/venues?search=${encodeURIComponent(q)}`;
 
 /**
  * Hai cột: Loại sân (GET `/api/sport-types`) + Khu vực — dùng chung Header & SearchBar.
- * @param {{ align?: "start" | "end" }} props
+ * Chỉ gọi API khi `active` (vd. sau khi hover/focus vào vùng mega menu) để trang như đặt sân không tải sport-types.
+ * @param {{ align?: "start" | "end", active?: boolean }} props
  */
-const VenuesMegaMenu = ({ align = "start" }) => {
+const VenuesMegaMenu = ({ align = "start", active = true }) => {
   const [sports, setSports] = useState([]);
 
   useEffect(() => {
+    if (!active) return;
     let mounted = true;
     getSportTypes()
       .then((raw) => {
@@ -24,7 +26,7 @@ const VenuesMegaMenu = ({ align = "start" }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [active]);
 
   return (
     <div
@@ -35,7 +37,9 @@ const VenuesMegaMenu = ({ align = "start" }) => {
       <div className="venues-mega-column">
         <h4>Loại sân</h4>
         {sports.length === 0 ? (
-          <span className="venues-mega-muted">Đang tải…</span>
+          <span className="venues-mega-muted">
+            {active ? "Đang tải…" : "Mở menu để tải loại sân"}
+          </span>
         ) : (
           sports.map((s) => (
             <Link key={s.id} to={`/venues?sport=${s.id}`}>

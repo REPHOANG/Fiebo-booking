@@ -127,6 +127,8 @@ const CreateEvent = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedFieldId, setExpandedFieldId] = useState(null);
+  /** "" = tất cả loại sân; khác thì lọc theo sportTypeName */
+  const [sportTypeFilter, setSportTypeFilter] = useState("");
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
   const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
@@ -156,6 +158,22 @@ const CreateEvent = () => {
     }
     return out;
   }, [slotsByFieldWithStatus]);
+
+  const sportTypeOptions = useMemo(() => {
+    const set = new Set();
+    for (const g of slotsByFieldWithStatus) {
+      const n = String(g.sportTypeName || "").trim();
+      if (n) set.add(n);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [slotsByFieldWithStatus]);
+
+  const filteredSlotsByField = useMemo(() => {
+    if (!sportTypeFilter) return slotsByFieldWithStatus;
+    return slotsByFieldWithStatus.filter(
+      (g) => String(g.sportTypeName || "").trim() === sportTypeFilter,
+    );
+  }, [slotsByFieldWithStatus, sportTypeFilter]);
 
   const loadVenues = async () => {
     setLoadingVenues(true);
@@ -190,6 +208,7 @@ const CreateEvent = () => {
     setEventListForDate([]);
     setSelectedDetails([]);
     setExpandedFieldId(null);
+    setSportTypeFilter("");
     const id = Number(nextVenueId);
     if (!id) {
       setVenue(null);
@@ -217,6 +236,7 @@ const CreateEvent = () => {
     setSchedule(null);
     setSelectedDetails([]);
     setExpandedFieldId(null);
+    setSportTypeFilter("");
     try {
       const v = await getVenueDetail(id);
       setVenue(v ?? null);
@@ -240,6 +260,7 @@ const CreateEvent = () => {
     setEventListForDate([]);
     setSelectedDetails([]);
     setExpandedFieldId(null);
+    setSportTypeFilter("");
     try {
       const dateStr = eventDate.slice(0, 10);
       const s = await getVenueSchedule(id, dateStr);
@@ -291,13 +312,22 @@ const CreateEvent = () => {
     });
   }, [availableSlots]);
 
+  /** Sân đang mở "Phóng to" không còn trong danh sách sau khi lọc → thu gọn */
+  useEffect(() => {
+    if (expandedFieldId == null) return;
+    const visible = filteredSlotsByField.some((g) => g.fieldId === expandedFieldId);
+    if (!visible) setExpandedFieldId(null);
+  }, [expandedFieldId, filteredSlotsByField]);
+
   const toggleSlot = (item) => {
     if (item.status !== "available") return;
     const key = `${item.fieldId}-${item.slotId}`;
     setSelectedDetails((prev) => {
       const has = prev.some((d) => `${d.fieldId}-${d.slotId}` === key);
       if (has) return prev.filter((d) => `${d.fieldId}-${d.slotId}` !== key);
-      return [...prev, { fieldId: item.fieldId, slotId: item.slotId }];
+      const mixed = prev.some((d) => d.fieldId !== item.fieldId);
+      const base = mixed ? prev.filter((d) => d.fieldId === item.fieldId) : prev;
+      return [...base, { fieldId: item.fieldId, slotId: item.slotId }];
     });
   };
 
@@ -436,6 +466,27 @@ const CreateEvent = () => {
           {slotsByFieldWithStatus.length > 0 && (
             <div className="ce-section">
               <h3>Chọn khung giờ (ít nhất 1)</h3>
+              <p className="ce-single-field-hint">
+                Một sự kiện chỉ dùng slot trên một sân. Phóng to sân khác sẽ bỏ chọn slot ở sân trước.
+              </p>
+              {sportTypeOptions.length > 0 && (
+                <div className="ce-row ce-sport-filter-row">
+                  <label>
+                    Loại sân
+                    <select
+                      value={sportTypeFilter}
+                      onChange={(e) => setSportTypeFilter(e.target.value)}
+                    >
+                      <option value="">Tất cả</option>
+                      {sportTypeOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
               <div className="ce-legend">
                 <span className="ce-legend-item available">Trống</span>
                 <span className="ce-legend-item past">Đã qua</span>
@@ -443,7 +494,7 @@ const CreateEvent = () => {
                 <span className="ce-legend-item event">Sự kiện</span>
               </div>
               <div className="ce-slots-by-field">
-                {slotsByFieldWithStatus.map((group) => (
+                {filteredSlotsByField.map((group) => (
                   <div key={group.fieldId} className="ce-field-block">
                     <div className="ce-field-head">
                       <div className="ce-field-left">
@@ -460,9 +511,17 @@ const CreateEvent = () => {
                         <button
                           type="button"
                           className="ce-field-toggle"
-                          onClick={() =>
-                            setExpandedFieldId((prev) => (prev === group.fieldId ? null : group.fieldId))
-                          }
+                          onClick={() => {
+                            const prev = expandedFieldId;
+                            const fid = group.fieldId;
+                            const next = prev === fid ? null : fid;
+                            setExpandedFieldId(next);
+                            if (next !== null && next !== prev) {
+                              setSelectedDetails((details) =>
+                                details.filter((d) => d.fieldId === next),
+                              );
+                            }
+                          }}
                         >
                           {expandedFieldId === group.fieldId ? "Thu nhỏ" : "Phóng to"}
                         </button>

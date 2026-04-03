@@ -29,6 +29,17 @@
   color: #374151;
 }
 
+.ce-single-field-hint {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.ce-sport-filter-row {
+  max-width: 320px;
+}
+
 .ce-row {
   display: flex;
   align-items: flex-end;

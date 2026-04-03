@@ -2,13 +2,31 @@ import api from "./api";
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
+let sportTypesCached = null;
+let sportTypesInflight = null;
+
 /**
  * GET `/api/sport-types` — danh sách môn (ApiResponse { data: [...] }).
+ * Gộp request đồng thời và tái sử dụng kết quả trong phiên để giảm lưu lượng.
  */
 export const getSportTypes = async () => {
-  const res = await api.get("/api/sport-types");
-  const data = unwrap(res);
-  return Array.isArray(data) ? data : [];
+  if (sportTypesCached != null) return sportTypesCached;
+  if (!sportTypesInflight) {
+    sportTypesInflight = api
+      .get("/api/sport-types")
+      .then((res) => {
+        const data = unwrap(res);
+        const list = Array.isArray(data) ? data : [];
+        sportTypesCached = list;
+        sportTypesInflight = null;
+        return list;
+      })
+      .catch((err) => {
+        sportTypesInflight = null;
+        throw err;
+      });
+  }
+  return sportTypesInflight;
 };
 
 /**

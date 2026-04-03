@@ -20,7 +20,8 @@ import VenuesMegaMenu from "../common/VenuesMegaMenu/VenuesMegaMenu";
 
 const Header = () => {
   const dispatch = useDispatch();
-  
+  const [venuesMegaActive, setVenuesMegaActive] = useState(false);
+
   // Get user from Redux
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
@@ -66,11 +67,15 @@ const Header = () => {
           <nav className="menu-desktop">
             <NavLink to="/" end>Trang chủ</NavLink>
 
-            <div className="mega-wrapper">
+            <div
+              className="mega-wrapper"
+              onMouseEnter={() => setVenuesMegaActive(true)}
+              onFocusCapture={() => setVenuesMegaActive(true)}
+            >
               <NavLink to="/venues" className="mega-link">
                 Sân
               </NavLink>
-              <VenuesMegaMenu align="start" />
+              <VenuesMegaMenu align="start" active={venuesMegaActive} />
             </div>
 
 
