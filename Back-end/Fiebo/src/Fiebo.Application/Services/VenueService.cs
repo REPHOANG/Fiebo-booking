@@ -342,7 +342,8 @@ namespace Fiebo.Application.Services
                     SportTypeId = sportType.Id,
                     SportTypeName = sportType.Name,
                     Slots = sportSlots,
-                    Fields = [.. fields.Select(field =>
+                    Fields = [.. fields.Where(field => field.SportTypeId == sportType.Id)
+                    .Select(field =>
             {
                 var bookingSlots = field.BookingDetails
                     .Select(bd => new UnavailableSlotResponse

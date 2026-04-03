@@ -6,6 +6,7 @@ using Fiebo.Domain.Repositories;
 using Moq;
 using System.Linq.Expressions;
 using Xunit;
+using TimeSlotEntity = Fiebo.Domain.Entities.TimeSlot;
 
 namespace Fiebo.Application.Tests.Fields
 {
@@ -42,9 +43,9 @@ namespace Fiebo.Application.Tests.Fields
                 .ReturnsAsync(fields);
         }
 
-        private void SetupTimeSlots(List<TimeSlot> slots)
+        private void SetupTimeSlots(List<TimeSlotEntity> slots)
         {
-            _timeSlotRepo.Setup(x => x.FindAsync(It.IsAny<Expression<Func<TimeSlot, bool>>>()))
+            _timeSlotRepo.Setup(x => x.FindAsync(It.IsAny<Expression<Func<TimeSlotEntity, bool>>>() ))
                 .ReturnsAsync(slots);
         }
 
@@ -132,7 +133,7 @@ namespace Fiebo.Application.Tests.Fields
             };
             SetupFields(fields);
 
-            var timeSlots = new List<TimeSlot>
+            var timeSlots = new List<TimeSlotEntity>
             {
                 new() { VenueId = VenueId, SportTypeId = 10, Price = 200_000 },
                 new() { VenueId = VenueId, SportTypeId = 10, Price = 350_000 },
@@ -217,7 +218,7 @@ namespace Fiebo.Application.Tests.Fields
             };
             SetupFields(fields);
 
-            var timeSlots = new List<TimeSlot>
+            var timeSlots = new List<TimeSlotEntity>
             {
                 new() { VenueId = VenueId, SportTypeId = 10, Price = 150_000 },
                 new() { VenueId = VenueId, SportTypeId = 10, Price = 300_000 },
