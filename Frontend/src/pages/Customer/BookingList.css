@@ -41,7 +41,12 @@
   max-width: min(80%, 92vw);
   margin: 0 auto;
   padding: 32px 20px 120px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
   min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   font-feature-settings: "cv02", "cv11", "ss01";
   background:
@@ -514,6 +519,58 @@
 .bl-date-filter-input:focus {
   border-color: rgba(99,102,241,0.45);
   box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+
+/* Hàng chọn năm: một cột full width (tránh select chỉ chiếm nửa panel) */
+.bl-date-filter-controls .bl-date-filter-row:has(.bl-date-filter-select) {
+  grid-template-columns: 1fr;
+}
+
+select.bl-date-filter-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 44px 11px 14px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--text-main);
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background-color: rgba(255, 255, 255, 0.96);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px 18px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: var(--transition);
+}
+
+select.bl-date-filter-select:hover {
+  border-color: rgba(99, 102, 241, 0.38);
+  background-color: #fff;
+  box-shadow:
+    0 2px 8px rgba(99, 102, 241, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+select.bl-date-filter-select:focus {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow:
+    0 0 0 4px rgba(99, 102, 241, 0.14),
+    0 4px 14px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+select.bl-date-filter-select--placeholder {
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .bl-date-filter-actions {
@@ -1083,8 +1140,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 18px;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   z-index: 2000;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bl-popup {
@@ -1101,8 +1162,15 @@
   padding: 28px;
   max-width: 700px;
   width: 100%;
+  max-height: min(88vh, 920px);
+  max-height: min(88dvh, 920px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.65);
   position: relative;
+  box-sizing: border-box;
+  margin: auto;
 }
 
 .bl-popup-close {
@@ -1335,26 +1403,121 @@
   cursor: not-allowed;
 }
 
-/* ============ MOBILE ============ */
-@media (max-width: 768px) {
+/* ============ TABLET & BELOW ============ */
+@media (max-width: 1024px) {
+  .bl-main {
+    max-width: 100%;
+  }
+
   .bl-content-grid {
     grid-template-columns: 1fr;
+    gap: 22px;
   }
 
   .bl-side {
     position: static;
     order: 2;
   }
+}
 
+/* ============ MOBILE ============ */
+@media (max-width: 768px) {
   .bl-main {
+    padding: 24px 16px calc(100px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .bl-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .bl-back {
+    width: 44px;
+    height: 44px;
+  }
+
+  .bl-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .bl-toolbar-right {
+    width: 100%;
+    margin-left: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .bl-type-filter {
+    flex: 1 1 0;
+    min-width: 0;
     max-width: 100%;
-    padding: 24px 16px 100px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .bl-type-filter-heading {
+    white-space: nowrap;
+  }
+
+  .bl-type-filter-card {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .bl-date-filter-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .bl-date-filter-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .bl-date-filter-panel {
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+    transform-origin: top center;
+  }
+
+  .bl-tabs-rail {
+    width: 100%;
+    border-radius: var(--radius-lg);
+  }
+
+  .bl-tabs {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .bl-tab {
+    flex: 1 1 auto;
+    min-width: fit-content;
+    text-align: center;
+    justify-content: center;
   }
 
   .bl-list-item {
     flex-direction: column;
     align-items: stretch;
     padding: 20px 18px 22px;
+  }
+
+  .bl-list-item:hover {
+    transform: none;
   }
 
   .bl-card-media {
@@ -1375,48 +1538,6 @@
     margin: -20px 0 12px -18px;
   }
 
-  .bl-tabs-rail {
-    width: 100%;
-    border-radius: var(--radius-lg);
-  }
-
-  .bl-tabs {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
-
-  .bl-tab {
-    flex: 1 1 auto;
-    min-width: fit-content;
-    text-align: center;
-    justify-content: center;
-  }
-
-  .bl-date-filter-wrap {
-    width: 100%;
-  }
-
-  .bl-toolbar-right {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .bl-type-filter {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .bl-type-filter-card {
-    flex: 1;
-    min-width: 0;
-    width: 100%;
-  }
-
-  .bl-date-filter-card {
-    width: 100%;
-    min-width: 0;
-  }
-
   .bl-date-filter-row {
     grid-template-columns: 1fr;
   }
@@ -1431,6 +1552,59 @@
     max-width: 100%;
   }
 
+  .bl-popup-overlay {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .bl-popup {
+    margin: 0;
+    width: 100%;
+    max-width: min(700px, 100%);
+    padding: 20px 16px 22px;
+    padding-bottom: max(22px, calc(16px + env(safe-area-inset-bottom, 0px)));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: min(92vh, 100%);
+    max-height: min(92dvh, 100%);
+  }
+
+  .bl-popup-close {
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .bl-ticket-title {
+    font-size: clamp(1.25rem, 5.5vw, 1.65rem);
+    padding-right: 48px;
+  }
+
+  .bl-ticket-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bl-ticket-top-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .bl-detail-header {
+    padding-right: 48px;
+  }
+
+  .bl-actions {
+    flex-direction: column;
+  }
+
+  .bl-actions .bl-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .bl-ticket-row {
     flex-direction: column;
     gap: 6px;
@@ -1439,5 +1613,84 @@
   .bl-ticket-value {
     max-width: 100%;
     text-align: left;
+  }
+
+  .bl-load-more {
+    padding: 12px 0 max(24px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============ NARROW PHONES ============ */
+@media (max-width: 480px) {
+  .bl-main {
+    padding: 18px 12px calc(92px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .bl-list-type-segment {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .bl-list-type-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 12px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .bl-tab {
+    padding: 9px 12px;
+    font-size: 0.8rem;
+  }
+
+  .bl-list-item {
+    padding: 16px 14px 18px;
+    border-radius: var(--radius-lg);
+  }
+
+  .bl-card-media {
+    min-height: 148px;
+    aspect-ratio: 16 / 10;
+  }
+
+  .bl-date-filter-item {
+    padding: 11px 10px;
+    font-size: 0.9rem;
+  }
+
+  .bl-date-filter-actions {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .bl-date-filter-actions .bl-btn {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .bl-empty-state {
+    padding: 36px 16px;
+  }
+
+  .bl-empty-illustration {
+    width: 100px;
+  }
+}
+
+/* ============ SHORT VIEWPORTS (bàn phím / landscape) ============ */
+@media (max-height: 520px) and (max-width: 768px) {
+  .bl-popup-overlay {
+    align-items: center;
+    padding: 8px;
+  }
+
+  .bl-popup {
+    border-radius: var(--radius-lg);
+    max-height: min(96vh, 100%);
+    max-height: min(96dvh, 100%);
   }
 }

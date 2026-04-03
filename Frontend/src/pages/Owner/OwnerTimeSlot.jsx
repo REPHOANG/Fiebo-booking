@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
 // import { getOwnerVenueFields } from "../../services/fieldService";
-import { getSportTypes } from "../../services/sportTypeService";
+import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
 import { getVenueDraft, getOwnerVenues } from "../../services/venueService";
 import {
   getOwnerVenueTimeSlots,
@@ -362,13 +362,7 @@ const OwnerTimeSlot = () => {
     (async () => {
       try {
         const list = await getSportTypes();
-        const normalized = (Array.isArray(list) ? list : [])
-          .map((x) => ({
-            id: x?.id ?? x?.sportTypeId ?? x?.SportTypeId,
-            name: x?.name ?? x?.sportTypeName ?? x?.SportTypeName,
-          }))
-          .filter((x) => x.id != null && x.name);
-        if (mounted) setSportTypes(normalized);
+        if (mounted) setSportTypes(normalizeSportTypeList(list));
       } catch {
         if (mounted) setSportTypes([]);
       }

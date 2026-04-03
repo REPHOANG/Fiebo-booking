@@ -8,7 +8,7 @@ import {
   updateOwnerField,
   uploadOwnerFieldImages,
 } from "../../services/fieldService";
-import { getSportTypes } from "../../services/sportTypeService";
+import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
 import { getVenueDraft } from "../../services/venueService";
 import "./OwnerVenueDetail.css";
 
@@ -55,13 +55,7 @@ const OwnerAddField = () => {
     (async () => {
       try {
         const list = await getSportTypes();
-        const normalized = (Array.isArray(list) ? list : [])
-          .map((x) => ({
-            id: x?.id ?? x?.sportTypeId ?? x?.SportTypeId,
-            name: x?.name ?? x?.sportTypeName ?? x?.SportTypeName,
-          }))
-          .filter((x) => x.id != null && x.name);
-        if (mounted) setSportTypes(normalized);
+        if (mounted) setSportTypes(normalizeSportTypeList(list));
       } catch {
         if (mounted) setSportTypes([]);
       }

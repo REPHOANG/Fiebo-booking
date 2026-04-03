@@ -108,6 +108,9 @@ function isSameCalendarMonth(dateVal, year, month1to12) {
   return d.getFullYear() === year && d.getMonth() + 1 === month1to12;
 }
 
+/** Các năm cho bộ lọc (khớp min/max trước đây của ô nhập). */
+const BOOKING_LIST_YEAR_OPTIONS = Array.from({ length: 101 }, (_, i) => String(2000 + i));
+
 function groupHistoryByBooking(items) {
   const byId = new Map();
   for (const it of items || []) {
@@ -844,15 +847,18 @@ const BookingList = () => {
                   <div className="bl-date-filter-row">
                     <label className="bl-date-filter-label">
                       Năm
-                      <input
-                        className="bl-date-filter-input"
-                        type="number"
-                        inputMode="numeric"
-                        min="2000"
-                        max="2100"
+                      <select
+                        className={`bl-date-filter-input bl-date-filter-select${draftYear ? "" : " bl-date-filter-select--placeholder"}`}
                         value={draftYear}
                         onChange={(e) => setDraftYear(e.target.value)}
-                      />
+                      >
+                        <option value="">Chọn năm</option>
+                        {BOOKING_LIST_YEAR_OPTIONS.map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                   </div>
                 ) : null}

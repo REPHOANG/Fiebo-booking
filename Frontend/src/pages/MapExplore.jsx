@@ -4,17 +4,10 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { MapPin, Search } from "lucide-react";
 import { searchVenues } from "../services/fieldService";
+import { getSportTypes, normalizeSportTypeList } from "../services/sportTypeService";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 import "./MapExplore.css";
-
-const SPORTS = [
-  { label: "Tất cả", id: null },
-  { label: "Bóng đá", id: 1 },
-  { label: "Bóng rổ", id: 2 },
-  { label: "Tennis", id: 3 },
-  { label: "Pickleball", id: 4 },
-];
 
 const DEFAULT_CENTER = { lat: 21.0285, lng: 105.8542 };
 
@@ -40,6 +33,26 @@ const MapExplore = () => {
   const [searchValue, setSearchValue] = useState("");
   const [activeSport, setActiveSport] = useState(null);
   const [venues, setVenues] = useState([]);
+  const [sportChips, setSportChips] = useState([{ label: "Tất cả", id: null }]);
+
+  useEffect(() => {
+    let mounted = true;
+    getSportTypes()
+      .then((raw) => {
+        const list = normalizeSportTypeList(raw);
+        if (!mounted) return;
+        setSportChips([
+          { label: "Tất cả", id: null },
+          ...list.map((s) => ({ label: s.name, id: s.id })),
+        ]);
+      })
+      .catch(() => {
+        if (mounted) setSportChips([{ label: "Tất cả", id: null }]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -96,9 +109,10 @@ const MapExplore = () => {
         </div>
 
         <div className="mapx-chips">
-          {SPORTS.map((s) => (
+          {sportChips.map((s) => (
             <button
-              key={s.label}
+              key={s.id === null ? "all" : s.id}
+              type="button"
               className={`mapx-chip ${activeSport === s.id ? "active" : ""}`}
               onClick={() => setActiveSport(s.id)}
             >

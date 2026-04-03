@@ -694,16 +694,22 @@ const BookingSchedule = () => {
 
   const getCellClass = (fieldIdx, slotIdx) => {
     const skRow = normalizeText(fields[fieldIdx]?.sportType || "");
+    const past = isLocked(slotIdx);
     if (sportKeysWithNoTimeSlots.has(skRow)) return "bs-cell no-config";
-    if (isLocked(slotIdx)) return "bs-cell locked";
+
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
-      const rem = remainingByEventId.get(evId);
-      if (rem === 0) return "bs-cell event-linked";
-      return "bs-cell event";
+      return `bs-cell event${past ? " past" : ""}`;
     }
-    if (isEventBlock(fieldIdx, slotIdx)) return "bs-cell event";
-    if (isBooked(fieldIdx, slotIdx)) return "bs-cell booked";
+    if (isEventBlock(fieldIdx, slotIdx)) {
+      return `bs-cell event${past ? " past" : ""}`;
+    }
+    if (isBooked(fieldIdx, slotIdx)) {
+      return `bs-cell booked${past ? " past" : ""}`;
+    }
+
+    if (past) return "bs-cell locked";
+
     const sk = skRow;
     const startLabel = slots[slotIdx]?.label;
     if (startLabel && isUnconfiguredSlotStart(sk, startLabel)) return "bs-cell locked";
@@ -711,23 +717,72 @@ const BookingSchedule = () => {
     return "bs-cell available";
   };
 
-  /** Cùng một eventId trên một hàng: nối các ô liền kề thành một thanh */
+  /** Ô khóa (đã qua / cột không mở bán) — dùng chung cho nối liền */
+  const isLockedSlotCell = useCallback(
+    (fieldIdx, slotIdx) => {
+      if (slotIdx < 0 || slotIdx >= slots.length) return false;
+      const skRow = normalizeText(fields[fieldIdx]?.sportType || "");
+      if (sportKeysWithNoTimeSlots.has(skRow)) return false;
+      if (getEventIdForCell(fieldIdx, slotIdx) != null || isEventBlock(fieldIdx, slotIdx)) return false;
+      if (isBooked(fieldIdx, slotIdx)) return false;
+      if (isLocked(slotIdx)) return true;
+      const startLabel = slots[slotIdx]?.label;
+      return !!(startLabel && isUnconfiguredSlotStart(skRow, startLabel));
+    },
+    [
+      slots,
+      fields,
+      sportKeysWithNoTimeSlots,
+      getEventIdForCell,
+      isEventBlock,
+      isBooked,
+      isLocked,
+      isUnconfiguredSlotStart,
+    ],
+  );
+
+  /** Slot khóa liền kề → một thanh (giống booked) */
+  const getLockedRunExtraClass = useCallback(
+    (fieldIdx, slotIdx) => {
+      if (!isLockedSlotCell(fieldIdx, slotIdx)) return "";
+      const prevLocked = slotIdx > 0 && isLockedSlotCell(fieldIdx, slotIdx - 1);
+      const nextLocked = slotIdx < slots.length - 1 && isLockedSlotCell(fieldIdx, slotIdx + 1);
+      if (!prevLocked && !nextLocked) return "bs-lock-run-single";
+      if (!prevLocked && nextLocked) return "bs-lock-run-start";
+      if (prevLocked && nextLocked) return "bs-lock-run-mid";
+      if (prevLocked && !nextLocked) return "bs-lock-run-end";
+      return "";
+    },
+    [isLockedSlotCell, slots.length],
+  );
+
+  /** Cùng eventId trên một hàng: chỉ nối ô liền kề cùng một sự kiện */
   const getEventRunExtraClass = useCallback(
     (fieldIdx, slotIdx) => {
-      const evId = getEventIdForCell(fieldIdx, slotIdx);
-      if (evId == null) return "";
-      const prev = slotIdx > 0 ? getEventIdForCell(fieldIdx, slotIdx - 1) : null;
-      const next =
-        slotIdx < slots.length - 1 ? getEventIdForCell(fieldIdx, slotIdx + 1) : null;
-      const samePrev = prev === evId;
-      const sameNext = next === evId;
+      const curId = getEventIdForCell(fieldIdx, slotIdx);
+      const isEv = curId != null || isEventBlock(fieldIdx, slotIdx);
+      if (!isEv) return "";
+
+      let samePrev = false;
+      let sameNext = false;
+      if (curId != null) {
+        const prevId = slotIdx > 0 ? getEventIdForCell(fieldIdx, slotIdx - 1) : null;
+        const nextId =
+          slotIdx < slots.length - 1 ? getEventIdForCell(fieldIdx, slotIdx + 1) : null;
+        samePrev = prevId != null && prevId === curId;
+        sameNext = nextId != null && nextId === curId;
+      } else {
+        samePrev = slotIdx > 0 && isEventBlock(fieldIdx, slotIdx - 1);
+        sameNext = slotIdx < slots.length - 1 && isEventBlock(fieldIdx, slotIdx + 1);
+      }
+
       if (!samePrev && !sameNext) return "bs-event-run-single";
       if (!samePrev && sameNext) return "bs-event-run-start";
       if (samePrev && sameNext) return "bs-event-run-mid";
       if (samePrev && !sameNext) return "bs-event-run-end";
       return "";
     },
-    [getEventIdForCell, slots.length]
+    [getEventIdForCell, isEventBlock, slots.length],
   );
 
   /** Cùng trạng thái booked liền kề theo trục thời gian: nối các ô booked thành 1 khối */
@@ -770,6 +825,7 @@ const BookingSchedule = () => {
     const sk = normalizeText(fields[fieldIdx]?.sportType || "");
     if (sportKeysWithNoTimeSlots.has(sk)) return;
     if (isUnconfiguredSlotStart(sk, slots[slotIdx]?.label)) return;
+    if (isLocked(slotIdx)) return;
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
       navigate(`/event/${evId}`, {
@@ -840,6 +896,28 @@ const BookingSchedule = () => {
       return slots.findIndex((s) => s.label === label);
     },
     [slots],
+  );
+
+  /** Cột ngoài lưới giờ global (nhãn nhóm môn vs slots tổng) — locked, nối liền theo hàng nhóm */
+  const getOffGridLockedRunClass = useCallback(
+    (si, gSlotsArr) => {
+      if (!gSlotsArr?.length) return "";
+      const label = gSlotsArr[si]?.label;
+      if (label == null) return "";
+      const cur = globalIdxForSlotLabel(label) < 0;
+      if (!cur) return "";
+      const prev =
+        si > 0 && globalIdxForSlotLabel(gSlotsArr[si - 1]?.label) < 0;
+      const next =
+        si < gSlotsArr.length - 1 &&
+        globalIdxForSlotLabel(gSlotsArr[si + 1]?.label) < 0;
+      if (!prev && !next) return "bs-lock-run-single";
+      if (!prev && next) return "bs-lock-run-start";
+      if (prev && next) return "bs-lock-run-mid";
+      if (prev && !next) return "bs-lock-run-end";
+      return "";
+    },
+    [globalIdxForSlotLabel],
   );
 
   // Build grouped slot summary for the bottom bar.
@@ -1115,10 +1193,7 @@ const BookingSchedule = () => {
             <span className="bs-legend-box locked" /> Khoá
           </div>
           <div className="bs-legend-item">
-            <span className="bs-legend-box event" /> Sự kiện (còn chỗ)
-          </div>
-          <div className="bs-legend-item">
-            <span className="bs-legend-box event-linked" /> Sự kiện (đã đầy)
+            <span className="bs-legend-box event" /> Sự kiện
           </div>
         </div>
 
@@ -1251,8 +1326,8 @@ const BookingSchedule = () => {
                             const cellClass = isNoScheduleGroup
                               ? "bs-cell no-config"
                               : globalSi >= 0
-                                ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)}`.trim()
-                                : "bs-cell locked";
+                                ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)} ${getLockedRunExtraClass(field.originalIdx, globalSi)}`.trim()
+                                : `bs-cell locked ${getOffGridLockedRunClass(si, gSlots)}`.trim();
                             return (
                               <div
                                 key={`${field.originalIdx}-${si}-${gs.label}`}
@@ -1263,16 +1338,14 @@ const BookingSchedule = () => {
                                     : undefined
                                 }
                                 role={
-                                  isNoScheduleGroup ? undefined : eid != null ? "link" : "button"
+                                  isNoScheduleGroup || isLocked(globalSi) ? undefined : eid != null ? "link" : "button"
                                 }
-                                data-event-nav={!isNoScheduleGroup && eid != null ? "true" : undefined}
+                                data-event-nav={!isNoScheduleGroup && eid != null && !isLocked(globalSi) ? "true" : undefined}
                                 title={
                                   isNoScheduleGroup
                                     ? "Lịch trống — chưa cấu hình khung giờ cho môn này"
                                     : eid != null
-                                      ? rem === 0
-                                        ? "Sự kiện đã đầy — xem chi tiết"
-                                        : "Sự kiện còn chỗ — xem chi tiết"
+                                      ? "Sự kiện — xem chi tiết"
                                       : undefined
                                 }
                               />

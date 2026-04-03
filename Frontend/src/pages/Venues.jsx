@@ -9,28 +9,20 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from 'react-redux';
 import { clearDraft } from '../store/bookingDraftSlice';
 import { searchVenues, getVenueDetail, getVenueFields, getVenueReviews } from "../services/fieldService";
+import {
+  getSportTypes,
+  normalizeSportTypeList,
+  sportTypeIdFromSearchParam,
+} from "../services/sportTypeService";
 import "./Venues.css";
 
-/** Chỉ dùng để map `?sport=` từ URL (số hoặc tên gần đúng). */
-const SPORT_URL_ALIASES = [
-  { id: 1, label: "Bóng đá" },
-  { id: 2, label: "Bóng rổ" },
-  { id: 3, label: "Tennis" },
-  { id: 4, label: "Pickleball" },
-];
-
-function sportTypeIdFromUrlParam(sportParam) {
-  if (!sportParam) return null;
-  const n = Number(sportParam);
-  if (!Number.isNaN(n)) return n;
-  const q = String(sportParam).toLowerCase();
-  const row = SPORT_URL_ALIASES.find(
-    (s) =>
-      s.label.toLowerCase().includes(q) ||
-      q.includes(s.label.toLowerCase()),
-  );
-  return row?.id ?? null;
-}
+/** Fallback parse `?sport=` (tên) khi GET `/api/sport-types` chưa xong. */
+const FALLBACK_SPORT_CATALOG = Object.freeze([
+  { id: 1, name: "Bóng đá" },
+  { id: 2, name: "Bóng rổ" },
+  { id: 3, name: "Tennis" },
+  { id: 4, name: "Pickleball" },
+]);
 
 const PAGE_SIZE = 8;
 
@@ -305,9 +297,28 @@ const Venues = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const sportParam = searchParams.get("sport");
+  /** `null` = chưa tải API; sau đó là mảng (có thể rỗng). */
+  const [sportTypeCatalog, setSportTypeCatalog] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getSportTypes()
+      .then((raw) => {
+        if (mounted) setSportTypeCatalog(normalizeSportTypeList(raw));
+      })
+      .catch(() => {
+        if (mounted) setSportTypeCatalog([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const catalogForSportParam =
+    sportTypeCatalog === null ? FALLBACK_SPORT_CATALOG : sportTypeCatalog;
   const sportTypeIdFromUrl = useMemo(
-    () => sportTypeIdFromUrlParam(sportParam),
-    [sportParam],
+    () => sportTypeIdFromSearchParam(sportParam, catalogForSportParam),
+    [sportParam, catalogForSportParam],
   );
 
   const [venues, setVenues] = useState([]);
