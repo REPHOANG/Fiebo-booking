@@ -163,7 +163,7 @@ namespace Fiebo.Application.Services
 
             // BR-02 / MSG-E02: Check for duplicate field names within the same Venue
             var nameExists = await _unitOfWork.Fields
-                .IsFieldNameExistsInVenueAsync(venueId, request.Name);
+                .IsFieldNameExistsInVenueAsync(venueId, request.Name, request.SportTypeId);
 
             if (nameExists)
             {

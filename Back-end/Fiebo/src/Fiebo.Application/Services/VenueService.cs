@@ -1,4 +1,4 @@
-using Fiebo.Application.DTOs.Field;
+﻿using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.DTOs.Venue;
@@ -657,14 +657,6 @@ namespace Fiebo.Application.Services
                     "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
             }
 
-            // MSG-E03: Duplicate venue name check (unique per owner, excluding self)
-            var nameExists = await _unitOfWork.Venues
-                .IsVenueNameExistsForOwnerAsync(ownerId, request.Name, venueId);
-            if (nameExists)
-            {
-                throw new ResourceConflictException(
-                    "Tên cơ sở này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
-            }
 
             // E3 / MSG-E05: TimeSlot conflict when shortening hours on Active venue
             if (venue.Status == VenueStatus.Active)
