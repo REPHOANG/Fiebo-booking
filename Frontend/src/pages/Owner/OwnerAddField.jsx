@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Loader2, X } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import {
   createOwnerField,
@@ -10,7 +10,11 @@ import {
 } from "../../services/fieldService";
 import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
 import { getVenueDraft } from "../../services/venueService";
+import { DocImagePreviewItem } from "./CreateVenueSteps/DocImagePreviewItem";
 import "./OwnerVenueDetail.css";
+import "./CreateVenue.css";
+
+const MAX_FIELD_IMAGES = 5;
 
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "—";
@@ -141,18 +145,6 @@ const OwnerAddField = () => {
     }
   }, [isEdit, sportTypeOptions, newField.sportTypeId]);
 
-  const imagePreviewUrls = useMemo(
-    () => (newField.images || []).map((f) => URL.createObjectURL(f)),
-    [newField.images],
-  );
-
-  useEffect(() => {
-    const urls = imagePreviewUrls;
-    return () => {
-      urls.forEach((u) => URL.revokeObjectURL(u));
-    };
-  }, [imagePreviewUrls]);
-
   const removeImageAt = (index) => {
     setNewField((p) => {
       const next = p.images.filter((_, i) => i !== index);
@@ -249,45 +241,56 @@ const OwnerAddField = () => {
               placeholder="Mô tả sân (tuỳ chọn)"
             />
           </label>
-          <label className="ovd-label ovd-full">
-            Ảnh sân
-            <input
-              ref={fileInputRef}
-              className="ovd-input"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) =>
-                setNewField((p) => ({
-                  ...p,
-                  images: Array.from(e.target.files || []),
-                }))
-              }
-            />
-            {imagePreviewUrls.length > 0 ? (
-              <div className="ovd-image-preview-grid" aria-live="polite">
-                {imagePreviewUrls.map((url, idx) => (
-                  <div key={`${url}-${idx}`} className="ovd-image-preview-item">
-                    <img src={url} alt={newField.images[idx]?.name || `Ảnh ${idx + 1}`} />
-                    <button
-                      type="button"
-                      className="ovd-image-preview-remove"
-                      onClick={() => removeImageAt(idx)}
-                      aria-label={`Bỏ ảnh ${idx + 1}`}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="ovd-image-preview-empty">
+          <div className="ovd-label ovd-full">
+            <span className="cv-doc-gallery-label">
+              Ảnh sân
+              <span className="cv-doc-gallery-sublabel">
+                Tối đa {MAX_FIELD_IMAGES} ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn · bấm X để bỏ khỏi danh sách (chỉ
+                gửi lên khi bấm {isEdit ? "Lưu thay đổi" : "Tạo sân"})
+              </span>
+            </span>
+            <ul className="cv-doc-gallery" aria-label="Ảnh sân" aria-live="polite">
+              {(newField.images || []).map((f, idx) => (
+                <DocImagePreviewItem
+                  key={`${f.name}-${f.lastModified}-${idx}`}
+                  file={f}
+                  onRemove={() => removeImageAt(idx)}
+                />
+              ))}
+              {(newField.images || []).length < MAX_FIELD_IMAGES ? (
+                <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
+                  <label className="cv-doc-gallery-add">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="cv-doc-file-input-sr-only"
+                      onChange={(e) => {
+                        const picked = Array.from(e.target.files || []).filter(Boolean);
+                        setNewField((p) => {
+                          const cur = p.images || [];
+                          const room = Math.max(0, MAX_FIELD_IMAGES - cur.length);
+                          const take = picked.slice(0, room);
+                          return { ...p, images: [...cur, ...take] };
+                        });
+                        e.target.value = "";
+                      }}
+                    />
+                    <Plus size={26} strokeWidth={2.2} aria-hidden />
+                    <span className="cv-doc-gallery-add-text">Thêm ảnh</span>
+                  </label>
+                </li>
+              ) : null}
+            </ul>
+            {(newField.images || []).length === 0 ? (
+              <p className="ovd-image-preview-empty cv-doc-gallery-hint">
                 {isEdit
-                  ? "Chưa chọn ảnh mới — có thể thêm ảnh bổ sung sau khi lưu."
-                  : "Chưa chọn ảnh — có thể thêm nhiều file."}
+                  ? "Chưa chọn ảnh mới — có thể bổ sung sau khi lưu."
+                  : "Chưa có ảnh — bấm ô Thêm ảnh để chọn file."}
               </p>
-            )}
-          </label>
+            ) : null}
+          </div>
         </div>
 
         <div className="ovd-create-actions">

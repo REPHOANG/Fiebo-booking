@@ -29,7 +29,6 @@ import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
 import { callPaymentWebhook } from "../../../services/bookingService";
 import { useAuthModal } from "../../../context/AuthModalContext";
-import { FIEBO_LAST_APP_PATH_KEY } from "../../../constants/fieboSession";
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -38,63 +37,13 @@ const HOLD_SECONDS = 5 * 60; // 5 minutes
 const BOOKING_GRACE_STORAGE_KEY = (bookingId) =>
   `fiebo_booking_grace_${bookingId}`;
 const PAYMENT_VENUE_SESSION_KEY = (venueId) => `fiebo_payment_venue_${venueId}`;
+
 const PAID_STATUSES = new Set(["Booked", "Completed"]);
 const TERMINAL_UNPAID_STATUSES = new Set([
   "Expired",
   "OwnerCancelled",
   "CustomerCancelled",
 ]);
-
-function isDocumentReload() {
-  if (typeof performance === "undefined") return false;
-  const entry = performance.getEntriesByType?.("navigation")?.[0];
-  if (entry?.type === "reload") return true;
-  try {
-    const pn = performance.navigation;
-    if (pn?.type === 1) return true;
-  } catch (_) {}
-  return false;
-}
-
-/**
- * Chỉ chặn khi user đang ở đúng URL thanh toán rồi F5 (đường dẫn lưu trước đó trùng URL hiện tại).
- * Không chặn: F5 ở Sân đã đặt / trang khác rồi bấm "Tiếp tục thanh toán" (SPA — lúc đó last path ≠ payment).
- */
-function shouldBlockPaymentBecauseReloadedSameUrl() {
-  if (typeof window === "undefined") return false;
-  if (!isDocumentReload()) return false;
-  const path = `${window.location.pathname}${window.location.search}`;
-  if (!path.includes("/booking/payment")) return false;
-  try {
-    const prev = sessionStorage.getItem(FIEBO_LAST_APP_PATH_KEY) || "";
-    return prev === path;
-  } catch (_) {
-    return false;
-  }
-}
-
-function PaymentReloadBlocked() {
-  const navigate = useNavigate();
-  return (
-    <div className="bp-main">
-      <div className="bp-empty" style={{ maxWidth: 480, margin: "0 auto" }}>
-        <h2>Không thể tải lại trang thanh toán</h2>
-        <p>
-          Để tránh thanh toán trùng hoặc trạng thái không đồng bộ, không dùng làm mới (F5) trên trang
-          này. Bạn vẫn có thể vào lại đơn qua <strong>Sân đã đặt</strong> → &quot;Tiếp tục thanh
-          toán&quot; (điều hướng trong app, không cần F5).
-        </p>
-        <button
-          type="button"
-          className="bp-back-link"
-          onClick={() => navigate("/bookings")}
-        >
-          ← Đi tới Sân đã đặt
-        </button>
-      </div>
-    </div>
-  );
-}
 
 const formatDateFromBooking = (b) => {
   if (!b?.date) return "";
@@ -234,7 +183,7 @@ export function BookingPaymentSuccess() {
   );
 }
 
-const BookingPaymentContent = () => {
+const BookingPayment = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -939,17 +888,6 @@ const BookingPaymentContent = () => {
       </div>
     </motion.div>
   );
-};
-
-const BookingPayment = () => {
-  const blockReload = useMemo(
-    () => shouldBlockPaymentBecauseReloadedSameUrl(),
-    [],
-  );
-  if (blockReload) {
-    return <PaymentReloadBlocked />;
-  }
-  return <BookingPaymentContent />;
 };
 
 export default BookingPayment;

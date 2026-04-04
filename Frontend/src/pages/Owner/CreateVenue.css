@@ -55,9 +55,18 @@
   color: #fff;
 }
 
+.cv-step.done {
+  background: rgba(240, 253, 244, 0.9);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
 .cv-step.done .cv-step-dot {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(34, 197, 94, 0.2);
   color: #166534;
+}
+
+.cv-step.done .cv-step-title {
+  color: #14532d;
 }
 
 .cv-wizard-hint {
@@ -102,47 +111,158 @@
   color: #ef4444;
 }
 
-.cv-doc-images {
+/* Lưới ảnh giấy tờ + ô thêm */
+.cv-doc-gallery-label {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
 }
 
-.cv-doc-image-row {
-  display: grid;
-  grid-template-columns: 72px 1fr auto;
-  gap: 10px;
-  align-items: center;
+.cv-doc-gallery-sublabel {
+  font-weight: 500;
+  font-size: 12px;
+  color: #64748b;
 }
 
-.cv-doc-thumb-wrap {
-  width: 72px;
-  height: 56px;
-  border-radius: 8px;
+.cv-doc-gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cv-doc-gallery-item {
+  flex-shrink: 0;
+}
+
+.cv-doc-gallery-item--add {
+  list-style: none;
+}
+
+.cv-doc-gallery-tile {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   background: #f8fafc;
 }
 
-.cv-doc-thumb {
+.cv-doc-gallery-tile--server {
+  border-color: #bbf7d0;
+}
+
+.cv-doc-gallery-tile img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.cv-doc-thumb--empty {
+.cv-doc-gallery-empty {
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
   color: #94a3b8;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 18px;
 }
 
-.cv-doc-file-name {
+.cv-doc-gallery-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+
+.cv-doc-gallery-remove:hover {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.cv-doc-gallery-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+  background: linear-gradient(to top, rgba(22, 163, 74, 0.92), rgba(22, 163, 74, 0.75));
+  color: #fff;
+}
+
+.cv-doc-gallery-add {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #64748b;
+  margin: 0;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.cv-doc-gallery-add:hover {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cv-doc-gallery-add:focus-within {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+.cv-doc-gallery-add-text {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cv-doc-file-input-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+  border: 0;
+}
+
+.cv-doc-gallery-hint {
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
 /* ── Sports pills ── */
@@ -179,20 +299,503 @@
   color: #166534;
 }
 
-/* ── Review ── */
-.cv-review {
-  border: 1.5px solid #e5e7eb;
+/* ── Review (bước xác nhận) ── */
+.cv-review-card {
+  overflow: hidden;
+}
+
+.cv-review-page-header {
+  margin-bottom: 8px;
+}
+
+.cv-review-page-title {
+  margin-bottom: 10px;
+}
+
+.cv-card-title.cv-review-page-title {
+  margin-bottom: 10px;
+}
+
+.cv-review-alert {
+  font-size: 14px;
+  color: #166534;
+  margin: 0;
+  line-height: 1.55;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #86efac;
   border-radius: 12px;
-  background: #ffffff;
-  padding: 16px;
+}
+
+.cv-review-alert strong {
+  font-weight: 700;
+  color: #14532d;
+}
+
+.cv-review-hero {
   display: grid;
+  grid-template-columns: 1fr minmax(140px, 200px);
+  gap: 20px 24px;
+  align-items: start;
+  margin-top: 18px;
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.cv-review-hero-eyebrow {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.cv-review-hero-name {
+  margin: 0 0 14px 0;
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.cv-review-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cv-review-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.cv-review-chip--accent {
+  color: #14532d;
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.cv-review-hero-media {
+  justify-self: end;
+  width: 100%;
+  max-width: 200px;
+}
+
+.cv-review-hero-figure {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+
+.cv-review-hero-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.cv-review-hero-caption {
+  font-size: 11px;
+  color: #64748b;
+  padding: 8px 10px;
+  margin: 0;
+  border-top: 1px solid #f1f5f9;
+  line-height: 1.35;
+}
+
+.cv-review-hero-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px;
+}
+
+.cv-review-body {
+  margin-top: 22px;
+}
+
+.cv-review-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.cv-review-panel {
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.cv-review-panel--subtle {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  box-shadow: none;
+}
+
+.cv-review-panel-body {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e8ecf1;
+  min-height: 3.5rem;
+}
+
+.cv-review-panel--subtle > .cv-review-panel-title {
+  margin-bottom: 10px;
+}
+
+/* Giấy tờ: cùng rhythm với Giới thiệu / Địa chỉ — không bọc thêm hộp trắng ngoài lưới */
+.cv-review-docs-block {
+  margin-top: 16px;
+}
+
+.cv-review-docs-landmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.cv-review-docs-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Thẻ giấy tờ (giống OwnerVenueDetail — trắng, viewer xám lớn) */
+.cv-review-legal-card {
+  border: 1px solid #e8ecf1;
+  border-radius: 14px;
+  background: #fff;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.cv-review-legal-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.cv-review-row {
+.cv-review-legal-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cv-review-legal-meta {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.cv-review-legal-meta--row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+}
+
+.cv-review-legal-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.cv-review-legal-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.cv-review-legal-meta-value {
   font-size: 14px;
-  color: #111827;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cv-review-legal-images {
+  margin-top: 16px;
+  display: block;
+}
+
+.cv-review-doc-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.cv-review-chip--doc {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  letter-spacing: 0.02em;
+}
+
+.cv-review-chip--pending {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+/* Viewer ảnh giấy tờ (carousel + thumbstrip) */
+.cv-review-legal-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cv-review-legal-stage {
+  position: relative;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #eef1f6 0%, #e8ecf3 100%);
+  border: 1px solid #dce3ed;
+  min-height: 300px;
+  overflow: hidden;
+}
+
+.cv-review-legal-stage--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 220px;
+  padding: 24px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cv-review-legal-stage-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 18px 16px;
+  outline: none;
+}
+
+.cv-review-legal-stage-link:focus-visible {
+  box-shadow: inset 0 0 0 2px #22c55e;
+}
+
+.cv-review-legal-stage-img {
+  max-width: 100%;
+  max-height: min(56vh, 480px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+}
+
+.cv-review-legal-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(30, 41, 59, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.cv-review-legal-nav:hover {
+  background: rgba(15, 23, 42, 0.88);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.cv-review-legal-nav--left {
+  left: 12px;
+}
+
+.cv-review-legal-nav--right {
+  right: 12px;
+}
+
+.cv-review-legal-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cv-review-legal-thumbstrip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.cv-review-legal-thumbstrip-btn {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  background: #f1f5f9;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.cv-review-legal-thumbstrip-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cv-review-legal-thumbstrip-btn:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.cv-review-legal-thumbstrip-btn.is-active {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+}
+
+.cv-review-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.cv-review-panel-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1e293b;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cv-review-muted {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 14px;
+  margin: 0;
+}
+
+.cv-review-dl {
+  margin: 0;
+}
+
+.cv-review-dl-row {
+  display: grid;
+  grid-template-columns: minmax(0, 120px) 1fr;
+  gap: 8px 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+.cv-review-dl-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cv-review-dl-row--block {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.cv-review-dl-row dt {
+  margin: 0;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.cv-review-dl-row dd {
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.cv-review-dl--compact .cv-review-dl-row {
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.cv-review-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
 }
 
 /* ── Header ── */
@@ -619,9 +1222,36 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .cv-doc-card,
-  .cv-review {
+  .cv-doc-card {
     padding: 12px;
+  }
+
+  .cv-review-hero {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .cv-review-hero-media {
+    justify-self: stretch;
+    max-width: none;
+  }
+
+  .cv-review-hero-figure,
+  .cv-review-hero-placeholder {
+    max-width: 280px;
+  }
+
+  .cv-review-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-review-legal-stage,
+  .cv-review-legal-stage-link {
+    min-height: 240px;
+  }
+
+  .cv-review-legal-stage-img {
+    max-height: min(42vh, 340px);
   }
 
   .cv-map-leaflet {

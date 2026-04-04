@@ -294,7 +294,9 @@ const OwnerTimeSlot = () => {
         };
       }),
     );
-    toast.success("Đã áp dụng giá của ngày này cho các ngày còn lại trong tuần (lưu để đồng bộ máy chủ).");
+    toast.success(
+      "Đã áp dụng giá trong bảng cho các ngày còn lại. Nhấn Lưu trên từng ngày (tab) để đồng bộ máy chủ.",
+    );
   };
 
   const addSlotForActiveDay = useCallback(
@@ -418,6 +420,7 @@ const OwnerTimeSlot = () => {
     reloadSlots();
   }, [reloadSlots]);
 
+  /** Chỉ đồng bộ ngày đang xem — tránh lặp 7× số dòng (mỗi ngày một loạt create/update/delete). */
   const saveSlots = async () => {
     const sid = Number(sportTypeId);
     if (!sid) {
@@ -426,39 +429,39 @@ const OwnerTimeSlot = () => {
     }
     setSaving(true);
     try {
-      for (const row of slotRows) {
-        for (const d of weekDates) {
-          const dk = toIsoDate(d);
-          const dow = DOTNET_DAY_NAMES[d.getDay()];
-          const rawPrice = row.prices?.[dk];
-          const price =
-            rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
-          const existingId = row.slotIds?.[dk];
-          const startT = toTimeOnly(row.start);
-          const endT = toTimeOnly(row.end);
+      const d = weekDates[activeDayIndex];
+      const dk = toIsoDate(d);
+      const dow = DOTNET_DAY_NAMES[d.getDay()];
 
-          if (existingId) {
-            if (price <= 0) {
-              await deleteOwnerVenueTimeSlot(existingId);
-            } else {
-              await updateOwnerVenueTimeSlot(existingId, {
-                startTime: startT,
-                endTime: endT,
-                price,
-              });
-            }
-          } else if (price > 0) {
-            await createOwnerVenueTimeSlot(id, {
-              sportTypeId: sid,
+      for (const row of slotRows) {
+        const rawPrice = row.prices?.[dk];
+        const price =
+          rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
+        const existingId = row.slotIds?.[dk];
+        const startT = toTimeOnly(row.start);
+        const endT = toTimeOnly(row.end);
+
+        if (existingId) {
+          if (price <= 0) {
+            await deleteOwnerVenueTimeSlot(existingId);
+          } else {
+            await updateOwnerVenueTimeSlot(existingId, {
               startTime: startT,
               endTime: endT,
-              dayOfWeek: dow,
               price,
             });
           }
+        } else if (price > 0) {
+          await createOwnerVenueTimeSlot(id, {
+            sportTypeId: sid,
+            startTime: startT,
+            endTime: endT,
+            dayOfWeek: dow,
+            price,
+          });
         }
       }
-      toast.success("Đã lưu khung giờ.");
+      toast.success(`Đã lưu khung giờ cho ${weekDayLabels[activeDayIndex]}.`);
       await reloadSlots();
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không lưu được khung giờ.");
@@ -563,7 +566,7 @@ const OwnerTimeSlot = () => {
             ÁP DỤNG GIÁ
           </button>
           <button type="button" className="ots-btn-save" disabled={saveDisabled} onClick={saveSlots}>
-            {saving ? "Đang lưu…" : "LƯU THAY ĐỔI"}
+            {saving ? "Đang lưu…" : `LƯU ${weekDayLabels[activeDayIndex].toUpperCase()}`}
           </button>
         </div>
       </header>
@@ -650,10 +653,6 @@ const OwnerTimeSlot = () => {
           </div>
           */}
 
-          <div className="ots-sidebar-links">
-            <Link to={`/owner/venues/${id}/add-field`}>+ Thêm sân mới</Link>
-            <Link to={`/owner/venues/${id}`}>Chi tiết cơ sở</Link>
-          </div>
         </aside>
 
         <section className="ots-editor">
@@ -926,7 +925,7 @@ const OwnerTimeSlot = () => {
         type="button"
         className="ots-fab"
         disabled={saveDisabled}
-        title="Lưu thay đổi"
+        title={`Lưu khung giờ — chỉ ${weekDayLabels[activeDayIndex]}`}
         onClick={saveSlots}
       >
         <Save size={22} strokeWidth={2.2} />

@@ -34,6 +34,21 @@ const normalizeDoc = (doc) => {
   return { issueDate, expiryDate, images };
 };
 
+/** Hiển thị ngày giấy tờ (ISO / Date) dạng dd/mm/yyyy */
+const formatLegalDocDate = (raw) => {
+  if (raw == null || raw === "") return "—";
+  if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}/.test(raw.trim())) {
+    const [y, m, d] = raw.trim().slice(0, 10).split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const t = new Date(raw);
+  if (Number.isNaN(t.getTime())) return String(raw);
+  const d = String(t.getDate()).padStart(2, "0");
+  const m = String(t.getMonth() + 1).padStart(2, "0");
+  const y = t.getFullYear();
+  return `${d}/${m}/${y}`;
+};
+
 const renderStructuredValue = (value, parentKey = "root") => {
   if (value == null || value === "") return <span className="ovd-raw-value">—</span>;
 
@@ -85,29 +100,59 @@ const DocumentImageCarousel = ({ images = [], title = "Document image" }) => {
 
   if (safeImages.length === 0) return <span className="ovd-muted">Không có ảnh</span>;
 
-  const prev = () => setIdx((p) => (p - 1 + safeImages.length) % safeImages.length);
-  const next = () => setIdx((p) => (p + 1) % safeImages.length);
+  const prev = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((p) => (p - 1 + safeImages.length) % safeImages.length);
+  };
+  const next = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setIdx((p) => (p + 1) % safeImages.length);
+  };
 
   return (
-    <div className="ovd-doc-carousel">
-      <a
-        href={safeImages[idx]}
-        target="_blank"
-        rel="noreferrer"
-        className="ovd-doc-image-link ovd-doc-image-link--lg"
-      >
-        <img src={safeImages[idx]} alt={`${title} ${idx + 1}`} className="ovd-doc-image ovd-doc-image--lg" />
-      </a>
+    <div className="ovd-doc-viewer">
+      <div className="ovd-doc-stage">
+        <a
+          href={safeImages[idx]}
+          target="_blank"
+          rel="noreferrer"
+          className="ovd-doc-stage-link"
+          title="Mở ảnh kích thước đầy đủ"
+        >
+          <img src={safeImages[idx]} alt={`${title} ${idx + 1}`} className="ovd-doc-stage-img" />
+        </a>
+        {safeImages.length > 1 ? (
+          <>
+            <button type="button" className="ovd-doc-nav ovd-doc-nav--left" onClick={prev} aria-label="Ảnh trước">
+              <ChevronLeft size={20} strokeWidth={2.2} />
+            </button>
+            <button type="button" className="ovd-doc-nav ovd-doc-nav--right" onClick={next} aria-label="Ảnh kế tiếp">
+              <ChevronRight size={20} strokeWidth={2.2} />
+            </button>
+          </>
+        ) : null}
+        <span className="ovd-doc-counter">
+          {idx + 1} / {safeImages.length}
+        </span>
+      </div>
       {safeImages.length > 1 ? (
-        <>
-          <button type="button" className="ovd-doc-nav ovd-doc-nav--left" onClick={prev} aria-label="Ảnh trước">
-            <ChevronLeft size={18} />
-          </button>
-          <button type="button" className="ovd-doc-nav ovd-doc-nav--right" onClick={next} aria-label="Ảnh kế tiếp">
-            <ChevronRight size={18} />
-          </button>
-          <span className="ovd-doc-counter">{idx + 1}/{safeImages.length}</span>
-        </>
+        <ul className="ovd-doc-thumbstrip" role="tablist" aria-label="Chọn ảnh xem nhanh">
+          {safeImages.map((url, i) => (
+            <li key={`${url}-${i}`} role="none">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={i === idx}
+                className={`ovd-doc-thumbstrip-btn ${i === idx ? "is-active" : ""}`}
+                onClick={() => setIdx(i)}
+              >
+                <img src={url} alt="" />
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </div>
   );
@@ -436,23 +481,26 @@ const OwnerVenueDetail = () => {
           </div>
 
           {businessLicenseDoc || landDocumentDoc ? (
-            <div className="ovd-card">
-              <h3 className="ovd-subtitle">
+            <div className="ovd-card ovd-card--legal">
+              <h3 className="ovd-subtitle ovd-legal-heading">
                 <Calendar size={18} /> Giấy tờ pháp lý
               </h3>
               <div className="ovd-docs-grid">
                 {landDocumentDoc ? (
                   <div className="ovd-doc-card">
                     <h4 className="ovd-doc-title">Giấy tờ sử dụng đất</h4>
-                    <div className="ovd-doc-meta">
-                      <span>Ngày cấp: <strong>{String(landDocumentDoc.issueDate || "—")}</strong></span>
-                      <span>Ngày hết hạn: <strong>{String(landDocumentDoc.expiryDate || "—")}</strong></span>
+                    <div className="ovd-doc-meta ovd-doc-meta--row">
+                      <div className="ovd-doc-meta-item">
+                        <span className="ovd-doc-meta-label">Ngày cấp</span>
+                        <strong className="ovd-doc-meta-value">{formatLegalDocDate(landDocumentDoc.issueDate)}</strong>
+                      </div>
+                      <div className="ovd-doc-meta-item">
+                        <span className="ovd-doc-meta-label">Ngày hết hạn</span>
+                        <strong className="ovd-doc-meta-value">{formatLegalDocDate(landDocumentDoc.expiryDate)}</strong>
+                      </div>
                     </div>
                     <div className="ovd-doc-images">
-                      <DocumentImageCarousel
-                        images={landDocumentDoc.images}
-                        title="Land document"
-                      />
+                      <DocumentImageCarousel images={landDocumentDoc.images} title="Giấy tờ sử dụng đất" />
                     </div>
                   </div>
                 ) : null}
@@ -460,15 +508,22 @@ const OwnerVenueDetail = () => {
                 {businessLicenseDoc ? (
                   <div className="ovd-doc-card">
                     <h4 className="ovd-doc-title">Giấy phép kinh doanh</h4>
-                    <div className="ovd-doc-meta">
-                      <span>Ngày cấp: <strong>{String(businessLicenseDoc.issueDate || "—")}</strong></span>
-                      <span>Ngày hết hạn: <strong>{String(businessLicenseDoc.expiryDate || "—")}</strong></span>
+                    <div className="ovd-doc-meta ovd-doc-meta--row">
+                      <div className="ovd-doc-meta-item">
+                        <span className="ovd-doc-meta-label">Ngày cấp</span>
+                        <strong className="ovd-doc-meta-value">
+                          {formatLegalDocDate(businessLicenseDoc.issueDate)}
+                        </strong>
+                      </div>
+                      <div className="ovd-doc-meta-item">
+                        <span className="ovd-doc-meta-label">Ngày hết hạn</span>
+                        <strong className="ovd-doc-meta-value">
+                          {formatLegalDocDate(businessLicenseDoc.expiryDate)}
+                        </strong>
+                      </div>
                     </div>
                     <div className="ovd-doc-images">
-                      <DocumentImageCarousel
-                        images={businessLicenseDoc.images}
-                        title="Business license"
-                      />
+                      <DocumentImageCarousel images={businessLicenseDoc.images} title="Giấy phép kinh doanh" />
                     </div>
                   </div>
                 ) : null}

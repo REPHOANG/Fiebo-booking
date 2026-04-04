@@ -334,39 +334,223 @@
   padding: 2px 8px;
 }
 
+.ovd-card--legal {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+.ovd-legal-heading {
+  margin-bottom: 4px;
+}
+
 .ovd-docs-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  margin-top: 14px;
 }
 
 .ovd-doc-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fafafa;
-  padding: 12px;
+  border: 1px solid #e8ecf1;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .ovd-doc-title {
-  margin: 0 0 8px;
-  font-size: 14px;
-  font-weight: 900;
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 .ovd-doc-meta {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   color: #334155;
 }
 
+.ovd-doc-meta--row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.ovd-doc-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.ovd-doc-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ovd-doc-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .ovd-doc-images {
-  margin-top: 10px;
+  margin-top: 14px;
   display: block;
 }
 
+/* Gallery xem giấy tờ (khung xám + điều hướng + đếm + thumbnail) */
+.ovd-doc-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ovd-doc-stage {
+  position: relative;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #eef1f6 0%, #e8ecf3 100%);
+  border: 1px solid #dce3ed;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.ovd-doc-stage-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  padding: 16px;
+  outline: none;
+}
+
+.ovd-doc-stage-link:focus-visible {
+  box-shadow: inset 0 0 0 2px #22c55e;
+}
+
+.ovd-doc-stage-img {
+  max-width: 100%;
+  max-height: min(52vh, 420px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+}
+
+.ovd-doc-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(30, 41, 59, 0.72);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ovd-doc-nav:hover {
+  background: rgba(15, 23, 42, 0.88);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.ovd-doc-nav--left {
+  left: 12px;
+}
+
+.ovd-doc-nav--right {
+  right: 12px;
+}
+
+.ovd-doc-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ovd-doc-thumbstrip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ovd-doc-thumbstrip-btn {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
+  background: #f1f5f9;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.ovd-doc-thumbstrip-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ovd-doc-thumbstrip-btn:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.ovd-doc-thumbstrip-btn.is-active {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+}
+
+/* OwnerEditVenue — xem ảnh giấy tờ đã lưu (carousel + lightbox) */
+.ovd-doc-carousel {
+  position: relative;
+  width: 100%;
+}
+
+.ovd-doc-carousel .ovd-doc-image-link--lg {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #dce3ed;
+  background: linear-gradient(180deg, #eef1f6 0%, #e8ecf3 100%);
+}
+
+.ovd-doc-carousel .ovd-doc-image--lg {
+  display: block;
+  width: 100%;
+  height: min(360px, 48vh);
+  object-fit: contain;
+}
+
+/* Legacy small doc thumbs (chỗ khác dùng) */
 .ovd-doc-image-link {
   border-radius: 10px;
   overflow: hidden;
@@ -379,57 +563,6 @@
   height: 110px;
   object-fit: cover;
   display: block;
-}
-
-.ovd-doc-carousel {
-  position: relative;
-  width: 100%;
-  max-width: none;
-}
-
-.ovd-doc-image-link--lg {
-  border-radius: 12px;
-}
-
-.ovd-doc-image--lg {
-  height: 360px;
-  object-fit: contain;
-  background: #f8fafc;
-}
-
-.ovd-doc-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: rgba(15, 23, 42, 0.55);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.ovd-doc-nav--left {
-  left: 8px;
-}
-
-.ovd-doc-nav--right {
-  right: 8px;
-}
-
-.ovd-doc-counter {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
-  background: rgba(15, 23, 42, 0.65);
-  padding: 3px 8px;
-  border-radius: 999px;
 }
 
 /* Local file preview grid (OwnerEditVenue) */
