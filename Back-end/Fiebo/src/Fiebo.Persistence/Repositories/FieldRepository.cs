@@ -65,10 +65,10 @@ namespace Fiebo.Persistence.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> IsFieldNameExistsInVenueAsync(int venueId, string fieldName)
+        public async Task<bool> IsFieldNameExistsInVenueAsync(int venueId, string fieldName, int sportTypeId)
         {
             return await _context.Fields
-                .AnyAsync(f => f.VenueId == venueId && f.Name == fieldName);
+                .AnyAsync(f => f.VenueId == venueId && f.Name == fieldName && f.SportTypeId == sportTypeId);
         }
 
         public async Task<List<Field>> GetFieldsWithBookingsAsync(int venueId, DateOnly date, FieldStatus status)
