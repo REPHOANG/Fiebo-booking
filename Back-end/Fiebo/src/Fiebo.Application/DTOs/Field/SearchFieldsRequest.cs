@@ -2,7 +2,9 @@ namespace Fiebo.Application.DTOs.Field
 {
     public class SearchFieldsRequest
     {
-        public string? Location { get; set; }
+        public int? ProvinceId { get; set; }
+        public int? WardId { get; set; }
+        public string? Name { get; set; }
         public DateOnly? Date { get; set; }
         public TimeOnly? Time { get; set; }
         public int? SportTypeId { get; set; }

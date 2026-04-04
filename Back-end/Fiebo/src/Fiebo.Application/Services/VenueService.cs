@@ -225,7 +225,9 @@ namespace Fiebo.Application.Services
             var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
 
             var venues = await _unitOfWork.Venues.SearchVenuesByFieldAsync(
-                request.Location,
+                request.ProvinceId,
+                request.WardId,
+                request.Name,
                 request.Date,
                 request.Time,
                 request.SportTypeId,

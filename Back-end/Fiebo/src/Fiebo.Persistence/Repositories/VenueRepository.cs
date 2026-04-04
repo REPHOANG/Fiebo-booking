@@ -107,7 +107,9 @@ namespace Fiebo.Persistence.Repositories
         }
 
         public async Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
-            string? locationKeyword,
+            int? provinceId,
+            int? wardId,
+            string? name,
             DateOnly? bookingDate,
             TimeOnly? bookingTime,
             int? sportTypeId,
@@ -119,12 +121,12 @@ namespace Fiebo.Persistence.Repositories
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 10;
-
+ 
             var query = _context.Venues
                 .AsNoTracking()
                 .Where(v => v.Status == VenueStatus.Active);
-
-            query = ApplyLocationFilter(query, locationKeyword);
+ 
+            query = ApplyAddressFilter(query, provinceId, wardId, name);
             query = ApplySportTypeFilter(query, sportTypeId);
             query = ApplyAvailabilityFilter(query, bookingDate, bookingTime, sportTypeId);
             query = ApplyRadiusBoundingBoxFilter(query, userLat, userLng, radiusKm);
@@ -188,21 +190,30 @@ namespace Fiebo.Persistence.Repositories
             };
         }
 
-        private static IQueryable<Venue> ApplyLocationFilter(
+        private static IQueryable<Venue> ApplyAddressFilter(
             IQueryable<Venue> query,
-            string? locationKeyword)
+            int? provinceId,
+            int? wardId,
+            string? name)
         {
-            if (string.IsNullOrWhiteSpace(locationKeyword))
+            if (wardId.HasValue)
             {
-                return query;
+                query = query.Where(v => v.WardId == wardId.Value);
+            }
+            else if (provinceId.HasValue)
+            {
+                query = query.Where(v => v.ProvinceId == provinceId.Value);
             }
 
-            var keyword = $"%{locationKeyword.Trim()}%";
-            return query.Where(v =>
-                EF.Functions.Like(v.Name, keyword) ||
-                EF.Functions.Like(v.AddressDetail!, keyword) ||
-                EF.Functions.Like(v.Ward!.Name, keyword) ||
-                EF.Functions.Like(v.Ward!.Province!.Name, keyword));
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var keyword = $"%{name.Trim()}%";
+                query = query.Where(v =>
+                    EF.Functions.Like(v.Name, keyword) ||
+                    EF.Functions.Like(v.AddressDetail!, keyword));
+            }
+
+            return query;
         }
 
         private static IQueryable<Venue> ApplySportTypeFilter(
