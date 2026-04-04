@@ -4,7 +4,9 @@ import CustomerHome from '../pages/Customer/Home/CustomerHome';
 import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
 import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
-import BookingPayment from '../pages/Customer/Booking/BookingPayment';
+import BookingPayment, {
+  BookingPaymentSuccess,
+} from '../pages/Customer/Booking/BookingPayment';
 import OwnerLogin from '../pages/auth/OwnerLogin';
 import OwnerHome from '../pages/Owner/OwnerHome';
 import { OPEN_AUTH_STATE_KEY } from '../context/AuthModalContext';
@@ -120,6 +122,7 @@ const AppRoutes = () => (
       <Route path="/venue/:id/booking" element={<BookingSchedule />} />
       <Route path="/venue/:id/social-session" element={<ProtectedRoute element={<EventList />} />} />
       <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
+      <Route path="/venue/:id/booking/success" element={<BookingPaymentSuccess />} />
       <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
       <Route path="/events" element={<Events />} />
       <Route path="/map" element={<MapExplore />} />

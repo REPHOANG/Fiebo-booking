@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, Search } from "lucide-react";
 import { createBooking, createWalkInBooking } from "../../../services/bookingService";
-import { savePaymentDraft } from '../../../utils/paymentDraft';
+import { setPaymentDraft } from '../../../store/paymentDraftSlice';
 import { getVenueSchedule } from "../../../services/fieldService";
 import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
@@ -530,7 +530,15 @@ const BookingConfirmation = () => {
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
         // Persist minimal server-side draft (bookingId) so users can resume across devices
         try {
-          if (bookingId) savePaymentDraft({ bookingId, venueId: venue?.id, expiresAt: expireAt });
+          if (bookingId) {
+            dispatch(
+              setPaymentDraft({
+                bookingId,
+                venueId: venue?.id,
+                expiresAt: expireAt,
+              }),
+            );
+          }
         } catch (e) {}
         const ttl = expireAt
           ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))

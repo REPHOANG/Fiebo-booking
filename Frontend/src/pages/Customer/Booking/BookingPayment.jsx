@@ -5,7 +5,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -21,14 +21,15 @@ import {
 } from "lucide-react";
 import "./BookingPayment.css";
 import {
-  savePaymentDraft,
+  setPaymentDraft,
   clearPaymentDraft,
-} from "../../../utils/paymentDraft";
+} from "../../../store/paymentDraftSlice";
 import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
 import { callPaymentWebhook } from "../../../services/bookingService";
 import { useAuthModal } from "../../../context/AuthModalContext";
+import { FIEBO_LAST_APP_PATH_KEY } from "../../../constants/fieboSession";
 
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
@@ -37,8 +38,203 @@ const HOLD_SECONDS = 5 * 60; // 5 minutes
 const BOOKING_GRACE_STORAGE_KEY = (bookingId) =>
   `fiebo_booking_grace_${bookingId}`;
 const PAYMENT_VENUE_SESSION_KEY = (venueId) => `fiebo_payment_venue_${venueId}`;
+const PAID_STATUSES = new Set(["Booked", "Completed"]);
+const TERMINAL_UNPAID_STATUSES = new Set([
+  "Expired",
+  "OwnerCancelled",
+  "CustomerCancelled",
+]);
 
-const BookingPayment = () => {
+function isDocumentReload() {
+  if (typeof performance === "undefined") return false;
+  const entry = performance.getEntriesByType?.("navigation")?.[0];
+  if (entry?.type === "reload") return true;
+  try {
+    const pn = performance.navigation;
+    if (pn?.type === 1) return true;
+  } catch (_) {}
+  return false;
+}
+
+/**
+ * Chỉ chặn khi user đang ở đúng URL thanh toán rồi F5 (đường dẫn lưu trước đó trùng URL hiện tại).
+ * Không chặn: F5 ở Sân đã đặt / trang khác rồi bấm "Tiếp tục thanh toán" (SPA — lúc đó last path ≠ payment).
+ */
+function shouldBlockPaymentBecauseReloadedSameUrl() {
+  if (typeof window === "undefined") return false;
+  if (!isDocumentReload()) return false;
+  const path = `${window.location.pathname}${window.location.search}`;
+  if (!path.includes("/booking/payment")) return false;
+  try {
+    const prev = sessionStorage.getItem(FIEBO_LAST_APP_PATH_KEY) || "";
+    return prev === path;
+  } catch (_) {
+    return false;
+  }
+}
+
+function PaymentReloadBlocked() {
+  const navigate = useNavigate();
+  return (
+    <div className="bp-main">
+      <div className="bp-empty" style={{ maxWidth: 480, margin: "0 auto" }}>
+        <h2>Không thể tải lại trang thanh toán</h2>
+        <p>
+          Để tránh thanh toán trùng hoặc trạng thái không đồng bộ, không dùng làm mới (F5) trên trang
+          này. Bạn vẫn có thể vào lại đơn qua <strong>Sân đã đặt</strong> → &quot;Tiếp tục thanh
+          toán&quot; (điều hướng trong app, không cần F5).
+        </p>
+        <button
+          type="button"
+          className="bp-back-link"
+          onClick={() => navigate("/bookings")}
+        >
+          ← Đi tới Sân đã đặt
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const formatDateFromBooking = (b) => {
+  if (!b?.date) return "";
+  const d = b.date;
+  const dateStr =
+    typeof d === "string"
+      ? d
+      : `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+  const [y, mo, day] = String(dateStr).split("-");
+  const date = new Date(Number(y), Number(mo) - 1, Number(day));
+  const dayName = date.toLocaleDateString("vi-VN", { weekday: "long" });
+  return `${dayName}, ${day}/${mo}/${y}`;
+};
+
+/**
+ * Trang thành công — URL riêng + replace sau thanh toán để nút Back không quay lại form payment.
+ */
+export function BookingPaymentSuccess() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const bookingIdRaw = searchParams.get("bookingId");
+  const bookingId = bookingIdRaw ? Number(bookingIdRaw) : NaN;
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [detail, setDetail] = useState(null);
+
+  useEffect(() => {
+    if (!Number.isFinite(bookingId) || bookingId <= 0) {
+      setLoading(false);
+      setError("Liên kết không hợp lệ.");
+      return;
+    }
+    let cancelled = false;
+    getBookingById(bookingId)
+      .then((data) => {
+        if (cancelled) return;
+        const b = data?.data ?? data;
+        const st = String(b.status ?? "");
+        if (!PAID_STATUSES.has(st)) {
+          setError(
+            st === "Pending"
+              ? "Đơn chưa thanh toán."
+              : "Đơn không ở trạng thái đã thanh toán.",
+          );
+        }
+        setDetail(b);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setError(e?.message || "Không tải được thông tin đặt chỗ.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingId]);
+
+  const pageTransition = {
+    initial: { opacity: 0, x: 40 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -40 },
+    transition: { duration: 0.35, ease: "easeInOut" },
+  };
+
+  if (loading) {
+    return (
+      <div className="bp-empty">
+        <p>Đang tải...</p>
+      </div>
+    );
+  }
+
+  const paid =
+    detail && PAID_STATUSES.has(String(detail.status ?? ""));
+  const formattedDate = detail ? formatDateFromBooking(detail) : "";
+
+  return (
+    <motion.div {...pageTransition}>
+      <div className="bp-main">
+        {paid ? (
+          <div className="bp-success">
+            <div className="bp-success-icon">
+              <CheckCircle2 size={56} />
+            </div>
+            <h2>Đặt sân thành công!</h2>
+            <p>Đơn đặt sân của bạn đã được xác nhận và thanh toán.</p>
+            <div className="bp-success-details">
+              <div className="bp-success-row">
+                <span>Sân</span>
+                <strong>{detail.venueName}</strong>
+              </div>
+              <div className="bp-success-row">
+                <span>Ngày</span>
+                <strong>{formattedDate}</strong>
+              </div>
+              <div className="bp-success-row">
+                <span>Tổng tiền</span>
+                <strong className="bp-success-price">
+                  {formatPrice(Number(detail.totalPrice) || 0)}
+                </strong>
+              </div>
+            </div>
+            <button className="bp-home-btn" onClick={() => navigate("/")}>
+              Về trang chủ
+            </button>
+          </div>
+        ) : (
+          <div className="bp-empty">
+            <h2>Không thể hiển thị xác nhận</h2>
+            <p>{error || "Đơn chưa thanh toán hoặc đã hết hạn."}</p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/venue/${id}/booking/payment?bookingId=${bookingId}`)
+                }
+                className="bp-back-link"
+              >
+                Đi tới thanh toán
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/bookings")}
+                className="bp-back-link secondary"
+              >
+                ← Sân đã đặt
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+const BookingPaymentContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,6 +247,7 @@ const BookingPayment = () => {
   const bookingIdFromQuery = searchParams.get("bookingId");
   const resolvedBookingId =
     paymentState?.bookingId ??
+    paymentState?.reservationId ??
     (bookingIdFromQuery ? Number(bookingIdFromQuery) : null);
 
   // "Tiếp tục thanh toán" từ danh sách hoặc mở lại từ URL có ?bookingId= → gọi API lấy chi tiết
@@ -59,13 +256,11 @@ const BookingPayment = () => {
   const [bookingLoadError, setBookingLoadError] = useState(null);
 
   useEffect(() => {
-    if (resolvedBookingId && !paymentState?.totalPrice) {
-      setSearchParams(
-        { bookingId: String(resolvedBookingId) },
-        { replace: true },
-      );
-    }
-  }, [resolvedBookingId, paymentState?.totalPrice, setSearchParams]);
+    if (!resolvedBookingId) return;
+    const q = bookingIdFromQuery ? Number(bookingIdFromQuery) : null;
+    if (q === resolvedBookingId) return;
+    setSearchParams({ bookingId: String(resolvedBookingId) }, { replace: true });
+  }, [resolvedBookingId, bookingIdFromQuery, setSearchParams]);
 
   // Reload: nếu không có state nhưng có session theo venue → chuyển sang URL có bookingId để tải lại đơn và dùng thời gian đã lưu
   useEffect(() => {
@@ -94,6 +289,19 @@ const BookingPayment = () => {
       .then((data) => {
         if (cancelled) return;
         const b = data?.data ?? data;
+        const st = String(b.status ?? "");
+        if (PAID_STATUSES.has(st)) {
+          navigate(`/venue/${id}/booking/success?bookingId=${bookingId}`, {
+            replace: true,
+          });
+          return;
+        }
+        if (TERMINAL_UNPAID_STATUSES.has(st)) {
+          setBookingLoadError(
+            "Đơn không còn ở trạng thái chờ thanh toán (hết hạn hoặc đã hủy).",
+          );
+          return;
+        }
         const dateStr = b.date
           ? typeof b.date === "string"
             ? b.date
@@ -129,7 +337,7 @@ const BookingPayment = () => {
     return () => {
       cancelled = true;
     };
-  }, [resolvedBookingId, paymentState?.totalPrice]);
+  }, [resolvedBookingId, paymentState?.totalPrice, navigate, id]);
 
   const effectiveState = continuePaymentState || paymentState;
 
@@ -185,7 +393,6 @@ const BookingPayment = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [paymentDone, setPaymentDone] = useState(false);
 
   // Hold countdown
   const [timeLeft, setTimeLeft] = useState(HOLD_SECONDS);
@@ -264,7 +471,7 @@ const BookingPayment = () => {
   ]);
 
   useEffect(() => {
-    if (paymentDone || expired) return;
+    if (expired) return;
     if (timeLeft <= 0) {
       if (!isContinuePaymentMode) setExpired(true);
       return;
@@ -302,7 +509,6 @@ const BookingPayment = () => {
     return () => clearTimeout(timer);
   }, [
     timeLeft,
-    paymentDone,
     expired,
     effectiveState?.reservationExpireAt,
     isContinuePaymentMode,
@@ -348,9 +554,13 @@ const BookingPayment = () => {
       expiresAt: effectiveState?.reservationExpireAt ?? null,
     };
     if (draft.bookingId || (draft.venueId && draft.selectedSlots?.length)) {
-      savePaymentDraft(draft);
+      dispatch(setPaymentDraft(draft));
     }
-    const handleBeforeUnload = () => savePaymentDraft(draft);
+    const handleBeforeUnload = () => {
+      if (draft.bookingId || (draft.venueId && draft.selectedSlots?.length)) {
+        dispatch(setPaymentDraft(draft));
+      }
+    };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [
@@ -360,6 +570,7 @@ const BookingPayment = () => {
     selectedDate,
     totalPrice,
     location.state,
+    dispatch,
   ]);
 
   const formattedDate = useMemo(() => {
@@ -433,14 +644,14 @@ const BookingPayment = () => {
       } catch (webErr) {
         // non-fatal: continue
       }
-      setPaymentDone(true);
-      try {
-        clearPaymentDraft();
-      } catch (e) {}
+      dispatch(clearPaymentDraft());
       try {
         sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(bookingId));
         if (id) sessionStorage.removeItem(PAYMENT_VENUE_SESSION_KEY(id));
       } catch (_) {}
+      navigate(`/venue/${id}/booking/success?bookingId=${bookingId}`, {
+        replace: true,
+      });
     } catch (payErr) {
       console.error("Payment failed", payErr);
       alert(
@@ -464,42 +675,6 @@ const BookingPayment = () => {
     transition: { duration: 0.35, ease: "easeInOut" },
   };
 
-  /* ── Payment success ── */
-  if (paymentDone) {
-    return (
-      <motion.div {...pageTransition}>
-        <div className="bp-main">
-          <div className="bp-success">
-            <div className="bp-success-icon">
-              <CheckCircle2 size={56} />
-            </div>
-            <h2>Đặt sân thành công!</h2>
-            <p>Đơn đặt sân của bạn đã được xác nhận và thanh toán.</p>
-            <div className="bp-success-details">
-              <div className="bp-success-row">
-                <span>Sân</span>
-                <strong>{venue?.name}</strong>
-              </div>
-              <div className="bp-success-row">
-                <span>Ngày</span>
-                <strong>{formattedDate}</strong>
-              </div>
-              <div className="bp-success-row">
-                <span>Tổng tiền</span>
-                <strong className="bp-success-price">
-                  {formatPrice(totalPrice)}
-                </strong>
-              </div>
-            </div>
-            <button className="bp-home-btn" onClick={() => navigate("/")}>
-              Về trang chủ
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
   /* ── Expired ── */
   const handleTryPayAfterExpired = async () => {
     if (!reservationId || paying) return;
@@ -511,11 +686,14 @@ const BookingPayment = () => {
       } catch (webErr) {
         // non-fatal
       }
-      setPaymentDone(true);
       try {
         sessionStorage.removeItem(BOOKING_GRACE_STORAGE_KEY(reservationId));
         if (id) sessionStorage.removeItem(PAYMENT_VENUE_SESSION_KEY(id));
       } catch (_) {}
+      dispatch(clearPaymentDraft());
+      navigate(`/venue/${id}/booking/success?bookingId=${reservationId}`, {
+        replace: true,
+      });
     } catch (err) {
       alert(
         err?.message ||
@@ -761,6 +939,17 @@ const BookingPayment = () => {
       </div>
     </motion.div>
   );
+};
+
+const BookingPayment = () => {
+  const blockReload = useMemo(
+    () => shouldBlockPaymentBecauseReloadedSameUrl(),
+    [],
+  );
+  if (blockReload) {
+    return <PaymentReloadBlocked />;
+  }
+  return <BookingPaymentContent />;
 };
 
 export default BookingPayment;
