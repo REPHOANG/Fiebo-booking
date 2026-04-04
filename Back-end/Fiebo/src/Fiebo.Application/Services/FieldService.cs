@@ -144,8 +144,7 @@ namespace Fiebo.Application.Services
         public async Task<int> CreateFieldAsync(
             int venueId,
             CreateFieldRequest request,
-            string userId,
-            string userRole)
+            string userId)
         {
             // BR-01: Field must belong to exactly one Venue and one SportType
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
@@ -154,9 +153,8 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy cơ sở sân.");
             }
 
-            // Authorization: Field Owner or Admin
-            bool isAdmin = userRole == AppRoles.Admin;
-            if (!isAdmin && venue.OwnerId != userId)
+            // Authorization: Field Owner
+            if (venue.OwnerId != userId)
             {
                 throw new UnauthorizedException("Bạn không có quyền tạo sân trong cơ sở này.");
             }
