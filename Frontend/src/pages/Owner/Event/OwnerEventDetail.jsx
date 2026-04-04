@@ -1,7 +1,37 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { getEventOwner, updateEventOwner } from "../../../services/eventService";
 import "./OwnerEventDetail.css";
+
+const editEventSchema = yup.object({
+  description: yup.string().optional(),
+  minPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null ? undefined : Number(o)))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Tối thiểu 1")
+    .required(),
+  maxPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null ? undefined : Number(o)))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Tối thiểu 1")
+    .required()
+    .test("max-ge-min", "Số tối đa phải ≥ số tối thiểu", function testMax(max) {
+      const min = this.parent.minPlayer;
+      if (min == null || max == null) return true;
+      return max >= min;
+    }),
+  pricePerPerson: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null ? 0 : Number(o)))
+    .typeError("Nhập số hợp lệ")
+    .min(0, "Không được âm")
+    .required(),
+});
 
 const formatPrice = (n) => {
   if (n == null || Number.isNaN(n)) return "0 ₫";
@@ -49,8 +79,23 @@ const OwnerEventDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState({ description: "", minPlayer: 0, maxPlayer: 0, pricePerPerson: 0 });
   const [saving, setSaving] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(editEventSchema),
+    mode: "onTouched",
+    defaultValues: {
+      description: "",
+      minPlayer: 0,
+      maxPlayer: 0,
+      pricePerPerson: 0,
+    },
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -62,7 +107,7 @@ const OwnerEventDetail = () => {
         const data = await getEventOwner(id);
         if (mounted) {
           setDetail(data);
-          setEditForm({
+          reset({
             description: data?.description ?? "",
             minPlayer: data?.minPlayer ?? 0,
             maxPlayer: data?.maxPlayer ?? 0,
@@ -82,19 +127,19 @@ const OwnerEventDetail = () => {
     return () => { mounted = false; };
   }, [id]);
 
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
+  const onSaveEdit = async (values) => {
     if (!id || !detail?.isEditable) return;
     setSaving(true);
     setError("");
     try {
-      await updateEventOwner(id, {
-        description: editForm.description.trim() || null,
-        minPlayer: Number(editForm.minPlayer) || 0,
-        maxPlayer: Number(editForm.maxPlayer) || 0,
-        pricePerPerson: Number(editForm.pricePerPerson) || 0,
-      });
-      setDetail((prev) => (prev ? { ...prev, ...editForm } : null));
+      const payload = {
+        description: values.description?.trim() || null,
+        minPlayer: Number(values.minPlayer) || 0,
+        maxPlayer: Number(values.maxPlayer) || 0,
+        pricePerPerson: Number(values.pricePerPerson) || 0,
+      };
+      await updateEventOwner(id, payload);
+      setDetail((prev) => (prev ? { ...prev, ...payload } : null));
       setEditMode(false);
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Cập nhật thất bại.");
@@ -164,43 +209,33 @@ const OwnerEventDetail = () => {
               )}
             </>
           ) : (
-            <form className="oed-edit-form" onSubmit={handleSaveEdit}>
+            <form className="oed-edit-form" onSubmit={handleSubmit(onSaveEdit)} noValidate>
               <label>
                 Mô tả
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={2}
-                />
+                <textarea {...register("description")} rows={2} />
               </label>
               <div className="oed-edit-row">
                 <label>
                   Số người tối thiểu
-                  <input
-                    type="number"
-                    min={1}
-                    value={editForm.minPlayer}
-                    onChange={(e) => setEditForm((f) => ({ ...f, minPlayer: e.target.value }))}
-                  />
+                  <input type="number" min={1} {...register("minPlayer")} />
+                  {errors.minPlayer && (
+                    <span className="oed-field-error">{errors.minPlayer.message}</span>
+                  )}
                 </label>
                 <label>
                   Số người tối đa
-                  <input
-                    type="number"
-                    min={1}
-                    value={editForm.maxPlayer}
-                    onChange={(e) => setEditForm((f) => ({ ...f, maxPlayer: e.target.value }))}
-                  />
+                  <input type="number" min={1} {...register("maxPlayer")} />
+                  {errors.maxPlayer && (
+                    <span className="oed-field-error">{errors.maxPlayer.message}</span>
+                  )}
                 </label>
               </div>
               <label>
                 Phí tham gia (VNĐ)
-                <input
-                  type="number"
-                  min={0}
-                  value={editForm.pricePerPerson}
-                  onChange={(e) => setEditForm((f) => ({ ...f, pricePerPerson: e.target.value }))}
-                />
+                <input type="number" min={0} {...register("pricePerPerson")} />
+                {errors.pricePerPerson && (
+                  <span className="oed-field-error">{errors.pricePerPerson.message}</span>
+                )}
               </label>
               <div className="oed-edit-actions">
                 <button type="submit" className="oed-btn primary" disabled={saving}>

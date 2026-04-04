@@ -1,9 +1,41 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
 import { getOwnerVenues } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
+
+const createEventFormSchema = yup.object({
+  venueId: yup.string().required("Vui lòng chọn cơ sở."),
+  eventDate: yup.string().required("Vui lòng chọn ngày."),
+  pricePerPerson: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập phí hợp lệ")
+    .required("Nhập phí tham gia")
+    .positive("Phí tham gia phải lớn hơn 0"),
+  minPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Số người tối thiểu phải lớn hơn 0")
+    .required(),
+  maxPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Số người tối đa không hợp lệ")
+    .required()
+    .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
+      const min = this.parent.minPlayer;
+      if (min == null || max == null) return true;
+      return max >= min;
+    }),
+  description: yup.string().optional(),
+});
 
 const formatPrice = (n) => {
   if (n == null || Number.isNaN(n)) return "0 ₫";
@@ -110,20 +142,36 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
 
 const CreateEvent = () => {
   const navigate = useNavigate();
-  const [venueId, setVenueId] = useState("");
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(createEventFormSchema),
+    mode: "onSubmit",
+    defaultValues: {
+      venueId: "",
+      eventDate: "",
+      pricePerPerson: "",
+      minPlayer: "4",
+      maxPlayer: "10",
+      description: "",
+    },
+  });
+
+  const venueId = watch("venueId");
+  const eventDate = watch("eventDate");
+
   const [venues, setVenues] = useState([]);
   const [loadingVenues, setLoadingVenues] = useState(false);
-  const [eventDate, setEventDate] = useState("");
   const [venue, setVenue] = useState(null);
   const [schedule, setSchedule] = useState(null);
   const [eventListForDate, setEventListForDate] = useState([]);
   const [loadingVenue, setLoadingVenue] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState([]); // [{ fieldId, slotId }]
-  const [pricePerPerson, setPricePerPerson] = useState("");
-  const [minPlayer, setMinPlayer] = useState("4");
-  const [maxPlayer, setMaxPlayer] = useState("10");
-  const [description, setDescription] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedFieldId, setExpandedFieldId] = useState(null);
@@ -202,7 +250,6 @@ const CreateEvent = () => {
   }, []);
 
   const handleVenueSelect = (nextVenueId) => {
-    setVenueId(nextVenueId);
     setError("");
     setSchedule(null);
     setEventListForDate([]);
@@ -334,10 +381,9 @@ const CreateEvent = () => {
   const isSelected = (item) =>
     selectedDetails.some((d) => d.fieldId === item.fieldId && d.slotId === item.slotId);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const id = Number(venueId);
-    if (!id || !eventDate) {
+  const onCreateSubmit = async (values) => {
+    const id = Number(values.venueId);
+    if (!id || !values.eventDate) {
       setError("Vui lòng chọn cơ sở và ngày.");
       return;
     }
@@ -345,32 +391,17 @@ const CreateEvent = () => {
       setError("Vui lòng chọn ít nhất một khung giờ.");
       return;
     }
-    const price = Number(pricePerPerson);
-    const min = Number(minPlayer);
-    const max = Number(maxPlayer);
-    if (!Number.isFinite(price) || price <= 0) {
-      setError("Phí tham gia phải lớn hơn 0.");
-      return;
-    }
-    if (!Number.isFinite(min) || min < 1) {
-      setError("Số người tối thiểu phải lớn hơn 0.");
-      return;
-    }
-    if (!Number.isFinite(max) || max < min) {
-      setError("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
-      return;
-    }
 
     setError("");
     setSubmitLoading(true);
     try {
       const payload = {
-        eventDate: eventDate.slice(0, 10),
+        eventDate: values.eventDate.slice(0, 10),
         details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),
-        pricePerPerson: price,
-        minPlayer: min,
-        maxPlayer: max,
-        description: description.trim() || null,
+        pricePerPerson: values.pricePerPerson,
+        minPlayer: values.minPlayer,
+        maxPlayer: values.maxPlayer,
+        description: values.description?.trim() || null,
       };
       const res = await createEvent(payload);
       const eventId = res?.eventId ?? res?.EventId;
@@ -398,7 +429,7 @@ const CreateEvent = () => {
       </div>
 
       <div className="owner-home-content">
-        <form className="create-event-form" onSubmit={handleSubmit}>
+        <form className="create-event-form" onSubmit={handleSubmit(onCreateSubmit)} noValidate>
           {error && (
             <div className="ce-error" role="alert">
               {error}
@@ -410,23 +441,33 @@ const CreateEvent = () => {
             <div className="ce-row">
               <label>
                 Cơ sở (Venue)
-                <select
-                  value={venueId}
-                  onChange={(e) => handleVenueSelect(e.target.value)}
-                  disabled={loadingVenues || venues.length === 0}
-                >
-                  <option value="">{loadingVenues ? "Đang tải..." : "Chọn cơ sở"}</option>
-                  {venues.map((v) => {
-                    const id = pick(v, "venueId", "VenueId", "id");
-                    if (!id) return null;
-                    const name = pick(v, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
-                    return (
-                      <option key={id} value={String(id)}>
-                        {name}
-                      </option>
-                    );
-                  })}
-                </select>
+                <Controller
+                  name="venueId"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleVenueSelect(e.target.value);
+                      }}
+                      disabled={loadingVenues || venues.length === 0}
+                    >
+                      <option value="">{loadingVenues ? "Đang tải..." : "Chọn cơ sở"}</option>
+                      {venues.map((v) => {
+                        const vid = pick(v, "venueId", "VenueId", "id");
+                        if (!vid) return null;
+                        const name = pick(v, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${vid}`;
+                        return (
+                          <option key={vid} value={String(vid)}>
+                            {name}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                />
+                {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
               </label>
               <button
                 type="button"
@@ -447,10 +488,10 @@ const CreateEvent = () => {
                 Ngày sự kiện
                 <input
                   type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
+                  {...register("eventDate")}
                 />
+                {errors.eventDate && <span className="ce-field-error">{errors.eventDate.message}</span>}
               </label>
               <button
                 type="button"
@@ -575,40 +616,28 @@ const CreateEvent = () => {
             <div className="ce-row">
               <label>
                 Phí tham gia (VNĐ/người)
-                <input
-                  type="number"
-                  min={1}
-                  value={pricePerPerson}
-                  onChange={(e) => setPricePerPerson(e.target.value)}
-                  placeholder="50000"
-                />
+                <input type="number" min={1} placeholder="50000" {...register("pricePerPerson")} />
+                {errors.pricePerPerson && (
+                  <span className="ce-field-error">{errors.pricePerPerson.message}</span>
+                )}
               </label>
             </div>
             <div className="ce-row two-cols">
               <label>
                 Số người tối thiểu
-                <input
-                  type="number"
-                  min={1}
-                  value={minPlayer}
-                  onChange={(e) => setMinPlayer(e.target.value)}
-                />
+                <input type="number" min={1} {...register("minPlayer")} />
+                {errors.minPlayer && <span className="ce-field-error">{errors.minPlayer.message}</span>}
               </label>
               <label>
                 Số người tối đa
-                <input
-                  type="number"
-                  min={1}
-                  value={maxPlayer}
-                  onChange={(e) => setMaxPlayer(e.target.value)}
-                />
+                <input type="number" min={1} {...register("maxPlayer")} />
+                {errors.maxPlayer && <span className="ce-field-error">{errors.maxPlayer.message}</span>}
               </label>
             </div>
             <label className="ce-full">
               Mô tả (tuỳ chọn)
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                {...register("description")}
                 placeholder="VD: Bóng đá 5 người, giao lưu cuối tuần"
                 rows={3}
               />

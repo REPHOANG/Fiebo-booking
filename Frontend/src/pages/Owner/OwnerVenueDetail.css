@@ -741,6 +741,13 @@
   color: #334155;
 }
 
+.oaf-field-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .ovd-title-row {
   display: flex;
   align-items: center;

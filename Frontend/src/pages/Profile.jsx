@@ -1,6 +1,9 @@
 // src/pages/Profile.jsx
 import React, { useState, useEffect } from "react";
-import {  useDispatch } from "react-redux";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout, updateProfile, AUTH_STORAGE_KEY } from "../store/authSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -32,6 +35,28 @@ import {
 import "./Profile.css";
 import { useQuery } from "@tanstack/react-query";
 
+const customerProfileSchema = yup.object({
+  fullName: yup.string().trim().required("Vui lòng nhập họ và tên"),
+  phoneNumber: yup.string().trim().optional(),
+  dateOfBirth: yup.string().optional(),
+});
+
+const customerPasswordSchema = yup.object({
+  currentPassword: yup.string().required("Vui lòng nhập mật khẩu hiện tại"),
+  newPassword: yup
+    .string()
+    .required("Vui lòng nhập mật khẩu mới")
+    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .matches(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ hoa")
+    .matches(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường")
+    .matches(/[0-9]/, "Mật khẩu phải có ít nhất 1 chữ số")
+    .matches(/[\W_]/, "Mật khẩu phải có ít nhất 1 ký tự đặc biệt"),
+  confirmPassword: yup
+    .string()
+    .required("Vui lòng xác nhận mật khẩu")
+    .oneOf([yup.ref("newPassword")], "Mật khẩu mới không khớp"),
+});
+
 const Profile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -44,56 +69,63 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const {
-    data: profile
-  } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
-    staleTime: 0, // luôn stale
-    gcTime: 0, // không giữ cache
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  const {
+    register: regProfile,
+    handleSubmit: submitProfileForm,
+    reset: resetProfileForm,
+    formState: { errors: profileErrors },
+  } = useForm({
+    resolver: yupResolver(customerProfileSchema),
+    mode: "onTouched",
+    defaultValues: {
+      fullName: "",
+      phoneNumber: "",
+      dateOfBirth: "",
+    },
+  });
+
+  const {
+    register: regPwd,
+    handleSubmit: submitPasswordForm,
+    reset: resetPwdForm,
+    formState: { errors: pwdErrors },
+  } = useForm({
+    resolver: yupResolver(customerPasswordSchema),
+    mode: "onTouched",
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
   useEffect(() => {
-  if (profile) {
-    setProfileData({
+    if (!profile) return;
+    resetProfileForm({
       fullName: profile.fullName || "",
-      email: profile.email || "",
       phoneNumber: profile.phoneNumber || "",
-      dateOfBirth: profile.dateOfBirth
-        ? profile.dateOfBirth.slice(0, 10)
-        : "",
+      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : "",
     });
-  }
-}, [profile]);
-  
-  const [profileData, setProfileData] = useState({
-    fullName: profile?.fullName || "",
-    email: profile?.email || "",
-    phoneNumber: profile?.phoneNumber || "",
-    dateOfBirth: profile?.dateOfBirth || "",
-  });
+  }, [profile, resetProfileForm]);
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
-  const handleProfileChange = (e) =>
-    setProfileData({ ...profileData, [e.target.name]: e.target.value });
-  const handlePasswordChange = (e) =>
-    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
-
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    if (!profileData.fullName || !profileData.email) {
-      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
-      return;
-    }
+  const onUpdateProfile = async (values) => {
+    const payload = {
+      fullName: values.fullName.trim(),
+      email: profile?.email || "",
+      phoneNumber: values.phoneNumber?.trim() || "",
+      dateOfBirth: values.dateOfBirth || "",
+    };
     setIsLoading(true);
     try {
-      await updateProfileAPI(profileData);
-      dispatch(updateProfile(profileData));
+      await updateProfileAPI(payload);
+      dispatch(updateProfile(payload));
       toast.success("Cập nhật hồ sơ thành công!");
       setIsEditingProfile(false);
     } catch (error) {
@@ -103,49 +135,12 @@ const Profile = () => {
     }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (
-      !passwordData.currentPassword ||
-      !passwordData.newPassword ||
-      !passwordData.confirmPassword
-    ) {
-      toast.error("Vui lòng điền đầy đủ các trường mật khẩu");
-      return;
-    }
-    if (passwordData.newPassword.length < 8) {
-      toast.error("Mật khẩu phải có ít nhất 8 ký tự");
-      return;
-    }
-    if (!/[A-Z]/.test(passwordData.newPassword)) {
-      toast.error("Mật khẩu phải có ít nhất 1 chữ hoa");
-      return;
-    }
-    if (!/[a-z]/.test(passwordData.newPassword)) {
-      toast.error("Mật khẩu phải có ít nhất 1 chữ thường");
-      return;
-    }
-    if (!/[0-9]/.test(passwordData.newPassword)) {
-      toast.error("Mật khẩu phải có ít nhất 1 chữ số");
-      return;
-    }
-    if (!/[\W_]/.test(passwordData.newPassword)) {
-      toast.error("Mật khẩu phải có ít nhất 1 ký tự đặc biệt");
-      return;
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Mật khẩu mới không khớp");
-      return;
-    }
+  const onChangePassword = async (values) => {
     setIsLoading(true);
     try {
-      await changePasswordAPI(passwordData);
+      await changePasswordAPI(values);
       toast.success("Đổi mật khẩu thành công!");
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      resetPwdForm();
       setIsEditingPassword(false);
     } catch (error) {
       toast.error(
@@ -168,9 +163,8 @@ const Profile = () => {
     navigate("/");
   };
 
-  const avatarLetter = (profileData.fullName || profileData.email || "U")
-    .charAt(0)
-    .toUpperCase();
+  const p = profile ?? {};
+  const avatarLetter = (p.fullName || p.email || "U").charAt(0).toUpperCase();
 
   const formatDOB = (dob) => {
     if (!dob) return "Chưa cập nhật";
@@ -240,9 +234,9 @@ const Profile = () => {
               </button>
             </div>
             <h3 className="sidebar-name">
-              {profileData.fullName || "Người dùng"}
+              {p.fullName || "Người dùng"}
             </h3>
-            <p className="sidebar-email">{profileData.email || ""}</p>
+            <p className="sidebar-email">{p.email || ""}</p>
           </div>
 
           <nav className="sidebar-nav">
@@ -306,7 +300,7 @@ const Profile = () => {
                     <div className="banner-avatar">{avatarLetter}</div>
                     <div>
                       <h2 className="banner-name">
-                        {profileData.fullName || "Người dùng"}
+                        {p.fullName || "Người dùng"}
                       </h2>
                       <p className="banner-sub">Thành viên Fiebo</p>
                     </div>
@@ -334,7 +328,7 @@ const Profile = () => {
                         <div className="info-text">
                           <span className="info-label">Họ và tên</span>
                           <span className="info-value">
-                            {profileData.fullName || "Chưa cập nhật"}
+                            {p.fullName || "Chưa cập nhật"}
                           </span>
                         </div>
                       </div>
@@ -345,7 +339,7 @@ const Profile = () => {
                         <div className="info-text">
                           <span className="info-label">Email</span>
                           <span className="info-value">
-                            {profileData.email || "Chưa cập nhật"}
+                            {p.email || "Chưa cập nhật"}
                           </span>
                         </div>
                       </div>
@@ -356,7 +350,7 @@ const Profile = () => {
                         <div className="info-text">
                           <span className="info-label">Số điện thoại</span>
                           <span className="info-value">
-                            {profileData.phoneNumber || "Chưa cập nhật"}
+                            {p.phoneNumber || "Chưa cập nhật"}
                           </span>
                         </div>
                       </div>
@@ -367,7 +361,7 @@ const Profile = () => {
                         <div className="info-text">
                           <span className="info-label">Ngày sinh</span>
                           <span className="info-value">
-                            {formatDOB(profileData.dateOfBirth)}
+                            {formatDOB(p.dateOfBirth)}
                           </span>
                         </div>
                       </div>
@@ -381,8 +375,9 @@ const Profile = () => {
                       </h3>
                     </div>
                     <form
-                      onSubmit={handleUpdateProfile}
+                      onSubmit={submitProfileForm(onUpdateProfile)}
                       className="profile-form"
+                      noValidate
                     >
                       <div className="form-row">
                         <div className="form-group">
@@ -391,24 +386,25 @@ const Profile = () => {
                           </label>
                           <input
                             id="fullName"
-                            name="fullName"
                             type="text"
                             className="input-field"
-                            value={profileData.fullName}
-                            onChange={handleProfileChange}
                             disabled={isLoading}
                             placeholder="Nhập họ và tên"
-                            required
+                            {...regProfile("fullName")}
                           />
+                          {profileErrors.fullName && (
+                            <p className="hint-text" style={{ color: "#dc2626" }}>
+                              {profileErrors.fullName.message}
+                            </p>
+                          )}
                         </div>
                         <div className="form-group">
                           <label htmlFor="email">Email</label>
                           <input
                             id="email"
-                            name="email"
                             type="email"
                             className="input-field input-readonly"
-                            value={profileData.email}
+                            value={p.email || ""}
                             readOnly
                             title="Email không thể thay đổi"
                           />
@@ -420,25 +416,26 @@ const Profile = () => {
                           <label htmlFor="phoneNumber">Số điện thoại</label>
                           <input
                             id="phoneNumber"
-                            name="phoneNumber"
                             type="tel"
                             className="input-field"
-                            value={profileData.phoneNumber}
-                            onChange={handleProfileChange}
                             disabled={isLoading}
                             placeholder="Nhập số điện thoại"
+                            {...regProfile("phoneNumber")}
                           />
+                          {profileErrors.phoneNumber && (
+                            <p className="hint-text" style={{ color: "#dc2626" }}>
+                              {profileErrors.phoneNumber.message}
+                            </p>
+                          )}
                         </div>
                         <div className="form-group">
                           <label htmlFor="dateOfBirth">Ngày sinh</label>
                           <input
                             id="dateOfBirth"
-                            name="dateOfBirth"
                             type="date"
                             className="input-field"
-                            value={profileData.dateOfBirth}
-                            onChange={handleProfileChange}
                             disabled={isLoading}
+                            {...regProfile("dateOfBirth")}
                           />
                         </div>
                       </div>
@@ -497,8 +494,9 @@ const Profile = () => {
                     </div>
                   ) : (
                     <form
-                      onSubmit={handleChangePassword}
+                      onSubmit={submitPasswordForm(onChangePassword)}
                       className="profile-form"
+                      noValidate
                     >
                       <div className="form-group">
                         <label htmlFor="currentPassword">
@@ -507,14 +505,12 @@ const Profile = () => {
                         <div className="password-wrapper">
                           <input
                             id="currentPassword"
-                            name="currentPassword"
                             type={showCurrentPassword ? "text" : "password"}
                             className="input-field"
-                            value={passwordData.currentPassword}
-                            onChange={handlePasswordChange}
                             disabled={isLoading}
                             placeholder="Nhập mật khẩu hiện tại"
-                            required
+                            autoComplete="current-password"
+                            {...regPwd("currentPassword")}
                           />
                           <button
                             type="button"
@@ -529,6 +525,11 @@ const Profile = () => {
                             />
                           </button>
                         </div>
+                        {pwdErrors.currentPassword && (
+                          <p className="hint-text" style={{ color: "#dc2626", marginTop: 6 }}>
+                            {pwdErrors.currentPassword.message}
+                          </p>
+                        )}
                       </div>
                       <div className="form-row">
                         <div className="form-group">
@@ -536,14 +537,12 @@ const Profile = () => {
                           <div className="password-wrapper">
                             <input
                               id="newPassword"
-                              name="newPassword"
                               type={showNewPassword ? "text" : "password"}
                               className="input-field"
-                              value={passwordData.newPassword}
-                              onChange={handlePasswordChange}
                               disabled={isLoading}
                               placeholder="Nhập mật khẩu mới"
-                              required
+                              autoComplete="new-password"
+                              {...regPwd("newPassword")}
                             />
                             <button
                               type="button"
@@ -558,6 +557,11 @@ const Profile = () => {
                               />
                             </button>
                           </div>
+                          {pwdErrors.newPassword && (
+                            <p className="hint-text" style={{ color: "#dc2626", marginTop: 6 }}>
+                              {pwdErrors.newPassword.message}
+                            </p>
+                          )}
                         </div>
                         <div className="form-group">
                           <label htmlFor="confirmPassword">
@@ -566,14 +570,12 @@ const Profile = () => {
                           <div className="password-wrapper">
                             <input
                               id="confirmPassword"
-                              name="confirmPassword"
                               type={showConfirmPassword ? "text" : "password"}
                               className="input-field"
-                              value={passwordData.confirmPassword}
-                              onChange={handlePasswordChange}
                               disabled={isLoading}
                               placeholder="Xác nhận mật khẩu mới"
-                              required
+                              autoComplete="new-password"
+                              {...regPwd("confirmPassword")}
                             />
                             <button
                               type="button"
@@ -588,6 +590,11 @@ const Profile = () => {
                               />
                             </button>
                           </div>
+                          {pwdErrors.confirmPassword && (
+                            <p className="hint-text" style={{ color: "#dc2626", marginTop: 6 }}>
+                              {pwdErrors.confirmPassword.message}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <p className="hint-text">
@@ -609,11 +616,7 @@ const Profile = () => {
                           disabled={isLoading}
                           onClick={() => {
                             setIsEditingPassword(false);
-                            setPasswordData({
-                              currentPassword: "",
-                              newPassword: "",
-                              confirmPassword: "",
-                            });
+                            resetPwdForm();
                           }}
                         >
                           <FontAwesomeIcon icon={faTimes} /> Hủy

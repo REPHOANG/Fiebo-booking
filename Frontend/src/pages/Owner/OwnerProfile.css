@@ -267,6 +267,12 @@
   color: #0f172a;
 }
 
+.op-field-error {
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .op-input-disabled {
   background: #f1f5f9;
   color: #64748b;

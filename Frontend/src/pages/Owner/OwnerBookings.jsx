@@ -1,9 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { toast } from "react-toastify";
 import "./OwnerBookings.css";
 import { getOwnerBookingList } from "../../services/bookingService";
 import { getOwnerVenues } from "../../services/venueService";
+
+const filterSchema = yup.object({
+  venueId: yup.string(),
+});
 
 const formatDate = (d) => {
   if (d == null || d === "") return "—";
@@ -39,11 +46,17 @@ const OwnerBookings = () => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
   const [venuesLoading, setVenuesLoading] = useState(true);
-  const [selectedVenueId, setSelectedVenueId] = useState("");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const { register, handleSubmit, watch, reset } = useForm({
+    resolver: yupResolver(filterSchema),
+    defaultValues: { venueId: "" },
+  });
+
+  const selectedVenueId = watch("venueId") ?? "";
 
   const venueOptions = useMemo(
     () =>
@@ -80,7 +93,7 @@ const OwnerBookings = () => {
     setLoading(true);
     try {
       const params = { pageNumber: page, pageSize: PAGE_SIZE };
-      const vid = selectedVenueId !== "" ? Number(selectedVenueId) : NaN;
+      const vid = selectedVenueId !== "" ? Number(String(selectedVenueId)) : NaN;
       if (Number.isFinite(vid) && vid > 0) params.venueId = vid;
       const result = await getOwnerBookingList(params);
       setItems(Array.isArray(result?.items) ? result.items : []);
@@ -100,11 +113,10 @@ const OwnerBookings = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE) || 1);
 
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
+  const onFilterSubmit = useCallback(() => {
     if (page !== 1) setPage(1);
     else loadList();
-  };
+  }, [page, loadList]);
 
   return (
     <div className="owner-home owner-bookings-page">
@@ -116,17 +128,19 @@ const OwnerBookings = () => {
         <div className="ob-card ob-card--list">
           
 
-          <form className="ob-filter-row" onSubmit={handleFilterSubmit}>
+          <form
+            className="ob-filter-row"
+            onSubmit={handleSubmit(onFilterSubmit)}
+            noValidate
+          >
             <label className="ob-filter-label">
               Lọc theo cơ sở (tuỳ chọn)
               <select
                 className="ob-filter-select"
-                value={selectedVenueId}
                 disabled={venuesLoading}
-                onChange={(e) => {
-                  setSelectedVenueId(e.target.value);
-                  setPage(1);
-                }}
+                {...register("venueId", {
+                  onChange: () => setPage(1),
+                })}
               >
                 <option value="">
                   {venuesLoading ? "Đang tải cơ sở…" : "Tất cả cơ sở"}
@@ -149,7 +163,7 @@ const OwnerBookings = () => {
               type="button"
               className="ob-btn outline ob-btn-sm"
               onClick={() => {
-                setSelectedVenueId("");
+                reset({ venueId: "" });
                 setPage(1);
               }}
             >

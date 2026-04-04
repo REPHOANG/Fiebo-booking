@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { User, Lock, Mail, Phone, Cake, SquarePen } from "lucide-react";
@@ -18,21 +21,28 @@ const errMessage = (e) =>
   e?.message ??
   "Có lỗi xảy ra. Vui lòng thử lại.";
 
+const profileSchema = yup.object({
+  fullName: yup.string().trim().required("Vui lòng nhập họ tên."),
+  phoneNumber: yup.string().trim().optional(),
+  dateOfBirth: yup.string().optional(),
+});
+
+const passwordSchema = yup.object({
+  currentPassword: yup.string().required("Vui lòng nhập mật khẩu hiện tại."),
+  newPassword: yup
+    .string()
+    .required("Vui lòng nhập mật khẩu mới.")
+    .min(8, "Mật khẩu mới ít nhất 8 ký tự."),
+  confirmPassword: yup
+    .string()
+    .required("Vui lòng nhập lại mật khẩu.")
+    .oneOf([yup.ref("newPassword")], "Mật khẩu mới không khớp."),
+});
+
 const OwnerProfile = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const [editingProfile, setEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState({
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    dateOfBirth: "",
-  });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -40,26 +50,56 @@ const OwnerProfile = () => {
     queryFn: getProfile,
   });
 
+  const {
+    register: regProfile,
+    handleSubmit: submitProfile,
+    reset: resetProfile,
+    formState: { errors: profileErrors },
+  } = useForm({
+    resolver: yupResolver(profileSchema),
+    mode: "onTouched",
+    defaultValues: {
+      fullName: "",
+      phoneNumber: "",
+      dateOfBirth: "",
+    },
+  });
+
+  const {
+    register: regPwd,
+    handleSubmit: submitPassword,
+    reset: resetPwd,
+    formState: { errors: pwdErrors },
+  } = useForm({
+    resolver: yupResolver(passwordSchema),
+    mode: "onTouched",
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   useEffect(() => {
     if (!profile) return;
-    setProfileData({
+    resetProfile({
       fullName: profile.fullName || "",
-      email: profile.email || "",
       phoneNumber: profile.phoneNumber || "",
       dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : "",
     });
-  }, [profile]);
+  }, [profile, resetProfile]);
 
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    if (!profileData.fullName?.trim()) {
-      toast.error("Vui lòng nhập họ tên.");
-      return;
-    }
+  const onProfileSave = async (values) => {
+    const payload = {
+      fullName: values.fullName.trim(),
+      email: profile?.email || "",
+      phoneNumber: values.phoneNumber?.trim() || "",
+      dateOfBirth: values.dateOfBirth || "",
+    };
     setSavingProfile(true);
     try {
-      await updateProfileAPI(profileData);
-      dispatch(updateProfileRedux(profileData));
+      await updateProfileAPI(payload);
+      dispatch(updateProfileRedux(payload));
       toast.success("Cập nhật hồ sơ thành công.");
       queryClient.invalidateQueries({ queryKey: ["owner-profile"] });
     } catch (error) {
@@ -69,26 +109,16 @@ const OwnerProfile = () => {
     }
   };
 
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    const { currentPassword, newPassword, confirmPassword } = passwordData;
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Vui lòng điền đủ các ô mật khẩu.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error("Mật khẩu mới ít nhất 8 ký tự.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu mới không khớp.");
-      return;
-    }
+  const onPasswordSave = async (values) => {
     setSavingPassword(true);
     try {
-      await changePasswordAPI(passwordData);
+      await changePasswordAPI({
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      });
       toast.success("Đổi mật khẩu thành công.");
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      resetPwd();
     } catch (error) {
       toast.error(errMessage(error));
     } finally {
@@ -96,11 +126,15 @@ const OwnerProfile = () => {
     }
   };
 
-  const profileName = profileData.fullName?.trim() || "Field Owner";
-  const profileEmail = profileData.email?.trim() || "Chưa cập nhật";
-  const profilePhone = profileData.phoneNumber?.trim() || "Chưa cập nhật";
-  const profileDob = profileData.dateOfBirth?.trim() || "Chưa cập nhật";
+  const profileName = profile?.fullName?.trim() || "Field Owner";
+  const profileEmail = profile?.email?.trim() || "Chưa cập nhật";
+  const profilePhone = profile?.phoneNumber?.trim() || "Chưa cập nhật";
+  const profileDobRaw = profile?.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : "";
+  const profileDob = profileDobRaw || "Chưa cập nhật";
   const avatarLetter = (profileName || "O").charAt(0).toUpperCase();
+
+  const profileErr = (name) => profileErrors[name]?.message;
+  const pwdErr = (name) => pwdErrors[name]?.message;
 
   return (
     <div className="owner-profile">
@@ -137,47 +171,33 @@ const OwnerProfile = () => {
           {profileLoading && !profile ? (
             <p className="op-muted">Đang tải…</p>
           ) : editingProfile ? (
-            <form className="op-form op-edit-form" onSubmit={handleProfileSubmit}>
+            <form className="op-form op-edit-form" onSubmit={submitProfile(onProfileSave)} noValidate>
               <label className="op-field">
                 <span>Họ tên</span>
-                <input
-                  name="fullName"
-                  value={profileData.fullName}
-                  onChange={(e) =>
-                    setProfileData((p) => ({ ...p, fullName: e.target.value }))
-                  }
-                />
+                <input {...regProfile("fullName")} />
+                {profileErr("fullName") ? (
+                  <span className="op-field-error">{profileErr("fullName")}</span>
+                ) : null}
               </label>
               <label className="op-field">
                 <span>Email</span>
-                <input value={profileData.email} disabled className="op-input-disabled" />
+                <input value={profile?.email || ""} disabled className="op-input-disabled" readOnly />
               </label>
               <label className="op-field">
                 <span>Số điện thoại</span>
-                <input
-                  name="phoneNumber"
-                  value={profileData.phoneNumber}
-                  onChange={(e) =>
-                    setProfileData((p) => ({ ...p, phoneNumber: e.target.value }))
-                  }
-                />
+                <input {...regProfile("phoneNumber")} />
+                {profileErr("phoneNumber") ? (
+                  <span className="op-field-error">{profileErr("phoneNumber")}</span>
+                ) : null}
               </label>
               <label className="op-field">
                 <span>Ngày sinh</span>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={profileData.dateOfBirth}
-                  onChange={(e) =>
-                    setProfileData((p) => ({ ...p, dateOfBirth: e.target.value }))
-                  }
-                />
+                <input type="date" {...regProfile("dateOfBirth")} />
+                {profileErr("dateOfBirth") ? (
+                  <span className="op-field-error">{profileErr("dateOfBirth")}</span>
+                ) : null}
               </label>
-              <button
-                type="submit"
-                className="op-btn op-btn--primary"
-                disabled={savingProfile}
-              >
+              <button type="submit" className="op-btn op-btn--primary" disabled={savingProfile}>
                 {savingProfile ? "Đang lưu…" : "Lưu hồ sơ"}
               </button>
             </form>
@@ -228,37 +248,27 @@ const OwnerProfile = () => {
             <Lock size={18} aria-hidden />
             Đổi mật khẩu
           </h2>
-          <form className="op-form" onSubmit={handlePasswordSubmit}>
+          <form className="op-form" onSubmit={submitPassword(onPasswordSave)} noValidate>
             <label className="op-field">
               <span>Mật khẩu hiện tại</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={passwordData.currentPassword}
-                onChange={(e) =>
-                  setPasswordData((p) => ({ ...p, currentPassword: e.target.value }))
-                }
-              />
+              <input type="password" autoComplete="current-password" {...regPwd("currentPassword")} />
+              {pwdErr("currentPassword") ? (
+                <span className="op-field-error">{pwdErr("currentPassword")}</span>
+              ) : null}
             </label>
             <label className="op-field">
               <span>Mật khẩu mới</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData((p) => ({ ...p, newPassword: e.target.value }))}
-              />
+              <input type="password" autoComplete="new-password" {...regPwd("newPassword")} />
+              {pwdErr("newPassword") ? (
+                <span className="op-field-error">{pwdErr("newPassword")}</span>
+              ) : null}
             </label>
             <label className="op-field">
               <span>Nhập lại mật khẩu mới</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={passwordData.confirmPassword}
-                onChange={(e) =>
-                  setPasswordData((p) => ({ ...p, confirmPassword: e.target.value }))
-                }
-              />
+              <input type="password" autoComplete="new-password" {...regPwd("confirmPassword")} />
+              {pwdErr("confirmPassword") ? (
+                <span className="op-field-error">{pwdErr("confirmPassword")}</span>
+              ) : null}
             </label>
             <button type="submit" className="op-btn op-btn--primary" disabled={savingPassword}>
               {savingPassword ? "Đang cập nhật…" : "Cập nhật mật khẩu"}
@@ -266,7 +276,6 @@ const OwnerProfile = () => {
           </form>
         </section>
       </div>
-
     </div>
   );
 };

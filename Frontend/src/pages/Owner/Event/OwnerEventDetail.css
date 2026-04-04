@@ -152,6 +152,14 @@
   max-width: 320px;
 }
 
+.oed-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .oed-edit-actions {
   margin-top: 16px;
 }

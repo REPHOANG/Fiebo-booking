@@ -99,6 +99,13 @@
   gap: 1.25rem;
 }
 
+.wtu-form-error {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .wtu-presets {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

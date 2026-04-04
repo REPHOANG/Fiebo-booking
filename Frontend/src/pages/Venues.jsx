@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import {
   MapPin, Star, Search, Frown, X, Clock,
   Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
-  MessageSquare, User, Loader2, SlidersHorizontal, Heart, Navigation,
+  MessageSquare, User, Loader2, SlidersHorizontal, Heart, Navigation, Dumbbell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -303,7 +303,7 @@ const VenuePopup = ({ venueId, onClose }) => {
 /* ── Main Component ──────────────────────────────────────────── */
 const Venues = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get("search") || "";
   const sportParam = searchParams.get("sport");
   /** `null` = chưa tải API; sau đó là mảng (có thể rỗng). */
@@ -330,6 +330,11 @@ const Venues = () => {
     [sportParam, catalogForSportParam],
   );
 
+  const sportFilterOptions = useMemo(
+    () => (sportTypeCatalog === null ? FALLBACK_SPORT_CATALOG : sportTypeCatalog),
+    [sportTypeCatalog],
+  );
+
   const [venues, setVenues] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -347,12 +352,18 @@ const Venues = () => {
   const [distanceKm, setDistanceKm] = useState("");
   const [pendingBookingDate, setPendingBookingDate] = useState("");
   const [pendingBookingTime, setPendingBookingTime] = useState("");
+  /** `""` = tất cả môn; id string khi chọn trong bộ lọc (đồng bộ URL `sport` khi Áp dụng). */
+  const [pendingSportTypeId, setPendingSportTypeId] = useState("");
   const [pendingKeyword, setPendingKeyword] = useState("");
   /** Bán kính đã áp dụng → gửi `radiusKm` + tọa độ (giống Swagger). */
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
   const [appliedBookingDate, setAppliedBookingDate] = useState("");
   const [appliedBookingTime, setAppliedBookingTime] = useState("");
   const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
+
+  const sportDraftMismatch =
+    String(pendingSportTypeId || "") !==
+    (sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "");
 
   const hasPanelDraft = Boolean(
     province.trim() ||
@@ -361,8 +372,31 @@ const Venues = () => {
       pendingKeyword ||
       pendingBookingDate ||
       pendingBookingTime ||
-      appliedRadiusKm != null,
+      appliedRadiusKm != null ||
+      sportDraftMismatch,
   );
+
+  useEffect(() => {
+    setPendingSportTypeId(
+      sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "",
+    );
+  }, [sportTypeIdFromUrl]);
+
+  const commitSportToUrl = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        const raw = String(pendingSportTypeId ?? "").trim();
+        if (raw !== "") {
+          p.set("sport", raw);
+        } else {
+          p.delete("sport");
+        }
+        return p;
+      },
+      { replace: true },
+    );
+  }, [pendingSportTypeId, setSearchParams]);
 
   const observer = useRef();
   const prevFiltersKeyRef = useRef(undefined);
@@ -551,6 +585,7 @@ const Venues = () => {
     setAppliedRadiusKm(null);
     setAppliedBookingDate(pendingBookingDate);
     setAppliedBookingTime(pendingBookingTime);
+    commitSportToUrl();
     applyPendingSearchText();
     setShowFilterPanel(false);
   };
@@ -561,6 +596,7 @@ const Venues = () => {
     setAppliedBookingTime(pendingBookingTime);
     if (!raw) {
       setAppliedRadiusKm(null);
+      commitSportToUrl();
       applyPendingSearchText();
       setShowFilterPanel(false);
       return;
@@ -574,6 +610,7 @@ const Venues = () => {
         localStorage.setItem("userLocation", JSON.stringify({ lat, lng }));
       } catch (_) {}
       setAppliedRadiusKm(r);
+      commitSportToUrl();
       applyPendingSearchText();
       setShowFilterPanel(false);
     };
@@ -618,11 +655,20 @@ const Venues = () => {
     setDistanceKm("");
     setPendingBookingDate("");
     setPendingBookingTime("");
+    setPendingSportTypeId("");
     setAppliedRadiusKm(null);
     setAppliedBookingDate("");
     setAppliedBookingTime("");
     setSearchTerm("");
     setInputValue("");
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("sport");
+        return p;
+      },
+      { replace: true },
+    );
     setShowFilterPanel(false);
   };
 
@@ -646,7 +692,7 @@ const Venues = () => {
           <span className="stat-label">Sân khả dụng</span>
         </div>
         <div className="stat-item">
-          <span className="stat-value">5</span>
+          <span className="stat-value">{sportFilterOptions.length}</span>
           <span className="stat-label">Môn thể thao</span>
         </div>  
         <div className="stat-item">
@@ -710,7 +756,7 @@ const Venues = () => {
                 <div className="filter-header">
                   <div className="filter-header-text">
                     <h4>Bộ lọc nâng cao</h4>
-                    <p>Lọc khu vực, khoảng cách, ngày giờ đặt sân.</p>
+                    <p>Lọc môn thể thao, khu vực, khoảng cách và ngày giờ đặt sân.</p>
                   </div>
                   <button
                     type="button"
@@ -746,28 +792,30 @@ const Venues = () => {
                 </div>
 
                 {filterMode === "khu-vuc" && (
-                  <div className="filter-body filter-body--grid">
-                    <div className="input-group">
-                      <label htmlFor="venues-province">Tỉnh / TP</label>
-                      <input
-                        id="venues-province"
-                        type="text"
-                        value={province}
-                        onChange={(e) => setProvince(e.target.value)}
-                        placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
-                      />
+                  <div className="filter-body filter-body--area">
+                    <div className="filter-area-fields">
+                      <div className="input-group">
+                        <label htmlFor="venues-province">Tỉnh / TP</label>
+                        <input
+                          id="venues-province"
+                          type="text"
+                          value={province}
+                          onChange={(e) => setProvince(e.target.value)}
+                          placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label htmlFor="venues-district">Quận / Huyện</label>
+                        <input
+                          id="venues-district"
+                          type="text"
+                          value={district}
+                          onChange={(e) => setDistrict(e.target.value)}
+                          placeholder="VD: Quận 1, Thanh Xuân"
+                        />
+                      </div>
                     </div>
-                    <div className="input-group">
-                      <label htmlFor="venues-district">Quận / Huyện</label>
-                      <input
-                        id="venues-district"
-                        type="text"
-                        value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
-                        placeholder="VD: Quận 1, Thanh Xuân"
-                      />
-                    </div>
-                    <div className="filter-save-wrap">
+                    <div className="filter-save-row">
                       <button className="venues-save-location" type="button">
                         <Heart size={17} strokeWidth={2} />
                         Lưu địa điểm
@@ -799,6 +847,26 @@ const Venues = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="filter-body filter-body--sport">
+                  <div className="input-group input-group--sport">
+                    <label htmlFor="venues-sport-type">
+                      <Dumbbell size={14} aria-hidden /> Môn thể thao
+                    </label>
+                    <select
+                      id="venues-sport-type"
+                      value={pendingSportTypeId}
+                      onChange={(e) => setPendingSportTypeId(e.target.value)}
+                    >
+                      <option value="">Tất cả môn</option>
+                      {sportFilterOptions.map((s) => (
+                        <option key={s.id} value={String(s.id)}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 <div className="filter-body--schedule">
                   <div className="input-group">

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
 import { login } from '../../services/authService';
 import { toast } from 'react-toastify';
@@ -10,30 +13,44 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Login.css';
 import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 
+const ownerLoginSchema = yup.object({
+  identifier: yup
+    .string()
+    .required('Vui lòng nhập email hoặc số điện thoại')
+    .test('email-or-phone', 'Email hoặc số điện thoại không hợp lệ', (val) => {
+      if (!val) return false;
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      const phoneOk = /^[0-9]{9,11}$/.test(val.replace(/\D/g, ''));
+      return emailOk || phoneOk;
+    }),
+  password: yup.string().required('Vui lòng nhập mật khẩu'),
+});
+
 const OwnerLogin = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(ownerLoginSchema),
+    mode: 'onTouched',
+    defaultValues: { identifier: '', password: '' },
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.identifier || !formData.password) {
-      toast.error('Email/Phone and password are required');
-      return;
-    }
-
+  const onSubmit = async ({ identifier, password }) => {
     setIsLoading(true);
     try {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const idType = emailRegex.test(formData.identifier) ? 'email' : 'phone';
-      const payload = idType === 'email'
-        ? { email: formData.identifier, password: formData.password }
-        : { phone: formData.identifier, password: formData.password };
+      const idType = emailRegex.test(identifier) ? 'email' : 'phone';
+      const payload =
+        idType === 'email'
+          ? { email: identifier, password }
+          : { phone: identifier, password };
 
       const response = await login(payload);
       const token = response.accessToken || response.token;
@@ -57,21 +74,24 @@ const OwnerLogin = () => {
           <h3 className="login-subtitle">Đăng nhập - Quản lí sân của bạn</h3>
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="form-group">
             <div className="input-group">
               <label htmlFor="identifier">Email hoặc Số điện thoại</label>
               <input
                 id="identifier"
-                name="identifier"
                 type="text"
-                required
+                autoComplete="username"
                 className="input-field"
                 placeholder="Nhập email hoặc số điện thoại"
-                value={formData.identifier}
-                onChange={handleChange}
                 disabled={isLoading}
+                {...register('identifier')}
               />
+              {errors.identifier && (
+                <span className="error-message" style={{ color: '#dc2626', fontSize: '0.85rem' }}>
+                  {errors.identifier.message}
+                </span>
+              )}
             </div>
 
             <div className="input-group">
@@ -79,14 +99,12 @@ const OwnerLogin = () => {
               <div className="password-wrapper">
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
-                  required
+                  autoComplete="current-password"
                   className="input-field"
                   placeholder="Nhập mật khẩu"
-                  value={formData.password}
-                  onChange={handleChange}
                   disabled={isLoading}
+                  {...register('password')}
                 />
                 <button
                   type="button"
@@ -98,6 +116,11 @@ const OwnerLogin = () => {
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
+              {errors.password && (
+                <span className="error-message" style={{ color: '#dc2626', fontSize: '0.85rem' }}>
+                  {errors.password.message}
+                </span>
+              )}
             </div>
           </div>
 
