@@ -33,7 +33,7 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess }) => {
+const Login = ({ onLoginSuccess, onOpenRegister }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -76,6 +76,17 @@ const Login = ({ onLoginSuccess }) => {
     } catch (_) {}
   }, [setValue]);
 
+  // Sau xác minh OTP — điền email từ bước đăng ký
+  useEffect(() => {
+    try {
+      const pre = sessionStorage.getItem("postVerifyLoginEmail");
+      if (pre) {
+        setValue("identifier", pre);
+        sessionStorage.removeItem("postVerifyLoginEmail");
+      }
+    } catch (_) {}
+  }, [setValue]);
+
   // OTP logic removed
 
   const formatTime = (seconds) => {
@@ -89,6 +100,17 @@ const Login = ({ onLoginSuccess }) => {
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) return "email";
     if (/^[0-9]{9,11}$/.test(input.replace(/\D/g, ""))) return "phone";
     return "unknown";
+  };
+
+  const hasOwnerRole = (user) => {
+    const roleRaw = user?.role ?? user?.roles ?? "";
+    if (Array.isArray(roleRaw)) {
+      return roleRaw.some((r) => String(r).toLowerCase().trim() === "fieldowner");
+    }
+    return String(roleRaw)
+      .split(",")
+      .map((r) => r.toLowerCase().trim())
+      .includes("fieldowner");
   };
 
   // ── Password login handler ────────────────────────────────────────────────
@@ -131,15 +153,18 @@ const Login = ({ onLoginSuccess }) => {
         position: 'top-right', autoClose: 3000,
       });
 
-      if (typeof onLoginSuccess === 'function') {
+      if (typeof onLoginSuccess === "function") {
+        if (hasOwnerRole(response.user) || isOwner) {
+          navigate("/owner", { replace: true });
+        }
         onLoginSuccess();
         return;
       }
-      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
-      if (roleVal === 'fieldowner' || isOwner) {
+      if (hasOwnerRole(response.user) || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
+      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
       if (roleVal === 'admin') {
         navigate('/admin', { replace: true });
         return;
@@ -190,14 +215,17 @@ const Login = ({ onLoginSuccess }) => {
         autoClose: 3000,
       });
       if (typeof onLoginSuccess === "function") {
+        if (hasOwnerRole(response.user) || isOwner) {
+          navigate("/owner", { replace: true });
+        }
         onLoginSuccess();
         return;
       }
-      const roleVal = (response.user?.role || response.user?.roles || '').toString().toLowerCase();
-      if (roleVal === 'fieldowner' || isOwner) {
+      if (hasOwnerRole(response.user) || isOwner) {
         navigate('/owner', { replace: true });
         return;
       }
+      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
       if (roleVal === 'admin') {
         navigate('/admin', { replace: true });
         return;
@@ -362,9 +390,19 @@ const Login = ({ onLoginSuccess }) => {
 
             <div className="signup-prompt">
               <span>Chưa có tài khoản? </span>
-              <Link to="/register" className="signup-link">
-                Đăng ký tại đây
-              </Link>
+              {typeof onOpenRegister === "function" ? (
+                <button
+                  type="button"
+                  className="signup-link auth-inline-link"
+                  onClick={onOpenRegister}
+                >
+                  Đăng ký tại đây
+                </button>
+              ) : (
+                <Link to="/register" className="signup-link">
+                  Đăng ký tại đây
+                </Link>
+              )}
             </div>
           </form>
 

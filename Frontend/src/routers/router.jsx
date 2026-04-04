@@ -1,14 +1,15 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import CustomerHome from '../pages/Customer/Home/CustomerHome';
 import VenueDetail from '../pages/Customer/VenueDetail';
 import BookingSchedule from '../pages/Customer/Booking/BookingSchedule';
 import BookingConfirmation from '../pages/Customer/Booking/BookingConfirmation';
-import BookingPayment from '../pages/Customer/Booking/BookingPayment';
-import Login from '../pages/auth/Login';
+import BookingPayment, {
+  BookingPaymentSuccess,
+} from '../pages/Customer/Booking/BookingPayment';
 import OwnerLogin from '../pages/auth/OwnerLogin';
 import OwnerHome from '../pages/Owner/OwnerHome';
-import Register from '../pages/auth/Register';
+import { OPEN_AUTH_STATE_KEY } from '../context/AuthModalContext';
 import Profile from '../pages/Profile';
 import Venues from '../pages/Venues';
 import ForgotPassword from '../pages/auth/ForgotPassword';
@@ -16,9 +17,14 @@ import VerifyOTP from '../pages/auth/VerifyOTP';
 import ProtectedRoute from './ProtectedRoute';
 import CreateVenue from '../pages/Owner/CreateVenue';
 import OwnerVenues from '../pages/Owner/OwnerVenues';
-import OwnerEvents from '../pages/Owner/OwnerEvents';
-import CreateEvent from '../pages/Owner/CreateEvent';
-import OwnerEventDetail from '../pages/Owner/OwnerEventDetail';
+import OwnerOfflineBooking from '../pages/Owner/OwnerOfflineBooking';
+import OwnerVenueDetail from '../pages/Owner/OwnerVenueDetail';
+import OwnerTimeSlot from '../pages/Owner/OwnerTimeSlot';
+import OwnerAddField from '../pages/Owner/OwnerAddField';
+import OwnerEditVenue from '../pages/Owner/OwnerEditVenue';
+import OwnerEvents from '../pages/Owner/Event/OwnerEvents';
+import CreateEvent from '../pages/Owner/Event/CreateEvent';
+import OwnerEventDetail from '../pages/Owner/Event/OwnerEventDetail';
 import OwnerBookings from '../pages/Owner/OwnerBookings';
 import OwnerBookingDetail from '../pages/Owner/OwnerBookingDetail';
 import StaffList from '../pages/Owner/Staff/StaffList';
@@ -33,9 +39,18 @@ import OwnerLayout from '../components/layout/OwnerLayout';
 import WalletTopUp from '../pages/Customer/WalletTopUp';
 import GiveRating from '../pages/Customer/GiveRating/GiveRating';
 import BookingList from '../pages/Customer/BookingList';
+import MapExplore from '../pages/MapExplore';
 import Wallet from '../pages/Customer/Wallet/Wallet';
 import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
+import OwnerProfile from '../pages/Owner/OwnerProfile';
+import OwnerSubscription from '../pages/Owner/OwnerSubscription';
 
+
+/** Chuyển URL cũ `/create-field` sang `/time-slot`. */
+const OwnerVenueTimeSlotLegacyRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/owner/venues/${id}/time-slot`} replace />;
+};
 
 /**
  * Định nghĩa toàn bộ routes của app.
@@ -43,9 +58,19 @@ import ServiceManagement from '../pages/Owner/VenueService/ServiceManagement';
  */
 const AppRoutes = () => (
   <Routes>
-    <Route path="/login" element={<Login />} />
+    <Route
+      path="/login"
+      element={
+        <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "login" }} />
+      }
+    />
     <Route path="/owner/login" element={<OwnerLogin />} />
-    <Route path="/register" element={<Register />} />
+    <Route
+      path="/register"
+      element={
+        <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "register" }} />
+      }
+    />
     <Route path="/verify-otp" element={<VerifyOTP />} />
     <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -69,7 +94,18 @@ const AppRoutes = () => (
       }
     >
       <Route path="/owner" element={<OwnerHome />} />
+      <Route path="/owner/profile" element={<OwnerProfile />} />
+      <Route path="/owner/subscription" element={<OwnerSubscription />} />
       <Route path="/owner/venues" element={<OwnerVenues />} />
+      <Route path="/owner/venues/:id" element={<OwnerVenueDetail />} />
+      <Route path="/owner/venues/:id/time-slot" element={<OwnerTimeSlot />} />
+      <Route path="/owner/venues/:id/create-field" element={<OwnerVenueTimeSlotLegacyRedirect />} />
+      <Route path="/owner/venues/:id/add-field" element={<OwnerAddField />} />
+      <Route path="/owner/venues/:id/edit-field/:fieldId" element={<OwnerAddField />} />
+      <Route path="/owner/venues/:id/edit" element={<OwnerEditVenue />} />
+      <Route path="/owner/venues/:id/offline-booking" element={<BookingSchedule />} />
+      <Route path="/owner/venues/:id/offline-booking/confirm" element={<BookingConfirmation />} />
+      <Route path="/owner/offline-booking" element={<OwnerOfflineBooking />} />
       <Route path="/owner/create-venue" element={<CreateVenue />} />
     <Route path="/owner/bookings" element={<OwnerBookings />} />
     <Route path="/owner/bookings/:id" element={<OwnerBookingDetail />} />
@@ -86,8 +122,10 @@ const AppRoutes = () => (
       <Route path="/venue/:id/booking" element={<BookingSchedule />} />
       <Route path="/venue/:id/social-session" element={<ProtectedRoute element={<EventList />} />} />
       <Route path="/venue/:id/booking/confirm" element={<BookingConfirmation />} />
+      <Route path="/venue/:id/booking/success" element={<BookingPaymentSuccess />} />
       <Route path="/venue/:id/booking/payment" element={<BookingPayment />} />
       <Route path="/events" element={<Events />} />
+      <Route path="/map" element={<MapExplore />} />
       <Route path="/wallet/top-up" element={<ProtectedRoute element={<WalletTopUp />} />} />
       <Route path="/bookings" element={<ProtectedRoute element={<BookingList />} />} />
       <Route path="/bookings/:id" element={<ProtectedRoute element={<BookingList />} />} />

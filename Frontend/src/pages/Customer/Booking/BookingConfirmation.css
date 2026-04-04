@@ -4,7 +4,7 @@
 
 .bc-main {
   width: 100%;
-  max-width: 640px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px 140px;
   min-height: 100vh;
@@ -12,38 +12,102 @@
   box-sizing: border-box;
 }
 
+/* Owner layout has a fixed top bar, so sticky header needs offset */
+.bc-main--owner .bc-header {
+  top: 72px;
+}
+
 /* ── Header ─────────────────────────────────────────────────── */
 .bc-header {
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 80;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 0;
-  background: rgba(241, 245, 249, 0.95);
-  backdrop-filter: blur(12px);
+  padding: 10px 12px;
+  margin: 8px 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* Two-column layout for desktop */
+@media (min-width: 768px) {
+  .bc-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-top: 6px;
+  }
+
+  .bc-left {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .bc-right {
+    width: 360px;
+    flex-shrink: 0;
+  }
+
+  /* Make the customer card sticky so it stays visible on scroll */
+  .bc-right .bc-section {
+    position: relative;
+  }
+
+  .bc-right .bc-customer-card {
+    position: sticky;
+    top: 76px; /* account for header */
+  }
+
+  .bc-main--owner .bc-right .bc-customer-card {
+    top: 140px;
+  }
+
+  /* Ensure bottom bar still spans full width */
+  .bc-bottom {
+    left: 0;
+    right: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Stack columns on small screens */
+  .bc-layout {
+    display: block;
+  }
+
+  .bc-right .bc-customer-card {
+    position: static;
+    top: auto;
+  }
 }
 
 .bc-back-btn {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
   color: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
 }
 .bc-back-btn:hover {
-  background: linear-gradient(135deg, #2563eb, #10b981);
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
   color: #fff;
-  border-color: #2563eb;
+  border-color: #1d4ed8;
 }
 
 .bc-back-btn:disabled {
@@ -54,15 +118,16 @@
 
 .bc-header-title {
   flex: 1;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1e293b;
+  font-size: 1.28rem;
+  font-weight: 900;
+  color: #0f172a;
   margin: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.35px;
+  line-height: 1.2;
 }
 
 .bc-header-spacer {
-  width: 40px;
+  width: 48px;
   flex-shrink: 0;
 }
 
@@ -208,6 +273,446 @@
   font-size: 0.95rem;
   font-weight: 800;
   color: #166534;
+}
+
+/* ── Services Card ───────────────────────────────────────────── */
+.bc-services-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  display: grid;
+  gap: 10px;
+}
+
+.bc-service-open-btn {
+  border: none;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  width: min(380px, 100%);
+  padding: 13px 16px;
+  border-radius: 12px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 20px rgba(21, 128, 61, 0.26);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.2s ease;
+}
+
+.bc-service-open-btn:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(21, 128, 61, 0.32);
+}
+
+.bc-service-open-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.24);
+}
+
+.bc-service-open-wrap {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bc-service-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.bc-service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.bc-service-row + .bc-service-row {
+  border-top: 1px dashed #e2e8f0;
+}
+
+.bc-service-info {
+  display: grid;
+  gap: 2px;
+}
+
+.bc-service-info strong {
+  font-size: 0.92rem;
+  color: #1e293b;
+}
+
+.bc-service-info span {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.bc-service-subtotal {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #166534;
+}
+
+.bc-service-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bc-qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #dbe4ef;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bc-qty-btn:hover {
+  background: #eef2f7;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.bc-qty-btn:active {
+  transform: scale(0.92);
+}
+
+.bc-qty-val {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Popup chọn dịch vụ */
+.bc-service-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: bcFadeIn 200ms ease;
+}
+
+.bc-service-modal {
+  width: 80vw;
+  height: 80vh;
+  max-width: 1200px;
+  min-height: 320px;
+  background: #f0fdf4;
+  border-radius: 16px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform-origin: 50% 70%;
+  animation: bcModalIn 240ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.bc-service-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background: #15803d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.bc-service-modal-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.bc-service-close {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.16);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #fff;
+  position: absolute;
+  right: 12px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.bc-service-close:hover {
+  transform: rotate(90deg);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.bc-service-toolbar {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f7fffb;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.bc-service-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #bbf7d0;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #64748b;
+}
+
+.bc-service-search {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.bc-service-cats {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+}
+
+.bc-service-cat {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bc-service-cat.active {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+
+.bc-service-modal-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 0;
+}
+
+.bc-service-category-block {
+  display: grid;
+  gap: 8px;
+}
+
+.bc-service-category-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #065f46;
+}
+
+.bc-service-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bc-service-product-card {
+  background: #fff;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+  animation: bcItemIn 260ms ease both;
+}
+
+.bc-service-product-card:hover {
+  transform: translateY(-2px);
+  border-color: #86efac;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.12);
+}
+
+.bc-service-product-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bc-service-product-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
+.bc-service-product-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.bc-service-product-info strong {
+  font-size: 0.86rem;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bc-service-product-info span {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.bc-service-modal-foot {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f7fffb;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.bc-service-cancel,
+.bc-service-apply {
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.16s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.bc-service-cancel {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+}
+
+.bc-service-apply {
+  background: linear-gradient(135deg, #f59e0b, #eab308);
+  color: #14532d;
+  min-width: 180px;
+  font-weight: 900;
+}
+
+.bc-service-cancel:hover,
+.bc-service-apply:hover {
+  transform: translateY(-1px);
+}
+
+.bc-service-apply:hover {
+  box-shadow: 0 10px 18px rgba(234, 179, 8, 0.28);
+}
+
+.bc-service-foot-meta {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: #166534;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .bc-service-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .bc-service-modal {
+    max-height: 92vh;
+    width: 100%;
+    border-radius: 14px;
+  }
+  .bc-service-product-grid {
+    grid-template-columns: 1fr;
+  }
+  .bc-service-modal-foot {
+    flex-wrap: wrap;
+  }
+  .bc-service-foot-meta {
+    width: 100%;
+    margin-left: 0;
+    text-align: center;
+  }
+  .bc-service-open-btn {
+    width: 100%;
+  }
+}
+
+@keyframes bcFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bcModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bcItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bc-service-modal-backdrop,
+  .bc-service-modal,
+  .bc-service-product-card,
+  .bc-service-open-btn,
+  .bc-qty-btn,
+  .bc-service-close,
+  .bc-service-cat,
+  .bc-service-cancel,
+  .bc-service-apply {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ── Customer Card ───────────────────────────────────────────── */
@@ -627,6 +1132,14 @@
   color: #1e293b;
 }
 
+.bc-summary-note {
+  font-weight: 700;
+  color: #64748b;
+  font-size: 0.82rem;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
 .bc-summary-divider {
   height: 1px;
   background: #e2e8f0;
@@ -793,7 +1306,21 @@
   }
 
   .bc-header-title {
-    font-size: 1.1rem;
+    font-size: 1.02rem;
+  }
+
+  .bc-header {
+    padding: 8px 10px;
+    margin: 6px 0 12px;
+  }
+
+  .bc-back-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .bc-header-spacer {
+    width: 36px;
   }
 
   .bc-step-label {

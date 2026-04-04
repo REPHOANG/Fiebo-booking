@@ -1,20 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Search, CircleCheck, FilePenLine, Hourglass, Ban } from "lucide-react";
 import { toast } from "react-toastify";
 import "./OwnerVenues.css";
-import {
-  deactivateOwnerVenue,
-  getOwnerVenueSchedule,
-  getOwnerVenues,
-} from "../../services/venueService";
-
-const todayYmd = () => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
+import { deactivateOwnerVenue, getOwnerVenues } from "../../services/venueService";
 
 const pick = (obj, ...keys) => {
   for (const k of keys) {
@@ -23,31 +12,58 @@ const pick = (obj, ...keys) => {
   return undefined;
 };
 
-const formatPrice = (n) => {
-  if (n == null || Number.isNaN(Number(n))) return "—";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(n));
-};
-
-const formatTime = (t) => {
-  if (t == null) return "—";
-  const s = String(t);
-  return s.length >= 5 ? s.slice(0, 5) : s;
-};
+/** Chuẩn hóa status từ API (chuỗi hoặc enum số backend). */
+function normalizeVenueStatus(raw) {
+  if (raw == null || raw === "") return "";
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const byNum = {
+      0: "inactive",
+      1: "active",
+      2: "pending",
+      3: "rejected",
+      4: "draft",
+    };
+    return byNum[raw] ?? String(raw).toLowerCase();
+  }
+  return String(raw).trim().toLowerCase();
+}
 
 const translateVenueStatus = (status) => {
-  const s = String(status || "").toLowerCase();
+  const s = normalizeVenueStatus(status);
   if (s === "active") return "Hoạt động";
   if (s === "inactive") return "Đã vô hiệu hóa";
+  if (s === "pending") return "Chờ duyệt";
+  if (s === "draft") return "Bản nháp";
+  if (s === "rejected") return "Từ chối";
   return status || "—";
 };
+
+/**
+ * - approved: Active
+ * - draft: Draft (bản nháp)
+ * - pending: Pending + Inactive
+ * - cancelled: Rejected
+ */
+function bucketVenuesByApproval(list) {
+  const approved = [];
+  const draft = [];
+  const pending = [];
+  const cancelled = [];
+  for (const v of list) {
+    const s = normalizeVenueStatus(pick(v, "status", "Status"));
+    if (s === "active") approved.push(v);
+    else if (s === "draft") draft.push(v);
+    else if (s === "rejected") cancelled.push(v);
+    else pending.push(v);
+  }
+  return { approved, draft, pending, cancelled };
+}
 
 const OwnerVenues = () => {
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [scheduleOpenId, setScheduleOpenId] = useState(null);
-  const [scheduleDate, setScheduleDate] = useState(todayYmd);
-  const [scheduleData, setScheduleData] = useState(null);
-  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [listTab, setListTab] = useState("approved");
 
   const loadVenues = useCallback(async () => {
     setLoading(true);
@@ -66,35 +82,98 @@ const OwnerVenues = () => {
     loadVenues();
   }, [loadVenues]);
 
-  const loadSchedule = useCallback(async (venueId, dateStr) => {
-    setScheduleLoading(true);
-    setScheduleData(null);
-    try {
-      const data = await getOwnerVenueSchedule(venueId, dateStr);
-      setScheduleData(data);
-    } catch (e) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được lịch sân.");
-      setScheduleData(null);
-    } finally {
-      setScheduleLoading(false);
-    }
-  }, []);
+  const filteredVenues = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return venues;
+    return venues.filter((v) => {
+      const name = String(pick(v, "name", "Name") ?? "").toLowerCase();
+      const province = String(pick(v, "province", "Province") ?? "").toLowerCase();
+      const ward = String(pick(v, "ward", "Ward") ?? "").toLowerCase();
+      return name.includes(q) || province.includes(q) || ward.includes(q);
+    });
+  }, [venues, searchText]);
 
-  const toggleSchedule = (venueId) => {
-    if (scheduleOpenId === venueId) {
-      setScheduleOpenId(null);
-      setScheduleData(null);
-      return;
-    }
-    setScheduleOpenId(venueId);
-    const d = scheduleDate || todayYmd();
-    setScheduleDate(d);
-    loadSchedule(venueId, d);
-  };
+  const {
+    approved: approvedVenues,
+    draft: draftVenues,
+    pending: pendingVenues,
+    cancelled: cancelledVenues,
+  } = useMemo(() => bucketVenuesByApproval(filteredVenues), [filteredVenues]);
 
-  const handleScheduleDateChange = (venueId, nextDate) => {
-    setScheduleDate(nextDate);
-    if (scheduleOpenId === venueId && nextDate) loadSchedule(venueId, nextDate);
+  const activeList =
+    listTab === "approved"
+      ? approvedVenues
+      : listTab === "draft"
+        ? draftVenues
+        : listTab === "pending"
+          ? pendingVenues
+          : cancelledVenues;
+
+  const activeTabId =
+    listTab === "approved"
+      ? "ov-tab-approved"
+      : listTab === "draft"
+        ? "ov-tab-draft"
+        : listTab === "pending"
+          ? "ov-tab-pending"
+          : "ov-tab-cancelled";
+
+  const renderVenueCard = (v) => {
+    const id = pick(v, "venueId", "VenueId");
+    const name = pick(v, "name", "Name") ?? "—";
+    const thumb = pick(v, "thumbnailUrl", "ThumbnailUrl") || "";
+    const province = pick(v, "province", "Province") ?? "";
+    const ward = pick(v, "ward", "Ward") ?? "";
+    const status = pick(v, "status", "Status");
+    const totalFields = pick(v, "totalFields", "TotalFields") ?? 0;
+    const statusLower = normalizeVenueStatus(status);
+    // Chỉ cho phép chỉnh sửa khi status thuộc active/draft.
+    const canDeactivate = statusLower === "active" || statusLower === "draft";
+
+    return (
+      <div key={id} className="ov-card">
+        <div className="ov-card-main">
+          <div className="ov-thumb-wrap">
+            {thumb ? (
+              <img className="ov-thumb" src={thumb} alt="" />
+            ) : (
+              <div className="ov-thumb ov-thumb--placeholder" aria-hidden />
+            )}
+          </div>
+          <div className="ov-card-body">
+            <div className="ov-card-title-row">
+              <h2 className="ov-card-title">{name}</h2>
+            </div>
+            <p className="ov-card-meta">
+              {[ward, province].filter(Boolean).join(", ") || "—"}
+            </p>
+            <p className="ov-card-meta">Số sân: {totalFields}</p>
+            <div className="ov-card-badges">
+              <span className="ov-status" data-status={statusLower}>
+                {translateVenueStatus(status)}
+              </span>
+            </div>
+            <div className="ov-card-actions">
+              <Link
+                to={statusLower === "draft" ? `/owner/create-venue?venueId=${id}` : `/owner/venues/${id}`}
+                className="ov-btn ov-btn--secondary"
+              >
+                {statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
+              </Link>
+              {canDeactivate ? (
+                <button
+                  type="button"
+                  className="ov-btn ov-btn--danger"
+                  onClick={() => handleDeactivate(id, name)}
+                >
+                  Vô hiệu hóa
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const handleDeactivate = async (venueId, name) => {
@@ -106,10 +185,6 @@ const OwnerVenues = () => {
       await deactivateOwnerVenue(venueId);
       toast.success("Đã vô hiệu hóa cơ sở.");
       await loadVenues();
-      if (scheduleOpenId === venueId) {
-        setScheduleOpenId(null);
-        setScheduleData(null);
-      }
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
     }
@@ -119,17 +194,30 @@ const OwnerVenues = () => {
     <div className="owner-venues-page">
       <div className="ov-header">
         <div>
-          <h1>Danh sách sân của tôi</h1>
+          <h1>Danh sách cơ sở của tôi</h1>
           <p>Quản lý các cơ sở và sân bạn đang sở hữu.</p>
         </div>
-        <Link to="/owner/create-venue" className="ov-create-btn">
-          + Tạo cơ sở mới
-        </Link>
+        <div className="ov-header-right">
+          <label className="ov-search">
+            <Search size={14} />
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Tìm theo tên cơ sở, phường, tỉnh..."
+            />
+          </label>
+          <Link to="/owner/create-venue" className="ov-create-btn">
+            + Tạo cơ sở mới
+          </Link>
+        </div>
       </div>
 
       {loading ? (
         <div className="ov-empty">
-          <p>Đang tải...</p>
+          <div className="owner-loading">
+            <span className="owner-spinner" />
+          </div>
         </div>
       ) : venues.length === 0 ? (
         <div className="ov-empty">
@@ -139,190 +227,110 @@ const OwnerVenues = () => {
           </Link>
         </div>
       ) : (
-        <div className="ov-list">
-          {venues.map((v) => {
-            const id = pick(v, "venueId", "VenueId");
-            const name = pick(v, "name", "Name") ?? "—";
-            const thumb = pick(v, "thumbnailUrl", "ThumbnailUrl") || "";
-            const province = pick(v, "province", "Province") ?? "";
-            const ward = pick(v, "ward", "Ward") ?? "";
-            const status = pick(v, "status", "Status");
-            const totalFields = pick(v, "totalFields", "TotalFields") ?? 0;
-            const statusLower = String(status || "").toLowerCase();
-            const canDeactivate = statusLower === "active";
+        <div className="ov-tab-wrap">
+          <div className="ov-tabbar" role="tablist" aria-label="Lọc cơ sở theo trạng thái duyệt">
+            <button
+              type="button"
+              role="tab"
+              id="ov-tab-approved"
+              data-kind="approved"
+              aria-selected={listTab === "approved"}
+              aria-controls="ov-tabpanel-venues"
+              className={`ov-tab${listTab === "approved" ? " ov-tab--active" : ""}`}
+              onClick={() => setListTab("approved")}
+            >
+              <span className="ov-tab-icon" aria-hidden>
+                <CircleCheck size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở đã duyệt</span>
+                <span className="ov-tab-count">{approvedVenues.length}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="ov-tab-draft"
+              data-kind="draft"
+              aria-selected={listTab === "draft"}
+              aria-controls="ov-tabpanel-venues"
+              className={`ov-tab${listTab === "draft" ? " ov-tab--active" : ""}`}
+              onClick={() => setListTab("draft")}
+            >
+              <span className="ov-tab-icon" aria-hidden>
+                <FilePenLine size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Bản nháp</span>
+                <span className="ov-tab-count">{draftVenues.length}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="ov-tab-pending"
+              data-kind="pending"
+              aria-selected={listTab === "pending"}
+              aria-controls="ov-tabpanel-venues"
+              className={`ov-tab${listTab === "pending" ? " ov-tab--active" : ""}`}
+              onClick={() => setListTab("pending")}
+            >
+              <span className="ov-tab-icon" aria-hidden>
+                <Hourglass size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở chờ duyệt</span>
+                <span className="ov-tab-count">{pendingVenues.length}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="ov-tab-cancelled"
+              data-kind="cancelled"
+              aria-selected={listTab === "cancelled"}
+              aria-controls="ov-tabpanel-venues"
+              className={`ov-tab${listTab === "cancelled" ? " ov-tab--active" : ""}`}
+              onClick={() => setListTab("cancelled")}
+            >
+              <span className="ov-tab-icon" aria-hidden>
+                <Ban size={18} strokeWidth={2.25} />
+              </span>
+              <span className="ov-tab-main">
+                <span className="ov-tab-label">Cơ sở bị hủy</span>
+                <span className="ov-tab-count">{cancelledVenues.length}</span>
+              </span>
+            </button>
+          </div>
 
-            return (
-              <div key={id} className="ov-card">
-                <div className="ov-card-main">
-                  <div className="ov-thumb-wrap">
-                    {thumb ? (
-                      <img className="ov-thumb" src={thumb} alt="" />
-                    ) : (
-                      <div className="ov-thumb ov-thumb--placeholder" aria-hidden />
-                    )}
-                  </div>
-                  <div className="ov-card-body">
-                    <div className="ov-card-title-row">
-                      <h2 className="ov-card-title">{name}</h2>
-                      <span className="ov-status" data-status={statusLower}>
-                        {translateVenueStatus(status)}
-                      </span>
-                    </div>
-                    <p className="ov-card-meta">
-                      {[ward, province].filter(Boolean).join(", ") || "—"}
-                    </p>
-                    <p className="ov-card-meta">Số sân: {totalFields}</p>
-                    <div className="ov-card-actions">
-                      <button
-                        type="button"
-                        className="ov-btn ov-btn--secondary"
-                        onClick={() => toggleSchedule(id)}
-                      >
-                        {scheduleOpenId === id ? "Ẩn lịch" : "Xem lịch"}
-                      </button>
-                      {canDeactivate ? (
-                        <button
-                          type="button"
-                          className="ov-btn ov-btn--danger"
-                          onClick={() => handleDeactivate(id, name)}
-                        >
-                          Vô hiệu hóa
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
+          <p className="ov-tab-hint" id="ov-tab-hint">
+            {listTab === "approved"
+              ? "Chỉ hiển thị cơ sở có trạng thái Active (đang hoạt động)."
+              : listTab === "draft"
+                ? "Cơ sở đang lưu nháp (Draft), chưa gửi duyệt hoặc đang hoàn thiện hồ sơ."
+                : listTab === "pending"
+                  ? "Gồm cơ sở Pending (đã gửi chờ duyệt) và Inactive (đã vô hiệu hóa)."
+                  : "Cơ sở bị từ chối duyệt (trạng thái Rejected trên hệ thống)."}
+          </p>
 
-                {scheduleOpenId === id ? (
-                  <div className="ov-schedule">
-                    <div className="ov-schedule-toolbar">
-                      <label className="ov-schedule-date-label">
-                        Ngày
-                        <input
-                          type="date"
-                          value={scheduleDate}
-                          onChange={(e) => handleScheduleDateChange(id, e.target.value)}
-                        />
-                      </label>
-                    </div>
-                    {scheduleLoading ? (
-                      <p className="ov-schedule-msg">Đang tải lịch...</p>
-                    ) : scheduleData ? (
-                      <OwnerScheduleView data={scheduleData} />
-                    ) : (
-                      <p className="ov-schedule-msg">Không có dữ liệu lịch.</p>
-                    )}
-                  </div>
-                ) : null}
+          <div
+            id="ov-tabpanel-venues"
+            role="tabpanel"
+            aria-labelledby={activeTabId}
+            className="ov-tabpanel"
+          >
+            {filteredVenues.length === 0 ? (
+              <div className="ov-section-empty">Không có kết quả phù hợp với từ khóa tìm kiếm.</div>
+            ) : activeList.length === 0 ? (
+              <div className="ov-section-empty">
+                Không có cơ sở nào trong mục này (hoặc không khớp tìm kiếm).
               </div>
-            );
-          })}
+            ) : (
+              <div className="ov-list">{activeList.map(renderVenueCard)}</div>
+            )}
+          </div>
         </div>
       )}
-    </div>
-  );
-};
-
-function OwnerScheduleView({ data }) {
-  const navigate = useNavigate();
-  const venueId = pick(data, "venueId", "VenueId");
-  const dateVal = pick(data, "date", "Date");
-  const sportTypes = pick(data, "sportTypes", "SportTypes") ?? [];
-
-  if (!sportTypes.length) {
-    return <p className="ov-schedule-msg">Không có khung giờ cho ngày này.</p>;
-  }
-
-  return (
-    <div className="ov-schedule-inner">
-      <p className="ov-schedule-summary">
-        Cơ sở #{venueId}
-        {dateVal != null ? ` · ${String(dateVal).slice(0, 10)}` : null}
-      </p>
-      {sportTypes.map((st, idx) => {
-        const sportName = pick(st, "sportTypeName", "SportTypeName") ?? "Môn";
-        const slots = pick(st, "slots", "Slots") ?? [];
-        const fields = pick(st, "fields", "Fields") ?? [];
-
-        return (
-          <div key={idx} className="ov-sport-block">
-            <h3 className="ov-sport-title">{sportName}</h3>
-            {slots.length > 0 ? (
-              <ul className="ov-slot-list">
-                {slots.map((sl) => {
-                  const sid = pick(sl, "slotId", "SlotId");
-                  const start = pick(sl, "startTime", "StartTime");
-                  const end = pick(sl, "endTime", "EndTime");
-                  const price = pick(sl, "price", "Price");
-                  return (
-                    <li key={sid}>
-                      {formatTime(start)} – {formatTime(end)} · {formatPrice(price)}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="ov-schedule-msg ov-schedule-msg--sm">Chưa có khung giờ mở bán.</p>
-            )}
-            {fields.length > 0 ? (
-              <div className="ov-fields">
-                <p className="ov-fields-title">Sân và slot không khả dụng</p>
-                {fields.map((f) => {
-                  const fid = pick(f, "fieldId", "FieldId");
-                  const fname = pick(f, "fieldName", "FieldName") ?? "—";
-                  const unavail = pick(f, "unavailableSlots", "UnavailableSlots") ?? [];
-                  return (
-                    <div key={fid} className="ov-field-row">
-                      <strong>{fname}</strong>
-                      {unavail.length ? (
-                        <ul className="ov-unavail-list">
-                          {unavail.map((u, i) => {
-                            const slotId = pick(u, "slotId", "SlotId");
-                            const stt = pick(u, "status", "Status");
-                            const eid = pick(u, "eventId", "EventId");
-                            const hasEvent =
-                              eid != null && eid !== "" && !Number.isNaN(Number(eid));
-                            return (
-                              <li
-                                key={`${slotId}-${i}`}
-                                className={
-                                  hasEvent
-                                    ? "ov-unavail-slot ov-unavail-slot--event"
-                                    : "ov-unavail-slot"
-                                }
-                                onClick={() => {
-                                  if (hasEvent) navigate(`/event/${Number(eid)}`);
-                                }}
-                                onKeyDown={(ev) => {
-                                  if (
-                                    hasEvent &&
-                                    (ev.key === "Enter" || ev.key === " ")
-                                  ) {
-                                    ev.preventDefault();
-                                    navigate(`/event/${Number(eid)}`);
-                                  }
-                                }}
-                                role={hasEvent ? "link" : undefined}
-                                tabIndex={hasEvent ? 0 : undefined}
-                              >
-                                Slot #{slotId}
-                                {stt ? ` (${stt})` : ""}
-                                {hasEvent ? " · Sự kiện" : ""}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : (
-                        <span className="ov-schedule-msg--sm"> — </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
     </div>
   );
 }

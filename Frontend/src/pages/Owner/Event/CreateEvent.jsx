@@ -1,8 +1,41 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getVenueDetail, getVenueSchedule } from "../../services/fieldService";
-import { createEvent, getEventList } from "../../services/eventService";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
+import { getOwnerVenues } from "../../../services/venueService";
+import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
+
+const createEventFormSchema = yup.object({
+  venueId: yup.string().required("Vui lòng chọn cơ sở."),
+  eventDate: yup.string().required("Vui lòng chọn ngày."),
+  pricePerPerson: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập phí hợp lệ")
+    .required("Nhập phí tham gia")
+    .positive("Phí tham gia phải lớn hơn 0"),
+  minPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Số người tối thiểu phải lớn hơn 0")
+    .required(),
+  maxPlayer: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Nhập số hợp lệ")
+    .min(1, "Số người tối đa không hợp lệ")
+    .required()
+    .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
+      const min = this.parent.minPlayer;
+      if (min == null || max == null) return true;
+      return max >= min;
+    }),
+  description: yup.string().optional(),
+});
 
 const formatPrice = (n) => {
   if (n == null || Number.isNaN(n)) return "0 ₫";
@@ -15,6 +48,14 @@ const normalizeTime = (t) => {
   const s = String(t).trim();
   const part = s.split(":")[0] + ":" + (s.split(":")[1] || "00");
   return part.length === 5 ? part : part.slice(0, 5);
+};
+
+const pick = (obj, ...keys) => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return undefined;
 };
 
 /** Ghép ngày (YYYY-MM-DD) + giờ bắt đầu slot → Date theo giờ máy người dùng */
@@ -63,6 +104,11 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
   if (!schedule?.sportTypes?.length) return groups;
   const dateKey = String(eventDateStr || "").slice(0, 10);
   for (const st of schedule.sportTypes) {
+    const sportTypeName =
+      pick(st, "sportTypeName", "SportTypeName") ??
+      pick(st, "sportType", "SportType") ??
+      pick(st, "sportName", "SportName") ??
+      "";
     const slots = st.slots || [];
     const fields = st.fields || [];
     for (const field of fields) {
@@ -88,7 +134,7 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
           status,
         });
       }
-      groups.push({ fieldId, fieldName, slots: list });
+      groups.push({ fieldId, fieldName, sportTypeName, slots: list });
     }
   }
   return groups.sort((a, b) => (a.fieldName || "").localeCompare(b.fieldName || ""));
@@ -96,28 +142,52 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
 
 const CreateEvent = () => {
   const navigate = useNavigate();
-  const [venueId, setVenueId] = useState("");
-  const [eventDate, setEventDate] = useState("");
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(createEventFormSchema),
+    mode: "onSubmit",
+    defaultValues: {
+      venueId: "",
+      eventDate: "",
+      pricePerPerson: "",
+      minPlayer: "4",
+      maxPlayer: "10",
+      description: "",
+    },
+  });
+
+  const venueId = watch("venueId");
+  const eventDate = watch("eventDate");
+
+  const [venues, setVenues] = useState([]);
+  const [loadingVenues, setLoadingVenues] = useState(false);
   const [venue, setVenue] = useState(null);
   const [schedule, setSchedule] = useState(null);
   const [eventListForDate, setEventListForDate] = useState([]);
   const [loadingVenue, setLoadingVenue] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState([]); // [{ fieldId, slotId }]
-  const [pricePerPerson, setPricePerPerson] = useState("");
-  const [minPlayer, setMinPlayer] = useState("4");
-  const [maxPlayer, setMaxPlayer] = useState("10");
-  const [description, setDescription] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [expandedFieldId, setExpandedFieldId] = useState(null);
+  /** "" = tất cả loại sân; khác thì lọc theo sportTypeName */
+  const [sportTypeFilter, setSportTypeFilter] = useState("");
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
   const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
+  const venueDisplayName =
+    venue?.name ?? venue?.venueName ?? venue?.Name ?? venue?.VenueName;
+
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
-    () => getEventOccupiedKeys(eventListForDate, venue?.name ?? venue?.venueName, eventDate),
-    [eventListForDate, venue?.name, venue?.venueName, eventDate],
+    () =>
+      getEventOccupiedKeys(eventListForDate, venueDisplayName, eventDate),
+    [eventListForDate, venueDisplayName, eventDate],
   );
 
   /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
@@ -137,10 +207,74 @@ const CreateEvent = () => {
     return out;
   }, [slotsByFieldWithStatus]);
 
+  const sportTypeOptions = useMemo(() => {
+    const set = new Set();
+    for (const g of slotsByFieldWithStatus) {
+      const n = String(g.sportTypeName || "").trim();
+      if (n) set.add(n);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [slotsByFieldWithStatus]);
+
+  const filteredSlotsByField = useMemo(() => {
+    if (!sportTypeFilter) return slotsByFieldWithStatus;
+    return slotsByFieldWithStatus.filter(
+      (g) => String(g.sportTypeName || "").trim() === sportTypeFilter,
+    );
+  }, [slotsByFieldWithStatus, sportTypeFilter]);
+
+  const loadVenues = async () => {
+    setLoadingVenues(true);
+    setError("");
+    try {
+      const list = await getOwnerVenues();
+      setVenues(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách cơ sở.");
+      setVenues([]);
+    } finally {
+      setLoadingVenues(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!mounted) return;
+      await loadVenues();
+    })();
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleVenueSelect = (nextVenueId) => {
+    setError("");
+    setSchedule(null);
+    setEventListForDate([]);
+    setSelectedDetails([]);
+    setExpandedFieldId(null);
+    setSportTypeFilter("");
+    const id = Number(nextVenueId);
+    if (!id) {
+      setVenue(null);
+      return;
+    }
+    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
+    if (!match) {
+      setVenue(null);
+      return;
+    }
+    const normalizedName =
+      pick(match, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
+    setVenue({ ...match, name: normalizedName });
+  };
+
   const loadVenue = async () => {
     const id = Number(venueId);
     if (!id) {
-      setError("Vui lòng nhập mã cơ sở.");
+      setError("Vui lòng chọn cơ sở.");
       return;
     }
     setError("");
@@ -149,6 +283,7 @@ const CreateEvent = () => {
     setSchedule(null);
     setSelectedDetails([]);
     setExpandedFieldId(null);
+    setSportTypeFilter("");
     try {
       const v = await getVenueDetail(id);
       setVenue(v ?? null);
@@ -163,7 +298,7 @@ const CreateEvent = () => {
   const loadSchedule = async () => {
     const id = Number(venueId);
     if (!id || !eventDate) {
-      setError("Vui lòng chọn mã cơ sở và ngày sự kiện.");
+      setError("Vui lòng chọn cơ sở và ngày sự kiện.");
       return;
     }
     setError("");
@@ -172,6 +307,7 @@ const CreateEvent = () => {
     setEventListForDate([]);
     setSelectedDetails([]);
     setExpandedFieldId(null);
+    setSportTypeFilter("");
     try {
       const dateStr = eventDate.slice(0, 10);
       const s = await getVenueSchedule(id, dateStr);
@@ -223,23 +359,31 @@ const CreateEvent = () => {
     });
   }, [availableSlots]);
 
+  /** Sân đang mở "Phóng to" không còn trong danh sách sau khi lọc → thu gọn */
+  useEffect(() => {
+    if (expandedFieldId == null) return;
+    const visible = filteredSlotsByField.some((g) => g.fieldId === expandedFieldId);
+    if (!visible) setExpandedFieldId(null);
+  }, [expandedFieldId, filteredSlotsByField]);
+
   const toggleSlot = (item) => {
     if (item.status !== "available") return;
     const key = `${item.fieldId}-${item.slotId}`;
     setSelectedDetails((prev) => {
       const has = prev.some((d) => `${d.fieldId}-${d.slotId}` === key);
       if (has) return prev.filter((d) => `${d.fieldId}-${d.slotId}` !== key);
-      return [...prev, { fieldId: item.fieldId, slotId: item.slotId }];
+      const mixed = prev.some((d) => d.fieldId !== item.fieldId);
+      const base = mixed ? prev.filter((d) => d.fieldId === item.fieldId) : prev;
+      return [...base, { fieldId: item.fieldId, slotId: item.slotId }];
     });
   };
 
   const isSelected = (item) =>
     selectedDetails.some((d) => d.fieldId === item.fieldId && d.slotId === item.slotId);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const id = Number(venueId);
-    if (!id || !eventDate) {
+  const onCreateSubmit = async (values) => {
+    const id = Number(values.venueId);
+    if (!id || !values.eventDate) {
       setError("Vui lòng chọn cơ sở và ngày.");
       return;
     }
@@ -247,32 +391,17 @@ const CreateEvent = () => {
       setError("Vui lòng chọn ít nhất một khung giờ.");
       return;
     }
-    const price = Number(pricePerPerson);
-    const min = Number(minPlayer);
-    const max = Number(maxPlayer);
-    if (!Number.isFinite(price) || price <= 0) {
-      setError("Phí tham gia phải lớn hơn 0.");
-      return;
-    }
-    if (!Number.isFinite(min) || min < 1) {
-      setError("Số người tối thiểu phải lớn hơn 0.");
-      return;
-    }
-    if (!Number.isFinite(max) || max < min) {
-      setError("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
-      return;
-    }
 
     setError("");
     setSubmitLoading(true);
     try {
       const payload = {
-        eventDate: eventDate.slice(0, 10),
+        eventDate: values.eventDate.slice(0, 10),
         details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),
-        pricePerPerson: price,
-        minPlayer: min,
-        maxPlayer: max,
-        description: description.trim() || null,
+        pricePerPerson: values.pricePerPerson,
+        minPlayer: values.minPlayer,
+        maxPlayer: values.maxPlayer,
+        description: values.description?.trim() || null,
       };
       const res = await createEvent(payload);
       const eventId = res?.eventId ?? res?.EventId;
@@ -300,7 +429,7 @@ const CreateEvent = () => {
       </div>
 
       <div className="owner-home-content">
-        <form className="create-event-form" onSubmit={handleSubmit}>
+        <form className="create-event-form" onSubmit={handleSubmit(onCreateSubmit)} noValidate>
           {error && (
             <div className="ce-error" role="alert">
               {error}
@@ -311,22 +440,47 @@ const CreateEvent = () => {
             <h3>Cơ sở &amp; ngày</h3>
             <div className="ce-row">
               <label>
-                Mã cơ sở (Venue ID)
-                <input
-                  type="number"
-                  min={1}
-                  value={venueId}
-                  onChange={(e) => setVenueId(e.target.value)}
-                  placeholder="VD: 1"
+                Cơ sở (Venue)
+                <Controller
+                  name="venueId"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleVenueSelect(e.target.value);
+                      }}
+                      disabled={loadingVenues || venues.length === 0}
+                    >
+                      <option value="">{loadingVenues ? "Đang tải..." : "Chọn cơ sở"}</option>
+                      {venues.map((v) => {
+                        const vid = pick(v, "venueId", "VenueId", "id");
+                        if (!vid) return null;
+                        const name = pick(v, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${vid}`;
+                        return (
+                          <option key={vid} value={String(vid)}>
+                            {name}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
                 />
+                {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
               </label>
-              <button type="button" className="ce-btn secondary" onClick={loadVenue} disabled={loadingVenue}>
+              <button
+                type="button"
+                className="ce-btn secondary"
+                onClick={loadVenue}
+                disabled={loadingVenue || !venueId}
+              >
                 {loadingVenue ? "Đang tải…" : "Tải thông tin"}
               </button>
             </div>
             {venue && (
               <p className="ce-venue-name">
-                Cơ sở: <strong>{venue.name ?? venue.venueName}</strong>
+                Cơ sở: <strong>{venueDisplayName}</strong>
               </p>
             )}
             <div className="ce-row">
@@ -334,10 +488,10 @@ const CreateEvent = () => {
                 Ngày sự kiện
                 <input
                   type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
                   min={new Date().toISOString().slice(0, 10)}
+                  {...register("eventDate")}
                 />
+                {errors.eventDate && <span className="ce-field-error">{errors.eventDate.message}</span>}
               </label>
               <button
                 type="button"
@@ -353,6 +507,27 @@ const CreateEvent = () => {
           {slotsByFieldWithStatus.length > 0 && (
             <div className="ce-section">
               <h3>Chọn khung giờ (ít nhất 1)</h3>
+              <p className="ce-single-field-hint">
+                Một sự kiện chỉ dùng slot trên một sân. Phóng to sân khác sẽ bỏ chọn slot ở sân trước.
+              </p>
+              {sportTypeOptions.length > 0 && (
+                <div className="ce-row ce-sport-filter-row">
+                  <label>
+                    Loại sân
+                    <select
+                      value={sportTypeFilter}
+                      onChange={(e) => setSportTypeFilter(e.target.value)}
+                    >
+                      <option value="">Tất cả</option>
+                      {sportTypeOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
               <div className="ce-legend">
                 <span className="ce-legend-item available">Trống</span>
                 <span className="ce-legend-item past">Đã qua</span>
@@ -360,10 +535,15 @@ const CreateEvent = () => {
                 <span className="ce-legend-item event">Sự kiện</span>
               </div>
               <div className="ce-slots-by-field">
-                {slotsByFieldWithStatus.map((group) => (
+                {filteredSlotsByField.map((group) => (
                   <div key={group.fieldId} className="ce-field-block">
                     <div className="ce-field-head">
-                      <h4 className="ce-field-title">{group.fieldName}</h4>
+                      <div className="ce-field-left">
+                        {group.sportTypeName ? (
+                          <div className="ce-field-sport">{group.sportTypeName}</div>
+                        ) : null}
+                        <h4 className="ce-field-title">{group.fieldName}</h4>
+                      </div>
                       <div className="ce-field-right">
                         <span className="ce-field-meta">
                           {group.slots.filter((s) => s.status === "available").length} trống /{" "}
@@ -372,9 +552,17 @@ const CreateEvent = () => {
                         <button
                           type="button"
                           className="ce-field-toggle"
-                          onClick={() =>
-                            setExpandedFieldId((prev) => (prev === group.fieldId ? null : group.fieldId))
-                          }
+                          onClick={() => {
+                            const prev = expandedFieldId;
+                            const fid = group.fieldId;
+                            const next = prev === fid ? null : fid;
+                            setExpandedFieldId(next);
+                            if (next !== null && next !== prev) {
+                              setSelectedDetails((details) =>
+                                details.filter((d) => d.fieldId === next),
+                              );
+                            }
+                          }}
                         >
                           {expandedFieldId === group.fieldId ? "Thu nhỏ" : "Phóng to"}
                         </button>
@@ -428,40 +616,28 @@ const CreateEvent = () => {
             <div className="ce-row">
               <label>
                 Phí tham gia (VNĐ/người)
-                <input
-                  type="number"
-                  min={1}
-                  value={pricePerPerson}
-                  onChange={(e) => setPricePerPerson(e.target.value)}
-                  placeholder="50000"
-                />
+                <input type="number" min={1} placeholder="50000" {...register("pricePerPerson")} />
+                {errors.pricePerPerson && (
+                  <span className="ce-field-error">{errors.pricePerPerson.message}</span>
+                )}
               </label>
             </div>
             <div className="ce-row two-cols">
               <label>
                 Số người tối thiểu
-                <input
-                  type="number"
-                  min={1}
-                  value={minPlayer}
-                  onChange={(e) => setMinPlayer(e.target.value)}
-                />
+                <input type="number" min={1} {...register("minPlayer")} />
+                {errors.minPlayer && <span className="ce-field-error">{errors.minPlayer.message}</span>}
               </label>
               <label>
                 Số người tối đa
-                <input
-                  type="number"
-                  min={1}
-                  value={maxPlayer}
-                  onChange={(e) => setMaxPlayer(e.target.value)}
-                />
+                <input type="number" min={1} {...register("maxPlayer")} />
+                {errors.maxPlayer && <span className="ce-field-error">{errors.maxPlayer.message}</span>}
               </label>
             </div>
             <label className="ce-full">
               Mô tả (tuỳ chọn)
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                {...register("description")}
                 placeholder="VD: Bóng đá 5 người, giao lưu cuối tuần"
                 rows={3}
               />

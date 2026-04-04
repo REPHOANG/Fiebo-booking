@@ -1,6 +1,8 @@
 // Venue Service - API calls for venue management (Owner)
 import api from './api';
 
+const unwrap = (res) => res?.data?.data ?? res?.data;
+
 /** Swagger: GET/PATCH `/api/owner/venues` — danh sách / cập nhật (vô hiệu hóa) cơ sở */
 export const OWNER_VENUES_BASE = '/api/owner/venues';
 
@@ -9,23 +11,57 @@ export const ownerVenueScheduleUrl = (venueId) =>
   `/api/owner/venue/${venueId}/schedule`;
 
 /**
- * Create a new venue with fields
- * @param {Object} payload
- * @param {string} payload.name - Venue name
- * @param {string} [payload.description] - Venue description
- * @param {string} payload.openTime - "HH:mm:ss"
- * @param {string} payload.closeTime - "HH:mm:ss"
- * @param {number} payload.provinceId
- * @param {number} payload.wardId
- * @param {string} payload.addressDetail
- * @param {number} payload.latitude
- * @param {number} payload.longitude
- * @param {Array} payload.fields - Array of { name, sportTypeId, description }
- * @returns {Promise<Object>}
+ * Step 1 — Owner: tạo cơ sở nháp (multipart, khớp Swagger)
+ * POST `/api/owner/venue/draft`
+ * @param {FormData} formData — Name, OpenTime, CloseTime, Description?, AddressDetail, ProvinceId, WardId, Latitude, Longitude, Thumbnail?
+ * @returns {Promise<{venueId:number,status:string}|any>}
  */
-export const createVenue = async (payload) => {
-  const response = await api.post('/api/Field', payload);
-  return response.data?.data ?? response.data ?? response;
+export const createVenue = async (formData) => {
+  const response = await api.post('/api/owner/venue/draft', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
+  return unwrap(response) ?? response;
+};
+
+/**
+ * Step 2 — Owner: upload giấy tờ (multipart)
+ * POST `/api/owner/venues/{venueId}/documents`
+ * Form keys: LandUseDocument.IssueDate, LandUseDocument.ExpiryDate, LandUseDocument.Images (lặp),
+ *            BusinessDocument.IssueDate, BusinessDocument.ExpiryDate, BusinessDocument.Images (lặp)
+ */
+export const addVenueDocuments = async (venueId, formData) => {
+  const response = await api.post(`/api/owner/venues/${venueId}/documents`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000,
+  });
+  return unwrap(response) ?? response;
+};
+
+/**
+ * Legacy / optional — gán bộ môn (nếu backend còn route `/api/venues/...`)
+ * POST `/api/venues/{venueId}/sport-types`
+ */
+export const assignVenueSportTypes = async (venueId, payload) => {
+  const response = await api.post(`/api/venues/${venueId}/sport-types`, payload);
+  return unwrap(response) ?? response;
+};
+
+/**
+ * Step 3 — Owner: gửi duyệt (DRAFT → PENDING)
+ * PUT `/api/owner/venues/{venueId}/submit`
+ */
+export const submitVenue = async (venueId) => {
+  const response = await api.put(`/api/owner/venues/${venueId}/submit`);
+  return unwrap(response) ?? response;
+};
+
+/**
+ * GET `/api/owner/venues/{venueId}/detail` — chi tiết cơ sở (nháp / owner), khớp VenueController.GetVenueDraft
+ */
+export const getVenueDraft = async (venueId) => {
+  const response = await api.get(`/api/owner/venues/${venueId}/detail`);
+  return unwrap(response) ?? response;
 };
 
 /**
@@ -34,7 +70,7 @@ export const createVenue = async (payload) => {
  */
 export const getOwnerVenues = async () => {
   const response = await api.get(OWNER_VENUES_BASE);
-  const data = response.data?.data ?? response.data;
+  const data = unwrap(response);
   return Array.isArray(data) ? data : [];
 };
 
@@ -43,7 +79,68 @@ export const getOwnerVenues = async () => {
  */
 export const deactivateOwnerVenue = async (venueId) => {
   const response = await api.patch(`${OWNER_VENUES_BASE}/${venueId}`);
-  return response.data?.data ?? response.data ?? response;
+  return unwrap(response) ?? response;
+};
+
+/**
+ * Update venue basic information (owner).
+ * PUT `/api/owner/venues/{venueId}` with multipart form — matches VenueController.UpdateVenue.
+ * Do not PATCH this path: PATCH on the same URL is DeactivateVenue (sets inactive).
+ */
+export const updateOwnerVenueInfo = async (venueId, payload) => {
+  const form = new FormData();
+  form.append('Name', String(payload?.name ?? '').trim());
+  if (payload?.description != null && String(payload.description).trim() !== '') {
+    form.append('Description', String(payload.description).trim());
+  }
+  form.append('AddressDetail', String(payload?.addressDetail ?? '').trim());
+  form.append('ProvinceId', String(Number(payload?.provinceId)));
+  form.append('WardId', String(Number(payload?.wardId)));
+  form.append('Latitude', String(Number(payload?.latitude ?? 0)));
+  form.append('Longitude', String(Number(payload?.longitude ?? 0)));
+  form.append('OpenTime', payload?.openTime ?? '');
+  form.append('CloseTime', payload?.closeTime ?? '');
+  if (payload?.thumbnailFile) {
+    form.append('ThumbnailImage', payload.thumbnailFile);
+  }
+
+  // Optional — update legal documents (BusinessDocument + LandUseDocument).
+  // Backend expects nested form fields:
+  // - BusinessDocument.IssueDate / ExpiryDate / Images[]
+  // - LandUseDocument.IssueDate / ExpiryDate / Images[]
+  const businessDocument = payload?.businessDocument;
+  if (businessDocument) {
+    if (businessDocument.issueDate) {
+      form.append("BusinessDocument.IssueDate", String(businessDocument.issueDate));
+    }
+    if (businessDocument.expiryDate) {
+      form.append("BusinessDocument.ExpiryDate", String(businessDocument.expiryDate));
+    }
+    const files = Array.isArray(businessDocument.files) ? businessDocument.files : [];
+    for (const file of files) {
+      if (file) form.append("BusinessDocument.Images", file);
+    }
+  }
+
+  const landUseDocument = payload?.landUseDocument;
+  if (landUseDocument) {
+    if (landUseDocument.issueDate) {
+      form.append("LandUseDocument.IssueDate", String(landUseDocument.issueDate));
+    }
+    if (landUseDocument.expiryDate) {
+      form.append("LandUseDocument.ExpiryDate", String(landUseDocument.expiryDate));
+    }
+    const files = Array.isArray(landUseDocument.files) ? landUseDocument.files : [];
+    for (const file of files) {
+      if (file) form.append("LandUseDocument.Images", file);
+    }
+  }
+
+  const response = await api.put(`/api/owner/venues/${venueId}`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
+  return unwrap(response) ?? response;
 };
 
 /**
@@ -55,7 +152,7 @@ export const getOwnerVenueSchedule = async (venueId, date) => {
   const response = await api.get(ownerVenueScheduleUrl(venueId), {
     params: { date },
   });
-  return response.data?.data ?? response.data ?? response;
+  return unwrap(response) ?? response;
 };
 
 export const getVenueServices = async (venueId, page, pageSize, searchKeyword) => {

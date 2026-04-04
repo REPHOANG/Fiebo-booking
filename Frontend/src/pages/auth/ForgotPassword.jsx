@@ -13,7 +13,11 @@ import {
   verifyResetOTP,
   resetPassword,
 } from '../../services/authService';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 import './ForgotPassword.css';
+
+const goCustomerHomeLogin = (navigate) =>
+  navigate('/', { state: { [OPEN_AUTH_STATE_KEY]: 'login' } });
 
 // ── Yup schemas ───────────────────────────────────────────────────────────
 const accountSchema = yup.object({
@@ -171,7 +175,7 @@ const ForgotPassword = () => {
         confirmPassword: data.confirmPassword,
       });
       toast.success('Đặt lại mật khẩu thành công!');
-      navigate('/login');
+      goCustomerHomeLogin(navigate);
     } catch (error) {
       toast.error(error.message || 'Không thể đặt lại mật khẩu');
     } finally {
@@ -181,7 +185,7 @@ const ForgotPassword = () => {
 
   const handleBackClick = () => {
     if (step > 1) setStep(step - 1);
-    else navigate('/login');
+    else goCustomerHomeLogin(navigate);
   };
 
   const handleResendCode = async () => {
@@ -263,7 +267,13 @@ const ForgotPassword = () => {
             
             <div className="form-footer">
               <span>Nhớ mật khẩu của bạn? </span>
-              <Link to="/login" className="link">Đăng nhập</Link>
+              <Link
+                to="/"
+                className="link"
+                state={{ [OPEN_AUTH_STATE_KEY]: 'login' }}
+              >
+                Đăng nhập
+              </Link>
             </div>
           </motion.form>
         )}

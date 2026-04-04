@@ -16,6 +16,10 @@ html, body {
   height: 100%;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 #root {
   display: flex;
   flex-direction: column;

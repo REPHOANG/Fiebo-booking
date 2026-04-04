@@ -26,6 +26,7 @@ const bookedSlotsSlice = createSlice({
       state[venueId][date] = slots.map((s) => ({
         fieldIdx: s.fieldIdx,
         slotIdx: s.slotIdx,
+        bookingId: s.bookingId ?? s.BookingId ?? null,
         expiresAt: null, // từ DB, không hết hạn
       }));
     },
@@ -49,7 +50,7 @@ const bookedSlotsSlice = createSlice({
             existingEntry.expiresAt = expiresAt;
           }
         } else {
-          existing.push({ fieldIdx: s.fieldIdx, slotIdx: s.slotIdx, expiresAt });
+          existing.push({ fieldIdx: s.fieldIdx, slotIdx: s.slotIdx, bookingId: s.bookingId ?? null, expiresAt });
         }
       });
     },

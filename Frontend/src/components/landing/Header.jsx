@@ -15,11 +15,13 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Logohomepage from "../../assets/images/Logo Fiebo.png";
 import "./Header.css";
-import LoginPopup from "../common/LoginPopup/LoginPopup";
+import { useAuthModal } from "../../context/AuthModalContext";
+import VenuesMegaMenu from "../common/VenuesMegaMenu/VenuesMegaMenu";
 
 const Header = () => {
   const dispatch = useDispatch();
-  
+  const [venuesMegaActive, setVenuesMegaActive] = useState(false);
+
   // Get user from Redux
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
@@ -33,7 +35,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [loginPopupOpen, setLoginPopupOpen] = useState(false);
+  const { openLogin } = useAuthModal();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,29 +67,17 @@ const Header = () => {
           <nav className="menu-desktop">
             <NavLink to="/" end>Trang chủ</NavLink>
 
-            {/* Mega Menu */}
+            <div
+              className="mega-wrapper"
+              onMouseEnter={() => setVenuesMegaActive(true)}
+              onFocusCapture={() => setVenuesMegaActive(true)}
+            >
+              <NavLink to="/venues" className="mega-link">
+                Sân
+              </NavLink>
+              <VenuesMegaMenu align="start" active={venuesMegaActive} />
+            </div>
 
-              <div className="mega-wrapper">
-                <NavLink to="/venues" className="mega-link">Sân</NavLink>
-
-                <div className="mega-menu">
-                <div className="mega-column">
-                  <h4>Loại sân</h4>
-                  <Link to="/venues?sport=1">Sân bóng đá</Link>
-                  <Link to="/venues?sport=2">Sân bóng rổ</Link>
-                  <Link to="/venues?sport=3">Sân tennis</Link>
-                  <Link to="/venues?sport=4">Sân pickleball</Link>
-                </div>
-
-                <div className="mega-column">
-                  <h4>Khu vực</h4>
-                  <Link to="/venues?search=Hà%20Nội">Hà Nội</Link>
-                  <Link to="/venues?search=TP%20HCM">TP HCM</Link>
-                  <Link to="/venues?search=Đà%20Nẵng">Đà Nẵng</Link>
-                </div>
-              </div>
-              </div>
-            
 
             <NavLink to="/map">Bản đồ</NavLink>
             <NavLink to="/discover">Khám phá</NavLink>
@@ -198,7 +188,7 @@ const Header = () => {
             <button
               type="button"
               className="login-btn"
-              onClick={() => setLoginPopupOpen(true)}
+              onClick={() => openLogin()}
             >
               Đăng nhập
             </button>
@@ -207,7 +197,6 @@ const Header = () => {
 
         {/* Mobile Toggle */}
        
-      <LoginPopup open={loginPopupOpen} onClose={() => setLoginPopupOpen(false)} />
       </div>
     </header>
   );

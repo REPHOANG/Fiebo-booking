@@ -1,5 +1,5 @@
 .owner-bookings-page .owner-home-content {
-  max-width: 920px;
+  max-width: 100%;
 }
 
 .ob-card--list {
@@ -21,7 +21,8 @@
   color: #374151;
 }
 
-.ob-filter-label input {
+.ob-filter-label input,
+.ob-filter-select {
   display: block;
   width: 100%;
   margin-top: 6px;
@@ -29,6 +30,20 @@
   border: 1px solid #d1d5db;
   border-radius: 10px;
   font-size: 15px;
+  background: #fff;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.ob-filter-select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.ob-filter-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #f3f4f6;
 }
 
 .ob-btn-sm {
@@ -43,11 +58,40 @@
   border: 1px solid #e5e7eb;
 }
 
+.ob-meta-count {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
 .ob-desc {
   margin: 0 0 20px 0;
   font-size: 14px;
   color: #6b7280;
   line-height: 1.5;
+}
+
+.ob-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.ob-pagination-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ob-pagination .ob-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .ob-form label {
@@ -200,4 +244,28 @@
 
 .ob-link:hover {
   color: #139a44;
+}
+
+@media (max-width: 768px) {
+  .owner-bookings-page {
+    padding: 12px;
+  }
+
+  .ob-card {
+    padding: 14px;
+  }
+
+  .ob-booking-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ob-booking-actions {
+    width: 100%;
+  }
+
+  .ob-booking-actions .ob-btn {
+    width: 100%;
+    text-align: center;
+  }
 }

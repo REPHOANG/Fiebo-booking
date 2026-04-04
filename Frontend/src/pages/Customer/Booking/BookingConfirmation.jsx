@@ -1,15 +1,14 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Calendar } from "lucide-react";
-import { createBooking } from "../../../services/bookingService";
-import { savePaymentDraft } from '../../../utils/paymentDraft';
+import { ArrowLeft, MapPin, Clock, Calendar, Search } from "lucide-react";
+import { createBooking, createWalkInBooking } from "../../../services/bookingService";
 import { getVenueSchedule } from "../../../services/fieldService";
 import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
-import LoginPopup from '../../../components/common/LoginPopup/LoginPopup';
+import { useAuthModal } from "../../../context/AuthModalContext";
 import "./BookingConfirmation.css";
 import { toast } from 'react-toastify';
 
@@ -36,6 +35,29 @@ const getUnavailableKeysFromSchedule = (schedule) => {
     });
   });
   return keys;
+};
+
+const SERVICE_CATALOG = [
+  { id: "ball-franklin", name: "Bóng Franklin X", unit: "quả", price: 75000, category: "Bóng thi đấu" },
+  { id: "ball-zocker", name: "Bóng Zocker", unit: "quả", price: 55000, category: "Bóng thi đấu" },
+  { id: "ball-zocker-pack", name: "Bóng Zocker hộp 3", unit: "hộp", price: 150000, category: "Bóng thi đấu" },
+  { id: "snack-noodle", name: "Mì tôm trứng", unit: "bát", price: 30000, category: "Đồ ăn nhanh" },
+  { id: "snack-egg", name: "Trứng gà", unit: "quả", price: 10000, category: "Đồ ăn nhanh" },
+  { id: "drink-aquarius", name: "Aquarius", unit: "chai", price: 15000, category: "Đồ uống" },
+  { id: "drink-tea", name: "Bò húc", unit: "chai", price: 20000, category: "Đồ uống" },
+  { id: "drink-coffee", name: "Cafe bạc xỉu", unit: "cốc", price: 30000, category: "Đồ uống" },
+  { id: "accessory-bib", name: "Áo bib", unit: "bộ", price: 20000, category: "Phụ kiện thể thao" },
+  { id: "accessory-shuttle", name: "Cầu lông", unit: "ống", price: 90000, category: "Phụ kiện thể thao" },
+];
+
+const buildBookingNoteWithServices = (baseNote, serviceRows) => {
+  const note = (baseNote || "").trim();
+  if (!serviceRows.length) return note || undefined;
+  const serviceLine = serviceRows
+    .map((s) => `${s.name} x${s.qty} (${s.subtotal.toLocaleString("vi-VN")} đ)`)
+    .join("; ");
+  const merged = `${note ? `${note}\n` : ""}[Dich vu] ${serviceLine}`;
+  return merged;
 };
 
 // Build booking details from schedule by matching client field (name + sportType) to schedule.
@@ -78,10 +100,15 @@ const BookingConfirmation = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth || {});
+  const { openLogin } = useAuthModal();
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  // Tách prefill user và user tự edit:
+  // - Khi user đã nhập/xóa, không tự động override lại giá trị cũ.
+  const didEditNameRef = useRef(false);
+  const didEditPhoneRef = useRef(false);
 
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
@@ -91,12 +118,17 @@ const BookingConfirmation = () => {
   const [bookingNote, setBookingNote] = useState("");
   const [isRetrying, setIsRetrying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serviceQty, setServiceQty] = useState({});
+  const [showServicePopup, setShowServicePopup] = useState(false);
+  const [serviceDraftQty, setServiceDraftQty] = useState({});
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [serviceCategory, setServiceCategory] = useState("all");
 
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
     if (!user) return;
-    setGuestName((prev) => prev || user?.fullName || user?.name || "");
-    setGuestPhone((prev) => prev || user?.phone || user?.phoneNumber || "");
+    if (!didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
+    if (!didEditPhoneRef.current) setGuestPhone(user?.phone || user?.phoneNumber || "");
   }, [user]);
 
   // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
@@ -111,11 +143,11 @@ const BookingConfirmation = () => {
         const name = (profile.fullName || profile.name || "").toString().trim();
         const phone = (profile.phoneNumber || profile.phone || "").toString().trim().replace(/\s/g, "");
         if (name) {
-          setGuestName((prev) => prev || name);
+          if (!didEditNameRef.current) setGuestName(name);
           setNameError("");
         }
         if (phone) {
-          setGuestPhone((prev) => prev || phone);
+          if (!didEditPhoneRef.current) setGuestPhone(phone);
           setPhoneError("");
         }
       } catch (_) {
@@ -125,8 +157,8 @@ const BookingConfirmation = () => {
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
-  const displayName = user?.fullName || user?.name || guestName;
-  const displayPhone = user?.phone || user?.phoneNumber || guestPhone;
+  const displayName = guestName;
+  const displayPhone = guestPhone;
 
   // Form-level validation: require fullname and phone
   const isFormValid = Boolean((displayName || "").toString().trim() && (displayPhone || "").toString().trim());
@@ -210,7 +242,16 @@ const BookingConfirmation = () => {
     );
   }
 
-  const { venue, fields, selectedDate, selectedSlots, slots, slotSummary, venueSchedule } = bookingState;
+  const {
+    venue,
+    fields,
+    selectedDate,
+    selectedSlots,
+    slots,
+    slotSummary,
+    venueSchedule,
+    walkIn: isWalkInBooking,
+  } = bookingState;
 
   // Format the date nicely
   const formattedDate = useMemo(() => {
@@ -231,12 +272,71 @@ const BookingConfirmation = () => {
       slotCount: g.slotCount,
       pricePerSlot: g.pricePerSlot,
       subtotal: g.slotCount * g.pricePerSlot,
-      duration: `${Math.floor((g.slotCount * 60) / 60)}h${(g.slotCount * 60) % 60 > 0 ? (g.slotCount * 60) % 60 + "p" : ""}`,
+      duration: `${Math.floor((g.totalMinutes ?? g.slotCount * 60) / 60)}h${(g.totalMinutes ?? g.slotCount * 60) % 60 > 0 ? (g.totalMinutes ?? g.slotCount * 60) % 60 + "p" : ""}`,
     }));
   }, [slotSummary]);
 
   const totalPrice = slotSummary?.totalPrice || 0;
   const totalMinutes = slotSummary?.totalMinutes || 0;
+  const selectedServiceRows = useMemo(() => {
+    return SERVICE_CATALOG
+      .map((s) => {
+        const qty = Number(serviceQty[s.id] || 0);
+        return qty > 0 ? { ...s, qty, subtotal: qty * s.price } : null;
+      })
+      .filter(Boolean);
+  }, [serviceQty]);
+  const serviceTotal = useMemo(
+    () => selectedServiceRows.reduce((sum, x) => sum + x.subtotal, 0),
+    [selectedServiceRows]
+  );
+  // Business rule (offline): user only pays field fee on app; services are paid directly at venue.
+  const payableTotal = totalPrice;
+
+  const openServicePopup = () => {
+    setServiceDraftQty({ ...serviceQty });
+    setServiceSearch("");
+    setServiceCategory("all");
+    setShowServicePopup(true);
+  };
+
+  const applyServicePopup = () => {
+    setServiceQty({ ...serviceDraftQty });
+    setShowServicePopup(false);
+  };
+
+  const serviceCategories = useMemo(
+    () => ["all", ...Array.from(new Set(SERVICE_CATALOG.map((s) => s.category)))],
+    []
+  );
+
+  const filteredServiceCatalog = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    return SERVICE_CATALOG.filter((s) => {
+      const inCategory = serviceCategory === "all" || s.category === serviceCategory;
+      const inSearch = !q || s.name.toLowerCase().includes(q);
+      return inCategory && inSearch;
+    });
+  }, [serviceCategory, serviceSearch]);
+
+  const modalServiceRows = useMemo(() => {
+    const grouped = {};
+    filteredServiceCatalog.forEach((item) => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    });
+    return Object.entries(grouped);
+  }, [filteredServiceCatalog]);
+
+  const modalServiceCount = useMemo(
+    () => Object.values(serviceDraftQty).reduce((sum, x) => sum + Number(x || 0), 0),
+    [serviceDraftQty]
+  );
+  const modalServiceTotal = useMemo(
+    () =>
+      SERVICE_CATALOG.reduce((sum, s) => sum + Number(serviceDraftQty[s.id] || 0) * Number(s.price || 0), 0),
+    [serviceDraftQty]
+  );
 
   const handleConfirmBooking = () => {
     setConfirmError("");
@@ -250,6 +350,96 @@ const BookingConfirmation = () => {
         toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
         return;
       }
+
+      if (isWalkInBooking) {
+        setIsSubmitting(true);
+        try {
+          try {
+            dispatch(clearDraft(String(venue?.id)));
+          } catch (e) {}
+
+          let schedule = localSchedule || venueSchedule;
+          if (!schedule && venue?.id && selectedDate) {
+            const res = await getVenueSchedule(venue.id, selectedDate);
+            schedule = res;
+            setLocalSchedule(res);
+          }
+          let details = buildDetailsFromSchedule(schedule, fields, slots, selectedSlots);
+
+          if (details.length === 0 && selectedSlots.length > 0) {
+            try {
+              const refreshed = await getVenueSchedule(venue.id, selectedDate);
+              setLocalSchedule(refreshed);
+              details = buildDetailsFromSchedule(refreshed, fields, slots, selectedSlots);
+            } catch (e) {
+              // ignore
+            }
+            if (details.length === 0) {
+              toast.error("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
+              return;
+            }
+          }
+
+          const seen = new Set();
+          const uniqueDetails = details.filter((d) => {
+            const key = `${d.fieldId}-${d.slotId}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+
+          const fullname = (displayName || guestName || "").trim();
+          const phoneNumber = (displayPhone || guestPhone || "").trim();
+          const payload = {
+            venueId: Number(venue?.id),
+            bookingDate: selectedDate,
+            fullname,
+            phoneNumber,
+            ...((bookingNote || "").trim() && { bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows) }),
+            details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
+          };
+          if (!payload.bookingNote) {
+            payload.bookingNote = buildBookingNoteWithServices("", selectedServiceRows);
+          }
+
+          if (!payload.details.length) {
+            toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
+            return;
+          }
+
+          try {
+            const freshSchedule = await getVenueSchedule(venue.id, selectedDate);
+            setLocalSchedule(freshSchedule);
+            const unavailableKeys = getUnavailableKeysFromSchedule(freshSchedule);
+            const hasConflict = uniqueDetails.some((d) =>
+              unavailableKeys.has(`${Number(d.fieldId)}_${Number(d.slotId)}`)
+            );
+            if (hasConflict) {
+              toast.error(
+                "Một hoặc nhiều khung giờ đã được đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác."
+              );
+              return;
+            }
+          } catch (e) {
+            // vẫn gửi API; backend sẽ kiểm tra
+          }
+
+          await createWalkInBooking(payload);
+          toast.success("Đã tạo lịch đặt offline thành công.");
+          navigate("/owner/bookings", { replace: true });
+        } catch (err) {
+          const msg =
+            err?.response?.data?.message ||
+            err?.data?.message ||
+            err?.message ||
+            "Không thể tạo đặt chỗ offline.";
+          toast.error(msg);
+        } finally {
+          setIsSubmitting(false);
+        }
+        return;
+      }
+
       setIsSubmitting(true);
       try {
       // Note: removed optimistic slot locking here. Slots will be reserved
@@ -308,9 +498,12 @@ const BookingConfirmation = () => {
           bookingDate: selectedDate,
           fullname,
           phoneNumber,
-          ...((bookingNote || "").trim() && { bookingNote: (bookingNote || "").trim() }),
+          ...((bookingNote || "").trim() && { bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows) }),
           details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
         };
+        if (!payload.bookingNote) {
+          payload.bookingNote = buildBookingNoteWithServices("", selectedServiceRows);
+        }
 
         if (!payload.details.length) {
           toast.error("Không có khung giờ hợp lệ để đặt. Vui lòng quay lại trang đặt lịch.");
@@ -334,33 +527,36 @@ const BookingConfirmation = () => {
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-        // Persist minimal server-side draft (bookingId) so users can resume across devices
-        try {
-          if (bookingId) savePaymentDraft({ bookingId, venueId: venue?.id, expiresAt: expireAt });
-        } catch (e) {}
-        const ttl = expireAt
+        const ttlSeconds = expireAt
           ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
           : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
         try {
-          dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+          dispatch(
+            addBookedSlots({
+              venueId: String(venue?.id),
+              date: selectedDate,
+              slots: selectedSlots,
+              ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
+            }),
+          );
         } catch (e) {}
 
-        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-          state: {
-            venue,
-            selectedDate,
-            selectedSlots,
-            slotSummary,
-            bookingItems,
-            customerName: displayName,
-            customerPhone: displayPhone,
-            totalPrice,
-            reservationId: bookingId,
-            reservationTtl: ttl,
-            reservationExpireAt: expireAt,
+        if (!bookingId) {
+          toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
+          return;
+        }
+
+        navigate(
+          `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+          {
+            state: {
+              venue,
+              selectedDate,
+              selectedSlots,
+            },
           },
-        });
+        );
       } catch (err) {
         if (err && err.status === 401) {
           toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
@@ -377,19 +573,11 @@ const BookingConfirmation = () => {
           return;
         }
 
-        // Other errors: proceed to payment without server booking
-        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-          state: {
-            venue,
-            selectedDate,
-            selectedSlots,
-            slotSummary,
-            bookingItems,
-            customerName: displayName,
-            customerPhone: displayPhone,
-            totalPrice,
-          },
-        });
+        toast.error(
+          err?.data?.message ??
+            err?.message ??
+            "Không thể hoàn tất đặt sân. Vui lòng thử lại hoặc quay lại chọn khung giờ.",
+        );
       }
       } finally {
         setIsSubmitting(false);
@@ -424,34 +612,40 @@ const BookingConfirmation = () => {
             bookingDate: selectedDate,
             fullname: (displayName || guestName || "").trim(),
             phoneNumber: (displayPhone || guestPhone || "").trim(),
-            bookingNote: (bookingNote || "").trim() || undefined,
+            bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows),
             details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
           };
           const res = await createBooking(payload);
           const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
           const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-          const ttl = expireAt
+          const ttlSeconds = expireAt
             ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
             : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
           try {
-            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+            dispatch(
+              addBookedSlots({
+                venueId: String(venue?.id),
+                date: selectedDate,
+                slots: selectedSlots,
+                ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
+              }),
+            );
           } catch (e) {}
 
-          navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-            state: {
-              venue,
-              selectedDate,
-              selectedSlots,
-              slotSummary,
-              bookingItems,
-              customerName: displayName,
-              customerPhone: displayPhone,
-              totalPrice,
-              reservationId: bookingId,
-              reservationTtl: ttl,
-              reservationExpireAt: expireAt,
+          if (!bookingId) {
+            toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
+            return;
+          }
+          navigate(
+            `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+            {
+              state: {
+                venue,
+                selectedDate,
+                selectedSlots,
+              },
             },
-          });
+          );
         } catch (err) {
           toast.error(err?.message || 'Không thể tạo đặt chỗ.');
         }
@@ -470,21 +664,30 @@ const BookingConfirmation = () => {
       exit={{ opacity: 0, x: -40 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-    <div className="bc-main">
+    <div className={`bc-main${isWalkInBooking ? " bc-main--owner" : ""}`}>
       {/* Header */}
       <div className="bc-header">
         <button
           className="bc-back-btn"
-          onClick={() => navigate(-1)}
+          onClick={() =>
+            isWalkInBooking && venue?.id
+              ? navigate(`/owner/venues/${venue.id}/offline-booking`)
+              : navigate(-1)
+          }
           disabled={isSubmitting}
           aria-disabled={isSubmitting}
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="bc-header-title">Xác nhận đặt sân</h1>
+        <h1 className="bc-header-title">
+          {isWalkInBooking ? "Xác nhận đặt sân offline" : "Xác nhận đặt sân"}
+        </h1>
         <div className="bc-header-spacer" />
       </div>
 
+      <div className="bc-layout">
+        {/* Left column: venue, date, booking details, summary */}
+        <div className="bc-left">
       {/* Venue info */}
       <div className="bc-section">
         <div className="bc-section-header">
@@ -545,6 +748,34 @@ const BookingConfirmation = () => {
         </div>
       </div>
 
+      <div className="bc-section">
+        <div className="bc-section-header">
+          <span style={{ fontSize: "1.05rem" }}>🧰</span>
+          <span>Dịch vụ kèm theo</span>
+        </div>
+        <div className="bc-services-card">
+          {selectedServiceRows.length === 0 ? (
+            <p className="bc-service-empty">Chưa chọn dịch vụ nào.</p>
+          ) : (
+            selectedServiceRows.map((s) => (
+              <div key={s.id} className="bc-service-row">
+                <div className="bc-service-info">
+                  <strong>{s.name}</strong>
+                  <span>
+                    {s.qty} {s.unit} × {formatPrice(s.price)}
+                  </span>
+                </div>
+                <div className="bc-service-subtotal">{formatPrice(s.subtotal)}</div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+        </div>
+
+        {/* Right column: customer info */}
+        <div className="bc-right">
       {/* Customer info */}
       <div className="bc-section">
         <div className="bc-section-header">
@@ -556,23 +787,14 @@ const BookingConfirmation = () => {
             /* ── Logged-in user ── */
             <>
               <div className="bc-customer-row">
-                <span className="bc-customer-label">Email</span>
-                <input
-                  className="bc-field-input"
-                  type="email"
-                  value={user?.email || user?.username || ""}
-                  disabled
-                  readOnly
-                />
-              </div>
-              <div className="bc-customer-row">
                 <span className="bc-customer-label">Họ tên</span>
                 <input
                   className={`bc-field-input${nameError ? " error" : ""}`}
                   type="text"
                   placeholder="Nhập họ và tên"
-                  value={guestName || user?.fullName || user?.name || ""}
+                  value={guestName}
                   onChange={(e) => {
+                    didEditNameRef.current = true;
                     setGuestName(e.target.value);
                     if (e.target.value && e.target.value.trim().length > 0) setNameError("");
                   }}
@@ -588,8 +810,9 @@ const BookingConfirmation = () => {
                   className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
                   placeholder="0912 345 678"
-                  value={guestPhone || user?.phone || user?.phoneNumber || ""}
+                  value={guestPhone}
                   onChange={(e) => {
+                    didEditPhoneRef.current = true;
                     setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
                     if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");
                   }}
@@ -619,13 +842,19 @@ const BookingConfirmation = () => {
               <button
                 type="button"
                 className="bc-login-btn-primary"
-                onClick={() => setShowLoginPopup(true)}
+                onClick={() => openLogin()}
               >
                 Đăng nhập
               </button>
-              <LoginPopup open={showLoginPopup} onClose={() => setShowLoginPopup(false)} />
             </div>
           )}
+        </div>
+      </div>
+      <div className="bc-service-open-wrap">
+        <button type="button" className="bc-service-open-btn" onClick={openServicePopup}>
+          + THÊM DỊCH VỤ
+        </button>
+      </div>
         </div>
       </div>
 
@@ -641,10 +870,20 @@ const BookingConfirmation = () => {
           <span>Tổng khung giờ</span>
           <span className="bc-summary-val">{selectedSlots?.length || 0} khung</span>
         </div>
+        <div className="bc-summary-row">
+          <span>Tiền sân</span>
+          <span className="bc-summary-val">{formatPrice(totalPrice)}</span>
+        </div>
+        <div className="bc-summary-row">
+          <span>Tiền dịch vụ</span>
+          <span className="bc-summary-val">
+            {formatPrice(serviceTotal)} <span className="bc-summary-note">(trả tại sân)</span>
+          </span>
+        </div>
         <div className="bc-summary-divider" />
         <div className="bc-summary-row total">
           <span>Tổng thanh toán</span>
-          <span className="bc-summary-total">{formatPrice(totalPrice)}</span>
+          <span className="bc-summary-total">{formatPrice(payableTotal)}</span>
         </div>
       </div>
 
@@ -654,17 +893,124 @@ const BookingConfirmation = () => {
       <div className="bc-bottom">
         <div className="bc-bottom-price">
           <span className="bc-bottom-label">Tổng cộng</span>
-          <span className="bc-bottom-amount">{formatPrice(totalPrice)}</span>
+          <span className="bc-bottom-amount">{formatPrice(payableTotal)}</span>
         </div>
         <button
           className={`bc-confirm-btn${!canConfirm || isSubmitting ? " disabled" : ""}${isSubmitting ? " loading" : ""}`}
           disabled={!canConfirm || isSubmitting}
           onClick={handleConfirmBooking}
         >
-          {isSubmitting ? "Đang xử lý..." : "XÁC NHẬN ĐẶT SÂN"}
+          {isSubmitting
+            ? "Đang xử lý..."
+            : isWalkInBooking
+              ? "HOÀN TẤT ĐẶT OFFLINE"
+              : "XÁC NHẬN ĐẶT SÂN"}
         </button>
       </div>
     </div>
+
+    {showServicePopup ? (
+      <div className="bc-service-modal-backdrop" onClick={() => setShowServicePopup(false)}>
+        <div className="bc-service-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="bc-service-modal-head">
+            <h3>Dịch vụ dành cho bạn</h3>
+            <button type="button" className="bc-service-close" onClick={() => setShowServicePopup(false)}>
+              ×
+            </button>
+          </div>
+          <div className="bc-service-toolbar">
+            <div className="bc-service-search-wrap">
+              <Search size={16} />
+              <input
+                className="bc-service-search"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder="Nhập tên sản phẩm"
+              />
+            </div>
+            <div className="bc-service-cats">
+              {serviceCategories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`bc-service-cat${serviceCategory === c ? " active" : ""}`}
+                  onClick={() => setServiceCategory(c)}
+                >
+                  {c === "all" ? "Tất cả" : c}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="bc-service-modal-body">
+            {modalServiceRows.length === 0 ? (
+              <p className="bc-service-empty">Không có dịch vụ phù hợp.</p>
+            ) : (
+              modalServiceRows.map(([category, items]) => (
+                <div key={category} className="bc-service-category-block">
+                  <p className="bc-service-category-title">{category}</p>
+                  <div className="bc-service-product-grid">
+                    {items.map((s) => {
+                      const qty = Number(serviceDraftQty[s.id] || 0);
+                      return (
+                        <div key={s.id} className="bc-service-product-card">
+                          <div className="bc-service-product-main">
+                            <div className="bc-service-product-icon" aria-hidden>
+                              👜
+                            </div>
+                            <div className="bc-service-product-info">
+                              <strong>{s.name} ({s.unit})</strong>
+                              <span>{formatPrice(s.price)} / {s.unit}</span>
+                            </div>
+                          </div>
+                          <div className="bc-service-actions">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setServiceDraftQty((prev) => ({
+                                  ...prev,
+                                  [s.id]: Math.max(0, Number(prev[s.id] || 0) - 1),
+                                }))
+                              }
+                              className="bc-qty-btn"
+                            >
+                              -
+                            </button>
+                            <span className="bc-qty-val">{qty}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setServiceDraftQty((prev) => ({
+                                  ...prev,
+                                  [s.id]: Math.min(99, Number(prev[s.id] || 0) + 1),
+                                }))
+                              }
+                              className="bc-qty-btn"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="bc-service-modal-foot">
+            <button type="button" className="bc-service-cancel" onClick={() => setShowServicePopup(false)}>
+              Hủy
+            </button>
+            <button type="button" className="bc-service-apply" onClick={applyServicePopup}>
+              Thêm dịch vụ
+            </button>
+            <span className="bc-service-foot-meta">
+              {modalServiceCount} món | Tổng cộng: {formatPrice(modalServiceTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+    ) : null}
     </motion.div>
   );
 };

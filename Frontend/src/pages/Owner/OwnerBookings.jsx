@@ -1,14 +1,27 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { toast } from "react-toastify";
 import "./OwnerBookings.css";
 import { getOwnerBookingList } from "../../services/bookingService";
+import { getOwnerVenues } from "../../services/venueService";
+
+const filterSchema = yup.object({
+  venueId: yup.string(),
+});
 
 const formatDate = (d) => {
-  if (!d) return "—";
+  if (d == null || d === "") return "—";
+  if (typeof d === "object" && d.year != null) {
+    const day = String(d.day ?? 0).padStart(2, "0");
+    const month = String(d.month ?? 0).padStart(2, "0");
+    return `${day}/${month}/${d.year}`;
+  }
   const s = String(d).slice(0, 10);
   const [y, m, day] = s.split("-");
-  return y && m && day ? `${day}/${m}/${y}` : s;
+  return y && m && day ? `${day}/${m}/${y}` : String(d);
 };
 
 const formatPrice = (n) => {
@@ -27,36 +40,83 @@ const translateStatus = (status) => {
   return status || "—";
 };
 
+const PAGE_SIZE = 10;
+
 const OwnerBookings = () => {
   const navigate = useNavigate();
-  const [venueFilter, setVenueFilter] = useState("");
+  const [venues, setVenues] = useState([]);
+  const [venuesLoading, setVenuesLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const { register, handleSubmit, watch, reset } = useForm({
+    resolver: yupResolver(filterSchema),
+    defaultValues: { venueId: "" },
+  });
+
+  const selectedVenueId = watch("venueId") ?? "";
+
+  const venueOptions = useMemo(
+    () =>
+      [...venues].sort((a, b) =>
+        String(a?.name ?? a?.Name ?? "").localeCompare(String(b?.name ?? b?.Name ?? ""), "vi", {
+          sensitivity: "base",
+        }),
+      ),
+    [venues],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setVenuesLoading(true);
+      try {
+        const list = await getOwnerVenues();
+        if (!cancelled) setVenues(Array.isArray(list) ? list : []);
+      } catch (e) {
+        if (!cancelled) {
+          toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được danh sách cơ sở.");
+          setVenues([]);
+        }
+      } finally {
+        if (!cancelled) setVenuesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
-      const v = venueFilter.trim();
-      if (v) params.venueName = v;
-      const list = await getOwnerBookingList(params);
-      setItems(Array.isArray(list) ? list : []);
+      const params = { pageNumber: page, pageSize: PAGE_SIZE };
+      const vid = selectedVenueId !== "" ? Number(String(selectedVenueId)) : NaN;
+      if (Number.isFinite(vid) && vid > 0) params.venueId = vid;
+      const result = await getOwnerBookingList(params);
+      setItems(Array.isArray(result?.items) ? result.items : []);
+      setTotalItems(Number(result?.totalItems) || 0);
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được danh sách đơn.");
       setItems([]);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  }, [venueFilter]);
+  }, [selectedVenueId, page]);
 
   useEffect(() => {
     loadList();
   }, [loadList]);
 
-  const handleFilterSubmit = (e) => {
-    e.preventDefault();
-    loadList();
-  };
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE) || 1);
+
+  const onFilterSubmit = useCallback(() => {
+    if (page !== 1) setPage(1);
+    else loadList();
+  }, [page, loadList]);
 
   return (
     <div className="owner-home owner-bookings-page">
@@ -68,15 +128,33 @@ const OwnerBookings = () => {
         <div className="ob-card ob-card--list">
           
 
-          <form className="ob-filter-row" onSubmit={handleFilterSubmit}>
+          <form
+            className="ob-filter-row"
+            onSubmit={handleSubmit(onFilterSubmit)}
+            noValidate
+          >
             <label className="ob-filter-label">
-              Lọc theo tên cơ sở (tuỳ chọn)
-              <input
-                type="text"
-                placeholder="VD: Sân Mỹ Đình"
-                value={venueFilter}
-                onChange={(e) => setVenueFilter(e.target.value)}
-              />
+              Lọc theo cơ sở (tuỳ chọn)
+              <select
+                className="ob-filter-select"
+                disabled={venuesLoading}
+                {...register("venueId", {
+                  onChange: () => setPage(1),
+                })}
+              >
+                <option value="">
+                  {venuesLoading ? "Đang tải cơ sở…" : "Tất cả cơ sở"}
+                </option>
+                {venueOptions.map((v) => {
+                  const id = v?.venueId ?? v?.VenueId;
+                  const name = v?.name ?? v?.Name ?? `Cơ sở #${id}`;
+                  return (
+                    <option key={id} value={String(id)}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
             </label>
             <button type="submit" className="ob-btn primary ob-btn-sm">
               Lọc
@@ -84,11 +162,21 @@ const OwnerBookings = () => {
             <button
               type="button"
               className="ob-btn outline ob-btn-sm"
-              onClick={() => setVenueFilter("")}
+              onClick={() => {
+                reset({ venueId: "" });
+                setPage(1);
+              }}
             >
               Xóa lọc
             </button>
           </form>
+
+          {!loading && totalItems > 0 ? (
+            <p className="ob-meta-count">
+              {totalItems} đơn
+              {totalPages > 1 ? ` · Trang ${page}/${totalPages}` : ""}
+            </p>
+          ) : null}
 
           {loading ? (
             <p className="ob-desc">Đang tải danh sách...</p>
@@ -145,6 +233,30 @@ const OwnerBookings = () => {
               })}
             </div>
           )}
+
+          {!loading && items.length > 0 && totalPages > 1 ? (
+            <div className="ob-pagination">
+              <button
+                type="button"
+                className="ob-btn outline ob-btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                ← Trước
+              </button>
+              <span className="ob-pagination-info">
+                Trang {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                className="ob-btn outline ob-btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Sau →
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

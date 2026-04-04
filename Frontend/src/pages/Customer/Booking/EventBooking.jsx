@@ -3,49 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import "./EventBooking.css";
 
-// UI mock giống trang “đặt lịch sự kiện” (chưa có API list)
-const mockSessions = [
-  {
-    id: 2569,
-    title: "[Xé vé] - ⭐ Trên 6 tháng",
-    date: "18/03/2026",
-    time: "16h - 21h",
-    field: "Sân 7",
-    price: "50k/Vé",
-    joined: 0,
-    capacity: 8,
-  },
-  {
-    id: 2541,
-    title: "[Xé vé] - ⭐⭐ Trên 12 tháng",
-    date: "18/03/2026",
-    time: "16h - 21h",
-    field: "Sân 6",
-    price: "50k/Vé",
-    joined: 0,
-    capacity: 8,
-  },
-  {
-    id: 2540,
-    title: "[Xé vé] - ⭐⭐ Trên 12 tháng",
-    date: "18/03/2026",
-    time: "16h - 21h",
-    field: "Sân 5",
-    price: "50k/Vé",
-    joined: 0,
-    capacity: 8,
-  },
-  {
-    id: 2562,
-    title: "[Xé vé] - ⭐ Trên 3 tháng",
-    date: "18/03/2026",
-    time: "16h - 21h",
-    field: "Sân 8",
-    price: "50k/Vé",
-    joined: 0,
-    capacity: 8,
-  },
-];
+
 
 const EventBooking = () => {
   const { id } = useParams();

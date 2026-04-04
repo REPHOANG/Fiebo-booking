@@ -12,6 +12,15 @@ export const createBooking = async (payload) => {
 };
 
 /**
+ * Đặt sân offline / walk-in (chủ sân hoặc nhân viên).
+ * POST /api/Booking/walk-in — cùng payload CreateBookingRequest, trạng thái Booked ngay.
+ */
+export const createWalkInBooking = async (payload) => {
+  const response = await api.post('/api/Booking/walk-in', payload);
+  return response.data?.data ?? response.data ?? response;
+};
+
+/**
  * Thanh toán đặt chỗ bằng ví (Complete booking payment using customer's wallet).
  * @param {number|string} bookingId
  * @param {Object} payload e.g. { paymentMethod: 'wallet' }
@@ -68,13 +77,22 @@ export const OWNER_BOOKINGS_LIST_PATH = '/api/owner/bookings';
 
 /**
  * Danh sách đơn đặt sân của chủ sân (GET /api/owner/bookings).
- * Query (OwnerBookingFilter): bookingId?, venueName?, fieldName?, fromDate?, toDate?, status? (enum số hoặc tên).
- * Cần đăng nhập role FieldOwner.
+ * Trả về PagedResult: page, pageSize, totalItems, items.
+ * Query (OwnerBookingFilter): bookingId?, venueId?, venueName?, fieldName?, fromDate?, toDate?, status?, pageNumber?, pageSize?
  */
 export const getOwnerBookingList = async (params = {}) => {
   const response = await api.get(OWNER_BOOKINGS_LIST_PATH, { params });
-  const data = response.data?.data ?? response.data;
-  return Array.isArray(data) ? data : [];
+  const data = response.data?.data ?? response.data ?? {};
+  const items = data?.items ?? data?.Items ?? [];
+  const totalItems = Number(data?.totalItems ?? data?.TotalItems ?? 0) || 0;
+  const page = Number(data?.page ?? data?.Page ?? 1) || 1;
+  const pageSize = Number(data?.pageSize ?? data?.PageSize ?? 10) || 10;
+  return {
+    page,
+    pageSize,
+    totalItems,
+    items: Array.isArray(items) ? items : [],
+  };
 };
 
 /**
@@ -106,6 +124,7 @@ export const ownerCancelBookingApi = async (id, cancelReason) => {
 
 export default {
   createBooking,
+  createWalkInBooking,
   payBooking,
   getBookingById,
   getBookingHistory,

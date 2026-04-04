@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
+import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
 
 const ProtectedRoute = ({ element, requiredRole }) => {
   const { isAuthenticated, user, profileLoading } = useSelector(
@@ -29,7 +30,9 @@ const ProtectedRoute = ({ element, requiredRole }) => {
     return element;
   }
 
-  return <Navigate to="/login" replace />;
+  return (
+    <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "login" }} />
+  );
 };
 
 export default ProtectedRoute;

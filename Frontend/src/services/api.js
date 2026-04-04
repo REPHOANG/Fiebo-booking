@@ -36,6 +36,12 @@ api.interceptors.response.use(
       if (currentToken && isTokenExpired(currentToken)) {
         store.dispatch(logout());
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        if (typeof window !== "undefined") {
+          const path = window.location.pathname;
+          if (path !== "/" && !path.startsWith("/owner/login")) {
+            window.location.replace("/");
+          }
+        }
       }
     }
     return Promise.reject(error);
