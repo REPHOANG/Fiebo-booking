@@ -24,22 +24,23 @@ export default function CreateVenueStepDocuments({
         <p className="cv-error-text">Chưa có venueId. Vui lòng quay lại bước 1.</p>
       ) : (
         <>
-          <div className="cv-wizard-hint">
-            Venue #{venueId} · Trạng thái: <strong>{createdVenue?.status ?? "DRAFT"}</strong>
-          </div>
-          <div className="cv-docs">
-            {docs.map((d, di) => {
-              const existing = d.existingImageUrls ?? [];
-              const files = d.files ?? [];
-              const total = existing.length + files.length;
-              const canAddMore = total < 5;
+          <fieldset disabled={isSubmitting} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <div className="cv-wizard-hint">
+              Venue #{venueId} · Trạng thái: <strong>{createdVenue?.status ?? "DRAFT"}</strong>
+            </div>
+            <div className="cv-docs">
+              {docs.map((d, di) => {
+                const existing = d.existingImageUrls ?? [];
+                const files = d.files ?? [];
+                const total = existing.length + files.length;
+                const canAddMore = total < 5;
 
-              return (
-                <div key={d.apiPrefix} className="cv-doc-card">
-                  <div className="cv-doc-head">
-                    <strong>{d.label}</strong>
-                  </div>
-                  <div className="cv-form-grid">
+                return (
+                  <div key={d.apiPrefix} className="cv-doc-card">
+                    <div className="cv-doc-head">
+                      <strong>{d.label}</strong>
+                    </div>
+                    <div className="cv-form-grid">
                     <div className="cv-form-group">
                       <label>
                         Ngày cấp <span className="cv-required">*</span>
@@ -165,11 +166,13 @@ export default function CreateVenueStepDocuments({
                         </p>
                       ) : null}
                     </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </fieldset>
+
           <div className="cv-submit-section">
             <button type="button" className="cv-cancel-btn" onClick={onBack} disabled={isSubmitting}>
               Quay lại

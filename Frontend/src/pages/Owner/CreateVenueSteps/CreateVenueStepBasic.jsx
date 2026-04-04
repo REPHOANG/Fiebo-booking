@@ -59,11 +59,12 @@ export default function CreateVenueStepBasic({
 }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="cv-card">
-        <h3 className="cv-card-title">
-          <Building2 size={20} /> Thông tin cơ bản
-        </h3>
-        <div className="cv-form-grid">
+      <fieldset disabled={isSubmitting} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+        <div className="cv-card">
+          <h3 className="cv-card-title">
+            <Building2 size={20} /> Thông tin cơ bản
+          </h3>
+          <div className="cv-form-grid">
           <div className="cv-form-group cv-full-width">
             <label>
               Tên cơ sở <span className="cv-required">*</span>
@@ -136,14 +137,14 @@ export default function CreateVenueStepBasic({
             <input type="time" {...reg("closeTime")} />
             {errors.closeTime ? <p className="cv-error-text">{errors.closeTime.message}</p> : null}
           </div>
+          </div>
         </div>
-      </div>
 
-      <div className="cv-card">
-        <h3 className="cv-card-title">
-          <MapPin size={20} /> Địa chỉ
-        </h3>
-        <div className="cv-form-grid">
+        <div className="cv-card">
+          <h3 className="cv-card-title">
+            <MapPin size={20} /> Địa chỉ
+          </h3>
+          <div className="cv-form-grid">
           <div className="cv-form-group">
             <label>
               Tỉnh / Thành phố <span className="cv-required">*</span>
@@ -242,11 +243,12 @@ export default function CreateVenueStepBasic({
               vĩ độ/kinh độ.
             </p>
           </div>
+          </div>
         </div>
-      </div>
+      </fieldset>
 
       <div className="cv-submit-section">
-        <button type="button" className="cv-cancel-btn" onClick={onCancel}>
+        <button type="button" className="cv-cancel-btn" onClick={onCancel} disabled={isSubmitting}>
           Hủy bỏ
         </button>
         <button type="submit" className="cv-submit-btn" disabled={isSubmitting}>
