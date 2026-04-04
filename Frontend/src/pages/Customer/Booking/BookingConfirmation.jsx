@@ -4,7 +4,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, Search } from "lucide-react";
 import { createBooking, createWalkInBooking } from "../../../services/bookingService";
-import { setPaymentDraft } from '../../../store/paymentDraftSlice';
 import { getVenueSchedule } from "../../../services/fieldService";
 import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
@@ -528,41 +527,36 @@ const BookingConfirmation = () => {
         const res = await createBooking(payload);
         const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
         const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-        // Persist minimal server-side draft (bookingId) so users can resume across devices
-        try {
-          if (bookingId) {
-            dispatch(
-              setPaymentDraft({
-                bookingId,
-                venueId: venue?.id,
-                expiresAt: expireAt,
-              }),
-            );
-          }
-        } catch (e) {}
-        const ttl = expireAt
+        const ttlSeconds = expireAt
           ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
           : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
 
         try {
-          dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+          dispatch(
+            addBookedSlots({
+              venueId: String(venue?.id),
+              date: selectedDate,
+              slots: selectedSlots,
+              ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
+            }),
+          );
         } catch (e) {}
 
-        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-          state: {
-            venue,
-            selectedDate,
-            selectedSlots,
-            slotSummary,
-            bookingItems,
-            customerName: displayName,
-            customerPhone: displayPhone,
-            totalPrice,
-            reservationId: bookingId,
-            reservationTtl: ttl,
-            reservationExpireAt: expireAt,
+        if (!bookingId) {
+          toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
+          return;
+        }
+
+        navigate(
+          `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+          {
+            state: {
+              venue,
+              selectedDate,
+              selectedSlots,
+            },
           },
-        });
+        );
       } catch (err) {
         if (err && err.status === 401) {
           toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
@@ -579,19 +573,11 @@ const BookingConfirmation = () => {
           return;
         }
 
-        // Other errors: proceed to payment without server booking
-        navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-          state: {
-            venue,
-            selectedDate,
-            selectedSlots,
-            slotSummary,
-            bookingItems,
-            customerName: displayName,
-            customerPhone: displayPhone,
-            totalPrice,
-          },
-        });
+        toast.error(
+          err?.data?.message ??
+            err?.message ??
+            "Không thể hoàn tất đặt sân. Vui lòng thử lại hoặc quay lại chọn khung giờ.",
+        );
       }
       } finally {
         setIsSubmitting(false);
@@ -632,28 +618,34 @@ const BookingConfirmation = () => {
           const res = await createBooking(payload);
           const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
           const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-          const ttl = expireAt
+          const ttlSeconds = expireAt
             ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
             : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
           try {
-            dispatch(addBookedSlots({ venueId: String(venue?.id), date: selectedDate, slots: selectedSlots, ttlSeconds: ttl }));
+            dispatch(
+              addBookedSlots({
+                venueId: String(venue?.id),
+                date: selectedDate,
+                slots: selectedSlots,
+                ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
+              }),
+            );
           } catch (e) {}
 
-          navigate(`/venue/${venue?.id || 'unknown'}/booking/payment`, {
-            state: {
-              venue,
-              selectedDate,
-              selectedSlots,
-              slotSummary,
-              bookingItems,
-              customerName: displayName,
-              customerPhone: displayPhone,
-              totalPrice,
-              reservationId: bookingId,
-              reservationTtl: ttl,
-              reservationExpireAt: expireAt,
+          if (!bookingId) {
+            toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
+            return;
+          }
+          navigate(
+            `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+            {
+              state: {
+                venue,
+                selectedDate,
+                selectedSlots,
+              },
             },
-          });
+          );
         } catch (err) {
           toast.error(err?.message || 'Không thể tạo đặt chỗ.');
         }

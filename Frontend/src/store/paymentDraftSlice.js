@@ -1,29 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-export const PAYMENT_DRAFT_STORAGE_KEY = "fiebo_payment_draft_v1";
-
-function readDraftFromStorage() {
-  try {
-    const raw = localStorage.getItem(PAYMENT_DRAFT_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (_) {
-    return null;
-  }
-}
-
-function writeDraftToStorage(draft) {
-  try {
-    if (draft == null) {
-      localStorage.removeItem(PAYMENT_DRAFT_STORAGE_KEY);
-      return;
-    }
-    localStorage.setItem(PAYMENT_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-  } catch (_) {
-    /* ignore quota / private mode */
-  }
-}
-
 /** Dùng khi cần kiểm tra TTL ngoài component (hiện chưa dùng trong app). */
 export function isDraftExpired(draft) {
   if (!draft) return true;
@@ -42,7 +18,7 @@ export function isDraftExpired(draft) {
 const paymentDraftSlice = createSlice({
   name: "paymentDraft",
   initialState: {
-    draft: readDraftFromStorage(),
+    draft: null,
   },
   reducers: {
     setPaymentDraft: (state, action) => {
@@ -54,16 +30,12 @@ const paymentDraftSlice = createSlice({
           !(payload.venueId && payload.selectedSlots?.length))
       ) {
         state.draft = null;
-        writeDraftToStorage(null);
         return;
       }
-      const next = { ...payload, savedAt: Date.now() };
-      state.draft = next;
-      writeDraftToStorage(next);
+      state.draft = { ...payload, savedAt: Date.now() };
     },
     clearPaymentDraft: (state) => {
       state.draft = null;
-      writeDraftToStorage(null);
     },
   },
 });
