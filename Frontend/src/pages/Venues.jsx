@@ -104,8 +104,19 @@ const VenuePopup = ({ venueId, onClose }) => {
 
   // Lock body scroll
   useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    if (scrollBarWidth > 0) {
+      document.body.style.paddingRight = `${scrollBarWidth}px`;
+    }
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
   }, []);
 
   // Close on Escape
