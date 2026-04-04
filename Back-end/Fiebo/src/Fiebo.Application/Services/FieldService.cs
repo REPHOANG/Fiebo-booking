@@ -168,7 +168,7 @@ namespace Fiebo.Application.Services
             if (nameExists)
             {
                 throw new ResourceConflictException(
-                    "Tên sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
+                    "Tên sân và loại sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
             }
 
             // BR-03 / Default Status: Automatically set to Active
