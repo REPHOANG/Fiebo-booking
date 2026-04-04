@@ -345,21 +345,22 @@ const Venues = () => {
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [distanceKm, setDistanceKm] = useState("");
+  const [pendingBookingDate, setPendingBookingDate] = useState("");
+  const [pendingBookingTime, setPendingBookingTime] = useState("");
+  const [pendingKeyword, setPendingKeyword] = useState("");
   /** Bán kính đã áp dụng → gửi `radiusKm` + tọa độ (giống Swagger). */
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
-  /** `YYYY-MM-DD` / `HH:mm` — khớp API GET `/api/Venue/search` (date + time lọc slot trống). */
-  const [bookingDate, setBookingDate] = useState("");
-  const [bookingTime, setBookingTime] = useState("");
-  const [activeKeyword, setActiveKeyword] = useState("");
+  const [appliedBookingDate, setAppliedBookingDate] = useState("");
+  const [appliedBookingTime, setAppliedBookingTime] = useState("");
   const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
 
   const hasPanelDraft = Boolean(
     province.trim() ||
       district.trim() ||
       distanceKm ||
-      activeKeyword ||
-      bookingDate ||
-      bookingTime ||
+      pendingKeyword ||
+      pendingBookingDate ||
+      pendingBookingTime ||
       appliedRadiusKm != null,
   );
 
@@ -384,8 +385,8 @@ const Venues = () => {
         sportTypeIdFromUrl ?? "",
         userGeo.userLat ?? "",
         userGeo.userLng ?? "",
-        bookingDate,
-        bookingTime,
+        appliedBookingDate,
+        appliedBookingTime,
         appliedRadiusKm ?? "",
       ].join("|"),
     [
@@ -393,8 +394,8 @@ const Venues = () => {
       sportTypeIdFromUrl,
       userGeo.userLat,
       userGeo.userLng,
-      bookingDate,
-      bookingTime,
+      appliedBookingDate,
+      appliedBookingTime,
       appliedRadiusKm,
     ],
   );
@@ -405,10 +406,10 @@ const Venues = () => {
       const location = searchTerm?.trim() || undefined;
       const sportTypeId =
         sportTypeIdFromUrl != null ? Number(sportTypeIdFromUrl) : undefined;
-      const dateParam = bookingDate?.trim() || undefined;
+      const dateParam = appliedBookingDate?.trim() || undefined;
       const timeParam =
-        dateParam && bookingTime?.trim()
-          ? formatTimeForApi(bookingTime)
+        dateParam && appliedBookingTime?.trim()
+          ? formatTimeForApi(appliedBookingTime)
           : undefined;
 
       try {
@@ -459,8 +460,8 @@ const Venues = () => {
       sportTypeIdFromUrl,
       userGeo.userLat,
       userGeo.userLng,
-      bookingDate,
-      bookingTime,
+      appliedBookingDate,
+      appliedBookingTime,
       appliedRadiusKm,
     ],
   );
@@ -533,21 +534,34 @@ const Venues = () => {
     return parts.join(" ");
   };
 
-  const applyAreaFilter = () => {
-    setAppliedRadiusKm(null);
-    const text = getAreaFilterText();
+  const getPendingSearchText = () => {
+    if (pendingKeyword) return pendingKeyword;
+    return [province, district].filter(Boolean).join(" ").trim();
+  };
+
+  const applyPendingSearchText = () => {
+    const text = getPendingSearchText();
     if (text) {
       setSearchTerm(text);
       setInputValue(text);
-      setActiveKeyword("");
     }
+  };
+
+  const applyAreaFilter = () => {
+    setAppliedRadiusKm(null);
+    setAppliedBookingDate(pendingBookingDate);
+    setAppliedBookingTime(pendingBookingTime);
+    applyPendingSearchText();
     setShowFilterPanel(false);
   };
 
   const applyDistanceFilter = () => {
     const raw = String(distanceKm ?? "").trim();
+    setAppliedBookingDate(pendingBookingDate);
+    setAppliedBookingTime(pendingBookingTime);
     if (!raw) {
       setAppliedRadiusKm(null);
+      applyPendingSearchText();
       setShowFilterPanel(false);
       return;
     }
@@ -560,7 +574,7 @@ const Venues = () => {
         localStorage.setItem("userLocation", JSON.stringify({ lat, lng }));
       } catch (_) {}
       setAppliedRadiusKm(r);
-      setActiveKeyword("");
+      applyPendingSearchText();
       setShowFilterPanel(false);
     };
 
@@ -597,21 +611,16 @@ const Venues = () => {
     else applyAreaFilter();
   };
 
-  const handleKeywordClick = (keyword) => {
-    setActiveKeyword(keyword);
-    setSearchTerm(keyword);
-    setInputValue(keyword);
-    setShowFilterPanel(false);
-  };
 
   const clearFilters = () => {
     setProvince("");
     setDistrict("");
     setDistanceKm("");
+    setPendingBookingDate("");
+    setPendingBookingTime("");
     setAppliedRadiusKm(null);
-    setBookingDate("");
-    setBookingTime("");
-    setActiveKeyword("");
+    setAppliedBookingDate("");
+    setAppliedBookingTime("");
     setSearchTerm("");
     setInputValue("");
     setShowFilterPanel(false);
@@ -639,7 +648,7 @@ const Venues = () => {
         <div className="stat-item">
           <span className="stat-value">5</span>
           <span className="stat-label">Môn thể thao</span>
-        </div>
+        </div>  
         <div className="stat-item">
           <span className="stat-value">10+</span>
           <span className="stat-label">Thành phố</span>
@@ -701,7 +710,7 @@ const Venues = () => {
                 <div className="filter-header">
                   <div className="filter-header-text">
                     <h4>Bộ lọc nâng cao</h4>
-                    <p>Lọc khu vực, khoảng cách, ngày giờ đặt sân hoặc gợi ý nhanh.</p>
+                    <p>Lọc khu vực, khoảng cách, ngày giờ đặt sân.</p>
                   </div>
                   <button
                     type="button"
@@ -799,11 +808,11 @@ const Venues = () => {
                     <input
                       id="venues-booking-date"
                       type="date"
-                      value={bookingDate}
+                      value={pendingBookingDate}
                       onChange={(e) => {
                         const v = e.target.value;
-                        setBookingDate(v);
-                        if (!v) setBookingTime("");
+                        setPendingBookingDate(v);
+                        if (!v) setPendingBookingTime("");
                       }}
                     />
                   </div>
@@ -812,29 +821,15 @@ const Venues = () => {
                     <input
                       id="venues-booking-time"
                       type="time"
-                      value={bookingTime}
-                      onChange={(e) => setBookingTime(e.target.value)}
-                      disabled={!bookingDate}
-                      title={!bookingDate ? "Chọn ngày trước" : undefined}
+                      value={pendingBookingTime}
+                      onChange={(e) => setPendingBookingTime(e.target.value)}
+                      disabled={!pendingBookingDate}
+                      title={!pendingBookingDate ? "Chọn ngày trước" : undefined}
                     />
                   </div>
                 </div>
 
-                <div className="filter-quick">
-                  <span className="filter-quick-label">Gợi ý nhanh</span>
-                  <div className="keywords-row">
-                    {filterKeywords.map((keyword) => (
-                      <button
-                        key={keyword}
-                        type="button"
-                        className={`keyword-chip ${activeKeyword === keyword ? "active" : ""}`}
-                        onClick={() => handleKeywordClick(keyword)}
-                      >
-                        {keyword}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+               
 
                 <div className="filter-actions">
                   <button type="button" className="filter-btn-primary" onClick={applyFilterPanel}>
@@ -905,7 +900,7 @@ const Venues = () => {
           <h3>Không tìm thấy sân nào</h3>
           <p>
             Thử tên địa điểm cụ thể, chọn ngày/giờ trong bộ lọc hoặc chọn môn từ trang chủ. Hệ thống chỉ
-            khớp từ khoá với tên sân và địa chỉ, không hiểu câu tự nhiên kiểu &quot;sân bóng gần nhất&quot;.
+            khớp từ khoá với tên sân và địa chỉ.
           </p>
         </div>
       ) : null}
