@@ -17,7 +17,9 @@ namespace Fiebo.Domain.Repositories
         Task<Venue?> GetVenueDetailById(int venueId);
 
         Task<PagedResult<Venue>> SearchVenuesByFieldAsync(
-            string? locationKeyword,
+            int? provinceId,
+            int? wardId,
+            string? name,
             DateOnly? bookingDate,
             TimeOnly? bookingTime,
             int? sportTypeId,

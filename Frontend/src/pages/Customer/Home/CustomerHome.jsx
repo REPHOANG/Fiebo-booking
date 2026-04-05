@@ -102,9 +102,8 @@ const CustomerHome = () => {
   });
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      navigate(`/venues?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
+    const q = searchQuery.trim();
+    navigate(q ? `/venues?search=${encodeURIComponent(q)}` : "/venues");
   };
 
   const handleLogout = () => {
@@ -112,7 +111,7 @@ const CustomerHome = () => {
     localStorage.removeItem("token");
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem("token");
-    navigate("/login");
+    navigate("/");
   };
 
   if(nearbyError || popularError) {

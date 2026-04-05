@@ -144,8 +144,7 @@ namespace Fiebo.Application.Services
         public async Task<int> CreateFieldAsync(
             int venueId,
             CreateFieldRequest request,
-            string userId,
-            string userRole)
+            string userId)
         {
             // BR-01: Field must belong to exactly one Venue and one SportType
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
@@ -154,21 +153,20 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy cơ sở sân.");
             }
 
-            // Authorization: Field Owner or Admin
-            bool isAdmin = userRole == AppRoles.Admin;
-            if (!isAdmin && venue.OwnerId != userId)
+            // Authorization: Field Owner
+            if (venue.OwnerId != userId)
             {
                 throw new UnauthorizedException("Bạn không có quyền tạo sân trong cơ sở này.");
             }
 
             // BR-02 / MSG-E02: Check for duplicate field names within the same Venue
             var nameExists = await _unitOfWork.Fields
-                .IsFieldNameExistsInVenueAsync(venueId, request.Name);
+                .IsFieldNameExistsInVenueAsync(venueId, request.Name, request.SportTypeId);
 
             if (nameExists)
             {
                 throw new ResourceConflictException(
-                    "Tên sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
+                    "Tên sân và loại sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.");
             }
 
             // BR-03 / Default Status: Automatically set to Active
@@ -184,7 +182,7 @@ namespace Fiebo.Application.Services
             // MSG-E03 / Image Validation: Check if images are valid
             if (request.Images != null && request.Images.Any())
             {
-                ImageValidator.ValidateFiles(request.Images, min: 0, max: 10); // Optional but max 10 images
+                ImageValidator.ValidateFiles(request.Images, min: 0, max: 5);
 
                 foreach (var file in request.Images)
                 {

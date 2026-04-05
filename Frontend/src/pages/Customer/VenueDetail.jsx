@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -14,6 +14,7 @@ import {
   MessageSquare,
   User,
   Loader2,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/landing/Header";
@@ -30,6 +31,9 @@ const formatTime = (timeSpan) => {
   const parts = String(timeSpan).split(":");
   return `${parts[0]}:${parts[1]}`;
 };
+
+const getFieldListKey = (field, index) =>
+  field?.id ?? field?.fieldId ?? `${field?.name || "field"}-${index}`;
 
 /* ================================================================
    Helper – format relative time
@@ -220,64 +224,87 @@ const VenueReviews = ({ reviews, total, onLoadMore, page }) => {
 };
 
 /* ================================================================
-   Sub-component – Field Card (expandable) — with API-loaded reviews
+   Field carousel tile + modal detail
    ================================================================ */
-const FieldCard = ({ field, venueId, index }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+const FieldCarouselTile = ({ field, index, onOpen }) => (
+  <motion.button
+    type="button"
+    className="vd-field-carousel-tile"
+    aria-label={`Xem chi tiết sân ${field.name}`}
+    onClick={() => onOpen(field)}
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay: index * 0.04, duration: 0.25 }}
+  >
+    <div className="vd-fct-media">
+      {field.images?.[0] ? (
+        <img src={field.images[0]} alt="" role="presentation" />
+      ) : (
+        <div className="vd-fct-placeholder">
+          <ImageIcon size={28} strokeWidth={1.5} aria-hidden />
+        </div>
+      )}
+    </div>
+    <div className="vd-fct-body">
+      <span className="vd-fct-title">{field.name}</span>
+      {field.sportType ? <span className="vd-fct-sport">{field.sportType}</span> : null}
+    </div>
+    <span className="vd-fct-hint" aria-hidden>
+      <ChevronRight size={16} strokeWidth={2.5} />
+    </span>
+  </motion.button>
+);
 
-  const handleExpand = async () => {
-    const nextExpanded = !expanded;
-    setExpanded(nextExpanded);
-  };
+const FieldDetailModal = ({ field, onClose }) => {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
 
   return (
     <motion.div
-      className={`vd-field-card-v2${expanded ? " expanded" : ""}`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      className="vd-field-modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onClose}
     >
-      {/* Collapsed header — always visible */}
-      <div className="vd-fc-header" onClick={handleExpand}>
-        <div className="vd-fc-thumb">
-          {field.images?.[0] ? (
-            <img src={field.images[0]} alt={field.name} />
-          ) : (
-            <div className="vd-fc-thumb-placeholder"><ImageIcon size={20} /></div>
-          )}
-        </div>
-        <div className="vd-fc-summary">
-          <h4>{field.name}</h4>
-          {field.sportType && <span className="vd-fc-sport-tag">{field.sportType}</span>}
-        </div>
-        <button className={`vd-fc-expand-btn${expanded ? " open" : ""}`}>
-          <ChevronRight size={20} />
+      <motion.div
+        className="vd-field-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vd-field-modal-title"
+        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button type="button" className="vd-field-modal-close" onClick={onClose} aria-label="Đóng">
+          <X size={22} />
         </button>
-      </div>
-
-      {/* Expanded body */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            className="vd-fc-body"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <div className="vd-fc-body-inner">
-              {/* Description */}
-              {field.description && <p className="vd-fc-description">{field.description}</p>}
-
-              {/* Images */}
-              <FieldImageGallery images={field.images} fieldName={field.name} />
-            </div>
-          </motion.div>
+        <h3 id="vd-field-modal-title" className="vd-field-modal-title">
+          {field.name}
+        </h3>
+        {field.sportType ? <p className="vd-field-modal-sport">{field.sportType}</p> : null}
+        {field.description ? <p className="vd-field-modal-desc">{field.description}</p> : null}
+        {field.images?.length ? (
+          <FieldImageGallery key={field.name} images={field.images} fieldName={field.name} />
+        ) : (
+          <div className="vd-field-modal-no-img">
+            <ImageIcon size={36} strokeWidth={1.25} />
+            <span>Chưa có ảnh sân</span>
+          </div>
         )}
-      </AnimatePresence>
+      </motion.div>
     </motion.div>
   );
 };
@@ -305,6 +332,15 @@ const VenueDetail = () => {
   const [error, setError] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
+  const [fieldModal, setFieldModal] = useState(null);
+  const fieldsCarouselRef = useRef(null);
+
+  const scrollFieldsCarousel = useCallback((dir) => {
+    const el = fieldsCarouselRef.current;
+    if (!el) return;
+    const step = Math.min(el.clientWidth * 0.72, 300);
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
+  }, []);
 
   // Fetch venue detail + fields + reviews on mount
   useEffect(() => {
@@ -449,13 +485,39 @@ const VenueDetail = () => {
             )}
             {fields.length > 0 && (
               <div className="vd-fields-section">
-                <h3>
-                  <Calendar size={18} /> Danh sách sân ({fields.length})
-                </h3>
-                <div className="vd-fields-list-v2">
-                  {fields.map((field, i) => (
-                    <FieldCard key={field.name + i} field={field} venueId={id} index={i} />
-                  ))}
+                <div className="vd-fields-section-head">
+                  <h2 className="vd-fields-heading">
+                    <Calendar size={20} strokeWidth={2} className="vd-fields-heading-icon" aria-hidden />
+                    Danh sách sân ({fields.length})
+                  </h2>
+                </div>
+                <div className="vd-fields-carousel-shell">
+                  <button
+                    type="button"
+                    className="vd-fields-carousel-arrow vd-fields-carousel-arrow--prev"
+                    onClick={() => scrollFieldsCarousel(-1)}
+                    aria-label="Cuộn danh sách sang trái"
+                  >
+                    <ChevronLeft size={22} strokeWidth={2} />
+                  </button>
+                  <div ref={fieldsCarouselRef} className="vd-fields-carousel">
+                    {fields.map((field, i) => (
+                      <FieldCarouselTile
+                        key={getFieldListKey(field, i)}
+                        field={field}
+                        index={i}
+                        onOpen={setFieldModal}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="vd-fields-carousel-arrow vd-fields-carousel-arrow--next"
+                    onClick={() => scrollFieldsCarousel(1)}
+                    aria-label="Cuộn danh sách sang phải"
+                  >
+                    <ChevronRight size={22} strokeWidth={2} />
+                  </button>
                 </div>
               </div>
             )}
@@ -499,6 +561,16 @@ const VenueDetail = () => {
         onSelectRegular={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
         onSelectEvent={() => { try { dispatch(clearDraft(String(id))); } catch (e) {} }}
       />
+
+      <AnimatePresence>
+        {fieldModal ? (
+          <FieldDetailModal
+            key={fieldModal.id ?? fieldModal.fieldId ?? fieldModal.name}
+            field={fieldModal}
+            onClose={() => setFieldModal(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 };

@@ -91,3 +91,13 @@
 .oe-link:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 768px) {
+  .owner-events-page {
+    padding: 12px;
+  }
+
+  .oe-table {
+    min-width: 760px;
+  }
+}

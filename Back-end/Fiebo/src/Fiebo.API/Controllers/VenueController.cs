@@ -313,7 +313,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC: Create a new field for a venue.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.Admin)]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPost("/api/owner/venues/{venueId}/fields")]
         public async Task<IActionResult> CreateField([FromRoute] int venueId, [FromForm] CreateFieldRequest request)
         {

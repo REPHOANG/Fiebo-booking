@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
+import { useAuthModal } from "../../context/AuthModalContext";
 import { getEventList } from "../../services/eventService";
 import { searchVenues } from "../../services/fieldService";
 import "./Events.css";
@@ -12,6 +13,7 @@ import { formatDate, formatPrice, formatTime } from "../../utils/helperFunction"
 
 const Events = () => {
   const navigate = useNavigate();
+  const { openLogin } = useAuthModal();
   const [query, setQuery] = useState("");
   const isAuthenticated = useSelector((s) => s.auth?.isAuthenticated);
 
@@ -74,7 +76,7 @@ const Events = () => {
 
   const openEventRegister = (eventId) => {
     if (!isAuthenticated) {
-      navigate("/login");
+      openLogin();
       return;
     }
     navigate(`/event/${eventId}`);

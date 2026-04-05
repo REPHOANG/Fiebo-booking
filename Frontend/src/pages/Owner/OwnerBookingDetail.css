@@ -286,3 +286,28 @@
 .obd-modal-btn-primary:hover:not(:disabled) {
   background: #dc2626;
 }
+
+@media (max-width: 768px) {
+  .obd-page {
+    padding: 12px;
+  }
+
+  .obd-card {
+    padding: 14px;
+  }
+
+  .obd-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .obd-cancel-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .obd-table {
+    min-width: 560px;
+  }
+}

@@ -41,6 +41,15 @@
   flex-wrap: nowrap;
 }
 
+/* Trang lịch trong OwnerLayout: sticky phải nằm dưới owner-topbar, không đè Search/mail. */
+.owner-content .bs-topbar {
+  top: var(--owner-topbar-offset, 78px);
+  z-index: 10;
+  background: rgba(241, 245, 249, 0.97);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 .bs-back {
   width: 40px;
   height: 40px;
@@ -319,6 +328,12 @@
   color: #374151;
 }
 
+.bs-legend-item--locked {
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
 .bs-legend-box {
   width: 20px;
   height: 20px;
@@ -346,10 +361,6 @@
 .bs-legend-box.event {
   background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
 }
-.bs-legend-box.event-linked {
-  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-}
-
 /* ── Time Range Filter ────────────────────────────────────────── */
 .bs-time-filter {
   position: fixed;
@@ -477,10 +488,15 @@
 /* ── Grid Wrapper ──────────────────────────────────────────────── */
 .bs-grid-wrapper-outer {
   margin-bottom: 18px;
+  margin-left: -10px;
+  margin-right: -10px;
+  width: calc(100% + 20px);
+  max-width: none;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #d1d5db;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-sizing: border-box;
 }
 
 /* Notice bar */
@@ -499,6 +515,14 @@
   flex-shrink: 0;
 }
 
+
+/* Một môn = một khối lưới (trục giờ riêng) */
+.bs-sport-block {
+  border-bottom: 1px solid #cbd5e1;
+}
+.bs-sport-block:last-child {
+  border-bottom: none;
+}
 
 .bs-grid-wrapper {
   overflow-x: auto;
@@ -525,12 +549,13 @@
   padding: 0;
 }
 
-/* Corner cell (top-left, labels row) */
+/* Corner cell (top-left, nhãn giờ) — trong suốt để lộ nền trang */
 .bs-corner {
   position: sticky;
   left: 0;
   z-index: 3;
-  background: #ffffff;
+  background: transparent;
+  min-width: 0;
 }
 
 /* ── Row 1: Time labels ─────────────────────────────────────── */
@@ -545,6 +570,8 @@
   text-align: left;
   overflow: visible;
   position: relative;
+  justify-self: stretch;
+  box-sizing: border-box;
 }
 .bs-time-label > span {
   display: inline-block;
@@ -552,8 +579,12 @@
   position: relative;
   z-index: 2;
 }
+.bs-time-label.first {
+  padding-left: 0;
+}
 .bs-time-label.first > span {
   transform: none;
+  margin-left: 0;
 }
 .bs-time-label.last > span {
   transform: translateX(-100%);
@@ -572,8 +603,9 @@
   position: sticky;
   left: 0;
   z-index: 3;
-  background: #ffffff;
+  background: transparent;
   border-bottom: 1px solid #d1d5db;
+  min-width: 0;
 }
 
 .bs-tick-cell {
@@ -601,7 +633,7 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  padding: 0 14px 0 20px;
+  padding: 0 8px 0 10px;
   font-size: 0.82rem;
   font-weight: 600;
   color: #1e293b;
@@ -609,9 +641,11 @@
   border-right: 1px solid #d1d5db;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
-  max-width: 120px;
+  max-width: none;
+  min-width: 0;
   min-height: 38px;
   transition: background 0.2s;
+  box-sizing: border-box;
 }
 .bs-field-name {
   display: block;
@@ -620,30 +654,59 @@
   max-width: 100%;
 }
 .bs-field-tooltip {
-  display: none;
   position: fixed;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  padding: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 8px;
   z-index: 9999;
-  width: 180px;
+  width: 220px;
+  max-width: min(220px, calc(100vw - 24px));
   pointer-events: none;
+  animation: bs-tooltip-in 0.12s ease-out;
+}
+@keyframes bs-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .bs-field-tooltip img {
   width: 100%;
-  height: 110px;
+  height: 128px;
   object-fit: cover;
   border-radius: 8px;
   display: block;
 }
+.bs-field-tooltip-placeholder {
+  width: 100%;
+  height: 128px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e2e8f0 0%, #f1f5f9 100%);
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
 .bs-field-tooltip-name {
   display: block;
   text-align: center;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: #1e293b;
-  padding: 6px 4px 2px;
+  padding: 8px 4px 2px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 .bs-field-label:hover {
   filter: brightness(0.96);
@@ -678,6 +741,33 @@
   margin-left: 4px;
 }
 
+.bs-sport-header-hours {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  padding-left: 10px;
+}
+.bs-sport-header-hours-range {
+  white-space: nowrap;
+}
+.bs-sport-header-empty-label {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 /* ── Cells ───────────────────────────────────────────────────── */
 .bs-cell {
   min-height: 38px;
@@ -706,10 +796,70 @@
   background: #fca5a5;
   cursor: not-allowed;
 }
+.bs-cell.booked.past {
+  background: #ef4444;
+}
 
+/* Cùng trạng thái booked liền kề: nối lại thành 1 khối để nhìn dễ phân biệt */
+.bs-cell.booked.bs-book-run-start,
+.bs-cell.booked.bs-book-run-mid {
+  border-right: none;
+}
+
+.bs-cell.booked.bs-book-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* Khóa (giờ qua / cột không mở bán) — cùng tông với ô Khoá trong chú thích */
 .bs-cell.locked {
-  background: #9ca3af;
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
   cursor: default;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Ô khóa liền kề: một khối liên tục */
+.bs-cell.locked.bs-lock-run-start,
+.bs-cell.locked.bs-lock-run-mid {
+  border-right: none;
+}
+
+.bs-cell.locked.bs-lock-run-mid {
+  box-shadow: none;
+}
+
+.bs-cell.locked.bs-lock-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.locked.bs-lock-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.locked.bs-lock-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* Chưa cấu hình khung giờ — không đặt được, nhìn như trạng thái Khoá */
+.bs-cell.no-config {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: default;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.bs-cell.no-config:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
 }
 
 /* Sự kiện còn chỗ (RemainingTicketQuantity > 0) — vàng */
@@ -717,6 +867,9 @@
   background: linear-gradient(145deg, #fde047 0%, #eab308 55%, #ca8a04 100%);
   cursor: not-allowed;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.bs-cell.event.past {
+  background: linear-gradient(145deg, #facc15 0%, #f59e0b 55%, #a16207 100%);
 }
 .bs-cell.event[data-event-nav="true"] {
   cursor: pointer;
@@ -726,42 +879,26 @@
 }
 
 /* Sự kiện đã đầy (RemainingTicketQuantity === 0) — tím, bấm xem */
-.bs-cell.event-linked {
-  background: linear-gradient(145deg, #a78bfa 0%, #7c3aed 55%, #6d28d9 100%);
-  cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
-}
-.bs-cell.event-linked:hover {
-  filter: brightness(1.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
-}
-
 /* Cùng eventId trên một hàng: bỏ vách dọc giữa các ô, bo góc hai đầu */
 .bs-cell.event.bs-event-run-start,
-.bs-cell.event-linked.bs-event-run-start,
-.bs-cell.event.bs-event-run-mid,
-.bs-cell.event-linked.bs-event-run-mid {
+.bs-cell.event.bs-event-run-mid {
   border-right: none;
 }
 
-.bs-cell.event.bs-event-run-mid,
-.bs-cell.event-linked.bs-event-run-mid {
+.bs-cell.event.bs-event-run-mid {
   box-shadow: none;
 }
 
-.bs-cell.event.bs-event-run-single,
-.bs-cell.event-linked.bs-event-run-single {
+.bs-cell.event.bs-event-run-single {
   border-radius: 7px;
 }
 
-.bs-cell.event.bs-event-run-start,
-.bs-cell.event-linked.bs-event-run-start {
+.bs-cell.event.bs-event-run-start {
   border-top-left-radius: 7px;
   border-bottom-left-radius: 7px;
 }
 
-.bs-cell.event.bs-event-run-end,
-.bs-cell.event-linked.bs-event-run-end {
+.bs-cell.event.bs-event-run-end {
   border-top-right-radius: 7px;
   border-bottom-right-radius: 7px;
 }
@@ -1009,6 +1146,11 @@
 
 /* ── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -6px;
+    margin-right: -6px;
+    width: calc(100% + 12px);
+  }
   .bs-main {
     padding: 20px 16px 140px;
   }
@@ -1041,6 +1183,11 @@
 }
 
 @media (max-width: 480px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -4px;
+    margin-right: -4px;
+    width: calc(100% + 8px);
+  }
   .bs-main {
     padding: 16px 12px 140px;
   }

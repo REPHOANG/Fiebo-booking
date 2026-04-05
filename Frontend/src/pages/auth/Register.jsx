@@ -73,7 +73,7 @@ const schema = yup.object({
 });
 
 // ── Component ────────────────────────────────────────────────────────────────
-const Register = () => {
+const Register = ({ onSwitchToLogin, onClose }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
@@ -110,6 +110,7 @@ const Register = () => {
         position: 'top-right',
         autoClose: 4000,
       });
+      onClose?.();
       navigate('/verify-otp');
     } catch (error) {
       const errorMsg = error.message || error.details || 'Đăng ký thất bại';
@@ -286,7 +287,17 @@ const Register = () => {
 
           <div className="signin-prompt">
             <span>Đã có tài khoản? </span>
-            <Link to="/login" className="signin-link">Đăng nhập tại đây</Link>
+            {typeof onSwitchToLogin === 'function' ? (
+              <button
+                type="button"
+                className="signin-link auth-inline-link"
+                onClick={onSwitchToLogin}
+              >
+                Đăng nhập tại đây
+              </button>
+            ) : (
+              <Link to="/login" className="signin-link">Đăng nhập tại đây</Link>
+            )}
           </div>
         </form>
       </motion.div>

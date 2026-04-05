@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getEventListOwner } from "../../services/eventService";
+import { getEventListOwner } from "../../../services/eventService";
 import "./OwnerEvents.css";
 
 const formatPrice = (n) => {

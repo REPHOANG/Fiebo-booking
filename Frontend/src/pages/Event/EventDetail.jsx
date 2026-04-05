@@ -241,7 +241,7 @@ const EventDetail = () => {
       <div className="ed-container">
         <div className="ed-main">
           <section className="ed-stats" aria-label="Thông tin nhanh">
-            <article className="ed-stat">
+            <article className="ed-stat ed-stat-date">
               <span className="ed-stat-icon" aria-hidden>
                 <Calendar size={22} strokeWidth={2} />
               </span>
@@ -259,23 +259,23 @@ const EventDetail = () => {
                 <p className="ed-stat-value ed-stat-value--multiline">{venueAddress || "—"}</p>
               </div>
             </article>
-            <article className="ed-stat">
+            <article className="ed-stat ed-stat-price-amount">
               <span className="ed-stat-icon" aria-hidden>
                 <Ticket size={22} strokeWidth={2} />
               </span>
               <div>
-                <p className="ed-stat-label">Giá / người</p>
+                <p className="ed-stat-label">Giá <span className="ed-stat-label-sub">/ người</span></p>
                 <p className="ed-stat-value ed-stat-value--accent">{formatMoney(ticketPrice)}</p>
               </div>
             </article>
-            <article className="ed-stat">
+            <article className="ed-stat ed-stat-participants-count">
               <span className="ed-stat-icon" aria-hidden>
                 <Users size={22} strokeWidth={2} />
               </span>
               <div>
-                <p className="ed-stat-label">Chỗ còn lại</p>
+                <p className="ed-stat-label">Số người tham gia</p>
                 <p className="ed-stat-value">
-                  {maxPlayer > 0 ? `${Math.max(0, spotsLeft)} / ${maxPlayer}` : "—"}
+                  {maxPlayer > 0 ? `${Math.max(0, maxPlayer - spotsLeft)} / ${maxPlayer}` : "—"}
                 </p>
               </div>
             </article>

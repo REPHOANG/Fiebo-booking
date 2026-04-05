@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { motion } from "framer-motion";
 import { ArrowLeft, Wallet, Plus, Copy } from "lucide-react";
 import { toast } from "react-toastify";
@@ -12,6 +15,16 @@ import { useSelector } from "react-redux";
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000];
 const formatPrice = (price) =>
   price > 0 ? `${Number(price).toLocaleString("vi-VN")} đ` : "0 đ";
+
+const topUpSchema = yup.object({
+  amount: yup
+    .number()
+    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .typeError("Chọn hoặc nhập số tiền")
+    .required("Chọn hoặc nhập số tiền")
+    .min(10000, "Số tiền nạp tối thiểu 10.000 đ")
+    .max(10000000, "Số tiền nạp tối đa 10.000.000 đ"),
+});
 
 const copyToClipboard = (text, label) => {
   if (!text) return;
@@ -29,11 +42,22 @@ const WalletTopUp = () => {
 
   const [balance, setBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
-  const [selectedAmount, setSelectedAmount] = useState(null);
-  const [customAmount, setCustomAmount] = useState("");
+  const [customDisplay, setCustomDisplay] = useState("");
   const [loading, setLoading] = useState(false);
-  /** Sau khi xác nhận nạp tiền: { qrImageUrl, bankName, accountNumber, accountName, amount, transferContent } */
   const [paymentInfo, setPaymentInfo] = useState(null);
+
+  const {
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(topUpSchema),
+    mode: "onSubmit",
+    defaultValues: { amount: undefined },
+  });
+
+  const amount = watch("amount");
 
   useEffect(() => {
     let cancelled = false;
@@ -53,20 +77,29 @@ const WalletTopUp = () => {
     };
   }, []);
 
-  const amount =
-    selectedAmount != null
-      ? selectedAmount
-      : (customAmount && parseInt(customAmount.replace(/\D/g, ""), 10)) || 0;
+  const pickPreset = (a) => {
+    setCustomDisplay("");
+    setValue("amount", a, { shouldValidate: true, shouldDirty: true });
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (amount < 10000 || amount > 10000000) {
-      toast.warning("Số tiền nạp tối thiểu 10.000 đ và tối đa 10.000.000 đ");
+  const onCustomChange = (e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    setCustomDisplay(raw);
+    if (!raw) {
+      setValue("amount", undefined, { shouldValidate: true, shouldDirty: true });
       return;
     }
+    const n = parseInt(raw, 10);
+    setValue("amount", Number.isFinite(n) ? n : undefined, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const onSubmit = async ({ amount: amt }) => {
     setLoading(true);
     try {
-      const info = await topUpWallet({ amount });
+      const info = await topUpWallet({ amount: amt });
       setPaymentInfo(info);
     } catch (err) {
       toast.error(err?.message || "Tạo yêu cầu nạp tiền thất bại.");
@@ -80,7 +113,7 @@ const WalletTopUp = () => {
   };
 
   const { user } = useSelector((state) => state.auth);
-  const handleTopup = async (amount) => {
+  const handleTopup = async () => {
     Swal.fire({
       icon: "success",
       title: "Nạp tiền thành công",
@@ -90,7 +123,8 @@ const WalletTopUp = () => {
         navigate(returnPath, { state: returnState, replace: true });
       } else {
         setPaymentInfo(null);
-        setSelectedAmount(null);
+        setCustomDisplay("");
+        setValue("amount", undefined);
       }
     });
   };
@@ -241,17 +275,14 @@ const WalletTopUp = () => {
             Chọn số tiền cần nạp hoặc nhập số tiền tùy chọn.
           </p>
 
-          <form onSubmit={handleSubmit} className="wtu-form">
+          <form onSubmit={handleSubmit(onSubmit)} className="wtu-form" noValidate>
             <div className="wtu-presets">
               {PRESET_AMOUNTS.map((a) => (
                 <button
                   key={a}
                   type="button"
-                  className={`wtu-preset-btn${selectedAmount === a ? " active" : ""}`}
-                  onClick={() => {
-                    setSelectedAmount(a);
-                    setCustomAmount("");
-                  }}
+                  className={`wtu-preset-btn${amount === a ? " active" : ""}`}
+                  onClick={() => pickPreset(a)}
                 >
                   {formatPrice(a)}
                 </button>
@@ -259,21 +290,27 @@ const WalletTopUp = () => {
             </div>
 
             <div className="wtu-custom">
-              <label className="wtu-label">Hoặc nhập số tiền (đ)</label>
+              <label className="wtu-label" htmlFor="wtu-custom-amount">
+                Hoặc nhập số tiền (đ)
+              </label>
               <input
+                id="wtu-custom-amount"
                 type="text"
                 className="wtu-input"
                 placeholder="Ví dụ: 150000"
-                value={customAmount}
-                onChange={(e) => {
-                  setCustomAmount(e.target.value.replace(/\D/g, ""));
-                  setSelectedAmount(null);
-                }}
+                value={customDisplay}
+                onChange={onCustomChange}
                 inputMode="numeric"
               />
             </div>
 
-            {amount > 0 && (
+            {errors.amount && (
+              <p className="wtu-form-error" role="alert">
+                {errors.amount.message}
+              </p>
+            )}
+
+            {amount > 0 && !errors.amount && (
               <div className="wtu-summary">
                 <span>Số tiền nạp:</span>
                 <strong>{formatPrice(amount)}</strong>

@@ -511,3 +511,15 @@
     font-size: 18px;
   }
 }
+
+/* Nút văn bản giống link (popup đăng nhập / đăng ký) */
+button.auth-inline-link.signup-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: #667eea;
+  font-weight: 700;
+  text-decoration: underline;
+}
