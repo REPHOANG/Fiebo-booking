@@ -23,14 +23,18 @@ namespace Fiebo.API.Controllers
 
         [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/payouts")]
-        public async Task<IActionResult> GetPayoutsForOwner([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetPayoutsForOwner(
+            [FromQuery] int? year,
+            [FromQuery] int? month,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Ok(new ApiResponse<PagedResult<OwnerPayoutsResponse>>
+            return Ok(new ApiResponse<OwnerPayoutListResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy danh sách payout thành công",
-                Data = await _payoutService.GetOwnerPayoutsAsync(ownerId, page, pageSize)
+                Data = await _payoutService.GetOwnerPayoutsAsync(ownerId, page, pageSize, year, month)
             });
         }
 

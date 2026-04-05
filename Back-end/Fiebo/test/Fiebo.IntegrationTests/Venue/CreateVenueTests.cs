@@ -126,6 +126,23 @@ namespace Fiebo.IntegrationTests.Venue
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
+        [Fact]
+        public async Task CreateVenue_ServiceConflict_Returns409()
+        {
+            ResetMocks();
+            const string ownerId = "owner-1";
+            var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
+            using var content = ValidCreateVenueForm();
+
+            _factory.VenueServiceMock
+                .Setup(s => s.CreateVenueAsync(It.IsAny<CreateVenueRequest>(), ownerId))
+                .ThrowsAsync(new ResourceConflictException("Tên cơ sở đã tồn tại."));
+
+            var response = await client.PostAsync("/api/owner/venue/draft", content);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        }
+
         private static MultipartFormDataContent ValidCreateVenueForm()
         {
             var content = new MultipartFormDataContent();

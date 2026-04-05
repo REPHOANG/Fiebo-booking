@@ -101,5 +101,35 @@ namespace Fiebo.IntegrationTests.Venue
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
+
+        [Fact]
+        public async Task SubmitVenue_NotOwner_Returns401()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-2", AppRoles.FieldOwner);
+
+            _factory.VenueServiceMock
+                .Setup(s => s.SubmitVenueDraftAsync(10, "owner-2"))
+                .ThrowsAsync(new UnauthorizedException("Bạn không có quyền gửi duyệt bản nháp của sân này"));
+
+            var response = await client.PutAsync("/api/owner/venues/10/submit", null);
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task SubmitVenue_ServiceConflict_Returns409()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            _factory.VenueServiceMock
+                .Setup(s => s.SubmitVenueDraftAsync(10, "owner-1"))
+                .ThrowsAsync(new ResourceConflictException("Yêu cầu gửi duyệt đang được xử lý."));
+
+            var response = await client.PutAsync("/api/owner/venues/10/submit", null);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        }
     }
 }

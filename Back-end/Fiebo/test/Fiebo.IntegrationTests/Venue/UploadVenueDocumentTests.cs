@@ -121,6 +121,57 @@ namespace Fiebo.IntegrationTests.Venue
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
+        [Fact]
+        public async Task UploadVenueDocument_ServiceBadRequest_Returns400()
+        {
+            ResetMocks();
+            const string ownerId = "owner-1";
+            var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
+            using var content = ValidUploadForm();
+
+            _factory.VenueServiceMock
+                .Setup(s => s.UploadVenueDocumentAsync(10, ownerId, It.IsAny<CreateVenueDocumentRequest>()))
+                .ThrowsAsync(new BadRequestException("Upload ảnh thất bại"));
+
+            var response = await client.PostAsync("/api/owner/venues/10/documents", content);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadVenueDocument_NotOwner_Returns401()
+        {
+            ResetMocks();
+            const string ownerId = "owner-2";
+            var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
+            using var content = ValidUploadForm();
+
+            _factory.VenueServiceMock
+                .Setup(s => s.UploadVenueDocumentAsync(10, ownerId, It.IsAny<CreateVenueDocumentRequest>()))
+                .ThrowsAsync(new UnauthorizedException("Bạn không có quyền tải lên giấy tờ cho sân này"));
+
+            var response = await client.PostAsync("/api/owner/venues/10/documents", content);
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UploadVenueDocument_ServiceConflict_Returns409()
+        {
+            ResetMocks();
+            const string ownerId = "owner-1";
+            var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
+            using var content = ValidUploadForm();
+
+            _factory.VenueServiceMock
+                .Setup(s => s.UploadVenueDocumentAsync(10, ownerId, It.IsAny<CreateVenueDocumentRequest>()))
+                .ThrowsAsync(new ResourceConflictException("Tài liệu đang được xử lý."));
+
+            var response = await client.PostAsync("/api/owner/venues/10/documents", content);
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        }
+
         private static MultipartFormDataContent ValidUploadForm()
         {
             var content = new MultipartFormDataContent();
