@@ -12,6 +12,7 @@ import {
   ChevronDown,
   LayoutDashboard,
   Building2,
+  UsersRound,
   CalendarClock,
   PlusSquare,
   ReceiptText,
@@ -38,7 +39,8 @@ const OwnerLayout = () => {
     return (
       activePath.startsWith("/owner/venues") ||
       activePath.startsWith("/owner/offline-booking") ||
-      activePath.startsWith("/owner/create-venue")
+      activePath.startsWith("/owner/create-venue") ||
+      activePath.startsWith("/owner/staff")
     );
   }, [activePath]);
 
@@ -53,7 +55,7 @@ const OwnerLayout = () => {
     if (activePath.startsWith("/owner/create-venue")) return ["Cơ sở", "Tạo cơ sở"];
     if (activePath.startsWith("/owner/profile")) return ["Hồ sơ cá nhân"];
     if (activePath.startsWith("/owner/bookings")) return ["Đơn đặt sân"];
-    if (activePath.startsWith("/owner/staff")) return ["Nhân viên"];
+    if (activePath.startsWith("/owner/staff")) return ["Cơ sở", "Nhân viên"];
     if (activePath.startsWith("/owner/events/create")) return ["Sự kiện", "Tạo sự kiện"];
     if (activePath.startsWith("/owner/events")) return ["Sự kiện", "Danh sách sự kiện"];
     return ["Danh mục"];
@@ -184,27 +186,20 @@ const OwnerLayout = () => {
                 <PlusSquare size={15} />
                 Tạo cơ sở
               </NavLink>
+               <NavLink
+                to="/owner/staff"
+                onClick={handleSidebarNavigate}
+                className={({ isActive }) =>
+                  `owner-sidebar-sublink ${isActive ? "active" : ""}`
+                }
+              >
+                <UsersRound size={15} />
+                Nhân viên
+              </NavLink>
             </div>
           </div>
 
-          <NavLink
-            to="/owner/bookings"
-            onClick={handleSidebarNavigate}
-            className={({ isActive }) =>
-              `owner-sidebar-link ${isActive ? "active" : ""}`
-            }
-          >
-            <ReceiptText size={16} />
-            Đơn đặt sân
-          </NavLink>
-          <NavLink
-            to="/owner/staff"
-            className={({ isActive }) =>
-              `owner-sidebar-link ${isActive ? "active" : ""}`
-            }
-          >
-            Nhân viên
-          </NavLink>
+         
 
           <div className="owner-sidebar-divider" />
 

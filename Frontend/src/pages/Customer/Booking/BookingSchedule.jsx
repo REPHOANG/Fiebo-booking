@@ -514,14 +514,17 @@ const BookingSchedule = () => {
     [configuredSlotStartsBySport],
   );
 
-  // Determine locked slots (past time for today) — phụ thuộc timeTick để cập nhật mỗi phút
+  // Khóa slot đã qua (ngày hôm nay): dựa trên thời điểm *kết thúc* khung chứ không phải chỉ giờ bắt đầu
+  // (tránh coi slot 13:00–14:00 là “đã qua” ngay từ 13:01).
   const lockedBefore = useMemo(() => {
     if (selectedDate !== todayStr()) return -1;
     if (!slots.length) return -1;
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const idx = slots.findIndex((s) => s.h * 60 + s.m >= nowMin);
-    return idx < 0 ? slots.length - 1 : idx - 1; // toàn bộ đã qua -> khóa hết
+    const slotEndMin = (s) => s.h * 60 + s.m + (s.stepMinutes ?? 60);
+    const idx = slots.findIndex((s) => slotEndMin(s) > nowMin);
+    if (idx < 0) return slots.length - 1;
+    return idx - 1;
   }, [selectedDate, slots, timeTick]);
 
   // Scroll to prefill time column when available
@@ -658,7 +661,9 @@ const BookingSchedule = () => {
       return `bs-cell event${past ? " past" : ""}`;
     }
     if (isBooked(fieldIdx, slotIdx)) {
-      return `bs-cell booked${past ? " past" : ""}`;
+      // Không hiển thị booking đã qua — chỉ như ô khóa (cùng hàng với nối locked-run)
+      if (past) return "bs-cell locked";
+      return "bs-cell booked";
     }
 
     if (past) return "bs-cell locked";
@@ -677,7 +682,7 @@ const BookingSchedule = () => {
       const skRow = normalizeText(fields[fieldIdx]?.sportType || "");
       if (sportKeysWithNoTimeSlots.has(skRow)) return false;
       if (getEventIdForCell(fieldIdx, slotIdx) != null || isEventBlock(fieldIdx, slotIdx)) return false;
-      if (isBooked(fieldIdx, slotIdx)) return false;
+      if (isBooked(fieldIdx, slotIdx)) return isLocked(slotIdx);
       if (isLocked(slotIdx)) return true;
       const startLabel = slots[slotIdx]?.label;
       return !!(startLabel && isUnconfiguredSlotStart(skRow, startLabel));
@@ -694,7 +699,7 @@ const BookingSchedule = () => {
     ],
   );
 
-  /** Slot khóa liền kề → một thanh (giống booked) */
+  /** Slot khóa liền kề → một thanh; gồm cả booking đã qua (đang hiện như locked) */
   const getLockedRunExtraClass = useCallback(
     (fieldIdx, slotIdx) => {
       if (!isLockedSlotCell(fieldIdx, slotIdx)) return "";
@@ -742,17 +747,20 @@ const BookingSchedule = () => {
   const getBookedRunExtraClass = useCallback(
     (fieldIdx, slotIdx) => {
       if (!isBooked(fieldIdx, slotIdx)) return "";
+      if (isLocked(slotIdx)) return "";
       const curId = getBookedIdForCell(fieldIdx, slotIdx);
 
       // If we have bookingId, use it to split different bookings even when they are adjacent.
       if (curId != null) {
+        const prevOpen = slotIdx > 0 && !isLocked(slotIdx - 1);
+        const nextOpen = slotIdx < slots.length - 1 && !isLocked(slotIdx + 1);
         const prevId =
           slotIdx > 0 ? getBookedIdForCell(fieldIdx, slotIdx - 1) : null;
         const nextId =
           slotIdx < slots.length - 1 ? getBookedIdForCell(fieldIdx, slotIdx + 1) : null;
 
-        const samePrev = prevId != null && prevId === curId;
-        const sameNext = nextId != null && nextId === curId;
+        const samePrev = prevOpen && prevId != null && prevId === curId;
+        const sameNext = nextOpen && nextId != null && nextId === curId;
 
         if (!samePrev && !sameNext) return "bs-book-run-single";
         if (!samePrev && sameNext) return "bs-book-run-start";
@@ -761,9 +769,13 @@ const BookingSchedule = () => {
         return "";
       }
 
-      // Fallback: no bookingId => keep old behavior: merge by adjacency.
-      const prevBooked = slotIdx > 0 ? isBooked(fieldIdx, slotIdx - 1) : false;
-      const nextBooked = slotIdx < slots.length - 1 ? isBooked(fieldIdx, slotIdx + 1) : false;
+      // Fallback: no bookingId => merge theo ô booked còn hiển thị (bỏ qua ô đã qua).
+      const prevBooked =
+        slotIdx > 0 && isBooked(fieldIdx, slotIdx - 1) && !isLocked(slotIdx - 1);
+      const nextBooked =
+        slotIdx < slots.length - 1 &&
+        isBooked(fieldIdx, slotIdx + 1) &&
+        !isLocked(slotIdx + 1);
 
       if (!prevBooked && !nextBooked) return "bs-book-run-single";
       if (!prevBooked && nextBooked) return "bs-book-run-start";
@@ -771,7 +783,7 @@ const BookingSchedule = () => {
       if (prevBooked && !nextBooked) return "bs-book-run-end";
       return "";
     },
-    [isBooked, slots.length, getBookedIdForCell]
+    [isBooked, isLocked, slots.length, getBookedIdForCell]
   );
 
   const handleCellClick = (fieldIdx, slotIdx) => {

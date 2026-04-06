@@ -226,6 +226,14 @@ export const uploadOwnerFieldImages = async (fieldId, files) => {
   return response.data?.data ?? response.data;
 };
 
+/** Owner: xóa ảnh sân đã tồn tại (POST `/api/Media/field/delete/{publicId}`) */
+export const deleteOwnerFieldImage = async (publicId) => {
+  const pid = String(publicId ?? "").trim();
+  if (!pid) throw new Error("Thiếu publicId ảnh cần xóa.");
+  const response = await api.post(`/api/Media/field/delete/${encodeURIComponent(pid)}`);
+  return response.data?.data ?? response.data;
+};
+
 /**
  * Search venues by location, date, time and sport type
  * @param {Object} params
