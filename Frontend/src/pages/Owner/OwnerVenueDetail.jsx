@@ -329,6 +329,14 @@ const OwnerVenueDetail = () => {
     return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005}%2C${lat - 0.004}%2C${lng + 0.005}%2C${lat + 0.004}&layer=mapnik&marker=${lat}%2C${lng}`;
   }, [venue]);
 
+  const venueDraftHint = useMemo(
+    () => ({
+      openTime: venue?.openTime ?? venueRaw?.openTime ?? venueRaw?.OpenTime ?? null,
+      closeTime: venue?.closeTime ?? venueRaw?.closeTime ?? venueRaw?.CloseTime ?? null,
+    }),
+    [venue, venueRaw],
+  );
+
   const businessLicenseDoc = useMemo(
     () => normalizeDoc(venueRaw?.businessLicense ?? venueRaw?.BusinessLicense),
     [venueRaw],
@@ -673,6 +681,7 @@ const OwnerVenueDetail = () => {
                 <Link
                   className={`ovd-btn ${!canCreateField ? "is-disabled" : ""}`}
                   to={canCreateField ? `/owner/venues/${id}/add-field` : "#"}
+                  state={canCreateField ? { venueDraftHint } : undefined}
                   onClick={(e) => {
                     if (!canCreateField) e.preventDefault();
                   }}
@@ -876,7 +885,11 @@ const OwnerVenueDetail = () => {
                       </div>
                       {canEditVenue && fieldId != null ? (
                         <div className="ovd-field-actions">
-                          <Link className="ovd-toggle-btn" to={`/owner/venues/${id}/edit-field/${fieldId}`}>
+                          <Link
+                            className="ovd-toggle-btn"
+                            to={`/owner/venues/${id}/edit-field/${fieldId}`}
+                            state={{ venueDraftHint }}
+                          >
                             Chỉnh sửa
                           </Link>
                         </div>
