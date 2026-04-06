@@ -12,6 +12,7 @@ import {
   ChevronDown,
   LayoutDashboard,
   Building2,
+  UsersRound,
   CalendarClock,
   PlusSquare,
   ReceiptText,
@@ -38,7 +39,8 @@ const OwnerLayout = () => {
     return (
       activePath.startsWith("/owner/venues") ||
       activePath.startsWith("/owner/offline-booking") ||
-      activePath.startsWith("/owner/create-venue")
+      activePath.startsWith("/owner/create-venue") ||
+      activePath.startsWith("/owner/staff")
     );
   }, [activePath]);
 
@@ -53,7 +55,7 @@ const OwnerLayout = () => {
     if (activePath.startsWith("/owner/create-venue")) return ["Cơ sở", "Tạo cơ sở"];
     if (activePath.startsWith("/owner/profile")) return ["Hồ sơ cá nhân"];
     if (activePath.startsWith("/owner/bookings")) return ["Đơn đặt sân"];
-    if (activePath.startsWith("/owner/staff")) return ["Nhân viên"];
+    if (activePath.startsWith("/owner/staff")) return ["Cơ sở", "Nhân viên"];
     if (activePath.startsWith("/owner/events/create")) return ["Sự kiện", "Tạo sự kiện"];
     if (activePath.startsWith("/owner/events")) return ["Sự kiện", "Danh sách sự kiện"];
     return ["Danh mục"];
@@ -186,13 +188,12 @@ const OwnerLayout = () => {
               </NavLink>
                <NavLink
                 to="/owner/staff"
-                  end
                 onClick={handleSidebarNavigate}
                 className={({ isActive }) =>
                   `owner-sidebar-sublink ${isActive ? "active" : ""}`
                 }
               >
-                <Building2 size={15} />
+                <UsersRound size={15} />
                 Nhân viên
               </NavLink>
             </div>
