@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles, Pencil } from "lucide-react";
 import { toast } from "react-toastify";
 // import { getOwnerVenueFields } from "../../services/fieldService";
 import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
@@ -132,6 +132,7 @@ const rowsFromApiOnly = (apiSlots, weekDates) => {
 /** Quản lý time slot theo loại sân (môn) — route `/owner/venues/:id/time-slot` */
 const OwnerTimeSlot = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [sportTypes, setSportTypes] = useState([]);
   // const [venueFields, setVenueFields] = useState([]);
   const [slotRows, setSlotRows] = useState([]);
@@ -143,8 +144,16 @@ const OwnerTimeSlot = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
+  /** Chỉ một dòng đang sửa (theo index trong `slotRows`); slot đã lưu trên máy chủ mặc định khóa cho đến khi bấm Sửa. */
+  const [editingRowIdx, setEditingRowIdx] = useState(null);
+  const editSnapshotRef = useRef(null);
+  const editingRowIdxRef = useRef(null);
   // const [selectedFieldIds, setSelectedFieldIds] = useState(() => new Set());
   const otsPageRef = useRef(null);
+
+  useEffect(() => {
+    editingRowIdxRef.current = editingRowIdx;
+  }, [editingRowIdx]);
 
   /** Không cho lăn chuột đổi giá trị: ô giá (number), mọi select (giờ, môn, độ dài slot…) */
   useLayoutEffect(() => {
@@ -344,6 +353,20 @@ const OwnerTimeSlot = () => {
     });
   }, [ownerVenuesList]);
 
+  const ownerVenueOptions = useMemo(
+    () =>
+      sortedOwnerVenues
+        .map((v) => {
+          const vid = v?.venueId ?? v?.VenueId ?? v?.id ?? v?.Id;
+          if (vid == null) return null;
+          const name = String(v?.name ?? v?.Name ?? "").trim() || `Cơ sở #${vid}`;
+          return { vid: String(vid), name };
+        })
+        .filter(Boolean)
+        .map((o, i) => ({ ...o, order: i + 1 })),
+    [sortedOwnerVenues],
+  );
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -420,6 +443,113 @@ const OwnerTimeSlot = () => {
     reloadSlots();
   }, [reloadSlots]);
 
+  useEffect(() => {
+    setEditingRowIdx(null);
+    editSnapshotRef.current = null;
+  }, [sportTypeId]);
+
+  /** Đổi tab ngày → hủy sửa dòng (khôi phục snapshot). */
+  useEffect(() => {
+    const idx = editingRowIdxRef.current;
+    if (idx == null) return;
+    const snap = editSnapshotRef.current;
+    if (snap) {
+      setSlotRows((prev) => prev.map((r, i) => (i === idx ? snap : r)));
+    }
+    editSnapshotRef.current = null;
+    setEditingRowIdx(null);
+  }, [activeDayIndex]);
+
+  const beginEditRow = useCallback((originalIdx) => {
+    const prevEditing = editingRowIdxRef.current;
+    setSlotRows((prev) => {
+      let base = prev;
+      if (prevEditing != null && prevEditing !== originalIdx && editSnapshotRef.current) {
+        base = prev.map((r, i) => (i === prevEditing ? editSnapshotRef.current : r));
+      }
+      const row = base[originalIdx];
+      editSnapshotRef.current = row ? JSON.parse(JSON.stringify(row)) : null;
+      return base;
+    });
+    setEditingRowIdx(originalIdx);
+  }, []);
+
+  const cancelRowEdit = useCallback(() => {
+    const idx = editingRowIdxRef.current;
+    if (idx == null) {
+      setEditingRowIdx(null);
+      return;
+    }
+    const snap = editSnapshotRef.current;
+    if (snap) {
+      setSlotRows((prev) => prev.map((r, i) => (i === idx ? snap : r)));
+    }
+    editSnapshotRef.current = null;
+    setEditingRowIdx(null);
+  }, []);
+
+  const saveSingleRow = async (originalIdx) => {
+    const sid = Number(sportTypeId);
+    if (!sid) {
+      toast.error("Vui lòng chọn loại sân / môn thể thao.");
+      return;
+    }
+    const row = slotRows[originalIdx];
+    if (!row) return;
+    const dk = activeDayKey;
+    const d = weekDates[activeDayIndex];
+    const dow = DOTNET_DAY_NAMES[d.getDay()];
+    const rawPrice = row.prices?.[dk];
+    const price =
+      rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
+    const existingId = row.slotIds?.[dk];
+    const startT = toTimeOnly(row.start);
+    const endT = toTimeOnly(row.end);
+    const startM = timeToMinutes(row.start);
+    const endM = timeToMinutes(row.end);
+    if (startM == null || endM == null || endM <= startM) {
+      toast.error("Khung giờ không hợp lệ (bắt đầu phải trước kết thúc).");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (existingId) {
+        if (price <= 0) {
+          await deleteOwnerVenueTimeSlot(existingId);
+          toast.success("Đã xóa slot (giá ≤ 0).");
+        } else {
+          await updateOwnerVenueTimeSlot(existingId, {
+            startTime: startT,
+            endTime: endT,
+            price,
+          });
+          toast.success("Đã cập nhật khung giờ.");
+        }
+      } else if (price > 0) {
+        await createOwnerVenueTimeSlot(id, {
+          sportTypeId: sid,
+          startTime: startT,
+          endTime: endT,
+          dayOfWeek: dow,
+          price,
+        });
+        toast.success("Đã tạo khung giờ cho ngày này.");
+      } else {
+        toast.info("Nhập giá lớn hơn 0 để tạo slot mới.");
+        setSaving(false);
+        return;
+      }
+      editSnapshotRef.current = null;
+      setEditingRowIdx(null);
+      await reloadSlots();
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không lưu được khung giờ.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /** Chỉ đồng bộ ngày đang xem — tránh lặp 7× số dòng (mỗi ngày một loạt create/update/delete). */
   const saveSlots = async () => {
     const sid = Number(sportTypeId);
@@ -461,6 +591,8 @@ const OwnerTimeSlot = () => {
           });
         }
       }
+      editSnapshotRef.current = null;
+      setEditingRowIdx(null);
       toast.success(`Đã lưu khung giờ cho ${weekDayLabels[activeDayIndex]}.`);
       await reloadSlots();
     } catch (e) {
@@ -499,6 +631,10 @@ const OwnerTimeSlot = () => {
 
     const row = slotRows[rowIdx];
     if (!row) return;
+    if (rowIdx === editingRowIdx) {
+      setEditingRowIdx(null);
+      editSnapshotRef.current = null;
+    }
     const slotId = row.slotIds?.[dk];
 
     if (!slotId) {
@@ -534,37 +670,33 @@ const OwnerTimeSlot = () => {
             <span className="ots-eyebrow">ĐIỀU HÀNH HỆ THỐNG</span>
             <h1 className="ots-page-title">Quản lý Khung giờ</h1>
           </div>
-          {sortedOwnerVenues.length > 0 ? (
-            <nav className="ots-venue-tabs" aria-label="Chọn cơ sở">
-              {sortedOwnerVenues
-                .filter((v) => (v?.venueId ?? v?.VenueId ?? v?.id ?? v?.Id) != null)
-                .map((v, idx) => {
-                  const vid = v?.venueId ?? v?.VenueId ?? v?.id ?? v?.Id;
-                  const vname = String(v?.name ?? v?.Name ?? "").trim() || `Cơ sở #${vid}`;
-                  const short = vname.length > 28 ? `${vname.slice(0, 26)}…` : vname;
-                  const active = String(vid) === String(id);
-                  return (
-                    <Link
-                      key={vid}
-                      to={`/owner/venues/${vid}/time-slot`}
-                      className={`ots-venue-tab ${active ? "is-active" : ""}`}
-                    >
-                      CƠ SỞ {idx + 1}: {short.toUpperCase()}
-                    </Link>
-                  );
-                })}
-            </nav>
+          {ownerVenueOptions.length > 0 ? (
+            <div className="ots-venue-select-wrap">
+              <label htmlFor="ots-venue-select" className="ots-venue-select-label">
+                Chọn cơ sở
+              </label>
+              <select
+                id="ots-venue-select"
+                className="ots-venue-select"
+                aria-label="Chọn cơ sở để quản lý khung giờ"
+                value={String(id)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (next && next !== String(id)) {
+                    navigate(`/owner/venues/${next}/time-slot`);
+                  }
+                }}
+              >
+                {ownerVenueOptions.map((o) => (
+                  <option key={o.vid} value={o.vid}>
+                    Cơ sở {o.order}: {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           ) : null}
         </div>
         <div className="ots-top-actions">
-          <button
-            type="button"
-            className="ots-btn-apply"
-            disabled={applyPriceDisabled}
-            onClick={applyCurrentDayToAllOtherDays}
-          >
-            ÁP DỤNG GIÁ
-          </button>
           <button type="button" className="ots-btn-save" disabled={saveDisabled} onClick={saveSlots}>
             {saving ? "Đang lưu…" : `LƯU ${weekDayLabels[activeDayIndex].toUpperCase()}`}
           </button>
@@ -707,7 +839,7 @@ const OwnerTimeSlot = () => {
               <div className="ots-table-head">
                 <span>KHUNG GIỜ</span>
                 <span>GIÁ NIÊM YẾT (đ)</span>
-                <span />
+                <span className="ots-table-head-actions">THAO TÁC</span>
               </div>
               <div className="ots-slot-rows">
                 {rowsForActiveDay.map(({ row, idx: originalIdx }, visIdx) => {
@@ -763,18 +895,24 @@ const OwnerTimeSlot = () => {
                     }
                   }
                   const value = row.prices?.[activeDayKey];
+                  const persistedSlotId = row.slotIds?.[activeDayKey];
+                  const hasPersistedSlot =
+                    persistedSlotId != null && String(persistedSlotId).trim() !== "";
+                  const rowInputsLocked = saving || (hasPersistedSlot && editingRowIdx !== originalIdx);
                   return (
                     <React.Fragment key={`${activeDayKey}-${row.id ?? originalIdx}-${originalIdx}`}>
                       {insertBefore}
                       {insertBetween}
                     <div
-                      className={`ots-slot-row ${row.isPeak ? "is-peak" : ""}`}
+                      className={`ots-slot-row ${row.isPeak ? "is-peak" : ""}${rowInputsLocked ? " is-row-locked" : ""}${editingRowIdx === originalIdx && hasPersistedSlot ? " is-row-editing" : ""}`}
                     >
                       <div className="ots-slot-col ots-slot-col--time">
                         <div className="ots-slot-time">
                           <select
+                            className="ots-time-select"
                             value={row.start}
                             aria-label="Giờ bắt đầu"
+                            disabled={rowInputsLocked}
                             onChange={(e) => {
                               const nextStart = e.target.value;
                               setSlotRows((prev) =>
@@ -792,10 +930,12 @@ const OwnerTimeSlot = () => {
                               </option>
                             ))}
                           </select>
-                          <span>—</span>
+                          <span className="ots-time-sep">đến</span>
                           <select
+                            className="ots-time-select"
                             value={row.end}
                             aria-label="Giờ kết thúc"
+                            disabled={rowInputsLocked}
                             onChange={(e) => {
                               const nextEnd = e.target.value;
                               setSlotRows((prev) =>
@@ -817,13 +957,23 @@ const OwnerTimeSlot = () => {
                             <span className="ots-peak-badge">GIỜ CAO ĐIỂM</span>
                           ) : null}
                         </div>
-                        <button
-                          type="button"
-                          className="ots-slot-peak-toggle"
-                          onClick={() => togglePeakRow(originalIdx)}
-                        >
-                          {row.isPeak ? "Bỏ đánh cao điểm" : "Đánh dấu cao điểm"}
-                        </button>
+                        <div className="ots-peak-row">
+                          <button
+                            type="button"
+                            className={`ots-peak-switch${row.isPeak ? " is-on" : ""}`}
+                            disabled={rowInputsLocked}
+                            aria-pressed={row.isPeak}
+                            aria-label={row.isPeak ? "Tắt đánh dấu cao điểm" : "Bật cao điểm"}
+                            onClick={() => togglePeakRow(originalIdx)}
+                          >
+                            <span className="ots-peak-switch-track" aria-hidden>
+                              <span className="ots-peak-switch-knob" />
+                            </span>
+                          </button>
+                          <span className="ots-peak-label">
+                            {row.isPeak ? "Giờ cao điểm" : "Khung thường"}
+                          </span>
+                        </div>
                       </div>
                       <div className="ots-slot-col ots-slot-col--price">
                         <div className="ots-price-wrap">
@@ -832,6 +982,7 @@ const OwnerTimeSlot = () => {
                             type="number"
                             min="0"
                             placeholder="0"
+                            disabled={rowInputsLocked}
                             value={value ?? ""}
                             onChange={(e) => {
                               const nextRaw = e.target.value;
@@ -872,15 +1023,59 @@ const OwnerTimeSlot = () => {
                         </div>
                       </div>
                       <div className="ots-slot-col ots-slot-col--actions">
-                        <button
-                          type="button"
-                          className="ots-del-btn"
-                          disabled={saving}
-                          title={`Xóa slot ngày ${weekDayLabels[activeDayIndex]} (một slot id)`}
-                          onClick={() => removeRow(originalIdx)}
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="ots-row-actions">
+                          {hasPersistedSlot ? (
+                            editingRowIdx === originalIdx ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="ots-row-text-btn ots-row-text-btn--save"
+                                  disabled={saving}
+                                  onClick={() => saveSingleRow(originalIdx)}
+                                >
+                                  Lưu
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ots-row-text-btn ots-row-text-btn--ghost"
+                                  disabled={saving}
+                                  onClick={cancelRowEdit}
+                                >
+                                  Hủy
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                className="ots-edit-btn"
+                                disabled={saving}
+                                title="Chỉnh khung giờ rồi bấm Lưu (PUT /api/owner/time-slots/{id})"
+                                onClick={() => beginEditRow(originalIdx)}
+                              >
+                                <Pencil size={17} strokeWidth={2.2} />
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              type="button"
+                              className="ots-row-text-btn ots-row-text-btn--save"
+                              disabled={saving}
+                              title="Tạo slot cho ngày này trên máy chủ"
+                              onClick={() => saveSingleRow(originalIdx)}
+                            >
+                              Lưu dòng
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="ots-del-btn"
+                            disabled={saving}
+                            title={`Xóa slot ngày ${weekDayLabels[activeDayIndex]} (một slot id)`}
+                            onClick={() => removeRow(originalIdx)}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                     </React.Fragment>
