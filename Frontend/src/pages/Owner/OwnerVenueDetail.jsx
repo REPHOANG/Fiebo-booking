@@ -1,9 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader2, MapPin, Clock, ArrowLeft, MapPinned, Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  Loader2,
+  MapPin,
+  Clock,
+  ArrowLeft,
+  MapPinned,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Package,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { getOwnerVenueFields, getVenueDetail } from "../../services/fieldService";
-import { deactivateOwnerVenue, getVenueDraft } from "../../services/venueService";
+import { addVenueService, deactivateOwnerVenue, getVenueDraft, getVenueServices } from "../../services/venueService";
 import "./OwnerVenueDetail.css";
 
 const formatTime = (timeSpan) => {
@@ -187,6 +198,13 @@ const OwnerVenueDetail = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sportFilter, setSportFilter] = useState("all");
+  const [venueServices, setVenueServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceDesc, setNewServiceDesc] = useState("");
+  const [newServicePrice, setNewServicePrice] = useState("");
+  const [newServiceImage, setNewServiceImage] = useState(null);
+  const [submittingService, setSubmittingService] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -238,6 +256,66 @@ const OwnerVenueDetail = () => {
       mounted = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setServicesLoading(true);
+      try {
+        const data = await getVenueServices(Number(id), 1, 50, "");
+        if (mounted) setVenueServices(data?.items ?? []);
+      } catch {
+        if (mounted) setVenueServices([]);
+      } finally {
+        if (mounted) setServicesLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  const reloadVenueServices = async () => {
+    try {
+      const data = await getVenueServices(Number(id), 1, 50, "");
+      setVenueServices(data?.items ?? []);
+    } catch {
+      setVenueServices([]);
+    }
+  };
+
+  const handleAddVenueServiceSubmit = async (e) => {
+    e.preventDefault();
+    const name = newServiceName.trim();
+    const price = Number(String(newServicePrice).replace(/\s/g, "").replace(/,/g, ""));
+    if (!name) {
+      toast.error("Nhập tên dịch vụ.");
+      return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error("Giá không hợp lệ.");
+      return;
+    }
+    setSubmittingService(true);
+    try {
+      await addVenueService(id, {
+        serviceName: name,
+        description: newServiceDesc.trim() || undefined,
+        price,
+        imageFile: newServiceImage || undefined,
+      });
+      toast.success("Đã thêm dịch vụ.");
+      setNewServiceName("");
+      setNewServiceDesc("");
+      setNewServicePrice("");
+      setNewServiceImage(null);
+      await reloadVenueServices();
+    } catch (err) {
+      toast.error(err?.response?.data?.message ?? err?.message ?? "Không thêm được dịch vụ.");
+    } finally {
+      setSubmittingService(false);
+    }
+  };
 
   const address = useMemo(() => {
     if (!venue) return "";
@@ -613,6 +691,118 @@ const OwnerVenueDetail = () => {
                 Cơ sở đang ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể
                 tạo sân.
               </p>
+            )}
+          </div>
+
+          <div className="ovd-card ovd-card--services">
+            <div className="ovd-title-row">
+              <h3 className="ovd-subtitle">
+                <Package size={18} /> Dịch vụ kèm theo
+              </h3>
+              <Link className="ovd-toggle-btn" to={`/owner/venue/${id}/services`} onClick={reloadVenueServices}>
+                Quản lý đầy đủ
+              </Link>
+            </div>
+            <p className="ovd-muted">
+              Cho thuê bóng, bán nước, giữ xe… — hiển thị công khai cho khách tại danh sách dịch vụ sân.
+            </p>
+
+            {canEditVenue ? (
+              <form className="ovd-service-form" onSubmit={handleAddVenueServiceSubmit}>
+                <div className="ovd-service-form-grid">
+                  <label className="ovd-service-label">
+                    Tên dịch vụ
+                    <input
+                      className="ovd-input"
+                      value={newServiceName}
+                      onChange={(e) => setNewServiceName(e.target.value)}
+                      placeholder="VD: Cho thuê bóng"
+                      maxLength={100}
+                      disabled={submittingService}
+                    />
+                  </label>
+                  <label className="ovd-service-label">
+                    Giá (đ)
+                    <input
+                      className="ovd-input"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={newServicePrice}
+                      onChange={(e) => setNewServicePrice(e.target.value)}
+                      placeholder="0"
+                      disabled={submittingService}
+                    />
+                  </label>
+                </div>
+                <label className="ovd-service-label">
+                  Mô tả (tuỳ chọn)
+                  <textarea
+                    className="ovd-input ovd-service-textarea"
+                    rows={2}
+                    value={newServiceDesc}
+                    onChange={(e) => setNewServiceDesc(e.target.value)}
+                    placeholder="Mô tả ngắn"
+                    maxLength={500}
+                    disabled={submittingService}
+                  />
+                </label>
+                <label className="ovd-service-label ovd-service-file-label">
+                  Ảnh minh hoạ (tuỳ chọn)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="ovd-service-file"
+                    disabled={submittingService}
+                    onChange={(e) => setNewServiceImage(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <div className="ovd-service-form-actions">
+                  <button type="submit" className="ovd-btn ovd-btn--primary" disabled={submittingService}>
+                    {submittingService ? "Đang thêm…" : "Thêm dịch vụ"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="ovd-muted">Chỉ có thể thêm dịch vụ khi cơ sở ở trạng thái chỉnh sửa được (active / draft).</p>
+            )}
+
+            {servicesLoading ? (
+              <div className="owner-loading" style={{ padding: 8 }}>
+                <span className="owner-spinner sm" />
+              </div>
+            ) : venueServices.length === 0 ? (
+              <p className="ovd-muted">Chưa có dịch vụ nào.</p>
+            ) : (
+              <ul className="ovd-service-list">
+                {venueServices.map((s, sIdx) => {
+                  const sid = s?.id ?? s?.Id;
+                  const sname = s?.serviceName ?? s?.ServiceName ?? "—";
+                  const sdesc = s?.description ?? s?.Description ?? "";
+                  const sprice = s?.price ?? s?.Price;
+                  const simg = s?.imageUrl ?? s?.ImageUrl ?? null;
+                  return (
+                    <li key={sid != null ? `svc-${sid}` : `svc-${sIdx}-${sname}`} className="ovd-service-row">
+                      {simg ? (
+                        <img src={simg} alt="" className="ovd-service-thumb" />
+                      ) : (
+                        <div className="ovd-service-thumb ovd-service-thumb--empty" aria-hidden>
+                          <Package size={20} />
+                        </div>
+                      )}
+                      <div className="ovd-service-body">
+                        <strong className="ovd-service-name">{sname}</strong>
+                        {sdesc ? <span className="ovd-service-desc">{sdesc}</span> : null}
+                      </div>
+                      <span className="ovd-service-price">
+                        {sprice != null && Number.isFinite(Number(sprice))
+                          ? `${Number(sprice).toLocaleString("vi-VN")} đ`
+                          : "—"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
 

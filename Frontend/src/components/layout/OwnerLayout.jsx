@@ -184,27 +184,21 @@ const OwnerLayout = () => {
                 <PlusSquare size={15} />
                 Tạo cơ sở
               </NavLink>
+               <NavLink
+                to="/owner/staff"
+                  end
+                onClick={handleSidebarNavigate}
+                className={({ isActive }) =>
+                  `owner-sidebar-sublink ${isActive ? "active" : ""}`
+                }
+              >
+                <Building2 size={15} />
+                Nhân viên
+              </NavLink>
             </div>
           </div>
 
-          <NavLink
-            to="/owner/bookings"
-            onClick={handleSidebarNavigate}
-            className={({ isActive }) =>
-              `owner-sidebar-link ${isActive ? "active" : ""}`
-            }
-          >
-            <ReceiptText size={16} />
-            Đơn đặt sân
-          </NavLink>
-          <NavLink
-            to="/owner/staff"
-            className={({ isActive }) =>
-              `owner-sidebar-link ${isActive ? "active" : ""}`
-            }
-          >
-            Nhân viên
-          </NavLink>
+         
 
           <div className="owner-sidebar-divider" />
 

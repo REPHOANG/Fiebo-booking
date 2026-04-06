@@ -439,7 +439,7 @@
   font-weight: 600;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--ots-muted);
+
   cursor: pointer;
 }
 
@@ -452,6 +452,7 @@
   background: var(--ots-green);
   color: #fff;
 }
+
 
 .ots-apply-days {
   display: inline-flex;
@@ -503,10 +504,43 @@
   background: #fff;
 }
 
+.ots-slot-duration.is-disabled {
+  opacity: 0.52;
+}
+
+.ots-slot-duration.is-disabled select {
+  cursor: not-allowed;
+}
+
 .ots-slot-toolbar-day {
   font-size: 12px;
   font-weight: 700;
   color: var(--ots-muted);
+}
+
+.ots-auto-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 0.72rem;
+  border: 1px solid rgba(0, 100, 66, 0.2);
+  border-radius: 8px;
+  background: #ecf7f2;
+  color: var(--ots-green);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.ots-auto-generate-btn:hover:not(:disabled) {
+  background: #def1e8;
+  border-color: rgba(0, 100, 66, 0.34);
+}
+
+.ots-auto-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Bảng slot nối liền thanh ngày — tránh viền đôi */

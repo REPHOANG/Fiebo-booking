@@ -160,27 +160,40 @@ export const getVenueServices = async (venueId, page, pageSize, searchKeyword) =
     params: {
       page,
       pageSize,
-      ...(searchKeyword ? { searchKeyword } : {}), // chỉ gửi khi có giá trị
-    }
+      ...(searchKeyword ? { searchKeyword } : {}),
+    },
   });
-  return response.data.data;
-}
+  const data = unwrap(response) ?? {};
+  const items = data.items ?? data.Items ?? [];
+  const ps = Number(data.pageSize ?? data.PageSize ?? pageSize) || pageSize;
+  const totalItems = Number(data.totalItems ?? data.TotalItems ?? 0) || 0;
+  const totalPagesRaw = Number(data.totalPages ?? data.TotalPages ?? 0);
+  const totalPages =
+    totalPagesRaw > 0 ? totalPagesRaw : Math.max(1, Math.ceil(totalItems / ps));
+  return {
+    items: Array.isArray(items) ? items : [],
+    page: Number(data.page ?? data.Page ?? page) || page,
+    pageSize: ps,
+    totalItems,
+    totalPages,
+  };
+};
 
 export const addVenueService = async (venueId, serviceData) => {
   const formData = new FormData();
-  formData.append("ServiceName", serviceData.serviceName);
-  formData.append("Price", serviceData.price);
-  if (serviceData.description) {
-    formData.append("Description", serviceData.description);
+  formData.append("ServiceName", String(serviceData.serviceName ?? "").trim());
+  formData.append("Price", String(Number(serviceData.price ?? 0)));
+  if (serviceData.description != null && String(serviceData.description).trim() !== "") {
+    formData.append("Description", String(serviceData.description).trim());
   }
   if (serviceData.imageFile) {
     formData.append("Image", serviceData.imageFile);
   }
-  const response = await api.post(
-    `/api/owner/venue/${venueId}/service`,
-    formData
-  );
-  return response.data?.data ?? response.data ?? response;
+  const response = await api.post(`/api/owner/venue/${venueId}/service`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120000,
+  });
+  return unwrap(response) ?? response.data ?? response;
 };
 
 export const updateVenueService = async (venueId, serviceId, serviceData) => {

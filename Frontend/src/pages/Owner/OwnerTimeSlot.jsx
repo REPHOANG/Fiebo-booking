@@ -129,6 +129,50 @@ const rowsFromApiOnly = (apiSlots, weekDates) => {
   return Array.from(byKey.values()).sort((a, b) => parseHour(a.start) - parseHour(b.start));
 };
 
+/**
+ * Giữ lại các dòng local chưa lưu khi vừa reload từ API
+ * (tránh mất các dòng "nháp" khi bấm Lưu 1 dòng).
+ */
+const mergeServerRowsWithLocalDrafts = (serverRows, localRows) => {
+  const next = Array.isArray(serverRows) ? [...serverRows] : [];
+  const byKey = new Map(
+    next.map((r) => [`${String(r.start)}|${String(r.end)}`, r]),
+  );
+
+  (localRows || []).forEach((row) => {
+    const key = `${String(row?.start)}|${String(row?.end)}`;
+    const target = byKey.get(key);
+    const localPrices = row?.prices || {};
+    const localSlotIds = row?.slotIds || {};
+
+    if (!target) {
+      // Chỉ giữ dòng local khi chưa có slot id nào (hoàn toàn là nháp).
+      const hasAnyPersistedId = Object.values(localSlotIds).some(
+        (v) => v != null && String(v).trim() !== "",
+      );
+      if (!hasAnyPersistedId) {
+        const hasAnyDraftValue = Object.values(localPrices).some((v) => v !== undefined);
+        if (hasAnyDraftValue) next.push({ ...row });
+      }
+      return;
+    }
+
+    // Đã có dòng từ server: ghép thêm những giá local ở ngày chưa có slotId.
+    const mergedPrices = { ...(target.prices || {}) };
+    Object.entries(localPrices).forEach(([dk, p]) => {
+      const hasServerSlotThatDay =
+        target.slotIds?.[dk] != null && String(target.slotIds[dk]).trim() !== "";
+      if (!hasServerSlotThatDay && p !== undefined) {
+        mergedPrices[dk] = p;
+      }
+    });
+    target.prices = mergedPrices;
+    if (row?.isPeak) target.isPeak = true;
+  });
+
+  return next.sort((a, b) => parseHour(a.start) - parseHour(b.start));
+};
+
 /** Quản lý time slot theo loại sân (môn) — route `/owner/venues/:id/time-slot` */
 const OwnerTimeSlot = () => {
   const { id } = useParams();
@@ -239,6 +283,29 @@ const OwnerTimeSlot = () => {
       );
   }, [slotRows, activeDayKey]);
 
+  const daysHavingAnySlot = useMemo(() => {
+    const byDay = {};
+    weekDates.forEach((d) => {
+      const dk = toIsoDate(d);
+      byDay[dk] = slotRows.some(
+        (row) => row.slotIds?.[dk] != null || row.prices?.[dk] !== undefined,
+      );
+    });
+    return byDay;
+  }, [slotRows, weekDates]);
+
+  const activeDayHasAnySlot = Boolean(daysHavingAnySlot[activeDayKey]);
+  const canUseDurationTemplate =
+    !saving && !loadingSlots && !!sportTypeId && !activeDayHasAnySlot;
+  const allowedDurations = useMemo(() => new Set([30, 60, 90]), []);
+  const parsedDuration = Number(slotDuration);
+  const normalizedDuration = allowedDurations.has(parsedDuration) ? parsedDuration : 60;
+  const slotDurationLabel = useMemo(() => {
+    if (normalizedDuration === 90) return "1h30p";
+    if (normalizedDuration === 60) return "1h";
+    return "30p";
+  }, [normalizedDuration]);
+
   /** Gắn thêm trên từng ô giá (một số trình duyệt chỉ chặn ổn định khi listener trên chính input) */
   useEffect(() => {
     const root = otsPageRef.current;
@@ -251,7 +318,8 @@ const OwnerTimeSlot = () => {
 
   const timeOptions = useMemo(() => buildTimeOptions(venueOpenTime, venueCloseTime), [venueOpenTime, venueCloseTime]);
 
-  const reloadSlots = useCallback(async () => {
+  const reloadSlots = useCallback(async (opts = {}) => {
+    const { preserveLocalDrafts = false, localRowsSnapshot = [] } = opts;
     const sid = Number(sportTypeId);
     if (!sid) {
       setSlotRows([]);
@@ -260,7 +328,12 @@ const OwnerTimeSlot = () => {
     setLoadingSlots(true);
     try {
       const { timeSlots } = await getOwnerVenueTimeSlots(id, sid);
-      setSlotRows(rowsFromApiOnly(timeSlots, weekDates));
+      const serverRows = rowsFromApiOnly(timeSlots, weekDates);
+      setSlotRows(
+        preserveLocalDrafts
+          ? mergeServerRowsWithLocalDrafts(serverRows, localRowsSnapshot)
+          : serverRows,
+      );
     } catch {
       toast.error("Không tải được khung giờ từ máy chủ.");
       setSlotRows([]);
@@ -344,6 +417,63 @@ const OwnerTimeSlot = () => {
     },
     [activeDayKey, venueCloseTime],
   );
+
+  const autoGenerateSlotsForActiveDay = useCallback(() => {
+    if (!canUseDurationTemplate) return;
+    const openMin = timeToMinutes(venueOpenTime ? formatTime(venueOpenTime) : null);
+    const closeMin = timeToMinutes(venueCloseTime ? formatTime(venueCloseTime) : null);
+    if (openMin == null || closeMin == null || closeMin <= openMin) {
+      toast.error("Không xác định được giờ mở/đóng hợp lệ để tạo tự động.");
+      return;
+    }
+
+    const generated = [];
+    for (let start = openMin; start + normalizedDuration <= closeMin; start += normalizedDuration) {
+      generated.push({
+        start: minutesToHHMM(start),
+        end: minutesToHHMM(start + normalizedDuration),
+      });
+    }
+    if (!generated.length) {
+      toast.info("Không có khung giờ phù hợp trong khoảng mở cửa.");
+      return;
+    }
+
+    setSlotRows((prev) => {
+      let next = [...prev];
+      generated.forEach(({ start, end }) => {
+        const foundIdx = next.findIndex((r) => r.start === start && r.end === end);
+        if (foundIdx >= 0) {
+          const row = next[foundIdx];
+          next[foundIdx] = {
+            ...row,
+            prices: { ...(row.prices || {}), [activeDayKey]: row.prices?.[activeDayKey] ?? 0 },
+          };
+        } else {
+          next.push({
+            id: `${start}-${end}`,
+            start,
+            end,
+            prices: { [activeDayKey]: 0 },
+            slotIds: {},
+            isPeak: false,
+          });
+        }
+      });
+      return next.sort((a, b) => parseHour(a.start) - parseHour(b.start));
+    });
+
+    // toast.success(`Đã tạo tự động ${generated.length} khung (${slotDurationLabel}) cho ${weekDayLabels[activeDayIndex]}.`);
+  }, [
+    canUseDurationTemplate,
+    venueOpenTime,
+    venueCloseTime,
+    normalizedDuration,
+    activeDayKey,
+    slotDurationLabel,
+    weekDayLabels,
+    activeDayIndex,
+  ]);
 
   const sortedOwnerVenues = useMemo(() => {
     return [...ownerVenuesList].sort((a, b) => {
@@ -542,7 +672,10 @@ const OwnerTimeSlot = () => {
       }
       editSnapshotRef.current = null;
       setEditingRowIdx(null);
-      await reloadSlots();
+      await reloadSlots({
+        preserveLocalDrafts: true,
+        localRowsSnapshot: slotRows,
+      });
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không lưu được khung giờ.");
     } finally {
@@ -796,7 +929,7 @@ const OwnerTimeSlot = () => {
                   type="button"
                   role="tab"
                   aria-selected={activeDayIndex === idx}
-                  className={`ots-day-pill ${activeDayIndex === idx ? "is-active" : ""}`}
+                  className={`ots-day-pill ${activeDayIndex === idx ? "is-active" : ""}${daysHavingAnySlot[toIsoDate(weekDates[idx])] ? " is-day-has-slots" : ""}`}
                   onClick={() => setActiveDayIndex(idx)}
                 >
                   {label}
@@ -815,6 +948,38 @@ const OwnerTimeSlot = () => {
 
           <div className="ots-slot-toolbar">
             <span className="ots-slot-toolbar-day">{weekDayLabels[activeDayIndex]}</span>
+            <label
+              className={`ots-slot-duration${canUseDurationTemplate ? "" : " is-disabled"}`}
+              title={
+                activeDayHasAnySlot
+                  ? "Ngày này đã có slot, không đổi mẫu tạo khung giờ."
+                  : "Chọn độ dài khung khi tạo mới"
+              }
+            >
+              Tạo khung theo:
+              <select
+                value={slotDuration}
+                disabled={!canUseDurationTemplate}
+                onChange={(e) => setSlotDuration(Number(e.target.value))}
+              >
+                <option value={30}>30 phút</option>
+                <option value={60}>1 giờ</option>
+                <option value={90}>1 giờ 30 phút</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              className="ots-auto-generate-btn"
+              disabled={!canUseDurationTemplate}
+              onClick={autoGenerateSlotsForActiveDay}
+              title={
+                activeDayHasAnySlot
+                  ? "Ngày này đã có slot nên không tạo tự động."
+                  : "Tạo tự động từ giờ mở đến giờ đóng"
+              }
+            >
+              <Calendar size={14} /> Tạo tự động cả ngày
+            </button>
           </div>
 
           {loadingSlots ? (
@@ -843,7 +1008,7 @@ const OwnerTimeSlot = () => {
               </div>
               <div className="ots-slot-rows">
                 {rowsForActiveDay.map(({ row, idx: originalIdx }, visIdx) => {
-                  const step = Number(slotDuration) === 30 ? 30 : 60;
+                  const step = normalizedDuration;
                   const openMin =
                     timeToMinutes(venueOpenTime ? formatTime(venueOpenTime) : null) ?? 6 * 60;
                   let insertBefore = null;
@@ -874,7 +1039,11 @@ const OwnerTimeSlot = () => {
                     const prevR = rowsForActiveDay[visIdx - 1].row;
                     const prevEnd = timeToMinutes(prevR.end);
                     const curStart = timeToMinutes(row.start);
-                    if (prevEnd != null && curStart != null && curStart - prevEnd >= step) {
+                    if (
+                      prevEnd != null &&
+                      curStart != null &&
+                      curStart - prevEnd >= step
+                    ) {
                       const s1 = minutesToHHMM(prevEnd);
                       const e1 = minutesToHHMM(prevEnd + step);
                       insertBetween = (
@@ -1090,7 +1259,7 @@ const OwnerTimeSlot = () => {
                   type="button"
                   disabled={saving || !sportTypeId}
                   onClick={() => {
-                    const step = Number(slotDuration) === 30 ? 30 : 60;
+                    const step = normalizedDuration;
                     const visibleEnds = rowsForActiveDay.map(({ row }) => timeToMinutes(row.end) ?? 0);
                     const lastInDay =
                       rowsForActiveDay.length > 0
@@ -1108,7 +1277,8 @@ const OwnerTimeSlot = () => {
                     addSlotForActiveDay(start, end);
                   }}
                 >
-                  <Plus size={16} /> Thêm khung (chỉ {weekDayLabels[activeDayIndex]})
+                  <Plus size={16} />{" "}
+                  {`Thêm khung (${slotDurationLabel} · chỉ ${weekDayLabels[activeDayIndex]})`}
                 </button>
               </div>
             </>
