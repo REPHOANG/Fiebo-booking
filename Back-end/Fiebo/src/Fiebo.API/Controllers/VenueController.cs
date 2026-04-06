@@ -325,7 +325,7 @@ namespace Fiebo.API.Controllers
                 throw new UnauthorizedAccessException("Không thể xác định người dùng.");
             }
 
-            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId, userRole);
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId);
 
             return Ok(new ApiResponse<object>
             {
