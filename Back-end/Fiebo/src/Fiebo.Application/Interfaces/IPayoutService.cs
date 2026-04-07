@@ -16,5 +16,6 @@ namespace Fiebo.Application.Interfaces
         /// Returns true if the payout was successfully queued/processed.
         /// </summary>
         Task<bool> ProcessPayoutAsync(int transactionId, decimal amount, string bankName, string accountNumber, string accountHolderName);
+        Task<DetailedPayoutResponse> GetPayoutDetailAsync(int payoutId, string ownerId);
     }
 }
