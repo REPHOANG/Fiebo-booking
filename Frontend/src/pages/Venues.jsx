@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from 'react-redux';
 import { clearDraft } from '../store/bookingDraftSlice';
 import { searchVenues, getVenueDetail, getVenueFields, getVenueReviews } from "../services/fieldService";
+import { getDistrictsByProvince, getProvinces } from "../services/addressService";
 import {
   getSportTypes,
   normalizeSportTypeList,
@@ -368,6 +369,14 @@ const Venues = () => {
   const [filterMode, setFilterMode] = useState("khu-vuc");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
+  const [selectedProvinceId, setSelectedProvinceId] = useState("");
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
+  const [provinceQuery, setProvinceQuery] = useState("");
+  const [districtQuery, setDistrictQuery] = useState("");
+  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
+  const [districtDropdownOpen, setDistrictDropdownOpen] = useState(false);
+  const [provinceOptions, setProvinceOptions] = useState([]);
+  const [districtOptions, setDistrictOptions] = useState([]);
   const [distanceKm, setDistanceKm] = useState("");
   const [pendingBookingDate, setPendingBookingDate] = useState("");
   const [pendingBookingTime, setPendingBookingTime] = useState("");
@@ -395,11 +404,80 @@ const Venues = () => {
       sportDraftMismatch,
   );
 
+  const filteredProvinceOptions = useMemo(() => {
+    const q = provinceQuery.trim().toLowerCase();
+    if (!q) return provinceOptions;
+    return provinceOptions.filter((p) =>
+      String(p?.name ?? "").toLowerCase().includes(q),
+    );
+  }, [provinceOptions, provinceQuery]);
+
+  const filteredDistrictOptions = useMemo(() => {
+    const q = districtQuery.trim().toLowerCase();
+    if (!q) return districtOptions;
+    return districtOptions.filter((d) =>
+      String(d?.name ?? "").toLowerCase().includes(q),
+    );
+  }, [districtOptions, districtQuery]);
+
   useEffect(() => {
     setPendingSportTypeId(
       sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "",
     );
   }, [sportTypeIdFromUrl]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getProvinces();
+        if (!mounted) return;
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((x) => ({
+            id: String(x?.id ?? x?.provinceId ?? x?.ProvinceId ?? ""),
+            name: String(x?.name ?? x?.provinceName ?? x?.ProvinceName ?? "").trim(),
+          }))
+          .filter((x) => x.id && x.name)
+          .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }));
+        setProvinceOptions(normalized);
+      } catch {
+        if (mounted) setProvinceOptions([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProvinceId) {
+      setDistrictOptions([]);
+      setSelectedDistrictId("");
+      setDistrict("");
+      setDistrictQuery("");
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getDistrictsByProvince(selectedProvinceId);
+        if (!mounted) return;
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((x) => ({
+            id: String(x?.id ?? x?.districtId ?? x?.wardId ?? x?.DistrictId ?? x?.WardId ?? ""),
+            name: String(x?.name ?? x?.districtName ?? x?.wardName ?? x?.DistrictName ?? x?.WardName ?? "").trim(),
+          }))
+          .filter((x) => x.id && x.name)
+          .sort((a, b) => a.name.localeCompare(b.name, "vi", { sensitivity: "base" }));
+        setDistrictOptions(normalized);
+      } catch {
+        if (mounted) setDistrictOptions([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedProvinceId]);
 
   const commitSportToUrl = useCallback(() => {
     setSearchParams(
@@ -418,6 +496,8 @@ const Venues = () => {
   }, [pendingSportTypeId, setSearchParams]);
 
   const observer = useRef();
+  const provinceBoxRef = useRef(null);
+  const districtBoxRef = useRef(null);
   const prevFiltersKeyRef = useRef(undefined);
   /** Tăng mỗi lần gọi API; bỏ qua kết quả nếu đã có request mới hơn (tránh race khi đổi bộ lọc / StrictMode). */
   const fetchSeqRef = useRef(0);
@@ -572,6 +652,20 @@ const Venues = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const onPointerDown = (e) => {
+      const t = e.target;
+      if (provinceBoxRef.current && !provinceBoxRef.current.contains(t)) {
+        setProvinceDropdownOpen(false);
+      }
+      if (districtBoxRef.current && !districtBoxRef.current.contains(t)) {
+        setDistrictDropdownOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
   const getLocation = (venue) => {
     const ward = venue.ward ?? venue.Ward;
     const province = venue.province ?? venue.Province;
@@ -669,6 +763,13 @@ const Venues = () => {
   const clearFilters = () => {
     setProvince("");
     setDistrict("");
+    setSelectedProvinceId("");
+    setSelectedDistrictId("");
+    setProvinceQuery("");
+    setDistrictQuery("");
+    setProvinceDropdownOpen(false);
+    setDistrictDropdownOpen(false);
+    setDistrictOptions([]);
     setDistanceKm("");
     setPendingBookingDate("");
     setPendingBookingTime("");
@@ -812,24 +913,121 @@ const Venues = () => {
                   <div className="filter-body filter-body--area">
                     <div className="filter-area-fields">
                       <div className="input-group">
-                        <label htmlFor="venues-province">Tỉnh / TP</label>
-                        <input
-                          id="venues-province"
-                          type="text"
-                          value={province}
-                          onChange={(e) => setProvince(e.target.value)}
-                          placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
-                        />
+                        <label htmlFor="venues-province-combo">Tỉnh / TP</label>
+                        <div className="filter-combobox" ref={provinceBoxRef}>
+                          <input
+                            id="venues-province-combo"
+                            type="text"
+                            value={provinceQuery}
+                            onFocus={() => setProvinceDropdownOpen(true)}
+                            onClick={() => setProvinceDropdownOpen(true)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setProvinceQuery(v);
+                              setProvince(v);
+                              setSelectedProvinceId("");
+                              setSelectedDistrictId("");
+                              setDistrict("");
+                              setDistrictQuery("");
+                            }}
+                            placeholder="Gõ để tìm và chọn tỉnh/thành..."
+                          />
+                          <button
+                            type="button"
+                            className="filter-combobox-toggle"
+                            aria-label="Mở danh sách tỉnh/thành"
+                            onClick={() => setProvinceDropdownOpen((v) => !v)}
+                          >
+                            <ChevronRight size={14} className={provinceDropdownOpen ? "is-open" : ""} />
+                          </button>
+                          {provinceDropdownOpen && (
+                            <ul className="filter-combobox-list" role="listbox" aria-label="Danh sách tỉnh/thành">
+                              {filteredProvinceOptions.length === 0 ? (
+                                <li className="filter-combobox-empty">Không có tỉnh/thành phù hợp</li>
+                              ) : (
+                                filteredProvinceOptions.map((p) => (
+                                  <li key={p.id}>
+                                    <button
+                                      type="button"
+                                      className={`filter-combobox-item${selectedProvinceId === p.id ? " is-selected" : ""}`}
+                                      onClick={() => {
+                                        setSelectedProvinceId(p.id);
+                                        setProvince(p.name);
+                                        setProvinceQuery(p.name);
+                                        setSelectedDistrictId("");
+                                        setDistrict("");
+                                        setDistrictQuery("");
+                                        setProvinceDropdownOpen(false);
+                                      }}
+                                    >
+                                      {p.name}
+                                    </button>
+                                  </li>
+                                ))
+                              )}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                       <div className="input-group">
-                        <label htmlFor="venues-district">Quận / Huyện</label>
-                        <input
-                          id="venues-district"
-                          type="text"
-                          value={district}
-                          onChange={(e) => setDistrict(e.target.value)}
-                          placeholder="VD: Quận 1, Thanh Xuân"
-                        />
+                        <label htmlFor="venues-district-combo">Quận / Huyện</label>
+                        <div
+                          className={`filter-combobox${!selectedProvinceId ? " is-disabled" : ""}`}
+                          ref={districtBoxRef}
+                        >
+                          <input
+                            id="venues-district-combo"
+                            type="text"
+                            value={districtQuery}
+                            disabled={!selectedProvinceId}
+                            onFocus={() => setDistrictDropdownOpen(true)}
+                            onClick={() => setDistrictDropdownOpen(true)}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setDistrictQuery(v);
+                              setDistrict(v);
+                              setSelectedDistrictId("");
+                            }}
+                            placeholder={
+                              selectedProvinceId
+                                ? "Gõ để tìm và chọn quận/huyện..."
+                                : "Chọn tỉnh/thành trước"
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="filter-combobox-toggle"
+                            aria-label="Mở danh sách quận/huyện"
+                            disabled={!selectedProvinceId}
+                            onClick={() => setDistrictDropdownOpen((v) => !v)}
+                          >
+                            <ChevronRight size={14} className={districtDropdownOpen ? "is-open" : ""} />
+                          </button>
+                          {districtDropdownOpen && selectedProvinceId && (
+                            <ul className="filter-combobox-list" role="listbox" aria-label="Danh sách quận/huyện">
+                              {filteredDistrictOptions.length === 0 ? (
+                                <li className="filter-combobox-empty">Không có quận/huyện phù hợp</li>
+                              ) : (
+                                filteredDistrictOptions.map((d) => (
+                                  <li key={d.id}>
+                                    <button
+                                      type="button"
+                                      className={`filter-combobox-item${selectedDistrictId === d.id ? " is-selected" : ""}`}
+                                      onClick={() => {
+                                        setSelectedDistrictId(d.id);
+                                        setDistrict(d.name);
+                                        setDistrictQuery(d.name);
+                                        setDistrictDropdownOpen(false);
+                                      }}
+                                    >
+                                      {d.name}
+                                    </button>
+                                  </li>
+                                ))
+                              )}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="filter-save-row">
