@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
+import { hasRole } from "../utils/roleUtils";
 
 const ProtectedRoute = ({ element, requiredRole }) => {
   const { isAuthenticated, user, profileLoading } = useSelector(
@@ -22,8 +23,7 @@ const ProtectedRoute = ({ element, requiredRole }) => {
 
   if (isAuthenticated && user) {
     if (requiredRole) {
-      const roleVal = (user?.role || user?.roles || "").toString().toLowerCase();
-      if (roleVal !== requiredRole.toString().toLowerCase()) {
+      if (!hasRole(user, requiredRole)) {
         return <Navigate to="/" replace />;
       }
     }

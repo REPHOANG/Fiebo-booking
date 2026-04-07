@@ -38,7 +38,7 @@ const OwnerLayout = () => {
       activePath.startsWith("/owner/venues") ||
       activePath.startsWith("/owner/offline-booking") ||
       activePath.startsWith("/owner/create-venue") ||
-      activePath.startsWith("/owner/staff")
+      activePath.startsWith("/owner/staff") 
     );
   }, [activePath]);
 
@@ -174,6 +174,16 @@ const OwnerLayout = () => {
                 <CalendarClock size={15} />
                 Đặt sân offline
               </NavLink>
+              {/* <NavLink
+                to="/owner/bookings"
+                onClick={handleSidebarNavigate}
+                className={({ isActive }) =>
+                  `owner-sidebar-sublink ${isActive ? "active" : ""}`
+                }
+              >
+                <ReceiptText size={15} />
+                Danh sách booking
+              </NavLink> */}
               <NavLink
                 to="/owner/create-venue"
                 onClick={handleSidebarNavigate}
@@ -197,7 +207,16 @@ const OwnerLayout = () => {
             </div>
           </div>
 
-         
+          <NavLink
+            to="/owner/bookings"
+            onClick={handleSidebarNavigate}
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            <ReceiptText size={16} />
+            Đơn đặt sân
+          </NavLink>
 
           <div className="owner-sidebar-divider" />
 

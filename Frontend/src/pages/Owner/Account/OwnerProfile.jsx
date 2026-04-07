@@ -11,8 +11,8 @@ import {
   getProfile,
   updateProfile as updateProfileAPI,
   changePassword as changePasswordAPI,
-} from "../../services/authService";
-import { updateProfile as updateProfileRedux } from "../../store/authSlice";
+} from "../../../services/authService";
+import { updateProfile as updateProfileRedux } from "../../../store/authSlice";
 import "./OwnerProfile.css";
 
 const errMessage = (e) =>
@@ -281,3 +281,4 @@ const OwnerProfile = () => {
 };
 
 export default OwnerProfile;
+

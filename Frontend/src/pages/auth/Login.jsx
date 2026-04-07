@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import Alert from '@mui/material/Alert';
 import Collapse from '@mui/material/Collapse';
+import { getHomePathByRole, hasRole } from '../../utils/roleUtils';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
 import './Login.css';
 
@@ -102,15 +103,9 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
     return "unknown";
   };
 
-  const hasOwnerRole = (user) => {
-    const roleRaw = user?.role ?? user?.roles ?? "";
-    if (Array.isArray(roleRaw)) {
-      return roleRaw.some((r) => String(r).toLowerCase().trim() === "fieldowner");
-    }
-    return String(roleRaw)
-      .split(",")
-      .map((r) => r.toLowerCase().trim())
-      .includes("fieldowner");
+  const resolveHomePath = (user) => {
+    if (isOwner || hasRole(user, "fieldowner")) return "/owner";
+    return getHomePathByRole(user);
   };
 
   // ── Password login handler ────────────────────────────────────────────────
@@ -153,23 +148,13 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right', autoClose: 3000,
       });
 
+      const homePath = resolveHomePath(response.user);
       if (typeof onLoginSuccess === "function") {
-        if (hasOwnerRole(response.user) || isOwner) {
-          navigate("/owner", { replace: true });
-        }
+        navigate(homePath, { replace: true });
         onLoginSuccess();
         return;
       }
-      if (hasOwnerRole(response.user) || isOwner) {
-        navigate('/owner', { replace: true });
-        return;
-      }
-      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
-      if (roleVal === 'admin') {
-        navigate('/admin', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
+      navigate(homePath, { replace: true });
 
     } catch (error) {
       const msg = (error?.message || "").toLowerCase();
@@ -214,23 +199,13 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right',
         autoClose: 3000,
       });
+      const homePath = resolveHomePath(response.user);
       if (typeof onLoginSuccess === "function") {
-        if (hasOwnerRole(response.user) || isOwner) {
-          navigate("/owner", { replace: true });
-        }
+        navigate(homePath, { replace: true });
         onLoginSuccess();
         return;
       }
-      if (hasOwnerRole(response.user) || isOwner) {
-        navigate('/owner', { replace: true });
-        return;
-      }
-      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
-      if (roleVal === 'admin') {
-        navigate('/admin', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
+      navigate(homePath, { replace: true });
     } catch (error) {
       setAlertInfo({
         type: "error",

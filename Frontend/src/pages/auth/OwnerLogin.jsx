@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Login.css';
 import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
+import { getHomePathByRole } from '../../utils/roleUtils';
 
 const ownerLoginSchema = yup.object({
   identifier: yup
@@ -57,7 +58,7 @@ const OwnerLogin = () => {
       dispatch(setCredentials({ user: response.user, token }));
       localStorage.setItem(AUTH_STORAGE_KEY, token);
       toast.success('Đăng nhập cho chủ sân thành công');
-      navigate('/owner');
+      navigate(getHomePathByRole(response.user), { replace: true });
     } catch (err) {
       toast.error(err.message || 'Login failed');
     } finally {

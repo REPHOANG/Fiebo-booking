@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Search, CircleCheck, FilePenLine, Hourglass, Ban } from "lucide-react";
 import { toast } from "react-toastify";
 import "./OwnerVenues.css";
-import { deactivateOwnerVenue, getOwnerVenues } from "../../services/venueService";
+import { deactivateOwnerVenue, getOwnerVenues } from "../../../services/venueService";
 
 const pick = (obj, ...keys) => {
   for (const k of keys) {
@@ -12,7 +12,6 @@ const pick = (obj, ...keys) => {
   return undefined;
 };
 
-/** Chuẩn hóa status từ API (chuỗi hoặc enum số backend). */
 function normalizeVenueStatus(raw) {
   if (raw == null || raw === "") return "";
   if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -38,12 +37,6 @@ const translateVenueStatus = (status) => {
   return status || "—";
 };
 
-/**
- * - approved: Active
- * - draft: Draft (bản nháp)
- * - pending: Pending + Inactive
- * - cancelled: Rejected
- */
 function bucketVenuesByApproval(list) {
   const approved = [];
   const draft = [];
@@ -118,6 +111,20 @@ const OwnerVenues = () => {
           ? "ov-tab-pending"
           : "ov-tab-cancelled";
 
+  const handleDeactivate = async (venueId, name) => {
+    const ok = window.confirm(
+      `Vô hiệu hóa cơ sở "${name}"? Khách sẽ không đặt sân tại đây nữa.`
+    );
+    if (!ok) return;
+    try {
+      await deactivateOwnerVenue(venueId);
+      toast.success("Đã vô hiệu hóa cơ sở.");
+      await loadVenues();
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
+    }
+  };
+
   const renderVenueCard = (v) => {
     const id = pick(v, "venueId", "VenueId");
     const name = pick(v, "name", "Name") ?? "—";
@@ -127,7 +134,6 @@ const OwnerVenues = () => {
     const status = pick(v, "status", "Status");
     const totalFields = pick(v, "totalFields", "TotalFields") ?? 0;
     const statusLower = normalizeVenueStatus(status);
-    // Chỉ cho phép chỉnh sửa khi status thuộc active/draft.
     const canDeactivate = statusLower === "active" || statusLower === "draft";
 
     return (
@@ -174,20 +180,6 @@ const OwnerVenues = () => {
         </div>
       </div>
     );
-  };
-
-  const handleDeactivate = async (venueId, name) => {
-    const ok = window.confirm(
-      `Vô hiệu hóa cơ sở "${name}"? Khách sẽ không đặt sân tại đây nữa.`
-    );
-    if (!ok) return;
-    try {
-      await deactivateOwnerVenue(venueId);
-      toast.success("Đã vô hiệu hóa cơ sở.");
-      await loadVenues();
-    } catch (e) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
-    }
   };
 
   return (
@@ -333,6 +325,7 @@ const OwnerVenues = () => {
       )}
     </div>
   );
-}
+};
 
 export default OwnerVenues;
+

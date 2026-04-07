@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
-import { getOwnerVenues } from "../../../services/venueService";
+import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
 
@@ -227,7 +227,7 @@ const CreateEvent = () => {
     setLoadingVenues(true);
     setError("");
     try {
-      const list = await getOwnerVenues();
+      const list = await getOwnerVenueSelectOptions();
       setVenues(Array.isArray(list) ? list : []);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Không tải được danh sách cơ sở.");

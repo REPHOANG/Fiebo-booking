@@ -6,8 +6,8 @@ import * as yup from "yup";
 import { toast } from "react-toastify";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Filter, MapPin, User } from "lucide-react";
 import "./OwnerBookingsCompact.css";
-import { getOwnerBookingList } from "../../services/bookingService";
-import { getOwnerVenues } from "../../services/venueService";
+import { getOwnerBookingList } from "../../../services/bookingService";
+import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 
 const filterSchema = yup.object({
   venueId: yup.string(),
@@ -16,7 +16,6 @@ const filterSchema = yup.object({
 const PAGE_SIZE = 10;
 const WEEK_DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
-/** Giá trị gửi API (BookingStatus), khớp backend OwnerBookingFilter.Status */
 const BOOKING_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
   { value: "Pending", label: "Chờ thanh toán" },
@@ -123,7 +122,7 @@ const OwnerBookings = () => {
     (async () => {
       setVenuesLoading(true);
       try {
-        const list = await getOwnerVenues();
+        const list = await getOwnerVenueSelectOptions();
         if (!cancelled) setVenues(Array.isArray(list) ? list : []);
       } catch (e) {
         if (!cancelled) {
@@ -496,3 +495,4 @@ const OwnerBookings = () => {
 };
 
 export default OwnerBookings;
+

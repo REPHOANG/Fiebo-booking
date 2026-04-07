@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import {
   getOwnerBookingDetail,
   ownerCancelBookingApi,
-} from "../../services/bookingService";
+} from "../../../services/bookingService";
 import "./OwnerBookingDetail.css";
 
 const formatPrice = (n) => {
@@ -36,7 +36,6 @@ const translateStatus = (status) => {
   return status || "—";
 };
 
-/** Lý do hủy cố định (gửi lên API dạng chuỗi) */
 const OWNER_CANCEL_REASONS = [
   "Không thể sắp xếp được sân",
   "Sân bảo trì / sửa chữa",
@@ -285,3 +284,4 @@ const OwnerBookingDetail = () => {
 };
 
 export default OwnerBookingDetail;
+

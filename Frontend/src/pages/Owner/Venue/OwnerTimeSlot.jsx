@@ -2,15 +2,15 @@ import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useR
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles, Pencil } from "lucide-react";
 import { toast } from "react-toastify";
-// import { getOwnerVenueFields } from "../../services/fieldService";
-import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
-import { getVenueDraft, getOwnerVenues } from "../../services/venueService";
+// import { getOwnerVenueFields } from "../../../services/fieldService";
+import { getSportTypes, normalizeSportTypeList } from "../../../services/sportTypeService";
+import { getVenueDraft, getOwnerVenueSelectOptions } from "../../../services/venueService";
 import {
   getOwnerVenueTimeSlots,
   createOwnerVenueTimeSlot,
   updateOwnerVenueTimeSlot,
   deleteOwnerVenueTimeSlot,
-} from "../../services/venueTimeSlotService";
+} from "../../../services/venueTimeSlotService";
 import "./OwnerTimeSlot.css";
 
 // const translateFieldStatus = (raw) => {
@@ -501,7 +501,7 @@ const OwnerTimeSlot = () => {
     let mounted = true;
     (async () => {
       try {
-        const list = await getOwnerVenues();
+        const list = await getOwnerVenueSelectOptions();
         if (mounted) setOwnerVenuesList(Array.isArray(list) ? list : []);
       } catch {
         if (mounted) setOwnerVenuesList([]);
