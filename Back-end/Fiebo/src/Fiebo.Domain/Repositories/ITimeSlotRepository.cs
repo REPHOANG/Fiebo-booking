@@ -19,5 +19,6 @@ namespace Fiebo.Domain.Repositories
             TimeOnly startTime,
             TimeOnly endTime,
             int? excludeId = null);
+        Task<bool> CanBeEditedOrDeleted(int sloId);
     }
 }

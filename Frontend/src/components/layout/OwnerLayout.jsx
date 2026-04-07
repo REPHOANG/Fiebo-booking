@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, Link, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
-  Search,
   Bell,
   Mail,
   Menu,
   X,
-  Home,
   ChevronRight,
   ChevronDown,
   LayoutDashboard,

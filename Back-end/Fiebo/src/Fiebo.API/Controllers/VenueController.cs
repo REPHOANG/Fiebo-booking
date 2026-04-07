@@ -318,14 +318,12 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> CreateField([FromRoute] int venueId, [FromForm] CreateFieldRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(userRole))
+            if (string.IsNullOrWhiteSpace(userId))
             {
                 throw new UnauthorizedAccessException("Không thể xác định người dùng.");
             }
 
-            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId, userRole);
+            var fieldId = await _fieldService.CreateFieldAsync(venueId, request, userId);
 
             return Ok(new ApiResponse<object>
             {
@@ -354,6 +352,20 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        //[Authorize(Roles = AppRoles.FieldOwner)]
+        //[HttpPatch("/api/owner/venue/{id}/draft")]
+        //public async Task<IActionResult> CreateVenue([FromRoute] int id, [FromForm] CreateVenueRequest request)
+        //{
+        //    var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    var result = await _venueService.EditVenueDraft(request, ownerId);
+        //    return Ok(new ApiResponse<CreateVenueResponse>
+        //    {
+        //        StatusCode = StatusCodes.Status200OK,
+        //        Message = "Tạo sân thành công",
+        //        Data = result
+        //    });
+        //}
 
         /// <summary>
         /// Upload venue document images when create venue
@@ -627,6 +639,34 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Xóa khung giờ sân thành công"
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/field/{id}")]
+        public async Task<IActionResult> GetOwnerFieldDetail([FromRoute] int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _fieldService.GetOwnerFieldDetailAsync(id, ownerId);
+            return Ok(new ApiResponse<OwnerFieldDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin sân thành công",
+                Data = result
+            });
+        }
+
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/venue/select-option")]
+        public async Task<IActionResult> GetOwnerVenueSelectOption()
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _venueService.GetOwnerVenueSelectOptionAsync(ownerId);
+            return Ok(new ApiResponse<List<OwnerVenueSelectOptionResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách cơ sở thành công",
+                Data = [.. result]
             });
         }
     }

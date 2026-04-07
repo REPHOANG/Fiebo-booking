@@ -509,7 +509,7 @@ namespace Fiebo.Application.Services
                 VenueId = venueId,
                 DocumentType = DocumentType.BusinessLicense,
                 IssueDate = request.BusinessDocument.IssueDate,
-                ExpiryDate = request.BusinessDocument.ExpiryDate
+                ExpiryDate = request.BusinessDocument.ExpiryDate,
             };
 
             var landDoc = new VenueDocument
@@ -927,6 +927,20 @@ namespace Fiebo.Application.Services
                 Page = pagedResult.Page,
                 PageSize = pagedResult.PageSize
             };
+        }
+
+        public async Task<List<OwnerVenueSelectOptionResponse>> GetOwnerVenueSelectOptionAsync(string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedAccessException(ownerId);
+            }
+            var venues = await _unitOfWork.Venues.FindAsync(v => v.OwnerId == ownerId);
+            return [.. venues.Select(v => new OwnerVenueSelectOptionResponse
+            {
+                Id = v.Id,
+                Name = v.Name
+            })];
         }
     }
 }
