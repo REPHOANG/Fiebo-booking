@@ -37,9 +37,10 @@ builder.Services.AddCors(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("MyCnn");
 
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 24));
 builder.Services.AddDbContext<FieboDbContext>(options =>
 {
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+    options.UseMySql(connectionString, serverVersion,
         b => b.MigrationsAssembly("Fiebo.Persistence"));
 });
 
@@ -133,7 +134,7 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
-builder.Services.AddScoped<IPayoutService, MockPayoutService>();builder.Services.AddScoped<IPayoutService, PayoutService>();
+builder.Services.AddScoped<IPayoutService, PayoutService>();
 
 builder.Services.AddHttpClient();
 

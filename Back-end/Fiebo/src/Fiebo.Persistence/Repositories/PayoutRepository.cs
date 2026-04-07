@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Domain.Enums;
@@ -18,13 +18,23 @@ namespace Fiebo.Persistence.Repositories
         {
         }
 
-        public async Task<PagedResult<Payout>> GetOwnerPayouts(string ownerId, int page, int pageSize)
+        public async Task<PagedResult<Payout>> GetOwnerPayouts(string ownerId, int page, int pageSize, int? year, int? month)
         {
             var query = _context.Payouts
+                .Include(p => p.Batch)
                 .Where(p => p.OwnerId == ownerId);
+
+            if (year.HasValue)
+            {
+                query = query.Where(p => p.Batch.FromDate.Year == year.Value);
+                if (month.HasValue)
+                {
+                    query = query.Where(p => p.Batch.FromDate.Month == month.Value);
+                }
+            }
+
             var totalItems = await query.CountAsync();
             var items = await query
-                .Include(p => p.Batch)
                 .OrderByDescending(t => t.Batch.FromDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -43,6 +53,22 @@ namespace Fiebo.Persistence.Repositories
                 .Where(p => p.Status == PayoutStatus.Pending)
                 .Where(p => p.PayoutDetails.Any(pd => pd.Booking.Venue.OwnerId == ownerId))
                 .SumAsync(p => p.Amount);
+        }
+ 
+        public async Task<Payout?> GetPayoutWithDetailsAsync(int payoutId)
+        {
+            return await _context.Payouts
+                .AsNoTracking()
+                .Include(p => p.Batch)
+                .Include(p => p.BankAccount)
+                .Include(p => p.PayoutDetails)
+                    .ThenInclude(pd => pd.Booking)
+                        .ThenInclude(b => b.Venue)
+                .Include(p => p.PayoutDetails)
+                    .ThenInclude(pd => pd.Booking)
+                        .ThenInclude(b => b.BookingDetails)
+                            .ThenInclude(bd => bd.Field)
+                .FirstOrDefaultAsync(p => p.Id == payoutId);
         }
     }
 }

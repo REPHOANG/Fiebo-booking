@@ -135,7 +135,7 @@ namespace Fiebo.Application.Services
                 field.Status = FieldStatus.Active;
             }
 
-            field.UpdatedAt = DateTime.Now; 
+            field.UpdatedAt = DateTime.Now;
 
             _unitOfWork.Fields.Update(field);
             await _unitOfWork.SaveChangesAsync();
@@ -264,27 +264,48 @@ namespace Fiebo.Application.Services
 
         public async Task DeleteFieldImage(string publicId, string? userId)
         {
-            if(userId == null)
+            if (userId == null)
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để thực hiện hành động này.");
             }
             var image = await _unitOfWork.FieldImages.GetSingleAsync(f => f.Id == publicId);
-            if(image == null)
+            if (image == null)
             {
                 throw new NotFoundException("Không tìm thấy hình ảnh.");
             }
             var field = await _unitOfWork.Fields.GetFieldWithVenueAsync(image.FieldId);
-            if(field == null)
+            if (field == null)
             {
                 throw new NotFoundException("Không tìm thấy sân.");
             }
-            if(field.Venue?.OwnerId != userId)
+            if (field.Venue?.OwnerId != userId)
             {
                 throw new ForbiddenException("Bạn không có quyền xoá ảnh sân này.");
             }
             _unitOfWork.FieldImages.Remove(image);
             await _cloudinaryService.DeleteImageAsync(publicId);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<OwnerFieldDetailResponse> GetOwnerFieldDetailAsync(int id, string? ownerId)
+        {
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
+            var field = await _unitOfWork.Fields.GetOwnerFieldDetail(id) ?? throw new NotFoundException("Không tìm thấy sân.");
+            var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở của sân.");
+            if (venue.OwnerId != ownerId)
+            {
+                throw new ForbiddenException("Bạn không có quyền truy cập sân này.");
+            }
+            return new OwnerFieldDetailResponse
+            {
+                Name = field.Name,
+                Description = field.Description,
+                SportTypeId = field.SportTypeId,
+                Images = [.. field.Images.Select(i => i.ImageUrl)]
+            };
         }
     }
 }

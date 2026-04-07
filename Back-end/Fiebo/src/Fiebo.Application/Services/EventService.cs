@@ -453,6 +453,10 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Không thể chỉnh sửa sự kiện khi đã có người đăng kí");
             }
+            if(request.MaxPlayer < request.MinPlayer)
+            {
+                throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu");
+            }
 
             dropInEvent.PricePerPerson = request.PricePerPerson;
             dropInEvent.MinPlayer = request.MinPlayer;

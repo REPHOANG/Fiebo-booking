@@ -118,6 +118,50 @@ namespace Fiebo.IntegrationTests.Event
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         }
 
+        [Fact]
+        public async Task JoinDropInEvent_ServiceBadRequest_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("customer-1", AppRoles.Customer);
+
+            _factory.EventServiceMock
+                .Setup(s => s.JoinDropInEventAsync(It.IsAny<JoinEventRequest>(), 10, "customer-1"))
+                .ThrowsAsync(new BadRequestException("Số lượng người tham gia sự kiện đã đầy"));
+
+            var response = await client.PostAsJsonAsync("/api/Event/10/join", ValidRequest());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task JoinDropInEvent_ServiceNotFound_Returns404()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("customer-1", AppRoles.Customer);
+
+            _factory.EventServiceMock
+                .Setup(s => s.JoinDropInEventAsync(It.IsAny<JoinEventRequest>(), 10, "customer-1"))
+                .ThrowsAsync(new NotFoundException("Sự kiện này không tồn tại"));
+
+            var response = await client.PostAsJsonAsync("/api/Event/10/join", ValidRequest());
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task JoinDropInEvent_InvalidBody_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("customer-1", AppRoles.Customer);
+
+            var response = await client.PostAsync("/api/Event/10/join", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.EventServiceMock.Verify(
+                s => s.JoinDropInEventAsync(It.IsAny<JoinEventRequest>(), It.IsAny<int>(), It.IsAny<string>()),
+                Times.Never);
+        }
+
         private static JoinEventRequest ValidRequest()
         {
             return new JoinEventRequest

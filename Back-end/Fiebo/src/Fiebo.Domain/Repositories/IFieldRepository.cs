@@ -17,5 +17,6 @@ namespace Fiebo.Domain.Repositories
         Task<List<Field>> GetAllFieldsByVenueAsync(int venueId);
         Task<bool> IsFieldNameExistsInVenueAsync(int venueId, string fieldName, int sportTypeId);
         Task<Field?> GetFieldWithVenueAsync(int fieldId);
+        Task<Field?> GetOwnerFieldDetail(int fieldId);
     }
 }

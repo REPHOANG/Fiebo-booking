@@ -636,6 +636,10 @@ namespace Fiebo.Persistence.Data
                 entity.Property(e => e.Id)
                     .ValueGeneratedOnAdd();
 
+                entity.Property(e => e.BatchCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
                 entity.Property(e => e.FromDate)
                     .IsRequired();
 
@@ -663,12 +667,25 @@ namespace Fiebo.Persistence.Data
                 entity.Property(e => e.Id)
                     .ValueGeneratedOnAdd();
 
+                entity.Property(e => e.ReferenceCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
                 entity.Property(e => e.Amount)
                     .HasColumnType("decimal(18,2)")
                     .IsRequired();
 
+                entity.Property(e => e.FailureReason)
+                    .HasMaxLength(500);
+
+                entity.HasOne(e => e.BankAccount)
+                    .WithMany()
+                    .HasForeignKey(e => e.BankAccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasIndex(e => e.BatchId);
                 entity.HasIndex(e => e.OwnerId);
+                entity.HasIndex(e => e.ReferenceCode).IsUnique();
 
                 entity.HasIndex(e => new { e.BatchId, e.OwnerId })
                     .IsUnique();

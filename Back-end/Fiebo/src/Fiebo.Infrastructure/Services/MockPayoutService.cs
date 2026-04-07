@@ -19,7 +19,8 @@ namespace Fiebo.Infrastructure.Services
             _logger = logger;
         }
 
-        public Task<PagedResult<OwnerPayoutsResponse>> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize)
+
+        public Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
             throw new NotImplementedException();
         }
@@ -39,6 +40,11 @@ namespace Fiebo.Infrastructure.Services
 
             // In production, this would call a real payment gateway API here.
             return true;
+        }
+
+        public Task<DetailedPayoutResponse> GetPayoutDetailAsync(int payoutId, string ownerId)
+        {
+            throw new NotImplementedException();
         }
     }
 }

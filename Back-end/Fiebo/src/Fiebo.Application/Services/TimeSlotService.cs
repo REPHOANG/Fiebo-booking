@@ -109,6 +109,11 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn không có quyền chỉnh sửa khung giờ cho sân này");
             }
+            var canEdit = await _unitOfWork.TimeSlots.CanBeEditedOrDeleted(timeSlotId);
+            if (!canEdit)
+            {
+                throw new BadRequestException("Khung giờ này đã có đặt sân, không thể chỉnh sửa. Vui lòng xóa khung giờ này và tạo khung giờ mới.");
+            }
             if (request.StartTime >= request.EndTime)
             {
                 throw new BadRequestException("Giờ bắt đầu phải trước giờ kết thúc");
@@ -144,6 +149,7 @@ namespace Fiebo.Application.Services
                     DayOfWeek = timeSlot.DayOfWeek.ToString()
                 };
             }
+
             var overlap = await _unitOfWork.TimeSlots.IsTimeSlotOverlapping(venue.Id, timeSlot.SportTypeId, timeSlot.DayOfWeek, request.StartTime, request.EndTime, timeSlotId);
             if (overlap)
             {
@@ -182,6 +188,11 @@ namespace Fiebo.Application.Services
             if (venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền xem khung giờ sân này");
+            }
+            var canEdit = await _unitOfWork.TimeSlots.CanBeEditedOrDeleted(timeSlotId);
+            if (!canEdit)
+            {
+                throw new BadRequestException("Khung giờ này đã có đặt sân, không thể chỉnh sửa. Vui lòng xóa khung giờ này và tạo khung giờ mới.");
             }
             timeSlot.IsDeleted = true;
             await _unitOfWork.SaveChangesAsync();

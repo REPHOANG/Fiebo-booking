@@ -122,6 +122,25 @@ namespace Fiebo.IntegrationTests.Field
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
+        [Fact]
+        public async Task UpdateField_NotOwner_Returns500()
+        {
+            ResetMocks();
+            const int fieldId = 10;
+            const string userId = "owner-2";
+
+            var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldOwner);
+            using var content = CreateFormContent("Sân Mới", "Mô tả", "2");
+
+            _factory.FieldServiceMock
+                .Setup(s => s.UpdateFieldAsync(It.IsAny<UpdateFieldRequest>(), userId, fieldId))
+                .ThrowsAsync(new ForbiddenException("Bạn không có quyền chỉnh sửa sân này."));
+
+            var response = await client.PutAsync($"/api/owner/field/{fieldId}", content);
+
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        }
+
         private static MultipartFormDataContent CreateFormContent(string name, string description, string sportTypeId)
         {
             var content = new MultipartFormDataContent();
