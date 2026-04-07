@@ -66,12 +66,6 @@ namespace Fiebo.Application.Services
                 throw new ForbiddenException("Truy cập bị từ chối. Bạn không có thẩm quyền xem hồ sơ tài chính của giao dịch này.");
             }
  
-            // BR-02: Math Integrity Check
-            var detailsSum = payout.PayoutDetails.Sum(pd => pd.Amount);
-            if (Math.Abs(detailsSum - payout.Amount) > 0.01m)
-            {
-                // Logic error or data corruption — though we proceed with the summary amount
-            }
  
             // BR-03: Data Masking (Last 4 digits visible)
             var originalAccount = payout.BankAccount.AccountNumber;
