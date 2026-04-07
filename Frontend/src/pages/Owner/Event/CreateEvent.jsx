@@ -174,6 +174,7 @@ const CreateEvent = () => {
   const [selectedDetails, setSelectedDetails] = useState([]); // [{ fieldId, slotId }]
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [slotSelectionError, setSlotSelectionError] = useState(false);
   const [expandedFieldId, setExpandedFieldId] = useState(null);
   /** "" = tất cả loại sân; khác thì lọc theo sportTypeName */
   const [sportTypeFilter, setSportTypeFilter] = useState("");
@@ -376,6 +377,7 @@ const CreateEvent = () => {
       const base = mixed ? prev.filter((d) => d.fieldId === item.fieldId) : prev;
       return [...base, { fieldId: item.fieldId, slotId: item.slotId }];
     });
+    setSlotSelectionError(false);
   };
 
   const isSelected = (item) =>
@@ -389,10 +391,12 @@ const CreateEvent = () => {
     }
     if (selectedDetails.length === 0) {
       setError("Vui lòng chọn ít nhất một khung giờ.");
+      setSlotSelectionError(true);
       return;
     }
 
     setError("");
+    setSlotSelectionError(false);
     setSubmitLoading(true);
     try {
       const payload = {
@@ -447,6 +451,7 @@ const CreateEvent = () => {
                   render={({ field }) => (
                     <select
                       {...field}
+                      className={errors.venueId ? "ce-input-error" : ""}
                       onChange={(e) => {
                         field.onChange(e);
                         handleVenueSelect(e.target.value);
@@ -489,6 +494,7 @@ const CreateEvent = () => {
                 <input
                   type="date"
                   min={new Date().toISOString().slice(0, 10)}
+                  className={errors.eventDate ? "ce-input-error" : ""}
                   {...register("eventDate")}
                 />
                 {errors.eventDate && <span className="ce-field-error">{errors.eventDate.message}</span>}
@@ -534,7 +540,7 @@ const CreateEvent = () => {
                 <span className="ce-legend-item booked">Đã đặt</span>
                 <span className="ce-legend-item event">Sự kiện</span>
               </div>
-              <div className="ce-slots-by-field">
+              <div className={`ce-slots-by-field${slotSelectionError ? " ce-slots-by-field-error" : ""}`}>
                 {filteredSlotsByField.map((group) => (
                   <div key={group.fieldId} className="ce-field-block">
                     <div className="ce-field-head">
@@ -616,7 +622,13 @@ const CreateEvent = () => {
             <div className="ce-row">
               <label>
                 Phí tham gia (VNĐ/người)
-                <input type="number" min={1} placeholder="50000" {...register("pricePerPerson")} />
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="50000"
+                  className={errors.pricePerPerson ? "ce-input-error" : ""}
+                  {...register("pricePerPerson")}
+                />
                 {errors.pricePerPerson && (
                   <span className="ce-field-error">{errors.pricePerPerson.message}</span>
                 )}
@@ -625,18 +637,29 @@ const CreateEvent = () => {
             <div className="ce-row two-cols">
               <label>
                 Số người tối thiểu
-                <input type="number" min={1} {...register("minPlayer")} />
+                <input
+                  type="number"
+                  min={1}
+                  className={errors.minPlayer ? "ce-input-error" : ""}
+                  {...register("minPlayer")}
+                />
                 {errors.minPlayer && <span className="ce-field-error">{errors.minPlayer.message}</span>}
               </label>
               <label>
                 Số người tối đa
-                <input type="number" min={1} {...register("maxPlayer")} />
+                <input
+                  type="number"
+                  min={1}
+                  className={errors.maxPlayer ? "ce-input-error" : ""}
+                  {...register("maxPlayer")}
+                />
                 {errors.maxPlayer && <span className="ce-field-error">{errors.maxPlayer.message}</span>}
               </label>
             </div>
             <label className="ce-full">
               Mô tả (tuỳ chọn)
               <textarea
+                className={errors.description ? "ce-input-error" : ""}
                 {...register("description")}
                 placeholder="VD: Bóng đá 5 người, giao lưu cuối tuần"
                 rows={3}
@@ -648,7 +671,7 @@ const CreateEvent = () => {
             <button
               type="submit"
               className="ce-btn primary"
-              disabled={submitLoading || selectedDetails.length === 0}
+              disabled={submitLoading}
             >
               {submitLoading ? "Đang tạo…" : "Tạo sự kiện"}
             </button>

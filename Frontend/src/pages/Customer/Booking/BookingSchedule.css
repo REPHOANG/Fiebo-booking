@@ -361,6 +361,7 @@
 .bs-legend-box.event {
   background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
 }
+
 /* ── Time Range Filter ────────────────────────────────────────── */
 .bs-time-filter {
   position: fixed;

@@ -72,47 +72,13 @@ const apiSlotDurationMinutes = (s) => {
   return b.h * 60 + b.m - (a.h * 60 + a.m);
 };
 
-/**
- * Suy ra bước lưới (30, 60, …) từ danh sách slot một môn trên lịch.
- * Owner có thể cấu hình 30p/slot nhưng client trước đây luôn sinh lưới 60p.
- */
-const inferStepMinutesFromApiSlots = (list) => {
-  if (!list?.length) return 60;
-  const durs = [];
-  for (const s of list) {
-    const d = apiSlotDurationMinutes(s);
-    if (d != null && d > 0 && d <= 24 * 60) durs.push(d);
-  }
-  if (durs.length) {
-    const m = Math.min(...durs);
-    if (m >= 15 && m <= 120) return m;
-  }
-  const labels = [
-    ...new Set(
-      list.map((s) => normalizeSlotTime(s?.startTime ?? s?.StartTime ?? "")).filter(Boolean),
-    ),
-  ].sort();
-  if (labels.length >= 2) {
-    const toMin = (lab) => {
-      const p = parseTime(lab);
-      return p ? p.h * 60 + p.m : NaN;
-    };
-    let minGap = Infinity;
-    for (let i = 1; i < labels.length; i++) {
-      const g = toMin(labels[i]) - toMin(labels[i - 1]);
-      if (g > 0) minGap = Math.min(minGap, g);
-    }
-    if (Number.isFinite(minGap) && minGap >= 15 && minGap <= 120) return minGap;
-  }
-  return 60;
-};
+const BASE_GRID_STEP_MINUTES = 30;
 
-const scheduleGlobalStepMinutes = (sportTypes) => {
-  if (!sportTypes?.length) return 60;
-  return sportTypes.reduce(
-    (acc, st) => Math.min(acc, inferStepMinutesFromApiSlots(st.slots || [])),
-    60,
-  );
+const addMinutesToLabel = (label, plusMinutes) => {
+  const t = parseTime(label);
+  if (!t) return "";
+  const total = t.h * 60 + t.m + Number(plusMinutes || 0);
+  return formatSlot(Math.floor(total / 60), total % 60);
 };
 
 /** Tên đầy đủ hiển thị / tooltip */
@@ -351,14 +317,14 @@ const BookingSchedule = () => {
             (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
             allSlots[0].endTime
           );
-          const step = scheduleGlobalStepMinutes(venueSchedule.sportTypes);
+          const step = BASE_GRID_STEP_MINUTES;
           return generateSlots(minStart, maxEnd, step);
         }
       }
     } catch (e) {
       // ignore and fall back
     }
-    return venue ? generateSlots(venue.openTime, venue.closeTime) : [];
+    return venue ? generateSlots(venue.openTime, venue.closeTime, BASE_GRID_STEP_MINUTES) : [];
   }, [venue, venueSchedule]);
 
   // Không cho lăn chuột thay đổi % zoom (range input mặc định của trình duyệt)
@@ -396,10 +362,10 @@ const BookingSchedule = () => {
               (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
               serverSlots[0].endTime
             );
-            const step = scheduleGlobalStepMinutes(res?.sportTypes);
+            const step = BASE_GRID_STEP_MINUTES;
             slotsForMap = generateSlots(minStart, maxEnd, step);
           } else if (venue?.openTime && venue?.closeTime) {
-            slotsForMap = generateSlots(venue.openTime, venue.closeTime);
+            slotsForMap = generateSlots(venue.openTime, venue.closeTime, BASE_GRID_STEP_MINUTES);
           }
 
           const startToIdx = {};
@@ -490,6 +456,40 @@ const BookingSchedule = () => {
     });
     return m;
   }, [venueSchedule]);
+
+  const slotSpanBySportAndStart = useMemo(() => {
+    const m = new Map();
+    if (!venueSchedule?.sportTypes?.length) return m;
+    venueSchedule.sportTypes.forEach((st) => {
+      const sportKey = normalizeText(st.sportTypeName || st.sportType || "");
+      if (!sportKey) return;
+      const spanMap = new Map();
+      (st.slots || []).forEach((s) => {
+        const start = normalizeSlotTime(s.startTime ?? s.StartTime);
+        const dur = apiSlotDurationMinutes(s);
+        if (!start || !dur || dur <= 0) return;
+        const span = Math.max(1, Math.round(dur / BASE_GRID_STEP_MINUTES));
+        const prev = spanMap.get(start) ?? 1;
+        spanMap.set(start, Math.max(prev, span));
+      });
+      m.set(sportKey, spanMap);
+    });
+    return m;
+  }, [venueSchedule]);
+
+  const slotContinuationStartsBySport = useMemo(() => {
+    const m = new Map();
+    slotSpanBySportAndStart.forEach((spanMap, sportKey) => {
+      const set = new Set();
+      spanMap.forEach((span, startLabel) => {
+        for (let i = 1; i < span; i++) {
+          set.add(addMinutesToLabel(startLabel, i * BASE_GRID_STEP_MINUTES));
+        }
+      });
+      m.set(sportKey, set);
+    });
+    return m;
+  }, [slotSpanBySportAndStart]);
 
   /** Môn đã có trên lịch nhưng chưa cấu hình khung giờ (slots rỗng) → chỉ hiển thị lưới trống, không đặt được. */
   const sportKeysWithNoTimeSlots = useMemo(() => {
@@ -843,12 +843,12 @@ const BookingSchedule = () => {
             (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
             list[0].endTime,
           );
-          const step = inferStepMinutesFromApiSlots(list);
+          const step = BASE_GRID_STEP_MINUTES;
           arr = generateSlots(minStart, maxEnd, step);
         }
       }
       if (!arr.length && venue?.openTime && venue?.closeTime) {
-        arr = generateSlots(venue.openTime, venue.closeTime);
+        arr = generateSlots(venue.openTime, venue.closeTime, BASE_GRID_STEP_MINUTES);
       }
       map.set(key, arr);
     }
@@ -890,14 +890,18 @@ const BookingSchedule = () => {
   const slotSummary = useMemo(() => {
     if (!selectedSlots.length || !slots.length) return { groups: [], totalMinutes: 0, totalPrice: 0 };
 
-    // (sportTypeName, startTimeLabel) -> price from API slots (Id, StartTime, EndTime, Price)
+    // (sportTypeName, startTimeLabel) -> info from API slots (Price + Duration)
     const priceBySportAndTime = {};
+    const durationBySportAndTime = {};
     if (venueSchedule?.sportTypes) {
       venueSchedule.sportTypes.forEach((st) => {
         const sportKey = (st.sportTypeName || st.sportType || "").trim().toLowerCase();
         (st.slots || []).forEach((s) => {
           const timeKey = normalizeSlotTime(s.startTime);
-          if (timeKey) priceBySportAndTime[`${sportKey}:${timeKey}`] = Number(s.price) || 0;
+          if (!timeKey) return;
+          priceBySportAndTime[`${sportKey}:${timeKey}`] = Number(s.price) || 0;
+          const dur = apiSlotDurationMinutes(s);
+          if (dur != null && dur > 0) durationBySportAndTime[`${sportKey}:${timeKey}`] = dur;
         });
       });
     }
@@ -911,19 +915,6 @@ const BookingSchedule = () => {
 
     const groups = Object.entries(map).map(([fi, slotIdxs]) => {
       const sorted = [...slotIdxs].sort((a, b) => a - b);
-      const ranges = [];
-      let rangeStart = sorted[0];
-      let rangeEnd = sorted[0];
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] === rangeEnd + 1) {
-          rangeEnd = sorted[i];
-        } else {
-          ranges.push({ from: rangeStart, to: rangeEnd });
-          rangeStart = sorted[i];
-          rangeEnd = sorted[i];
-        }
-      }
-      ranges.push({ from: rangeStart, to: rangeEnd });
 
       const fiNum = Number(fi);
       const field = fields[fiNum];
@@ -936,27 +927,41 @@ const BookingSchedule = () => {
           ? priceBySportAndTime[`${sportKey}:${firstSlotLabel}`]
           : (field?.pricePerSlot != null ? Number(field.pricePerSlot) : 0);
       const fieldId = (field && (field.id ?? field.fieldId)) ?? fiNum;
-      const rangeLabels = ranges.map((r) => {
-        const startLabel = slots[r.from]?.label || "";
-        const endNext = slots[r.to + 1];
-        let endLabel;
-        if (endNext) endLabel = endNext.label;
-        else {
-          const last = slots[r.to];
-          const step = last?.stepMinutes ?? 60;
-          const endMin = (last?.h ?? 0) * 60 + (last?.m ?? 0) + step;
-          endLabel = formatSlot(Math.floor(endMin / 60), endMin % 60);
+
+      const segments = sorted
+        .map((idx) => {
+          const startLabel = slots[idx]?.label;
+          const t = parseTime(startLabel);
+          if (!startLabel || !t) return null;
+          const duration =
+            durationBySportAndTime[`${sportKey}:${startLabel}`] ??
+            slots[idx]?.stepMinutes ??
+            BASE_GRID_STEP_MINUTES;
+          const startMin = t.h * 60 + t.m;
+          return { startMin, endMin: startMin + duration };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.startMin - b.startMin);
+
+      const merged = [];
+      segments.forEach((seg) => {
+        const last = merged[merged.length - 1];
+        if (!last || seg.startMin > last.endMin) {
+          merged.push({ ...seg });
+        } else {
+          last.endMin = Math.max(last.endMin, seg.endMin);
         }
-        return `${startLabel} - ${endLabel}`;
       });
 
-      const groupTotalMinutes = sorted.reduce((sum, idx) => {
-        const cur = slots[idx];
-        const next = slots[idx + 1];
-        if (cur && next) return sum + (next.h * 60 + next.m - (cur.h * 60 + cur.m));
-        if (cur) return sum + (cur.stepMinutes ?? 60);
-        return sum;
-      }, 0);
+      const rangeLabels = merged.map((r) => {
+        const sH = Math.floor(r.startMin / 60);
+        const sM = r.startMin % 60;
+        const eH = Math.floor(r.endMin / 60);
+        const eM = r.endMin % 60;
+        return `${formatSlot(sH, sM)} - ${formatSlot(eH, eM)}`;
+      });
+
+      const groupTotalMinutes = segments.reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
 
       return {
         fieldName,
@@ -1282,6 +1287,12 @@ const BookingSchedule = () => {
                             <span className="bs-field-name">{getFieldDisplayName(field)}</span>
                           </div>
                           {gSlots.map((gs, si) => {
+                            const sk = normalizeText(group.sportType);
+                            const continuationSet = slotContinuationStartsBySport.get(sk);
+                            if (continuationSet?.has(gs.label)) return null;
+                            const spanMap = slotSpanBySportAndStart.get(sk);
+                            const rawSpan = Number(spanMap?.get(gs.label) ?? 1);
+                            const span = Math.max(1, Math.min(rawSpan, gSlots.length - si));
                             const globalSi = globalIdxForSlotLabel(gs.label);
                             const eid =
                               !isNoScheduleGroup && globalSi >= 0
@@ -1313,6 +1324,7 @@ const BookingSchedule = () => {
                                       ? "Sự kiện — xem chi tiết"
                                       : undefined
                                 }
+                                style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
                               />
                             );
                           })}
