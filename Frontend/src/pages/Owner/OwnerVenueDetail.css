@@ -1242,6 +1242,117 @@
   transform: translateY(-1px);
 }
 
+/* —— Dịch vụ add-on (POST /api/owner/venue/{venueId}/service) —— */
+.ovd-card--services .ovd-title-row {
+  flex-wrap: wrap;
+}
+
+.ovd-service-form {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ovd-service-form-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(120px, 168px);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ovd-service-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.ovd-service-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.ovd-service-file-label {
+  margin-top: 8px;
+}
+
+.ovd-service-file {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.ovd-service-form-actions {
+  margin-top: 12px;
+}
+
+.ovd-service-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ovd-service-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.ovd-service-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+
+.ovd-service-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.ovd-service-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ovd-service-name {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ovd-service-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ovd-service-price {
+  font-size: 13px;
+  font-weight: 800;
+  color: #16a34a;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .ovd-layout {
     grid-template-columns: 1fr;
@@ -1315,6 +1426,20 @@
 
   .ovd-field-right {
     text-align: left;
+  }
+
+  .ovd-service-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ovd-service-row {
+    grid-template-columns: 48px 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .ovd-service-price {
+    grid-column: 1 / -1;
+    white-space: normal;
   }
 }
 

@@ -1220,6 +1220,14 @@ const BookingList = () => {
                         "—"}
                     </strong>
                   </div>
+                  <div className="bl-ticket-row">
+                    <span className="bl-ticket-label">Ghi chú</span>
+                    <strong className="bl-ticket-value">
+                      {popupBooking.note ??
+                        popupBooking.bookingNote ??
+                        "—"}
+                    </strong>
+                  </div>
                 </div>
                 {isCancelled ? (
                   <div className="bl-cancel-reason">

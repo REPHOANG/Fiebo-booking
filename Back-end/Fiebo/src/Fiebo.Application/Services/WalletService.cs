@@ -227,62 +227,62 @@ namespace Fiebo.Application.Services
                 await _unitOfWork.CommitTransactionAsync();
 
                 // Step 9: Routing logic (Auto-Payout vs Admin Review)
-                bool isAutoPayoutEligible = userRole == AppRoles.Customer && request.Amount < CustomerAutoPayoutLimit;
+                // bool isAutoPayoutEligible = userRole == AppRoles.Customer && request.Amount < CustomerAutoPayoutLimit;
 
-                if (isAutoPayoutEligible)
-                {
+                // if (isAutoPayoutEligible)
+                // {
+                //     _logger.LogInformation(
+                //         "Auto-payout triggered for Customer. UserId: {UserId}, Amount: {Amount}, TransactionId: {TxId}",
+                //         userId, request.Amount, transaction.Id);
+
+                //     // Fire payout (mock — fire-and-forget style)
+                //     _ = Task.Run(async () =>
+                //     {
+                //         using var scope = _serviceScopeFactory.CreateScope();
+                //         var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                //         var scopedPayoutService = scope.ServiceProvider.GetRequiredService<IPayoutService>();
+                //         var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<WalletService>>();
+
+                //         try
+                //         {
+                //             bool payoutSuccess = await scopedPayoutService.ProcessPayoutAsync(
+                //                 transaction.Id,
+                //                 request.Amount,
+                //                 bankAccount.BankName,
+                //                 bankAccount.AccountNumber,
+                //                 bankAccount.AccountHolderName);
+
+                //             if (payoutSuccess)
+                //             {
+                //                 var txToUpdate = await scopedUow.WalletTransactions.GetByIdAsync(transaction.Id);
+                //                 if (txToUpdate != null)
+                //                 {
+                //                     txToUpdate.Status = TransactionStatus.Success;
+                //                     scopedUow.WalletTransactions.Update(txToUpdate);
+                //                     await scopedUow.SaveChangesAsync();
+                //                     scopedLogger.LogInformation("Auto-payout succeeded and status updated to Success for TxId: {TxId}", transaction.Id);
+                //                 }
+                //             }
+                //         }
+                //         catch (Exception ex)
+                //         {
+                //             scopedLogger.LogError(ex, "Auto-payout processing failed for TransactionId: {TxId}", transaction.Id);
+                //         }
+                //     });
+
+                //     return new WithdrawResponse
+                //     {
+                //         TransactionId = transaction.Id,
+                //         Amount = request.Amount,
+                //         RemainingBalance = wallet.Balance,
+                //         Status = TransactionStatus.Pending.ToString(),
+                //         Message = "Yêu cầu rút tiền đang được hệ thống xử lý tự động. Vui lòng kiểm tra lại trạng thái sau ít phút."
+                //     };
+                // }
+                // else
+                // {
                     _logger.LogInformation(
-                        "Auto-payout triggered for Customer. UserId: {UserId}, Amount: {Amount}, TransactionId: {TxId}",
-                        userId, request.Amount, transaction.Id);
-
-                    // Fire payout (mock — fire-and-forget style)
-                    _ = Task.Run(async () =>
-                    {
-                        using var scope = _serviceScopeFactory.CreateScope();
-                        var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                        var scopedPayoutService = scope.ServiceProvider.GetRequiredService<IPayoutService>();
-                        var scopedLogger = scope.ServiceProvider.GetRequiredService<ILogger<WalletService>>();
-
-                        try
-                        {
-                            bool payoutSuccess = await scopedPayoutService.ProcessPayoutAsync(
-                                transaction.Id,
-                                request.Amount,
-                                bankAccount.BankName,
-                                bankAccount.AccountNumber,
-                                bankAccount.AccountHolderName);
-
-                            if (payoutSuccess)
-                            {
-                                var txToUpdate = await scopedUow.WalletTransactions.GetByIdAsync(transaction.Id);
-                                if (txToUpdate != null)
-                                {
-                                    txToUpdate.Status = TransactionStatus.Success;
-                                    scopedUow.WalletTransactions.Update(txToUpdate);
-                                    await scopedUow.SaveChangesAsync();
-                                    scopedLogger.LogInformation("Auto-payout succeeded and status updated to Success for TxId: {TxId}", transaction.Id);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            scopedLogger.LogError(ex, "Auto-payout processing failed for TransactionId: {TxId}", transaction.Id);
-                        }
-                    });
-
-                    return new WithdrawResponse
-                    {
-                        TransactionId = transaction.Id,
-                        Amount = request.Amount,
-                        RemainingBalance = wallet.Balance,
-                        Status = TransactionStatus.Pending.ToString(),
-                        Message = "Yêu cầu rút tiền đang được hệ thống xử lý tự động. Vui lòng kiểm tra lại trạng thái sau ít phút."
-                    };
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "Withdrawal request queued for Admin Review (Not eligible for Auto-Payout). UserId: {UserId}, Role: {Role}, Amount: {Amount}, TransactionId: {TxId}",
+                        "Withdrawal request queued for Finance Admin Review (Not eligible for Auto-Payout). UserId: {UserId}, Role: {Role}, Amount: {Amount}, TransactionId: {TxId}",
                         userId, userRole, request.Amount, transaction.Id);
 
                     return new WithdrawResponse
@@ -293,7 +293,7 @@ namespace Fiebo.Application.Services
                         Status = TransactionStatus.Pending.ToString(),
                         Message = "Yêu cầu rút tiền đã được gửi tới Quản trị viên để xét duyệt. Thời gian xử lý dự kiến từ 24h-48h làm việc."
                     };
-                }
+                // }
             }
             catch (DbUpdateConcurrencyException)
             {

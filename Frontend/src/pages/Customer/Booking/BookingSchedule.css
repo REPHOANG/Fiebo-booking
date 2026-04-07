@@ -796,9 +796,9 @@
   background: #fca5a5;
   cursor: not-allowed;
 }
-.bs-cell.booked.past {
+/* .bs-cell.booked.past {
   background: #ef4444;
-}
+} */
 
 /* Cùng trạng thái booked liền kề: nối lại thành 1 khối để nhìn dễ phân biệt */
 .bs-cell.booked.bs-book-run-start,

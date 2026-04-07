@@ -2,9 +2,10 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Calendar, Search } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Calendar, Search, Loader2 } from "lucide-react";
 import { createBooking, createWalkInBooking } from "../../../services/bookingService";
 import { getVenueSchedule } from "../../../services/fieldService";
+import { getVenueServices } from "../../../services/venueService";
 import { getProfile } from "../../../services/authService";
 import { clearDraft } from '../../../store/bookingDraftSlice';
 import { addBookedSlots } from '../../../store/bookedSlotsSlice';
@@ -37,18 +38,7 @@ const getUnavailableKeysFromSchedule = (schedule) => {
   return keys;
 };
 
-const SERVICE_CATALOG = [
-  { id: "ball-franklin", name: "Bóng Franklin X", unit: "quả", price: 75000, category: "Bóng thi đấu" },
-  { id: "ball-zocker", name: "Bóng Zocker", unit: "quả", price: 55000, category: "Bóng thi đấu" },
-  { id: "ball-zocker-pack", name: "Bóng Zocker hộp 3", unit: "hộp", price: 150000, category: "Bóng thi đấu" },
-  { id: "snack-noodle", name: "Mì tôm trứng", unit: "bát", price: 30000, category: "Đồ ăn nhanh" },
-  { id: "snack-egg", name: "Trứng gà", unit: "quả", price: 10000, category: "Đồ ăn nhanh" },
-  { id: "drink-aquarius", name: "Aquarius", unit: "chai", price: 15000, category: "Đồ uống" },
-  { id: "drink-tea", name: "Bò húc", unit: "chai", price: 20000, category: "Đồ uống" },
-  { id: "drink-coffee", name: "Cafe bạc xỉu", unit: "cốc", price: 30000, category: "Đồ uống" },
-  { id: "accessory-bib", name: "Áo bib", unit: "bộ", price: 20000, category: "Phụ kiện thể thao" },
-  { id: "accessory-shuttle", name: "Cầu lông", unit: "ống", price: 90000, category: "Phụ kiện thể thao" },
-];
+
 
 const buildBookingNoteWithServices = (baseNote, serviceRows) => {
   const note = (baseNote || "").trim();
@@ -123,6 +113,9 @@ const BookingConfirmation = () => {
   const [serviceDraftQty, setServiceDraftQty] = useState({});
   const [serviceSearch, setServiceSearch] = useState("");
   const [serviceCategory, setServiceCategory] = useState("all");
+  /** Dịch vụ add-on từ GET `/api/venue/{venueId}/services` — thay catalog tĩnh. */
+  const [venueServiceCatalog, setVenueServiceCatalog] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
 
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
@@ -166,6 +159,58 @@ const BookingConfirmation = () => {
 
   // Data passed from BookingSchedule via navigate state
   const bookingState = location.state;
+  const venue = bookingState?.venue;
+  const fields = bookingState?.fields ?? [];
+  const selectedDate = bookingState?.selectedDate;
+  const selectedSlots = bookingState?.selectedSlots ?? [];
+  const slots = bookingState?.slots ?? [];
+  const slotSummary = bookingState?.slotSummary;
+  const venueSchedule = bookingState?.venueSchedule;
+  const isWalkInBooking = bookingState?.walkIn;
+
+  // GET `/api/venue/{venueId}/services` — dịch vụ kèm theo do chủ sân cấu hình
+  useEffect(() => {
+    const vid = venue?.id;
+    if (vid == null || vid === "") {
+      setVenueServiceCatalog([]);
+      return;
+    }
+    let cancelled = false;
+    setServicesLoading(true);
+    (async () => {
+      try {
+        const data = await getVenueServices(Number(vid), 1, 100, "");
+        if (cancelled) return;
+        const items = (data?.items ?? []).map((raw) => {
+          const sid = raw?.id ?? raw?.Id;
+          const name = String(raw?.serviceName ?? raw?.ServiceName ?? "").trim() || "Dịch vụ";
+          const price = Number(raw?.price ?? raw?.Price ?? 0);
+          return {
+            id: String(sid),
+            name,
+            price: Number.isFinite(price) ? price : 0,
+            unit: "suất",
+            category: "Dịch vụ tại sân",
+            description: String(raw?.description ?? raw?.Description ?? "").trim(),
+            imageUrl: raw?.imageUrl ?? raw?.ImageUrl ?? null,
+          };
+        }).filter((x) => x.id && x.id !== "");
+        setVenueServiceCatalog(items);
+        setServiceQty({});
+        setServiceDraftQty({});
+      } catch {
+        if (!cancelled) {
+          setVenueServiceCatalog([]);
+          toast.error("Không tải được danh sách dịch vụ.");
+        }
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [venue?.id]);
 
   // initialize localSchedule from booking state if provided
   useEffect(() => {
@@ -229,30 +274,6 @@ const BookingConfirmation = () => {
     };
   }, [bookingState?.venue?.id, bookingState?.selectedDate, bookingState?.fields, bookingState?.venueSchedule, dispatch]);
 
-  // If no booking data, redirect back
-  if (!bookingState) {
-    return (
-      <div className="bc-empty">
-        <h2>Không có dữ liệu đặt sân</h2>
-        <p>Vui lòng quay lại trang đặt lịch để chọn khung giờ.</p>
-        <button onClick={() => navigate(-1)} className="bc-back-link">
-          ← Quay lại
-        </button>
-      </div>
-    );
-  }
-
-  const {
-    venue,
-    fields,
-    selectedDate,
-    selectedSlots,
-    slots,
-    slotSummary,
-    venueSchedule,
-    walkIn: isWalkInBooking,
-  } = bookingState;
-
   // Format the date nicely
   const formattedDate = useMemo(() => {
     if (!selectedDate) return "";
@@ -279,13 +300,13 @@ const BookingConfirmation = () => {
   const totalPrice = slotSummary?.totalPrice || 0;
   const totalMinutes = slotSummary?.totalMinutes || 0;
   const selectedServiceRows = useMemo(() => {
-    return SERVICE_CATALOG
+    return venueServiceCatalog
       .map((s) => {
         const qty = Number(serviceQty[s.id] || 0);
         return qty > 0 ? { ...s, qty, subtotal: qty * s.price } : null;
       })
       .filter(Boolean);
-  }, [serviceQty]);
+  }, [serviceQty, venueServiceCatalog]);
   const serviceTotal = useMemo(
     () => selectedServiceRows.reduce((sum, x) => sum + x.subtotal, 0),
     [selectedServiceRows]
@@ -306,18 +327,21 @@ const BookingConfirmation = () => {
   };
 
   const serviceCategories = useMemo(
-    () => ["all", ...Array.from(new Set(SERVICE_CATALOG.map((s) => s.category)))],
-    []
+    () => ["all", ...Array.from(new Set(venueServiceCatalog.map((s) => s.category)))],
+    [venueServiceCatalog],
   );
 
   const filteredServiceCatalog = useMemo(() => {
     const q = serviceSearch.trim().toLowerCase();
-    return SERVICE_CATALOG.filter((s) => {
+    return venueServiceCatalog.filter((s) => {
       const inCategory = serviceCategory === "all" || s.category === serviceCategory;
-      const inSearch = !q || s.name.toLowerCase().includes(q);
+      const inSearch =
+        !q ||
+        s.name.toLowerCase().includes(q) ||
+        (s.description && s.description.toLowerCase().includes(q));
       return inCategory && inSearch;
     });
-  }, [serviceCategory, serviceSearch]);
+  }, [serviceCategory, serviceSearch, venueServiceCatalog]);
 
   const modalServiceRows = useMemo(() => {
     const grouped = {};
@@ -334,13 +358,17 @@ const BookingConfirmation = () => {
   );
   const modalServiceTotal = useMemo(
     () =>
-      SERVICE_CATALOG.reduce((sum, s) => sum + Number(serviceDraftQty[s.id] || 0) * Number(s.price || 0), 0),
-    [serviceDraftQty]
+      venueServiceCatalog.reduce(
+        (sum, s) => sum + Number(serviceDraftQty[s.id] || 0) * Number(s.price || 0),
+        0,
+      ),
+    [serviceDraftQty, venueServiceCatalog],
   );
 
   const handleConfirmBooking = () => {
     setConfirmError("");
     (async () => {
+      if (!bookingState || venue?.id == null) return;
       // Client-side validation: require name and phone before attempting
       const fullnameCheck = (displayName || guestName || "").toString().trim();
       const phoneCheck = (displayPhone || guestPhone || "").toString().trim();
@@ -657,6 +685,18 @@ const BookingConfirmation = () => {
     }
   };
 
+  if (!bookingState) {
+    return (
+      <div className="bc-empty">
+        <h2>Không có dữ liệu đặt sân</h2>
+        <p>Vui lòng quay lại trang đặt lịch để chọn khung giờ.</p>
+        <button type="button" onClick={() => navigate(-1)} className="bc-back-link">
+          ← Quay lại
+        </button>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 40 }}
@@ -941,9 +981,16 @@ const BookingConfirmation = () => {
               ))}
             </div>
           </div>
-          <div className="bc-service-modal-body">
-            {modalServiceRows.length === 0 ? (
-              <p className="bc-service-empty">Không có dịch vụ phù hợp.</p>
+          <div className="bc-service-modal-body ">
+            {servicesLoading ? (
+              <div className="bc-service-loading">
+                <Loader2 size={28} className="bc-service-loading-icon" />
+                <span>Đang tải dịch vụ từ sân…</span>
+              </div>
+            ) : venueServiceCatalog.length === 0 ? (
+              <p className="bc-service-empty">Sân chưa đăng dịch vụ kèm theo. Bạn có thể ghi chú thêm ở ô ghi chú đặt sân.</p>
+            ) : modalServiceRows.length === 0 ? (
+              <p className="bc-service-empty">Không có dịch vụ phù hợp bộ lọc.</p>
             ) : (
               modalServiceRows.map(([category, items]) => (
                 <div key={category} className="bc-service-category-block">
@@ -954,9 +1001,17 @@ const BookingConfirmation = () => {
                       return (
                         <div key={s.id} className="bc-service-product-card">
                           <div className="bc-service-product-main">
-                            <div className="bc-service-product-icon" aria-hidden>
-                              👜
-                            </div>
+                            {s.imageUrl ? (
+                              <img
+                                src={s.imageUrl}
+                                alt=""
+                                className="bc-service-product-thumb"
+                              />
+                            ) : (
+                              <div className="bc-service-product-icon" aria-hidden>
+                                👜
+                              </div>
+                            )}
                             <div className="bc-service-product-info">
                               <strong>{s.name} ({s.unit})</strong>
                               <span>{formatPrice(s.price)} / {s.unit}</span>

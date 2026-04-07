@@ -404,10 +404,11 @@
 }
 
 .bc-service-modal {
+  /* Mặc định ~80% khung nhìn; vùng giữa giãn (flex:1) để footer dính đáy, không lọt khoảng trống dưới chân. */
   width: 80vw;
+  max-width: min(1200px, 96vw);
   height: 80vh;
-  max-width: 1200px;
-  min-height: 320px;
+  max-height: 80vh;
   background: #f0fdf4;
   border-radius: 16px;
   border: 1px solid rgba(22, 163, 74, 0.2);
@@ -519,6 +520,38 @@
   gap: 10px;
   align-content: start;
   min-height: 0;
+  flex: 0 1 800px ;
+}
+
+.bc-service-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  color: #64748b;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.bc-service-loading-icon {
+  color: #15803d;
+  animation: bcServiceSpin 0.9s linear infinite;
+}
+
+@keyframes bcServiceSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bc-service-product-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .bc-service-category-block {
@@ -600,7 +633,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   background: #f7fffb;
   flex-shrink: 0;
   z-index: 2;
@@ -653,12 +686,24 @@
 
 @media (max-width: 640px) {
   .bc-service-modal {
-    max-height: 92vh;
-    width: 100%;
-    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    width: min(80vw, calc(100vw - 32px));
+    height: 80vh;
+    max-height: 80vh;
   }
+
+  .bc-service-modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 12px;
+  }
+  
+  /* Đảm bảo grid không tạo khoảng trống quá lớn */
   .bc-service-product-grid {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 16px; /* Chỉnh lại khoảng cách giữa các item vừa phải */
   }
   .bc-service-modal-foot {
     flex-wrap: wrap;
@@ -672,6 +717,7 @@
     width: 100%;
   }
 }
+
 
 @keyframes bcFadeIn {
   from { opacity: 0; }

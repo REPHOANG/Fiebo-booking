@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Loader2, Plus } from "lucide-react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Calendar, Loader2, Plus, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import {
   createOwnerField,
+  deleteOwnerFieldImage,
+  getVenueFields,
   getOwnerVenueFields,
   updateOwnerField,
   uploadOwnerFieldImages,
@@ -17,7 +19,7 @@ import { DocImagePreviewItem } from "./CreateVenueSteps/DocImagePreviewItem";
 import "./OwnerVenueDetail.css";
 import "./CreateVenue.css";
 
-const MAX_FIELD_IMAGES = 5;
+const MAX_FIELD_IMAGES = 10;
 
 const fieldFormSchema = (isEdit) =>
   yup.object({
@@ -51,15 +53,76 @@ const normSportKey = (v) =>
     .toLowerCase()
     .trim();
 
+const extractFieldImageUrls = (raw) => {
+  if (!raw) return [];
+  const candidates = [
+    raw.images,
+    raw.Images,
+    raw.imageUrls,
+    raw.ImageUrls,
+    raw.photos,
+    raw.Photos,
+    raw.mediaUrls,
+    raw.MediaUrls,
+    raw.thumbnailUrl,
+    raw.ThumbnailUrl,
+  ];
+  for (const src of candidates) {
+    if (Array.isArray(src)) {
+      return src
+        .map((x) => (x == null ? "" : String(x).trim()))
+        .filter(Boolean);
+    }
+    if (typeof src === "string" && src.trim()) {
+      return [src.trim()];
+    }
+  }
+  return [];
+};
+
+const extractFieldDescription = (raw) =>
+  String(
+    raw?.description ??
+      raw?.Description ??
+      raw?.fieldDescription ??
+      raw?.FieldDescription ??
+      "",
+  ).trim();
+
+const extractCloudinaryPublicIdFromUrl = (url) => {
+  try {
+    const u = new URL(String(url));
+    const marker = "/upload/";
+    const i = u.pathname.indexOf(marker);
+    if (i < 0) return "";
+    let tail = u.pathname.slice(i + marker.length);
+    // bỏ version "v123/" nếu có
+    tail = tail.replace(/^v\d+\//, "");
+    // bỏ extension cuối (.jpg/.png/...)
+    tail = tail.replace(/\.[^/.]+$/, "");
+    return decodeURIComponent(tail).trim();
+  } catch {
+    return "";
+  }
+};
+
 const OwnerAddField = () => {
   const { id, fieldId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const isEdit = Boolean(fieldId);
+  const venueDraftHint = location.state?.venueDraftHint;
   const [sportTypes, setSportTypes] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [venueOpenTime, setVenueOpenTime] = useState(null);
-  const [venueCloseTime, setVenueCloseTime] = useState(null);
+  const [venueOpenTime, setVenueOpenTime] = useState(
+    venueDraftHint?.openTime ?? venueDraftHint?.OpenTime ?? null,
+  );
+  const [venueCloseTime, setVenueCloseTime] = useState(
+    venueDraftHint?.closeTime ?? venueDraftHint?.CloseTime ?? null,
+  );
   const [editReady, setEditReady] = useState(!isEdit);
+  const [existingImageUrls, setExistingImageUrls] = useState([]);
+  const [deletingImageUrl, setDeletingImageUrl] = useState("");
   const fileInputRef = useRef(null);
 
   const schema = useMemo(() => fieldFormSchema(isEdit), [isEdit]);
@@ -84,6 +147,7 @@ const OwnerAddField = () => {
   });
 
   const images = watch("images") || [];
+  const remainingUploadSlots = Math.max(0, MAX_FIELD_IMAGES - existingImageUrls.length - images.length);
 
   const sportTypeOptions = useMemo(
     () =>
@@ -109,6 +173,7 @@ const OwnerAddField = () => {
   }, []);
 
   useEffect(() => {
+    if (venueOpenTime != null && venueCloseTime != null) return;
     let mounted = true;
     (async () => {
       try {
@@ -129,6 +194,7 @@ const OwnerAddField = () => {
 
   useEffect(() => {
     if (!isEdit) {
+      setExistingImageUrls([]);
       setEditReady(true);
       return;
     }
@@ -153,12 +219,51 @@ const OwnerAddField = () => {
         }
         const sportLabel = String(raw?.sportType ?? raw?.SportType ?? "").trim();
         const st = sportTypeOptions.find((s) => normSportKey(s.name) === normSportKey(sportLabel));
+        let descValue = extractFieldDescription(raw);
+        let imageUrls = extractFieldImageUrls(raw);
+
+        // Owner list endpoint currently does not include description/images.
+        // Fallback: read from public venue fields list and match by (name + sportType).
+        if (!descValue && imageUrls.length === 0) {
+          try {
+            const targetName = String(raw?.fieldName ?? raw?.FieldName ?? "").trim();
+            const targetSport = String(raw?.sportType ?? raw?.SportType ?? "").trim();
+            const pageSize = 50;
+            let page = 1;
+            while (page <= 10) {
+              const data = await getVenueFields(id, page, pageSize);
+              const items = data?.items ?? data?.Items ?? [];
+              const matched = (Array.isArray(items) ? items : []).find((x) => {
+                const n = String(x?.name ?? x?.Name ?? "").trim();
+                const s = String(x?.sportType ?? x?.SportType ?? "").trim();
+                return n === targetName && normSportKey(s) === normSportKey(targetSport);
+              });
+              if (matched) {
+                const richDesc = extractFieldDescription(matched);
+                const richImages = extractFieldImageUrls(matched);
+                if (richDesc) descValue = richDesc;
+                if (richImages.length) imageUrls = richImages;
+                break;
+              }
+              const totalItems = Number(data?.totalItems ?? data?.TotalItems ?? 0);
+              const reachedEndByTotal =
+                Number.isFinite(totalItems) && totalItems > 0 && page * pageSize >= totalItems;
+              const reachedEndByPage = !Array.isArray(items) || items.length < pageSize;
+              if (reachedEndByTotal || reachedEndByPage) break;
+              page += 1;
+            }
+          } catch {
+            // ignore fallback errors; keep edit form usable with owner list data.
+          }
+        }
+
         reset({
           name: String(raw?.fieldName ?? raw?.FieldName ?? "").trim(),
           sportTypeId: st ? String(st.id) : "",
-          description: String(raw?.description ?? raw?.Description ?? "").trim(),
+          description: descValue,
           images: [],
         });
+        setExistingImageUrls(imageUrls);
         setEditReady(true);
       } catch {
         if (!cancelled) {
@@ -187,6 +292,25 @@ const OwnerAddField = () => {
     const next = cur.filter((_, i) => i !== index);
     setValue("images", next, { shouldValidate: true, shouldDirty: true });
     if (next.length === 0 && fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeExistingImage = async (url) => {
+    if (!isEdit || !fieldId || !url) return;
+    const publicId = extractCloudinaryPublicIdFromUrl(url);
+    if (!publicId) {
+      toast.error("Không xác định được mã ảnh để xóa.");
+      return;
+    }
+    setDeletingImageUrl(url);
+    try {
+      await deleteOwnerFieldImage(publicId);
+      setExistingImageUrls((prev) => prev.filter((x) => x !== url));
+      toast.success("Đã xóa ảnh sân.");
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được ảnh sân.");
+    } finally {
+      setDeletingImageUrl("");
+    }
   };
 
   const onValidSubmit = async (values) => {
@@ -283,8 +407,6 @@ const OwnerAddField = () => {
               Loại sân / môn thể thao
               <select
                 className="ovd-input"
-                disabled={isEdit}
-                title={isEdit ? "Loại sân không đổi khi chỉnh sửa sân đã tạo" : undefined}
                 {...register("sportTypeId")}
               >
                 <option value="">-- Chọn môn --</option>
@@ -332,10 +454,42 @@ const OwnerAddField = () => {
               <span className="cv-doc-gallery-label">
                 Ảnh sân
                 <span className="cv-doc-gallery-sublabel">
-                  Tối đa {MAX_FIELD_IMAGES} ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn · bấm X để bỏ khỏi danh sách (chỉ
-                  gửi lên khi bấm {isEdit ? "Lưu thay đổi" : "Tạo sân"})
+                  Tối đa {MAX_FIELD_IMAGES} ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn · bấm X để bỏ khỏi danh sách
+                  ảnh mới (chỉ gửi lên khi bấm {isEdit ? "Lưu thay đổi" : "Tạo sân"})
                 </span>
               </span>
+              {isEdit && existingImageUrls.length > 0 ? (
+                <>
+                  <p className="cv-doc-gallery-hint" style={{ marginBottom: 8 }}>
+                    Ảnh hiện có của sân:
+                  </p>
+                  <ul className="cv-doc-gallery" aria-label="Ảnh sân hiện có">
+                    {existingImageUrls.map((url, idx) => (
+                      <li key={`${url}-${idx}`} className="cv-doc-gallery-item">
+                        <div className="cv-doc-gallery-tile">
+                          <img src={url} alt={`Ảnh sân ${idx + 1}`} />
+                          <button
+                            type="button"
+                            className="cv-doc-gallery-remove"
+                            aria-label="Xóa ảnh đã lưu"
+                            disabled={deletingImageUrl === url || submitting}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeExistingImage(url);
+                            }}
+                          >
+                            <X size={14} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="cv-doc-gallery-hint" style={{ marginTop: 8 }}>
+                    Bạn có thể thêm ảnh mới bên dưới (ảnh cũ vẫn giữ nguyên).
+                  </p>
+                </>
+              ) : null}
               <ul className="cv-doc-gallery" aria-label="Ảnh sân" aria-live="polite">
                 {images.map((f, idx) => (
                   <DocImagePreviewItem
@@ -344,7 +498,7 @@ const OwnerAddField = () => {
                     onRemove={() => removeImageAt(idx)}
                   />
                 ))}
-                {images.length < MAX_FIELD_IMAGES ? (
+                {remainingUploadSlots > 0 ? (
                   <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
                     <label className="cv-doc-gallery-add">
                       <input
@@ -356,7 +510,10 @@ const OwnerAddField = () => {
                         onChange={(e) => {
                           const picked = Array.from(e.target.files || []).filter(Boolean);
                           const cur = getValues("images") || [];
-                          const room = Math.max(0, MAX_FIELD_IMAGES - cur.length);
+                          const room = Math.max(
+                            0,
+                            MAX_FIELD_IMAGES - existingImageUrls.length - cur.length,
+                          );
                           const take = picked.slice(0, room);
                           setValue("images", [...cur, ...take], {
                             shouldValidate: true,
@@ -376,7 +533,7 @@ const OwnerAddField = () => {
                   {errors.images.message}
                 </p>
               )}
-              {images.length === 0 ? (
+              {images.length === 0 && existingImageUrls.length === 0 ? (
                 <p className="ovd-image-preview-empty cv-doc-gallery-hint">
                   {isEdit
                     ? "Chưa chọn ảnh mới — có thể bổ sung sau khi lưu."
