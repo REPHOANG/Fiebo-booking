@@ -91,6 +91,48 @@ namespace Fiebo.IntegrationTests.TimeSlot
         }
 
         [Fact]
+        public async Task UpdateTimeSlot_InvalidModel_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            var payload = new
+            {
+                StartTime = "invalid-time",
+                EndTime = "11:30:00",
+                Price = 180000
+            };
+
+            var response = await client.PutAsJsonAsync("/api/owner/time-slots/55", payload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.TimeSlotServiceMock.Verify(
+                s => s.UpdateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<UpdateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateTimeSlot_InvalidPrice_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            var payload = new
+            {
+                StartTime = "10:30:00",
+                EndTime = "11:30:00",
+                Price = -1
+            };
+
+            var response = await client.PutAsJsonAsync("/api/owner/time-slots/55", payload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.TimeSlotServiceMock.Verify(
+                s => s.UpdateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<UpdateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                Times.Never);
+        }
+
+        [Fact]
         public async Task UpdateTimeSlot_ServiceBadRequest_Returns400()
         {
             ResetMocks();
@@ -118,6 +160,35 @@ namespace Fiebo.IntegrationTests.TimeSlot
             var response = await client.PutAsJsonAsync("/api/owner/time-slots/404", ValidUpdateRequest());
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateTimeSlot_OverlapSlot_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            _factory.TimeSlotServiceMock
+                .Setup(s => s.UpdateVenueTimeSlotAsync(55, It.IsAny<UpdateVenueTimeSlotRequest>(), "owner-1"))
+                .ThrowsAsync(new BadRequestException("Khung giờ này đang bị trùng với khung giờ hiện có."));
+
+            var response = await client.PutAsJsonAsync("/api/owner/time-slots/55", ValidUpdateRequest());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateTimeSlot_InvalidBody_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            var response = await client.PutAsync("/api/owner/time-slots/55", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.TimeSlotServiceMock.Verify(
+                s => s.UpdateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<UpdateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                Times.Never);
         }
 
         private static UpdateVenueTimeSlotRequest ValidUpdateRequest()

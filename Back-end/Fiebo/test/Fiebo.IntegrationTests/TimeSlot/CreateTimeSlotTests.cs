@@ -63,6 +63,9 @@ namespace Fiebo.IntegrationTests.TimeSlot
                     r.DayOfWeek == "Monday" &&
                     r.Price == 150000m),
                 ownerId), Times.Once);
+
+            _factory.VenueServiceMock.VerifyNoOtherCalls();
+            _factory.FieldServiceMock.VerifyNoOtherCalls();
         }
 
         [Fact]
@@ -128,6 +131,73 @@ namespace Fiebo.IntegrationTests.TimeSlot
             var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateTimeSlot_ServiceNotFound_Returns404()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            _factory.TimeSlotServiceMock
+                .Setup(s => s.CreateVenueTimeSlotAsync(404, It.IsAny<CreateVenueTimeSlotRequest>(), "owner-1"))
+                .ThrowsAsync(new NotFoundException("Không tìm thấy cơ sở"));
+
+            var response = await client.PostAsJsonAsync("/api/owner/venue/404/time-slot", ValidCreateRequest());
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateTimeSlot_OverlapSlot_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            _factory.TimeSlotServiceMock
+                .Setup(s => s.CreateVenueTimeSlotAsync(10, It.IsAny<CreateVenueTimeSlotRequest>(), "owner-1"))
+                .ThrowsAsync(new BadRequestException("Khung giờ này đang bị trùng với khung giờ hiện có. Vui lòng chọn khung giờ khác."));
+
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateTimeSlot_InvalidBody_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            var response = await client.PostAsync("/api/owner/venue/10/time-slot", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.TimeSlotServiceMock.Verify(
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateTimeSlot_InvalidPrice_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+
+            var payload = new
+            {
+                SportTypeId = 1,
+                StartTime = "10:00:00",
+                EndTime = "11:00:00",
+                DayOfWeek = "Monday",
+                Price = -1
+            };
+
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", payload);
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.TimeSlotServiceMock.Verify(
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                Times.Never);
         }
 
         private static CreateVenueTimeSlotRequest ValidCreateRequest()

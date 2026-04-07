@@ -18,13 +18,23 @@ namespace Fiebo.Persistence.Repositories
         {
         }
 
-        public async Task<PagedResult<Payout>> GetOwnerPayouts(string ownerId, int page, int pageSize)
+        public async Task<PagedResult<Payout>> GetOwnerPayouts(string ownerId, int page, int pageSize, int? year, int? month)
         {
             var query = _context.Payouts
+                .Include(p => p.Batch)
                 .Where(p => p.OwnerId == ownerId);
+
+            if (year.HasValue)
+            {
+                query = query.Where(p => p.Batch.FromDate.Year == year.Value);
+                if (month.HasValue)
+                {
+                    query = query.Where(p => p.Batch.FromDate.Month == month.Value);
+                }
+            }
+
             var totalItems = await query.CountAsync();
             var items = await query
-                .Include(p => p.Batch)
                 .OrderByDescending(t => t.Batch.FromDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

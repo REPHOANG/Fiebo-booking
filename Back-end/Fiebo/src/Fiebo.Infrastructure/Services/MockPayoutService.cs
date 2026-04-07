@@ -19,7 +19,8 @@ namespace Fiebo.Infrastructure.Services
             _logger = logger;
         }
 
-        public Task<PagedResult<OwnerPayoutsResponse>> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize)
+
+        public Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
             throw new NotImplementedException();
         }

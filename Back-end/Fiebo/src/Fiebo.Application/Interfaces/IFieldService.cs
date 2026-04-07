@@ -17,5 +17,6 @@ namespace Fiebo.Application.Interfaces
         Task UploadFieldImage(int fieldId, string? userId, List<IFormFile> files);
         Task DeleteFieldImage(string publicId, string? userId);
         Task ChangeFieldStatusAsync(int venueId, int fieldId, string ownerId);
+        Task<OwnerFieldDetailResponse> GetOwnerFieldDetailAsync(int id, string? ownerId);
     }
 }

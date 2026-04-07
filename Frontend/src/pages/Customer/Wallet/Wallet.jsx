@@ -1,5 +1,5 @@
-import { Box, Stack } from "@mui/material";
-import { Container } from "react-bootstrap";
+import { Box, Container, Stack } from "@mui/material";
+
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useRef } from "react";

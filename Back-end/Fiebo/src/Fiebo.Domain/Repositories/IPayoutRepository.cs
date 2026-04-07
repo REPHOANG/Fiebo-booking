@@ -10,7 +10,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IPayoutRepository : IRepository<Payout>
     {
-        Task<PagedResult<Payout>> GetOwnerPayouts(string? ownerId, int page, int pageSize);
+        Task<PagedResult<Payout>> GetOwnerPayouts(string? ownerId, int page, int pageSize, int? year, int? month);
         Task<decimal> GetPendingPayoutAmountAsync(string ownerId);
         Task<Payout?> GetPayoutWithDetailsAsync(int payoutId);
     }

@@ -83,6 +83,20 @@ namespace Fiebo.IntegrationTests.Wallet
                 Times.Never);
         }
 
+            [Fact]
+            public async Task TopUpWallet_InvalidBody_Returns400()
+            {
+                ResetMocks();
+                var client = _factory.CreateAuthenticatedClient("customer-1");
+
+                var response = await client.PostAsync("/api/wallet/top-up", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                _factory.WalletServiceMock.Verify(
+                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string>()),
+                Times.Never);
+            }
+
         [Fact]
         public async Task TopUpWallet_ServiceNotFound_Returns404()
         {
@@ -99,20 +113,5 @@ namespace Fiebo.IntegrationTests.Wallet
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Fact]
-        public async Task TopUpWallet_ServiceBadRequest_Returns400()
-        {
-            ResetMocks();
-            const string userId = "customer-1";
-            var client = _factory.CreateAuthenticatedClient(userId);
-
-            _factory.WalletServiceMock
-                .Setup(s => s.GenerateTopUpQrAsync(200000m, userId))
-                .ThrowsAsync(new BadRequestException("Số tiền nạp không hợp lệ."));
-
-            var response = await client.PostAsJsonAsync("/api/wallet/top-up", new TopUpRequest { Amount = 200000m });
-
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
     }
 }

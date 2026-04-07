@@ -91,5 +91,14 @@ namespace Fiebo.Persistence.Repositories
                 .Include(f => f.Venue)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<Field?> GetOwnerFieldDetail(int fieldId)
+        {
+            return await _context.Fields
+                .AsNoTracking()
+                .Where(f => f.Id == fieldId)
+                .Include(f => f.Images)
+                .FirstOrDefaultAsync();
+        }
     }
 }

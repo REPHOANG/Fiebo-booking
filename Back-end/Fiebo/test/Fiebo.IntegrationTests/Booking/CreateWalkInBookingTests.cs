@@ -58,15 +58,22 @@ namespace Fiebo.IntegrationTests.Booking
         {
             ResetMocks();
             const string userId = "owner-1";
+            var request = ValidRequest();
 
             _factory.BookingServiceMock
                 .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
                 .ReturnsAsync(true);
 
             var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldOwner);
-            var response = await client.PostAsJsonAsync("/api/booking/walk-in", ValidRequest());
+            var response = await client.PostAsJsonAsync("/api/booking/walk-in", request);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            _factory.BookingServiceMock.Verify(s => s.CreateWalkInBookingAsync(
+                It.Is<CreateBookingRequest>(r =>
+                    r.VenueId == request.VenueId &&
+                    r.BookingDate == request.BookingDate),
+                userId), Times.Once);
         }
 
         [Fact]
@@ -111,6 +118,36 @@ namespace Fiebo.IntegrationTests.Booking
             var response = await client.PostAsJsonAsync("/api/booking/walk-in", ValidRequest());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateWalkInBooking_ServiceConflict_Returns409()
+        {
+            ResetMocks();
+            const string userId = "staff-1";
+            var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldStaff);
+
+            _factory.BookingServiceMock
+                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
+                .ThrowsAsync(new ResourceConflictException("Sân hiện tại hiện không có slot trống."));
+
+            var response = await client.PostAsJsonAsync("/api/booking/walk-in", ValidRequest());
+
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateWalkInBooking_InvalidBody_Returns400()
+        {
+            ResetMocks();
+            var client = _factory.CreateAuthenticatedClient("staff-1", AppRoles.FieldStaff);
+
+            var response = await client.PostAsync("/api/booking/walk-in", new StringContent("{", System.Text.Encoding.UTF8, "application/json"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            _factory.BookingServiceMock.Verify(
+                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>()),
+                Times.Never);
         }
 
         private static CreateBookingRequest ValidRequest()

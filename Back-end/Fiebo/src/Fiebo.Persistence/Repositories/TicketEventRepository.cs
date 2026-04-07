@@ -62,12 +62,12 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.TicketEvents
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(e => e.Details)
                     .ThenInclude(d => d.Field)
                 .Include(e => e.Details)
                     .ThenInclude(d => d.Slot)
                 .Include(e => e.Participants)
-                // Ki?m tra ?�ng EventId v� ?�ng ch? s? h?u
                 .FirstOrDefaultAsync(e => e.Id == eventId && e.OwnerId == ownerId);
         }
         public async Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId)

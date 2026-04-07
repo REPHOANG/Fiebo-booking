@@ -10,7 +10,7 @@ namespace Fiebo.Application.Interfaces
 {
     public interface IPayoutService
     {
-        Task<PagedResult<OwnerPayoutsResponse>> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize);
+        Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month);
         /// <summary>
         /// Processes a payout to the user's bank account.
         /// Returns true if the payout was successfully queued/processed.

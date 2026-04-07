@@ -71,5 +71,11 @@ namespace Fiebo.Persistence.Repositories
                     endTime > x.StartTime
                 );
         }
+        public async Task<bool> CanBeEditedOrDeleted(int sloId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            return await _context.BookingDetails
+                .AnyAsync(bd => bd.SlotId == sloId && bd.Booking.BookingDate >= today);
+        }
     }
 }

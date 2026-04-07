@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Payout;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Domain.Exceptions;
@@ -18,19 +19,28 @@ namespace Fiebo.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<PagedResult<OwnerPayoutsResponse>> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize)
+        public async Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
             if (ownerId == null)
             {
                 throw new UnauthorizedAccessException("Bạn không có quyền xem payout này");
             }
-            var result = await _unitOfWork.Payouts.GetOwnerPayouts(ownerId, page, pageSize);
-            return new PagedResult<OwnerPayoutsResponse>
+            var result = await _unitOfWork.Payouts.GetOwnerPayouts(ownerId, page, pageSize, year, month);
+            return new OwnerPayoutListResponse
             {
-                Page = page,
-                PageSize = pageSize,
-                TotalItems = result.TotalItems,
-                Items = [.. result.Items.Select(i => new OwnerPayoutsResponse
+                PendingPayout = result.Items
+                .Where(i => i.Status == PayoutStatus.Pending
+                || i.Status == PayoutStatus.Processing)
+                .Sum(i => i.Amount),
+                NextPayout = result.Items.Any()
+                ? result.Items.Max(i => i.Batch.ToDate).AddDays(7)
+                : null,
+                Payouts = new PagedResult<OwnerPayoutsResponse>
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalItems = result.TotalItems,
+                    Items = [.. result.Items.Select(i => new OwnerPayoutsResponse
                 {
                     Id = i.Id,
                     FromDate = i.Batch.FromDate,
@@ -38,6 +48,7 @@ namespace Fiebo.Application.Services
                     Amount = i.Amount,
                     Status = i.Status.ToString()
                 })]
+                }
             };
         }
 
