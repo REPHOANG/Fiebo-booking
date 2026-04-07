@@ -582,9 +582,9 @@
 /* Vùng chèn slot: co mặc định, chỉ mở rộng khi hover / focus */
 .ots-row-insert-zone {
   width: 100%;
-  border: none;
+  border: 0;
   background: transparent;
-  cursor: pointer;
+  cursor: default;
   padding: 1px 0 2px;
   border-radius: 8px;
   margin: -2px 0;
@@ -628,7 +628,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin-top: 0;
   max-height: 0;
   opacity: 0;
@@ -646,11 +647,31 @@
 }
 
 .ots-row-insert-zone:hover .ots-row-insert-label,
-.ots-row-insert-zone:focus-visible .ots-row-insert-label {
-  max-height: 48px;
+.ots-row-insert-zone:focus-within .ots-row-insert-label {
+  max-height: 120px;
   opacity: 1;
   margin-top: 8px;
   transform: translateY(0);
+}
+
+.ots-row-insert-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid rgba(0, 100, 66, 0.18);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ots-green);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.ots-row-insert-option:hover {
+  background: #e8f4ef;
+  border-color: rgba(0, 100, 66, 0.36);
 }
 
 /* Mobile: vẫn co; chạm giữ focus sẽ mở (focus-visible), hoặc bám theo :active tạm thời */
@@ -668,7 +689,7 @@
   }
 
   .ots-row-insert-zone:active .ots-row-insert-label {
-    max-height: 48px;
+    max-height: 120px;
     opacity: 1;
     margin-top: 8px;
     transform: translateY(0);

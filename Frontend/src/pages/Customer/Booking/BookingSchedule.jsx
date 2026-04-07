@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
@@ -225,6 +225,7 @@ const BookingSchedule = () => {
   const [scheduleEventSlots, setScheduleEventSlots] = useState([]); // [{ fieldIdx, slotIdx, eventId }]
   // Cập nhật mỗi phút để slot "đã qua" (Khoá) được tính lại khi đang xem ngày hôm nay
   const [timeTick, setTimeTick] = useState(() => Date.now());
+  const clampZoom = useCallback((value) => Math.min(100, Math.max(50, value)), []);
   useEffect(() => {
     if (selectedDate !== todayStr()) return;
     const id = setInterval(() => setTimeTick(Date.now()), 60 * 1000);
@@ -1169,21 +1170,35 @@ const BookingSchedule = () => {
 
         {/* Time Range Slider */}
         {slots.length > 0 && (
-          <div className="bs-time-filter">
-            <div className="bs-time-filter-label">🔍 {Math.round((zoomLevel / 50) * 100)}%</div>
+          <div className={`bs-time-filter${isOwnerOffline ? " is-owner" : ""}`}>
+            <div className="bs-time-filter-label"></div>
             <div className="bs-time-range-container">
+              <button
+                type="button"
+                className="bs-zoom-btn"
+                onClick={() => setZoomLevel((z) => clampZoom(z - 10))}
+                aria-label="Giảm thu phóng"
+              >
+                <Minus size={14} />
+              </button>
               <input
                 ref={zoomSliderRef}
                 type="range"
                 min="50"
                 max="100"
                 value={zoomLevel}
-                onChange={(e) => setZoomLevel(parseInt(e.target.value))}
+                onChange={(e) => setZoomLevel(clampZoom(parseInt(e.target.value, 10)))}
                 className="bs-time-slider"
               />
-              <span className="bs-time-display">
-                {Math.round((zoomLevel / 50) * 100)}%
-              </span>
+              <button
+                type="button"
+                className="bs-zoom-btn"
+                onClick={() => setZoomLevel((z) => clampZoom(z + 10))}
+                aria-label="Tăng thu phóng"
+              >
+                <Plus size={14} />
+              </button>
+              <span className="bs-time-display">{Math.round((zoomLevel / 50) * 100)}%</span>
             </div>
           </div>
         )}
@@ -1227,11 +1242,13 @@ const BookingSchedule = () => {
                           borderLeft: `4px solid ${["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#06b6d4", "#ef4444"][gi % 6]}`,
                         }}
                       >
-                        <span className="bs-sport-header-icon">
-                          {["⚽", "🏸", "🎾", "🏐", "⚾", "🏓"][gi % 6]}
-                        </span>
-                        <span className="bs-sport-header-name">{group.sportType}</span>
-                        <span className="bs-sport-header-count">{group.fields.length} sân</span>
+                        <div className="bs-sport-header-main">
+                          <span className="bs-sport-header-icon">
+                            {["⚽", "🏸", "🎾", "🏐", "⚾", "🏓"][gi % 6]}
+                          </span>
+                          <span className="bs-sport-header-name">{group.sportType}</span>
+                          <span className="bs-sport-header-count">{group.fields.length} sân</span>
+                        </div>
                         <span className="bs-sport-header-hours">
                           <span className="bs-sport-header-hours-range">
                             {gSlots[0]?.label} –{" "}

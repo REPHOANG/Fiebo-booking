@@ -73,6 +73,8 @@ const minutesToHHMM = (minutes) => {
   const m = minutes % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
+const MANUAL_INSERT_STEP_MINUTES = 30;
+const INSERT_DURATION_OPTIONS = [30, 60, 90];
 
 const buildTimeOptions = (openTime, closeTime) => {
   const openMin = timeToMinutes(openTime);
@@ -184,7 +186,7 @@ const OwnerTimeSlot = () => {
   const [venueOpenTime, setVenueOpenTime] = useState(null);
   const [venueCloseTime, setVenueCloseTime] = useState(null);
   const [sportTypeId, setSportTypeId] = useState("");
-  const [slotDuration, setSlotDuration] = useState(60);
+  const [slotDuration, setSlotDuration] = useState(30);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
@@ -282,6 +284,19 @@ const OwnerTimeSlot = () => {
           row.prices?.[dk] !== undefined,
       );
   }, [slotRows, activeDayKey]);
+
+  const activeDayTimeRanges = useMemo(
+    () =>
+      rowsForActiveDay
+        .map(({ row }) => {
+          const s = timeToMinutes(row.start);
+          const e = timeToMinutes(row.end);
+          if (s == null || e == null || e <= s) return null;
+          return { start: s, end: e };
+        })
+        .filter(Boolean),
+    [rowsForActiveDay],
+  );
 
   const daysHavingAnySlot = useMemo(() => {
     const byDay = {};
@@ -1008,30 +1023,53 @@ const OwnerTimeSlot = () => {
               </div>
               <div className="ots-slot-rows">
                 {rowsForActiveDay.map(({ row, idx: originalIdx }, visIdx) => {
-                  const step = normalizedDuration;
                   const openMin =
                     timeToMinutes(venueOpenTime ? formatTime(venueOpenTime) : null) ?? 6 * 60;
+                  const closeMin =
+                    timeToMinutes(venueCloseTime ? formatTime(venueCloseTime) : null) ?? 23 * 60;
+                  const hasOverlap = (startM, endM) =>
+                    activeDayTimeRanges.some((r) => startM < r.end && endM > r.start);
+                  const renderInsertOptions = (startMin, keySeed) => {
+                    if (startMin == null || !Number.isFinite(startMin)) return null;
+                    const options = INSERT_DURATION_OPTIONS
+                      .map((duration) => {
+                        const endMin = startMin + duration;
+                        if (endMin > closeMin) return null;
+                        if (hasOverlap(startMin, endMin)) return null;
+                        return {
+                          key: `${keySeed}-${duration}`,
+                          start: minutesToHHMM(startMin),
+                          end: minutesToHHMM(endMin),
+                          duration,
+                        };
+                      })
+                      .filter(Boolean);
+                    if (!options.length) return null;
+                    return (
+                      <div className="ots-row-insert-zone" key={`zone-${keySeed}`}>
+                        <span className="ots-row-insert-line" aria-hidden />
+                        <div className="ots-row-insert-label">
+                          {options.map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              className="ots-row-insert-option"
+                              aria-label={`Thêm khung ${opt.start} – ${opt.end}`}
+                              onClick={() => addSlotForActiveDay(opt.start, opt.end)}
+                            >
+                              <Plus size={13} strokeWidth={2.5} />
+                              {opt.start} – {opt.end}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  };
                   let insertBefore = null;
                   if (visIdx === 0) {
                     const firstStart = timeToMinutes(row.start);
-                    if (firstStart != null && firstStart - openMin >= step) {
-                      const s0 = minutesToHHMM(openMin);
-                      const e0 = minutesToHHMM(openMin + step);
-                      insertBefore = (
-                        <button
-                          key={`ins-open-${s0}`}
-                          type="button"
-                          className="ots-row-insert-zone"
-                          aria-label={`Thêm khung ${s0} – ${e0}`}
-                          onClick={() => addSlotForActiveDay(s0, e0)}
-                        >
-                          <span className="ots-row-insert-line" aria-hidden />
-                          <span className="ots-row-insert-label">
-                            <Plus size={14} strokeWidth={2.5} />
-                            {s0} – {e0}
-                          </span>
-                        </button>
-                      );
+                    if (firstStart != null && firstStart > openMin) {
+                      insertBefore = renderInsertOptions(openMin, `ins-open-${openMin}`);
                     }
                   }
                   let insertBetween = null;
@@ -1042,25 +1080,9 @@ const OwnerTimeSlot = () => {
                     if (
                       prevEnd != null &&
                       curStart != null &&
-                      curStart - prevEnd >= step
+                      curStart > prevEnd
                     ) {
-                      const s1 = minutesToHHMM(prevEnd);
-                      const e1 = minutesToHHMM(prevEnd + step);
-                      insertBetween = (
-                        <button
-                          key={`ins-${s1}-${originalIdx}`}
-                          type="button"
-                          className="ots-row-insert-zone"
-                          aria-label={`Thêm khung ${s1} – ${e1}`}
-                          onClick={() => addSlotForActiveDay(s1, e1)}
-                        >
-                          <span className="ots-row-insert-line" aria-hidden />
-                          <span className="ots-row-insert-label">
-                            <Plus size={14} strokeWidth={2.5} />
-                            {s1} – {e1}
-                          </span>
-                        </button>
-                      );
+                      insertBetween = renderInsertOptions(prevEnd, `ins-${prevEnd}-${originalIdx}`);
                     }
                   }
                   const value = row.prices?.[activeDayKey];
@@ -1259,7 +1281,7 @@ const OwnerTimeSlot = () => {
                   type="button"
                   disabled={saving || !sportTypeId}
                   onClick={() => {
-                    const step = normalizedDuration;
+                    const step = MANUAL_INSERT_STEP_MINUTES;
                     const visibleEnds = rowsForActiveDay.map(({ row }) => timeToMinutes(row.end) ?? 0);
                     const lastInDay =
                       rowsForActiveDay.length > 0
@@ -1278,7 +1300,7 @@ const OwnerTimeSlot = () => {
                   }}
                 >
                   <Plus size={16} />{" "}
-                  {`Thêm khung (${slotDurationLabel} · chỉ ${weekDayLabels[activeDayIndex]})`}
+                  {`Thêm khung (30p · chỉ ${weekDayLabels[activeDayIndex]})`}
                 </button>
               </div>
             </>
