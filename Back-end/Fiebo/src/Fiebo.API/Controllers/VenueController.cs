@@ -589,11 +589,11 @@ namespace Fiebo.API.Controllers
         [HttpPost("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> CreateVenueTimeSlot(
             [FromRoute] int id,
-            [FromBody] CreateVenueTimeSlotRequest request)
+            [FromBody] List<CreateVenueTimeSlotRequest> request)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var result = await _timeSlotService.CreateVenueTimeSlotAsync(id, request, ownerId);
-            return Ok(new ApiResponse<VenueTimeSlotDto>
+            return Ok(new ApiResponse<List<VenueTimeSlotDto>>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tạo khung giờ sân thành công",
