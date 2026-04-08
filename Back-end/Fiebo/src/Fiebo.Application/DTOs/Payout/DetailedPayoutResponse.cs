@@ -12,7 +12,6 @@ namespace Fiebo.Application.DTOs.Payout
 
     public class PayoutGeneralInfoDto
     {
-        public string ReferenceCode { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime? ProcessedAt { get; set; }
         public string Status { get; set; } = null!;
