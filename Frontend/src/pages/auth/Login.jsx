@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
 import { login, loginWithGoogle } from '../../services/authService';
@@ -34,8 +34,9 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess, onOpenRegister }) => {
+const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   // Shared state
@@ -108,6 +109,26 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
     return getHomePathByRole(user);
   };
 
+  const resolveReturnPath = () => {
+    if (typeof redirectAfterLogin === "string" && redirectAfterLogin.startsWith("/")) {
+      return redirectAfterLogin;
+    }
+    const fromState = location.state?.from;
+    if (typeof fromState === "string" && fromState.startsWith("/")) {
+      return fromState;
+    }
+    if (fromState && typeof fromState === "object" && typeof fromState.pathname === "string") {
+      const search = typeof fromState.search === "string" ? fromState.search : "";
+      const hash = typeof fromState.hash === "string" ? fromState.hash : "";
+      return `${fromState.pathname}${search}${hash}`;
+    }
+    const redirectTo = location.state?.redirectTo;
+    if (typeof redirectTo === "string" && redirectTo.startsWith("/")) {
+      return redirectTo;
+    }
+    return "";
+  };
+
   // ── Password login handler ────────────────────────────────────────────────
   const onSubmit = async (data) => {
     const idType = detectIdentifierType(data.identifier);
@@ -148,13 +169,15 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right', autoClose: 3000,
       });
 
+      const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
+      const nextPath = returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
-        navigate(homePath, { replace: true });
+        navigate(nextPath, { replace: true });
         onLoginSuccess();
         return;
       }
-      navigate(homePath, { replace: true });
+      navigate(nextPath, { replace: true });
 
     } catch (error) {
       const msg = (error?.message || "").toLowerCase();
@@ -199,13 +222,15 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right',
         autoClose: 3000,
       });
+      const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
+      const nextPath = returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
-        navigate(homePath, { replace: true });
+        navigate(nextPath, { replace: true });
         onLoginSuccess();
         return;
       }
-      navigate(homePath, { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (error) {
       setAlertInfo({
         type: "error",

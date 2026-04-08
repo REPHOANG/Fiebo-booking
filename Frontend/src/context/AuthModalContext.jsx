@@ -17,10 +17,25 @@ export const OPEN_AUTH_STATE_KEY = "openAuth";
 
 export function AuthModalProvider({ children }) {
   const [active, setActive] = useState(null); // 'login' | 'register' | null
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState("");
+  const location = useLocation();
 
-  const openLogin = useCallback(() => setActive("login"), []);
+  const openLogin = useCallback(
+    (options = {}) => {
+      const redirectTo =
+        typeof options?.redirectTo === "string" && options.redirectTo.startsWith("/")
+          ? options.redirectTo
+          : `${location.pathname}${location.search}${location.hash}`;
+      setRedirectAfterLogin(redirectTo);
+      setActive("login");
+    },
+    [location.pathname, location.search, location.hash],
+  );
   const openRegister = useCallback(() => setActive("register"), []);
-  const closeAuthModal = useCallback(() => setActive(null), []);
+  const closeAuthModal = useCallback(() => {
+    setActive(null);
+    setRedirectAfterLogin("");
+  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -43,6 +58,7 @@ export function AuthModalProvider({ children }) {
         open={active === "login"}
         onClose={closeAuthModal}
         onOpenRegister={() => setActive("register")}
+        redirectAfterLogin={redirectAfterLogin}
       />
       <RegisterPopup
         open={active === "register"}
@@ -69,20 +85,21 @@ export function AuthModalRouteSync() {
   const navigate = useNavigate();
   const { openLogin, openRegister } = useAuthModal();
   const openAuth = location.state?.[OPEN_AUTH_STATE_KEY];
+  const redirectTo = location.state?.redirectTo;
 
   useEffect(() => {
     if (openAuth !== "login" && openAuth !== "register") return;
 
-    if (openAuth === "login") openLogin();
+    if (openAuth === "login") openLogin({ redirectTo });
     else openRegister();
 
-    const { [OPEN_AUTH_STATE_KEY]: _removed, ...rest } = location.state || {};
+    const { [OPEN_AUTH_STATE_KEY]: _removed, redirectTo: _removedRedirect, ...rest } = location.state || {};
     const hasRest = Object.keys(rest).length > 0;
     navigate(`${location.pathname}${location.search}`, {
       replace: true,
       state: hasRest ? rest : {},
     });
-  }, [openAuth, location.pathname, location.search, navigate, openLogin, openRegister]);
+  }, [openAuth, redirectTo, location.pathname, location.search, navigate, openLogin, openRegister]);
 
   return null;
 }
