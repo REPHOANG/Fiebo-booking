@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/landing/Header";
 import BookingTypeModal from "../../components/common/BookingTypeModal/BookingTypeModal";
 import { getVenueDetail, getVenueFields, getVenueReviews } from "../../services/fieldService";
+import { lockBodyScroll, unlockBodyScroll } from "../../utils/bodyScrollLock";
 import "./VenueDetail.css";
 import { clearDraft } from '../../store/bookingDraftSlice';
 
@@ -261,11 +262,10 @@ const FieldDetailModal = ({ field, onClose }) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
+      unlockBodyScroll();
     };
   }, [onClose]);
 

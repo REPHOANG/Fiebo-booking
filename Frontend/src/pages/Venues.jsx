@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import { clearDraft } from '../store/bookingDraftSlice';
 import { searchVenues, getVenueDetail, getVenueFields, getVenueReviews } from "../services/fieldService";
 import { getDistrictsByProvince, getProvinces } from "../services/addressService";
+import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 import {
   getSportTypes,
   normalizeSportTypeList,
@@ -112,18 +113,10 @@ const VenuePopup = ({ venueId, onClose }) => {
 
   // Lock body scroll
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-    if (scrollBarWidth > 0) {
-      document.body.style.paddingRight = `${scrollBarWidth}px`;
-    }
-    document.body.style.overflow = "hidden";
+    lockBodyScroll({ reserveScrollbarGap: true });
 
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
+      unlockBodyScroll();
     };
   }, []);
 

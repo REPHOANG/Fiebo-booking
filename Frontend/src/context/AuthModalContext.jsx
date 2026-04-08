@@ -9,6 +9,7 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import LoginPopup from "../components/common/LoginPopup/LoginPopup";
 import RegisterPopup from "../components/common/RegisterPopup/RegisterPopup";
+import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 
 const AuthModalContext = createContext(null);
 
@@ -39,10 +40,9 @@ export function AuthModalProvider({ children }) {
 
   useEffect(() => {
     if (!active) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     return () => {
-      document.body.style.overflow = prev;
+      unlockBodyScroll();
     };
   }, [active]);
 
