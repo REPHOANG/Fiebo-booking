@@ -68,10 +68,10 @@ namespace Fiebo.Application.Services
  
  
             // BR-03: Data Masking (Last 4 digits visible)
-            var originalAccount = payout.BankAccount.AccountNumber;
-            var maskedAccount = originalAccount.Length > 4
-                ? new string('*', originalAccount.Length - 4) + originalAccount.Substring(originalAccount.Length - 4)
-                : originalAccount;
+            // var originalAccount = payout.BankAccount.AccountNumber;
+            // var maskedAccount = originalAccount.Length > 4
+            //     ? new string('*', originalAccount.Length - 4) + originalAccount.Substring(originalAccount.Length - 4)
+            //     : originalAccount;
  
             var response = new DetailedPayoutResponse
             {
@@ -87,7 +87,7 @@ namespace Fiebo.Application.Services
                 {
                     TotalAmount = payout.Amount,
                     BankName = payout.BankAccount.BankName,
-                    MaskedAccountNumber = maskedAccount,
+                    MaskedAccountNumber = originalAccount,
                     AccountHolderName = payout.BankAccount.AccountHolderName
                 },
                 FacilitiesBreakdown = payout.PayoutDetails
