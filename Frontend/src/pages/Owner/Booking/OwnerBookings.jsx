@@ -18,12 +18,9 @@ const WEEK_DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 const BOOKING_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
-  { value: "Pending", label: "Chờ thanh toán" },
   { value: "Booked", label: "Đã đặt" },
   { value: "Completed", label: "Hoàn thành" },
-  { value: "Expired", label: "Hết hạn" },
-  { value: "CustomerCancelled", label: "Khách hủy" },
-  { value: "OwnerCancelled", label: "Chủ sân hủy" },
+  { value: "Cancelled", label: "Đã hủy" },
 ];
 
 const formatDate = (d) => {
@@ -45,12 +42,10 @@ const formatPrice = (n) => {
 
 const translateStatus = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "Chờ thanh toán";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
   if (s === "customercancelled") return "Đã hủy";
   if (s === "ownercancelled") return "Đã hủy";
-  if (s === "expired") return "Hết hạn";
   return status || "—";
 };
 
@@ -141,18 +136,44 @@ const OwnerBookings = () => {
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { pageNumber: page, pageSize: PAGE_SIZE };
+      const baseParams = { pageNumber: page, pageSize: PAGE_SIZE };
       const venueId = selectedVenueId !== "" ? Number(String(selectedVenueId)) : NaN;
-      if (Number.isFinite(venueId) && venueId > 0) params.venueId = venueId;
+      if (Number.isFinite(venueId) && venueId > 0) baseParams.venueId = venueId;
 
       if (selectedDate) {
-        params.fromDate = selectedDate;
-        params.toDate = selectedDate;
+        baseParams.fromDate = selectedDate;
+        baseParams.toDate = selectedDate;
       }
 
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter) {
+        if (statusFilter === "Cancelled") {
+          const [customerCancelledRes, ownerCancelledRes] = await Promise.all([
+            getOwnerBookingList({ ...baseParams, status: "CustomerCancelled" }),
+            getOwnerBookingList({ ...baseParams, status: "OwnerCancelled" }),
+          ]);
 
-      const result = await getOwnerBookingList(params);
+          const merged = [
+            ...(Array.isArray(customerCancelledRes?.items) ? customerCancelledRes.items : []),
+            ...(Array.isArray(ownerCancelledRes?.items) ? ownerCancelledRes.items : []),
+          ];
+
+          const dedup = [];
+          const seen = new Set();
+          for (const item of merged) {
+            const id = item?.bookingId ?? item?.BookingId;
+            const key = id != null ? `id:${id}` : `${item?.bookingDate ?? item?.BookingDate ?? ""}|${item?.customerName ?? item?.CustomerName ?? ""}|${item?.venueName ?? item?.VenueName ?? ""}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            dedup.push(item);
+          }
+
+          setItems(dedup);
+          setTotalItems(dedup.length);
+          return;
+        }
+      }
+
+      const result = await getOwnerBookingList({ ...baseParams, status: statusFilter || undefined });
       setItems(Array.isArray(result?.items) ? result.items : []);
       setTotalItems(Number(result?.totalItems) || 0);
     } catch (e) {

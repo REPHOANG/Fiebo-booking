@@ -1,5 +1,11 @@
 const norm = (v) => String(v ?? "").toLowerCase().trim();
 
+const ROLE_ALIASES = {
+  admin: ["admin"],
+  staff: ["staff", "fieldstaff"],
+  fieldowner: ["fieldowner"],
+};
+
 export const getUserRoles = (user) => {
   const raw = user?.roles ?? user?.role ?? "";
   if (Array.isArray(raw)) {
@@ -13,13 +19,15 @@ export const getUserRoles = (user) => {
 
 export const hasRole = (user, role) => {
   const target = norm(role);
-  return getUserRoles(user).includes(target);
+  const aliases = ROLE_ALIASES[target] ?? [target];
+  const roles = getUserRoles(user);
+  return aliases.some((r) => roles.includes(r));
 };
 
 export const getHomePathByRole = (user) => {
   const roles = getUserRoles(user);
   if (roles.includes("admin")) return "/admin";
-  if (roles.includes("staff")) return "/staff";
+  if (roles.includes("staff") || roles.includes("fieldstaff")) return "/staff";
   if (roles.includes("fieldowner")) return "/owner";
   return "/";
 };
