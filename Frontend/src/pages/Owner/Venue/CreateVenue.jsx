@@ -11,11 +11,11 @@ import {
   getVenueDraft,
   submitVenue,
   updateOwnerVenueInfo,
-} from "../../services/venueService";
-import { getDistrictsByProvince, getProvinces } from "../../services/addressService";
-import CreateVenueStepBasic from "./CreateVenueSteps/CreateVenueStepBasic";
-import CreateVenueStepDocuments from "./CreateVenueSteps/CreateVenueStepDocuments";
-import CreateVenueStepReview from "./CreateVenueSteps/CreateVenueStepReview";
+} from "../../../services/venueService";
+import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
+import CreateVenueStepBasic from "../CreateVenueSteps/CreateVenueStepBasic";
+import CreateVenueStepDocuments from "../CreateVenueSteps/CreateVenueStepDocuments";
+import CreateVenueStepReview from "../CreateVenueSteps/CreateVenueStepReview";
 import "./CreateVenue.css";
 
 // ── Yup Validation (Step 1: Create Venue draft) ──
@@ -437,7 +437,7 @@ const CreateVenue = () => {
         const issue = new Date(d.issueDate);
         const expiry = new Date(d.expiryDate);
         if (Number.isNaN(issue.getTime()) || Number.isNaN(expiry.getTime())) return true;
-        return expiry.getTime() <= issue.getTime();
+        return expiry.getTime() < issue.getTime();
       });
       if (invalidDateRange) {
         toast.error(`Ngày hết hạn phải sau ngày cấp cho "${invalidDateRange.label}".`);

@@ -8,14 +8,13 @@ import * as yup from "yup";
 import {
   createOwnerField,
   deleteOwnerFieldImage,
-  getVenueFields,
-  getOwnerVenueFields,
+  getOwnerFieldDetail,
   updateOwnerField,
   uploadOwnerFieldImages,
-} from "../../services/fieldService";
-import { getSportTypes, normalizeSportTypeList } from "../../services/sportTypeService";
-import { getVenueDraft } from "../../services/venueService";
-import { DocImagePreviewItem } from "./CreateVenueSteps/DocImagePreviewItem";
+} from "../../../services/fieldService";
+import { getSportTypes, normalizeSportTypeList } from "../../../services/sportTypeService";
+import { getVenueDraft } from "../../../services/venueService";
+import { DocImagePreviewItem } from "../CreateVenueSteps/DocImagePreviewItem";
 import "./OwnerVenueDetail.css";
 import "./CreateVenue.css";
 
@@ -45,13 +44,6 @@ const formatTime = (timeSpan) => {
   const parts = String(timeSpan).split(":");
   return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
 };
-
-const normSportKey = (v) =>
-  String(v ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 
 const extractFieldImageUrls = (raw) => {
   if (!raw) return [];
@@ -94,7 +86,11 @@ const extractCloudinaryPublicIdFromUrl = (url) => {
     const u = new URL(String(url));
     const marker = "/upload/";
     const i = u.pathname.indexOf(marker);
-    if (i < 0) return "";
+    if (i < 0) {
+      // Fallback for non-standard paths: use last filename (without extension)
+      const last = u.pathname.split("/").filter(Boolean).pop() || "";
+      return decodeURIComponent(last.replace(/\.[^/.]+$/, "")).trim();
+    }
     let tail = u.pathname.slice(i + marker.length);
     // bỏ version "v123/" nếu có
     tail = tail.replace(/^v\d+\//, "");
@@ -123,6 +119,7 @@ const OwnerAddField = () => {
   const [editReady, setEditReady] = useState(!isEdit);
   const [existingImageUrls, setExistingImageUrls] = useState([]);
   const [deletingImageUrl, setDeletingImageUrl] = useState("");
+  const [deletingAllExisting, setDeletingAllExisting] = useState(false);
   const fileInputRef = useRef(null);
 
   const schema = useMemo(() => fieldFormSchema(isEdit), [isEdit]);
@@ -203,63 +200,21 @@ const OwnerAddField = () => {
 
   useEffect(() => {
     if (!isEdit || !id || !fieldId) return;
-    if (!sportTypeOptions.length) return;
     let cancelled = false;
     (async () => {
       try {
-        const list = await getOwnerVenueFields(id);
-        const raw = (Array.isArray(list) ? list : []).find(
-          (x) => String(x?.fieldId ?? x?.FieldId) === String(fieldId),
-        );
+        const raw = await getOwnerFieldDetail(fieldId);
         if (cancelled) return;
         if (!raw) {
           toast.error("Không tìm thấy sân.");
           navigate(`/owner/venues/${id}`, { replace: true });
           return;
         }
-        const sportLabel = String(raw?.sportType ?? raw?.SportType ?? "").trim();
-        const st = sportTypeOptions.find((s) => normSportKey(s.name) === normSportKey(sportLabel));
-        let descValue = extractFieldDescription(raw);
-        let imageUrls = extractFieldImageUrls(raw);
-
-        // Owner list endpoint currently does not include description/images.
-        // Fallback: read from public venue fields list and match by (name + sportType).
-        if (!descValue && imageUrls.length === 0) {
-          try {
-            const targetName = String(raw?.fieldName ?? raw?.FieldName ?? "").trim();
-            const targetSport = String(raw?.sportType ?? raw?.SportType ?? "").trim();
-            const pageSize = 50;
-            let page = 1;
-            while (page <= 10) {
-              const data = await getVenueFields(id, page, pageSize);
-              const items = data?.items ?? data?.Items ?? [];
-              const matched = (Array.isArray(items) ? items : []).find((x) => {
-                const n = String(x?.name ?? x?.Name ?? "").trim();
-                const s = String(x?.sportType ?? x?.SportType ?? "").trim();
-                return n === targetName && normSportKey(s) === normSportKey(targetSport);
-              });
-              if (matched) {
-                const richDesc = extractFieldDescription(matched);
-                const richImages = extractFieldImageUrls(matched);
-                if (richDesc) descValue = richDesc;
-                if (richImages.length) imageUrls = richImages;
-                break;
-              }
-              const totalItems = Number(data?.totalItems ?? data?.TotalItems ?? 0);
-              const reachedEndByTotal =
-                Number.isFinite(totalItems) && totalItems > 0 && page * pageSize >= totalItems;
-              const reachedEndByPage = !Array.isArray(items) || items.length < pageSize;
-              if (reachedEndByTotal || reachedEndByPage) break;
-              page += 1;
-            }
-          } catch {
-            // ignore fallback errors; keep edit form usable with owner list data.
-          }
-        }
-
+        const descValue = extractFieldDescription(raw);
+        const imageUrls = extractFieldImageUrls(raw);
         reset({
-          name: String(raw?.fieldName ?? raw?.FieldName ?? "").trim(),
-          sportTypeId: st ? String(st.id) : "",
+          name: String(raw?.name ?? raw?.Name ?? raw?.fieldName ?? raw?.FieldName ?? "").trim(),
+          sportTypeId: String(raw?.sportTypeId ?? raw?.SportTypeId ?? ""),
           description: descValue,
           images: [],
         });
@@ -275,7 +230,7 @@ const OwnerAddField = () => {
     return () => {
       cancelled = true;
     };
-  }, [isEdit, id, fieldId, sportTypeOptions, navigate, reset]);
+  }, [isEdit, id, fieldId, navigate, reset]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -295,6 +250,7 @@ const OwnerAddField = () => {
   };
 
   const removeExistingImage = async (url) => {
+    if (deletingAllExisting) return;
     if (!isEdit || !fieldId || !url) return;
     const publicId = extractCloudinaryPublicIdFromUrl(url);
     if (!publicId) {
@@ -310,6 +266,48 @@ const OwnerAddField = () => {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được ảnh sân.");
     } finally {
       setDeletingImageUrl("");
+    }
+  };
+
+  const removeAllExistingImages = async () => {
+    if (!isEdit || !fieldId || !existingImageUrls.length || deletingAllExisting) return;
+    const mapped = existingImageUrls
+      .map((url) => ({ url, publicId: extractCloudinaryPublicIdFromUrl(url) }))
+      .filter((x) => x.publicId);
+
+    if (!mapped.length) {
+      toast.error("Không xác định được mã ảnh để xóa.");
+      return;
+    }
+
+    setDeletingAllExisting(true);
+    try {
+      const settled = await Promise.allSettled(
+        mapped.map((x) => deleteOwnerFieldImage(x.publicId)),
+      );
+      const successUrls = [];
+      const failedCount = settled.reduce((count, result, idx) => {
+        if (result.status === "fulfilled") {
+          successUrls.push(mapped[idx].url);
+          return count;
+        }
+        return count + 1;
+      }, 0);
+
+      if (successUrls.length > 0) {
+        const successSet = new Set(successUrls);
+        setExistingImageUrls((prev) => prev.filter((u) => !successSet.has(u)));
+      }
+
+      if (failedCount === 0) {
+        toast.success("Đã xóa toàn bộ ảnh cũ.");
+      } else {
+        toast.warning(`Đã xóa ${successUrls.length}/${mapped.length} ảnh. Còn ${failedCount} ảnh chưa xóa được.`);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được ảnh cũ.");
+    } finally {
+      setDeletingAllExisting(false);
     }
   };
 
@@ -463,6 +461,16 @@ const OwnerAddField = () => {
                   <p className="cv-doc-gallery-hint" style={{ marginBottom: 8 }}>
                     Ảnh hiện có của sân:
                   </p>
+                  <div style={{ marginBottom: 8 }}>
+                    <button
+                      type="button"
+                      className="ovd-toggle-btn"
+                      disabled={deletingAllExisting || submitting || deletingImageUrl !== ""}
+                      onClick={removeAllExistingImages}
+                    >
+                      {deletingAllExisting ? "Đang xóa ảnh cũ..." : "Xóa hết ảnh cũ"}
+                    </button>
+                  </div>
                   <ul className="cv-doc-gallery" aria-label="Ảnh sân hiện có">
                     {existingImageUrls.map((url, idx) => (
                       <li key={`${url}-${idx}`} className="cv-doc-gallery-item">
@@ -472,7 +480,7 @@ const OwnerAddField = () => {
                             type="button"
                             className="cv-doc-gallery-remove"
                             aria-label="Xóa ảnh đã lưu"
-                            disabled={deletingImageUrl === url || submitting}
+                            disabled={deletingImageUrl === url || submitting || deletingAllExisting}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();

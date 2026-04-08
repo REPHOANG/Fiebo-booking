@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { Calendar, Plus, Building2, ReceiptText, MapPin, Activity } from "lucide-react";
 import { toast } from "react-toastify";
 import "./OwnerHome.css";
-import { getOwnerVenues } from "../../services/venueService";
-import { getOwnerBookingList } from "../../services/bookingService";
+import { getOwnerVenues } from "../../../services/venueService";
+import { getOwnerBookingList } from "../../../services/bookingService";
 
 const normalizeStatus = (raw) => {
   const s = String(raw ?? "").trim().toLowerCase();
@@ -287,3 +287,4 @@ const OwnerHome = () => {
 };
 
 export default OwnerHome;
+

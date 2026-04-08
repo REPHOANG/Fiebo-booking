@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { Wallet, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
-import { getWalletBalance } from "../../services/walletService";
-import { getOwnerSubscriptionPlans, subscribeOwnerToPlan } from "../../services/subscriptionService";
+import { getWalletBalance } from "../../../services/walletService";
+import { getOwnerSubscriptionPlans, subscribeOwnerToPlan } from "../../../services/subscriptionService";
 import "./OwnerProfile.css";
 
 const formatMoney = (n) =>
@@ -18,7 +18,6 @@ const errMessage = (e) =>
 
 const MSG_SUCCESS = "Đăng ký gói thành công. Gói của bạn đã được kích hoạt.";
 
-/** 1 component dùng cho cả trang riêng và nhúng trong profile */
 const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHeader = !embedded }) => {
   const queryClient = useQueryClient();
   const [selectedPlanId, setSelectedPlanId] = useState(null);
@@ -49,7 +48,6 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
     if (name.includes("vip")) return "vip";
     if (name.includes("chuy") || name.includes("pro") || name.includes("chuyên")) return "pro";
     if (name.includes("basic") || name.includes("cơ bản")) return "basic";
-    // Fallback theo thứ tự để vẫn có màu sắc giống layout mock.
     if (idx === 0) return "basic";
     if (idx === 1) return "pro";
     return "vip";
@@ -264,3 +262,4 @@ const OwnerSubscription = ({ embedded = false, showWalletCard = true, showPageHe
 };
 
 export default OwnerSubscription;
+

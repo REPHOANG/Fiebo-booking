@@ -361,62 +361,80 @@
 .bs-legend-box.event {
   background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
 }
+
 /* ── Time Range Filter ────────────────────────────────────────── */
 .bs-time-filter {
   position: fixed;
-  bottom: 120px;
-  left: 18px;
-  z-index: 100;
-  padding: 10px 14px;
+  left: 16px;
+  bottom: 92px;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   border: 1px solid #d1fae5;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(8px);
-  width: auto;
-  max-width: 90px;
-  transition: max-width 0.3s ease, padding 0.3s ease;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  width: 48px;
+  max-width: 48px;
   overflow: hidden;
   cursor: pointer;
+  transition: max-width 0.28s ease, width 0.28s ease, padding 0.28s ease;
 }
 
 .bs-time-filter:hover,
 .bs-time-filter:focus-within {
-  max-width: 300px;
-  padding: 12px 16px;
+  width: auto;
+  max-width: 360px;
+  padding: 10px 14px;
 }
 
 .bs-time-filter-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 0;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  transition: margin-bottom 0.3s ease;
+  font-size: 0;
+  line-height: 1;
+  width: 20px;
+  min-width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bs-time-filter-label::before {
+  content: "🔍";
+  font-size: 16px;
 }
 
 .bs-time-filter:hover .bs-time-filter-label,
 .bs-time-filter:focus-within .bs-time-filter-label {
-  margin-bottom: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  width: auto;
+  min-width: 0;
+}
+
+.bs-time-filter:hover .bs-time-filter-label::before,
+.bs-time-filter:focus-within .bs-time-filter-label::before {
+  content: "";
 }
 
 .bs-time-range-container {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex: 1;
+  max-width: 320px;
   opacity: 0;
-  height: 0;
+  max-width: 0;
   overflow: hidden;
-  transition: opacity 0.3s ease, height 0.3s ease;
+  transition: opacity 0.2s ease, max-width 0.28s ease;
 }
 
 .bs-time-filter:hover .bs-time-range-container,
 .bs-time-filter:focus-within .bs-time-range-container {
   opacity: 1;
-  height: 30px;
+  max-width: 320px;
 }
 
 .bs-time-slider {
@@ -431,6 +449,24 @@
   width: 100%;
 }
 
+.bs-zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.bs-zoom-btn:hover {
+  border-color: #10b981;
+  color: #047857;
+}
+
 .bs-time-display {
   font-size: 0.8rem;
   font-weight: 700;
@@ -442,6 +478,10 @@
   display: inline-block;
   min-width: 48px;
   text-align: center;
+}
+
+.bs-time-filter.is-owner {
+  border-color: #c7eadb;
 }
 
 .bs-time-slider::-webkit-slider-thumb {
@@ -715,38 +755,63 @@
 /* Sport type group header */
 .bs-sport-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 6px 14px;
   font-size: 0.78rem;
   font-weight: 700;
   color: #1e293b;
   border-bottom: 1px solid #d1d5db;
-  min-height: 30px;
+  min-height: 34px;
   position: sticky;
   left: 0;
+  top: 0;
   z-index: 4;
+}
+.bs-sport-header-main {
+  display: grid;
+  grid-template-columns: 20px 112px 44px;
+  align-items: center;
+  column-gap: 8px;
+  flex: 0 0 clamp(180px, 24vw, 260px);
+  width: clamp(180px, 24vw, 260px);
+  min-width: clamp(180px, 24vw, 260px);
+  max-width: clamp(180px, 24vw, 260px);
 }
 .bs-sport-header-icon {
   font-size: 1rem;
+  width: 20px;
+  flex: 0 0 20px;
+  text-align: center;
 }
 .bs-sport-header-name {
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: inline-block;
+  min-width: 112px;
+  max-width: 112px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bs-sport-header-count {
   font-weight: 500;
   color: #6b7280;
   font-size: 0.72rem;
   margin-left: 4px;
+  width: 44px;
+  min-width: 44px;
+  text-align: left;
 }
 
 .bs-sport-header-hours {
-  margin-left: auto;
+  margin-left: 0;
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
+  justify-self: end;
   gap: 8px 10px;
   font-weight: 700;
   color: #475569;
@@ -1154,6 +1219,14 @@
   .bs-main {
     padding: 20px 16px 140px;
   }
+  .bs-time-filter {
+    left: 12px;
+    right: auto;
+    bottom: 98px;
+  }
+  .bs-time-range-container {
+    max-width: 280px;
+  }
   .bs-topbar {
     gap: 12px;
   }
@@ -1208,6 +1281,25 @@
     font-size: 0.7rem;
     padding: 0 6px;
     min-height: 44px;
+  }
+  .bs-sport-header-name {
+    min-width: 92px;
+    max-width: 92px;
+  }
+  .bs-sport-header-count {
+    width: 40px;
+    min-width: 40px;
+  }
+  .bs-sport-header {
+    gap: 8px;
+  }
+  .bs-sport-header-main {
+    grid-template-columns: 18px 92px 40px;
+    column-gap: 6px;
+    flex-basis: clamp(150px, 44vw, 220px);
+    width: clamp(150px, 44vw, 220px);
+    min-width: clamp(150px, 44vw, 220px);
+    max-width: clamp(150px, 44vw, 220px);
   }
   .bs-cell {
     min-height: 44px;

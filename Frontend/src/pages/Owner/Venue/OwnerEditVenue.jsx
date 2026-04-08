@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Building2, Calendar, ChevronLeft, ChevronRight, Clock, MapPin, X } from "lucide-react";
 import { toast } from "react-toastify";
-import { getDistrictsByProvince, getProvinces } from "../../services/addressService";
-import { getVenueDraft, updateOwnerVenueInfo } from "../../services/venueService";
+import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
+import { getVenueDraft, updateOwnerVenueInfo } from "../../../services/venueService";
 import "./OwnerVenueDetail.css";
 
 const toInputTime = (value) => {
@@ -15,7 +15,6 @@ const toInputTime = (value) => {
 const toInputDate = (value) => {
   if (!value) return "";
   const s = String(value);
-  // Supports both "YYYY-MM-DD" and ISO strings like "YYYY-MM-DDTHH:mm:ss".
   return s.length >= 10 ? s.slice(0, 10) : s;
 };
 
@@ -202,7 +201,6 @@ const OwnerEditVenue = () => {
   const [provinceOptions, setProvinceOptions] = useState([]);
   const [districtOptions, setDistrictOptions] = useState([]);
 
-  // Legal documents edit state (timestamps + images).
   const [docsForm, setDocsForm] = useState({
     business: { issueDate: "", expiryDate: "", existingImages: [], files: [] },
     land: { issueDate: "", expiryDate: "", existingImages: [], files: [] },
@@ -246,7 +244,6 @@ const OwnerEditVenue = () => {
           longitude: Number.isFinite(lng) ? lng : 0,
         });
 
-        // Documents (optional — can be missing for some drafts).
         const businessDoc = normalizeDoc(
           draft?.businessLicense ?? draft?.BusinessLicense,
         );
