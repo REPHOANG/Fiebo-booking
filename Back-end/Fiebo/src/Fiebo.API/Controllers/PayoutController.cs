@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Payout;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -38,5 +38,20 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpGet("/api/owner/payouts/{id}")]
+        public async Task<IActionResult> GetPayoutDetail(int id)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(ownerId)) return Unauthorized();
+ 
+            var result = await _payoutService.GetPayoutDetailAsync(id, ownerId);
+            return Ok(new ApiResponse<DetailedPayoutResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy chi tiết giao dịch thành công",
+                Data = result
+            });
+        }
     }
 }

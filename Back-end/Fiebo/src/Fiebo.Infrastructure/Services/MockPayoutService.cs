@@ -41,5 +41,10 @@ namespace Fiebo.Infrastructure.Services
             // In production, this would call a real payment gateway API here.
             return true;
         }
+
+        public Task<DetailedPayoutResponse> GetPayoutDetailAsync(int payoutId, string ownerId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

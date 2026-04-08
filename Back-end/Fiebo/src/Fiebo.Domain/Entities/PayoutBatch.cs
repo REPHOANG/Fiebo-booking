@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Enums;
+using Fiebo.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +9,7 @@ namespace Fiebo.Domain.Entities
 {
     public class PayoutBatch : BaseEntity
     {
+        public required string BatchCode { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
 
