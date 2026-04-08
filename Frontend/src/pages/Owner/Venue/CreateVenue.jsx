@@ -437,7 +437,7 @@ const CreateVenue = () => {
         const issue = new Date(d.issueDate);
         const expiry = new Date(d.expiryDate);
         if (Number.isNaN(issue.getTime()) || Number.isNaN(expiry.getTime())) return true;
-        return expiry.getTime() <= issue.getTime();
+        return expiry.getTime() < issue.getTime();
       });
       if (invalidDateRange) {
         toast.error(`Ngày hết hạn phải sau ngày cấp cho "${invalidDateRange.label}".`);
