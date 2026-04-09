@@ -53,7 +53,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<NotFoundException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, ValidRequest(), "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(ValidRequest()), "owner-1"));
 
             timeSlotRepoMock.Verify(x => x.Add(It.IsAny<TimeSlot>()), Times.Never);
         }
@@ -72,7 +72,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<UnauthorizedException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, ValidRequest(), "other-owner"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(ValidRequest()), "other-owner"));
         }
 
         [Theory]
@@ -95,7 +95,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, request, "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1"));
 
             timeSlotRepoMock.Verify(x => x.IsTimeSlotOverlapping(
                 It.IsAny<int>(),
@@ -126,7 +126,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, request, "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1"));
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, request, "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1"));
         }
 
         [Theory]
@@ -170,7 +170,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, request, "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1"));
         }
 
         [Fact]
@@ -189,8 +189,8 @@ namespace Fiebo.Application.Tests.TimeSlots
 
             var service = CreateService();
 
-            await Assert.ThrowsAsync<Exception>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, request, "owner-1"));
+            await Assert.ThrowsAsync<BadRequestException>(async () =>
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1"));
         }
 
         [Fact]
@@ -211,7 +211,7 @@ namespace Fiebo.Application.Tests.TimeSlots
             var service = CreateService();
 
             await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.CreateVenueTimeSlotAsync(1, ValidRequest(), "owner-1"));
+                await service.CreateVenueTimeSlotAsync(1, WrapRequest(ValidRequest()), "owner-1"));
 
             timeSlotRepoMock.Verify(x => x.Add(It.IsAny<TimeSlot>()), Times.Never);
         }
@@ -247,7 +247,7 @@ namespace Fiebo.Application.Tests.TimeSlots
 
             var service = CreateService();
 
-            var result = await service.CreateVenueTimeSlotAsync(1, ValidRequest(), "owner-1");
+            var result = await service.CreateVenueTimeSlotAsync(1, WrapRequest(ValidRequest()), "owner-1");
 
             Assert.NotNull(captured);
             Assert.Equal(1, captured.VenueId);
@@ -257,11 +257,12 @@ namespace Fiebo.Application.Tests.TimeSlots
             Assert.Equal(new TimeOnly(11, 0), captured.EndTime);
             Assert.Equal(150000m, captured.Price);
 
-            Assert.Equal(99, result.Id);
-            Assert.Equal("Monday", result.DayOfWeek);
-            Assert.Equal(new TimeOnly(10, 0), result.StartTime);
-            Assert.Equal(new TimeOnly(11, 0), result.EndTime);
-            Assert.Equal(150000m, result.Price);
+            Assert.Single(result);
+            Assert.Equal(99, result[0].Id);
+            Assert.Equal("Monday", result[0].DayOfWeek);
+            Assert.Equal(new TimeOnly(10, 0), result[0].StartTime);
+            Assert.Equal(new TimeOnly(11, 0), result[0].EndTime);
+            Assert.Equal(150000m, result[0].Price);
 
             uowMock.Verify(x => x.SaveChangesAsync(), Times.Once);
         }
@@ -291,11 +292,12 @@ namespace Fiebo.Application.Tests.TimeSlots
                 .ReturnsAsync(false);
 
             var service = CreateService();
-            var result = await service.CreateVenueTimeSlotAsync(1, request, "owner-1");
+            var result = await service.CreateVenueTimeSlotAsync(1, WrapRequest(request), "owner-1");
 
-            Assert.Equal(new TimeOnly(8, 0), result.StartTime);
-            Assert.Equal(new TimeOnly(22, 0), result.EndTime);
-            Assert.Equal("Monday", result.DayOfWeek);
+            Assert.Single(result);
+            Assert.Equal(new TimeOnly(8, 0), result[0].StartTime);
+            Assert.Equal(new TimeOnly(22, 0), result[0].EndTime);
+            Assert.Equal("Monday", result[0].DayOfWeek);
         }
 
         private static CreateVenueTimeSlotRequest ValidRequest()
@@ -308,6 +310,11 @@ namespace Fiebo.Application.Tests.TimeSlots
                 DayOfWeek = "Monday",
                 Price = 150000m
             };
+        }
+
+        private static List<CreateVenueTimeSlotRequest> WrapRequest(CreateVenueTimeSlotRequest request)
+        {
+            return [request];
         }
 
         private static Venue ActiveVenue(string ownerId)

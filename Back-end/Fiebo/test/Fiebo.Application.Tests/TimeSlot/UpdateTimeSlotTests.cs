@@ -31,8 +31,18 @@ namespace Fiebo.Application.Tests.TimeSlots
         private void SetupRepositories(Mock<ITimeSlotRepository> timeSlotRepoMock, Mock<IVenueRepository> venueRepoMock)
         {
             var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
+            var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
             uowMock.Setup(x => x.TimeSlots).Returns(timeSlotRepoMock.Object);
             uowMock.Setup(x => x.Venues).Returns(venueRepoMock.Object);
+            uowMock.Setup(x => x.BookingDetails).Returns(bookingDetailRepoMock.Object);
+
+            timeSlotRepoMock
+                .Setup(x => x.CanBeEditedOrDeleted(It.IsAny<int>()))
+                .ReturnsAsync(true);
+
+            bookingDetailRepoMock
+                .Setup(x => x.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<BookingDetail, bool>>>() ))
+                .ReturnsAsync(Enumerable.Empty<BookingDetail>());
         }
 
         [Fact]
@@ -264,6 +274,7 @@ namespace Fiebo.Application.Tests.TimeSlots
         {
             var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
             var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
+            var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
             var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
             SetupRepositories(timeSlotRepoMock, venueRepoMock);
 
@@ -280,6 +291,10 @@ namespace Fiebo.Application.Tests.TimeSlots
             timeSlotRepoMock
                 .Setup(x => x.IsTimeSlotOverlapping(10, existing.SportTypeId, existing.DayOfWeek, request.StartTime, request.EndTime, 1))
                 .ReturnsAsync(false);
+
+            bookingDetailRepoMock
+                .Setup(x => x.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<BookingDetail, bool>>>() ))
+                .ReturnsAsync(new List<BookingDetail> { new BookingDetail { SlotId = 1 } });
 
             TimeSlot? added = null;
             timeSlotRepoMock
