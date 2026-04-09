@@ -21,7 +21,6 @@ import EventTicketDetail from "../pages/Event/EventTicketDetail";
 import EventTicketPayment from "../pages/Event/EventTicketPayment";
 import EventList from "../pages/Event/EventList";
 import Events from "../pages/Event/Events";
-import OwnerLogin from "../pages/auth/OwnerLogin";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
@@ -60,8 +59,7 @@ const OwnerVenueTimeSlotLegacyRedirect = () => {
 
 const routes = [
   { path: "/login", element: <Login /> },
-  { path: "/owner/login", element: <OwnerLogin /> },
-  { path: "/register", element: <Register /> },
+    { path: "/register", element: <Register /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/rating", element: <GiveRating /> },

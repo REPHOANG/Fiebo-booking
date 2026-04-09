@@ -42,7 +42,7 @@ const App = () => {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       if (typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path !== "/" && !path.startsWith("/owner/login")) {
+        if (path !== "/") {
           window.location.replace("/");
         }
       }

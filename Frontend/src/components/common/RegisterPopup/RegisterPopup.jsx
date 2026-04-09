@@ -3,7 +3,14 @@ import { createPortal } from "react-dom";
 import Register from "../../../pages/auth/Register";
 import "./RegisterPopup.css";
 
-const RegisterPopup = ({ open, onClose, onOpenLogin }) => {
+const RegisterPopup = ({
+  open,
+  onClose,
+  onOpenLogin,
+  accountRole = "Customer",
+  onOpenOwnerRegister,
+  onOpenCustomerRegister,
+}) => {
   if (!open) return null;
 
   const modal = (
@@ -24,7 +31,14 @@ const RegisterPopup = ({ open, onClose, onOpenLogin }) => {
           ×
         </button>
         <div className="login-popup-content register-popup-content">
-          <Register onSwitchToLogin={onOpenLogin} onClose={onClose} />
+          <Register
+            onSwitchToLogin={onOpenLogin}
+            onClose={onClose}
+            accountRole={accountRole}
+            variant={accountRole === "FieldOwner" ? "owner" : "default"}
+            onSwitchToOwnerRegister={onOpenOwnerRegister}
+            onSwitchToCustomerRegister={onOpenCustomerRegister}
+          />
         </div>
       </div>
     </div>

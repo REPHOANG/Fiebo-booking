@@ -16,6 +16,7 @@ import Alert from '@mui/material/Alert';
 import Collapse from '@mui/material/Collapse';
 import { getHomePathByRole, hasRole } from '../../utils/roleUtils';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 import './Login.css';
 
 // ── Yup schema for password login ──────────────────────────────────────────
@@ -393,6 +394,26 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
               ) : (
                 <Link to="/register" className="signup-link">
                   Đăng ký tại đây
+                </Link>
+              )}
+            </div>
+            <div className="signup-prompt">
+              <span>Bạn là chủ sân? </span>
+              {typeof onOpenRegister === "function" ? (
+                <button
+                  type="button"
+                  className="signup-link auth-inline-link"
+                  onClick={() => onOpenRegister({ accountRole: "FieldOwner" })}
+                >
+                  Đăng ký Owner
+                </button>
+              ) : (
+                <Link
+                  to="/"
+                  className="signup-link"
+                  state={{ [OPEN_AUTH_STATE_KEY]: "register-owner" }}
+                >
+                  Đăng ký Owner
                 </Link>
               )}
             </div>
