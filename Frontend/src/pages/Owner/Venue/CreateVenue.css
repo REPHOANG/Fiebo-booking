@@ -139,6 +139,13 @@
   align-items: flex-start;
 }
 
+.cv-doc-gallery.cv-doc-gallery-invalid {
+  border: 1px dashed #ef4444;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff7f7;
+}
+
 .cv-doc-gallery-item {
   flex-shrink: 0;
 }
@@ -917,6 +924,14 @@
   border-color: #22c55e;
   background: white;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.cv-form-group input.cv-input-invalid,
+.cv-form-group select.cv-input-invalid,
+.cv-form-group textarea.cv-input-invalid {
+  border-color: #ef4444;
+  background: #fff7f7;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
 .cv-form-group textarea {

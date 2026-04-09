@@ -32,6 +32,7 @@ import {
   updateProfile as updateProfileAPI,
   changePassword as changePasswordAPI,
 } from "../services/authService";
+import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 import "./Profile.css";
 import { useQuery } from "@tanstack/react-query";
 
@@ -181,14 +182,13 @@ const Profile = () => {
 
   useEffect(() => {
     if (!mobileMenuOpen) return undefined;
-    const originalOverflow = document.body.style.overflow;
     const handleEsc = (e) => {
       if (e.key === "Escape") setMobileMenuOpen(false);
     };
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     window.addEventListener("keydown", handleEsc);
     return () => {
-      document.body.style.overflow = originalOverflow;
+      unlockBodyScroll();
       window.removeEventListener("keydown", handleEsc);
     };
   }, [mobileMenuOpen]);

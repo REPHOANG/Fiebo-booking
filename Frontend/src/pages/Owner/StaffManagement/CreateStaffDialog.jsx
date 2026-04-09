@@ -137,8 +137,6 @@ export default function CreateStaffDialog({
             error={Boolean(errors.password)}
             helperText={errors.password?.message}
           />
-
-          
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -152,3 +150,4 @@ export default function CreateStaffDialog({
     </Dialog>
   );
 }
+

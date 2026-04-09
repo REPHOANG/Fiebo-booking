@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { getOwnerVenues } from "../../services/venueService";
+import { getOwnerVenues } from "../../../services/venueService";
 import "./OwnerOfflineBooking.css";
 
 const pick = (obj, ...keys) => {
@@ -12,7 +12,6 @@ const pick = (obj, ...keys) => {
   return undefined;
 };
 
-/** Khớp OwnerVenues — API có thể trả enum số. */
 function normalizeVenueStatus(raw) {
   if (raw == null || raw === "") return "";
   if (typeof raw === "number" && Number.isFinite(raw)) {
@@ -54,7 +53,6 @@ const OwnerOfflineBooking = () => {
     loadVenues();
   }, [loadVenues]);
 
-  /** Chỉ cơ sở Active mới được đặt offline (theo luật nghiệp vụ). */
   const activeVenues = useMemo(
     () =>
       venues.filter((v) => normalizeVenueStatus(pick(v, "status", "Status")) === "active"),

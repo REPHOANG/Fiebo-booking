@@ -16,6 +16,11 @@ export const createOwnerStaff = async (payload) => {
 };
 
 export const getOwnerPayouts = async (params = {}) => {
-	const response = await api.get('/api/owner/payouts', { params });
-  return response.data.data;
-}
+  const response = await api.get("/api/owner/payouts", { params });
+  return response.data?.data ?? response.data;
+};
+
+export const getOwnerPayoutDetail = async (id) => {
+  const response = await api.get(`/api/owner/payouts/${id}`);
+  return response.data?.data ?? response.data;
+};

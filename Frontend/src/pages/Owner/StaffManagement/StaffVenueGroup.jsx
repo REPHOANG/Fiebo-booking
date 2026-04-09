@@ -81,7 +81,6 @@ export default function StaffVenueGroup({
                           onChange={() => onToggleStatus(venue.venueId, staff.staffId)}
                         />
                       }
-                      
                       sx={{ mr: 0 }}
                     />
                   </TableCell>
@@ -94,3 +93,4 @@ export default function StaffVenueGroup({
     </Paper>
   );
 }
+

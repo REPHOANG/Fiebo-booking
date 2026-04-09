@@ -144,6 +144,17 @@ export const getOwnerVenueFields = async (venueId) => {
 };
 
 /**
+ * Owner: Get field detail by field id
+ * GET `/api/owner/field/{id}`
+ * @param {number|string} fieldId
+ * @returns {Promise<Object>} OwnerFieldDetailResponse
+ */
+export const getOwnerFieldDetail = async (fieldId) => {
+  const response = await api.get(`/api/owner/field/${fieldId}`);
+  return response.data?.data ?? response.data;
+};
+
+/**
  * Owner: Create a new field in venue
  * POST `/api/owner/venues/{venueId}/fields` — khớp VenueController.CreateField (số nhiều `venues`)
  * Body (multipart/form-data): name, sportTypeId, description?, images[]
@@ -230,7 +241,14 @@ export const uploadOwnerFieldImages = async (fieldId, files) => {
 export const deleteOwnerFieldImage = async (publicId) => {
   const pid = String(publicId ?? "").trim();
   if (!pid) throw new Error("Thiếu publicId ảnh cần xóa.");
-  const response = await api.post(`/api/Media/field/delete/${encodeURIComponent(pid)}`);
+  // Backend route uses catch-all `{*publicId}` so slash `/` inside publicId must be preserved.
+  // Encode each segment, then join by `/` to keep folder structure.
+  const safePid = pid
+    .split("/")
+    .filter((s) => s !== "")
+    .map((s) => encodeURIComponent(s))
+    .join("/");
+  const response = await api.post(`/api/Media/field/delete/${safePid}`);
   return response.data?.data ?? response.data;
 };
 

@@ -29,7 +29,7 @@ export default function StaffList() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["ownerStaffList"],
     queryFn: getOwnerStaffList,
-    staleTime: 5 * 60 * 1000, // 5 phút
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const toggleMutation = useMutation({
@@ -87,7 +87,7 @@ export default function StaffList() {
 
   if (isError) {
     return (
-      <ErrorPage/>  
+      <ErrorPage />
     );
   }
 
@@ -165,3 +165,4 @@ export default function StaffList() {
     </Container>
   );
 }
+
