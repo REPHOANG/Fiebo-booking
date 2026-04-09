@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Fiebo.API.Wrappers;
+using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.DTOs.Owner;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -14,10 +15,12 @@ namespace Fiebo.API.Controllers
     public class OwnerController : ControllerBase
     {
         private readonly IStaffService _staffService;
+        private readonly IOwnerService _ownerService;
 
-        public OwnerController(IStaffService staffService)
+        public OwnerController(IStaffService staffService, IOwnerService ownerService)
         {
             _staffService = staffService;
+            _ownerService = ownerService;
         }
 
         [HttpGet("staff")]
@@ -58,6 +61,29 @@ namespace Fiebo.API.Controllers
                 return Ok(new ApiResponse<string> { StatusCode = 200, Message = "Staff deactivated successfully." });
 
             return BadRequest(new ApiResponse<string> { StatusCode = 400, Message = "Failed to deactivate staff." });
+        }
+
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetOwnerDashboard(
+            [FromQuery] DateOnly? fromDate,
+            [FromQuery] DateOnly? toDate,
+            [FromQuery] int? venueId)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _ownerService.GetOwnerDashboardAsync(ownerId, fromDate, toDate, venueId);
+
+            return Ok(new ApiResponse<OwnerDashboardResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải dữ liệu dashboard thành công.",
+                Data = result
+            });
         }
     }
 }

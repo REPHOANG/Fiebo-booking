@@ -188,5 +188,26 @@ namespace Fiebo.Persistence.Repositories
                 .Where(b => b.Venue.OwnerId == ownerId && b.CreatedAt >= fromDate && b.CreatedAt <= toDate)
                 .ToListAsync();
         }
+
+        public IQueryable<Booking> GetOwnerDashboardQuery(string ownerId, DateOnly fromDate, DateOnly toDate, int? venueId)
+        {
+            var fromDateTime = fromDate.ToDateTime(TimeOnly.MinValue);
+            var toDateTime = toDate.ToDateTime(TimeOnly.MaxValue);
+
+            var query = _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.TimeSlot)
+                .Include(b => b.CancelBooking)
+                .Where(b => b.Venue.OwnerId == ownerId && b.CreatedAt >= fromDateTime && b.CreatedAt <= toDateTime);
+
+            if (venueId.HasValue)
+            {
+                query = query.Where(b => b.VenueId == venueId.Value);
+            }
+
+            return query;
+        }
     }
 }

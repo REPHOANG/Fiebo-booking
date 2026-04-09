@@ -154,14 +154,6 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
       } else {
         localStorage.removeItem("rememberedIdentifier");
       }
-      toast.success(
-        "Đăng nhập thành công! Chào mừng " +
-          (response.user?.name || response.user?.email),
-        {
-          position: "top-right",
-          autoClose: 3000,
-        },
-      );
 
       localStorage.setItem(AUTH_STORAGE_KEY, token);
 

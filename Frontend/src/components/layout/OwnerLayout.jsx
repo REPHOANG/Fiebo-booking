@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, Link, Navigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   Bell,
@@ -37,8 +37,7 @@ const OwnerLayout = () => {
   const isAccountSectionActive = useMemo(() => {
     return (
       activePath.startsWith("/owner/profile") ||
-      activePath.startsWith("/owner/subscription") ||
-      activePath.startsWith("/owner/payout")
+      activePath.startsWith("/owner/subscription")
     );
   }, [activePath]);
 
@@ -171,14 +170,6 @@ const OwnerLayout = () => {
                 <ListChecks size={15} />
                 Gói
               </NavLink>
-              <NavLink
-                to="/owner/payout"
-                onClick={handleSidebarNavigate}
-                className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
-              >
-                <ReceiptText size={15} />
-                Payout
-              </NavLink>
             </div>
           </div>
 
@@ -258,6 +249,17 @@ const OwnerLayout = () => {
           >
             <ReceiptText size={16} />
             Đơn đặt sân
+          </NavLink>
+
+          <NavLink
+            to="/owner/payout"
+            onClick={handleSidebarNavigate}
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive ? "active" : ""}`
+            }
+          >
+            <ReceiptText size={16} />
+            Payout
           </NavLink>
 
           <div className="owner-sidebar-divider" />
