@@ -22,7 +22,7 @@ const statusKeyMap = {
   "Đã nhận": "Completed",
 };
 
-export const TransactionItem = ({ title, amount, dateRange, status, statusKey: statusKeyProp, icon }) => {
+export const TransactionItem = ({ title, amount, dateRange, status, statusKey: statusKeyProp, icon, onClick }) => {
   const statusKey = statusKeyProp || statusKeyMap[status] || status;
   const getStatusColor = (status) => {
     switch (status) {
@@ -68,10 +68,20 @@ export const TransactionItem = ({ title, amount, dateRange, status, statusKey: s
 
   return (
     <Card
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : -1}
       sx={{
         borderRadius: 3,
         p: 2,
-        cursor: "pointer",
+        cursor: onClick ? "pointer" : "default",
         transition: "all 0.2s ease",
         "&:active": {
           transform: "scale(0.98)",

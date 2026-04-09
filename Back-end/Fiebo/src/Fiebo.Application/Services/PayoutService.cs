@@ -77,7 +77,8 @@ namespace Fiebo.Application.Services
                 {
                     CreatedAt = payout.CreatedAt,
                     Status = payout.Status.ToString(),
-                    FailureReason = payout.FailureReason
+                    FailureReason = payout.FailureReason,
+                    ProcessedAt = payout.UpdatedAt
                 },
                 FinancialSummary = new PayoutFinancialSummaryDto
                 {

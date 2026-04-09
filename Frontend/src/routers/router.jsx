@@ -51,6 +51,7 @@ import AdminHome from "../pages/Admin/Dashboard/AdminHome";
 import AdminUsers from "../pages/Admin/UserManagement/AdminUsers";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
+import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -126,6 +127,7 @@ const routes = [
       { path: "profile", element: <OwnerProfile /> },
       { path: "subscription", element: <OwnerSubscription /> },
       { path: "payout", element: <PayoutList /> },
+      { path: "payout/:id/details", element: <PayoutDetails /> },
       { path: "venues", element: <OwnerVenues /> },
       { path: "create-venue", element: <CreateVenue /> },
       { path: "offline-booking", element: <OwnerOfflineBooking /> },
