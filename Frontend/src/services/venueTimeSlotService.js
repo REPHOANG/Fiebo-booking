@@ -20,10 +20,12 @@ export const getOwnerVenueTimeSlots = async (venueId, sportTypeId) => {
 
 /**
  * POST `/api/owner/venue/{venueId}/time-slot`
- * @param {{ sportTypeId: number, startTime: string, endTime: string, dayOfWeek: string, price: number }} body
+ * Backend expects an array payload (List<CreateVenueTimeSlotRequest>).
+ * @param {Array<{ sportTypeId: number, startTime: string, endTime: string, dayOfWeek: string, price: number }>|{ sportTypeId: number, startTime: string, endTime: string, dayOfWeek: string, price: number }} body
  */
 export const createOwnerVenueTimeSlot = async (venueId, body) => {
-  const res = await api.post(`/api/owner/venue/${venueId}/time-slot`, body);
+  const payload = Array.isArray(body) ? body : [body];
+  const res = await api.post(`/api/owner/venue/${venueId}/time-slot`, payload);
   return unwrap(res);
 };
 

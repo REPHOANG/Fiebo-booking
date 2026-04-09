@@ -194,6 +194,7 @@ const OwnerTimeSlot = () => {
   const [editingRowIdx, setEditingRowIdx] = useState(null);
   const editSnapshotRef = useRef(null);
   const editingRowIdxRef = useRef(null);
+  const serverSlotMetaRef = useRef(new Map());
   // const [selectedFieldIds, setSelectedFieldIds] = useState(() => new Set());
   const otsPageRef = useRef(null);
 
@@ -343,6 +344,17 @@ const OwnerTimeSlot = () => {
     setLoadingSlots(true);
     try {
       const { timeSlots } = await getOwnerVenueTimeSlots(id, sid);
+      const nextMeta = new Map();
+      (timeSlots || []).forEach((s) => {
+        const slotId = s.id ?? s.Id;
+        if (slotId == null) return;
+        nextMeta.set(String(slotId), {
+          start: formatTime(s.startTime ?? s.StartTime),
+          end: formatTime(s.endTime ?? s.EndTime),
+          price: Number(s.price ?? s.Price ?? 0),
+        });
+      });
+      serverSlotMetaRef.current = nextMeta;
       const serverRows = rowsFromApiOnly(timeSlots, weekDates);
       setSlotRows(
         preserveLocalDrafts
@@ -664,12 +676,22 @@ const OwnerTimeSlot = () => {
           await deleteOwnerVenueTimeSlot(existingId);
           toast.success("Đã xóa slot (giá ≤ 0).");
         } else {
-          await updateOwnerVenueTimeSlot(existingId, {
-            startTime: startT,
-            endTime: endT,
-            price,
-          });
-          toast.success("Đã cập nhật khung giờ.");
+          const oldMeta = serverSlotMetaRef.current.get(String(existingId));
+          const changed =
+            !oldMeta ||
+            oldMeta.start !== row.start ||
+            oldMeta.end !== row.end ||
+            Number(oldMeta.price) !== Number(price);
+          if (changed) {
+            await updateOwnerVenueTimeSlot(existingId, {
+              startTime: startT,
+              endTime: endT,
+              price,
+            });
+            toast.success("Đã cập nhật khung giờ.");
+          } else {
+            toast.info("Không có thay đổi để cập nhật.");
+          }
         }
       } else if (price > 0) {
         await createOwnerVenueTimeSlot(id, {
@@ -710,6 +732,7 @@ const OwnerTimeSlot = () => {
       const d = weekDates[activeDayIndex];
       const dk = toIsoDate(d);
       const dow = DOTNET_DAY_NAMES[d.getDay()];
+      const createBatchPayload = [];
 
       for (const row of slotRows) {
         const rawPrice = row.prices?.[dk];
@@ -723,14 +746,22 @@ const OwnerTimeSlot = () => {
           if (price <= 0) {
             await deleteOwnerVenueTimeSlot(existingId);
           } else {
-            await updateOwnerVenueTimeSlot(existingId, {
-              startTime: startT,
-              endTime: endT,
-              price,
-            });
+            const oldMeta = serverSlotMetaRef.current.get(String(existingId));
+            const changed =
+              !oldMeta ||
+              oldMeta.start !== row.start ||
+              oldMeta.end !== row.end ||
+              Number(oldMeta.price) !== Number(price);
+            if (changed) {
+              await updateOwnerVenueTimeSlot(existingId, {
+                startTime: startT,
+                endTime: endT,
+                price,
+              });
+            }
           }
         } else if (price > 0) {
-          await createOwnerVenueTimeSlot(id, {
+          createBatchPayload.push({
             sportTypeId: sid,
             startTime: startT,
             endTime: endT,
@@ -738,6 +769,10 @@ const OwnerTimeSlot = () => {
             price,
           });
         }
+      }
+      if (createBatchPayload.length > 0) {
+        // Create all new slots for the active day in one API call.
+        await createOwnerVenueTimeSlot(id, createBatchPayload);
       }
       editSnapshotRef.current = null;
       setEditingRowIdx(null);
