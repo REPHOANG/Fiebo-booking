@@ -163,5 +163,46 @@ namespace Fiebo.Application.Services
                 await _cacheService.ReleaseLockAsync(lockKey, lockValue);
             }
         }
+
+        public async Task<OwnerPlanHistoryResponse?> GetCurrentPlanAsync(string ownerId)
+        {
+            var currentPlan = await _unitOfWork.OwnerPlans.GetCurrentActiveByOwnerIdAsync(ownerId);
+            if (currentPlan == null)
+            {
+                return null;
+            }
+
+            return MapOwnerPlan(currentPlan);
+        }
+
+        public async Task<List<OwnerPlanHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId)
+        {
+            var ownerPlans = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
+
+            return ownerPlans.Select(MapOwnerPlan).ToList();
+        }
+
+        private static OwnerPlanHistoryResponse MapOwnerPlan(OwnerPlan ownerPlan)
+        {
+            return new OwnerPlanHistoryResponse
+            {
+                OwnerPlanId = ownerPlan.Id,
+                PlanId = ownerPlan.PlanId,
+                PlanName = ownerPlan.Plan.Name,
+                DurationDays = ownerPlan.Plan.DurationDays,
+                AmountPaid = ownerPlan.Price,
+                StartDate = ownerPlan.StartDate,
+                EndDate = ownerPlan.EndDate,
+                RemainingDays = CalculateRemainingDays(ownerPlan.EndDate),
+                IsExpired = ownerPlan.EndDate < DateTime.Now,
+                PaidAt = ownerPlan.PaidAt
+            };
+        }
+
+        private static int CalculateRemainingDays(DateTime endDate)
+        {
+            var remaining = endDate.Date - DateTime.Now.Date;
+            return remaining.TotalDays < 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
+        }
     }
 }

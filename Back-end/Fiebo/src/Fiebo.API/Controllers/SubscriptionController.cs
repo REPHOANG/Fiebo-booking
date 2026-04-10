@@ -1,7 +1,5 @@
 using Fiebo.Application.Interfaces;
-using Fiebo.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -41,6 +39,29 @@ namespace Fiebo.API.Controllers
             {
                 Message = "Đăng ký gói thành công.",
                 Data = result
+            });
+        }
+
+        [HttpGet("overview")]
+        [Authorize(Roles = "FieldOwner")]
+        public async Task<IActionResult> GetPlanOverview()
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (ownerId == null)
+            {
+                return Unauthorized(new { Message = "Không tìm thấy thông tin Owner" });
+            }
+
+            var currentPlan = await _subscriptionService.GetCurrentPlanAsync(ownerId);
+            var history = await _subscriptionService.GetPlanPurchaseHistoryAsync(ownerId);
+
+            return Ok(new
+            {
+                Data = new
+                {
+                    CurrentPlan = currentPlan,
+                    PurchaseHistory = history
+                }
             });
         }
     }

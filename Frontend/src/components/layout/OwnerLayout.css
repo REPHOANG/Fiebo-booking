@@ -22,6 +22,32 @@
   gap: 10px;
 }
 
+.owner-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.owner-sidebar-collapse-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.owner-sidebar-collapse-btn:hover {
+  background: rgba(19, 154, 68, 0.08);
+  color: #139a44;
+}
+
 .owner-logo {
   font-weight: 800;
   font-size: 18px;
@@ -228,6 +254,10 @@
   transition: background 0.15s ease-in-out, transform 0.1s ease-in-out;
   width: 100%;
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .owner-logout-btn:hover {
@@ -483,6 +513,52 @@
   display: none;
 }
 
+.owner-layout.sidebar-collapsed .owner-sidebar {
+  width: 86px;
+  padding: 18px 10px;
+}
+
+.owner-layout.sidebar-collapsed .owner-logo {
+  font-size: 16px;
+}
+
+.owner-layout.sidebar-collapsed .owner-sidebar-link,
+.owner-layout.sidebar-collapsed .owner-nav-group-btn,
+.owner-layout.sidebar-collapsed .owner-sidebar-sublink {
+  justify-content: center;
+  gap: 0;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.owner-layout.sidebar-collapsed .owner-sidebar-text,
+.owner-layout.sidebar-collapsed .owner-nav-caret {
+  display: none;
+}
+
+.owner-layout.sidebar-collapsed .owner-nav-group-label {
+  gap: 0;
+}
+
+.owner-layout.sidebar-collapsed .owner-nav-sub {
+  display: none;
+}
+
+.owner-layout.sidebar-collapsed .owner-sidebar-link.active::before,
+.owner-layout.sidebar-collapsed .owner-nav-group.active .owner-nav-group-btn::before {
+  display: none;
+}
+
+.owner-layout.sidebar-collapsed .owner-sidebar-footer {
+  justify-content: center;
+}
+
+.owner-layout.sidebar-collapsed .owner-logout-btn {
+  width: 44px;
+  height: 40px;
+  padding: 0;
+}
+
 /* Shared loading spinner (Owner) */
 .owner-loading {
   display: flex;
@@ -525,6 +601,51 @@
 }
 
 @media (max-width: 720px) {
+  .owner-sidebar-collapse-btn {
+    display: none;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-sidebar {
+    width: min(84vw, 320px);
+    padding: 12px;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-sidebar-text,
+  .owner-layout.sidebar-collapsed .owner-nav-caret {
+    display: inline;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-nav-group-label {
+    gap: 10px;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-nav-sub {
+    display: grid;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-sidebar-link,
+  .owner-layout.sidebar-collapsed .owner-nav-group-btn,
+  .owner-layout.sidebar-collapsed .owner-sidebar-sublink {
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-sidebar-link.active::before,
+  .owner-layout.sidebar-collapsed .owner-nav-group.active .owner-nav-group-btn::before {
+    display: block;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-sidebar-footer {
+    justify-content: flex-start;
+  }
+
+  .owner-layout.sidebar-collapsed .owner-logout-btn {
+    width: 100%;
+    height: auto;
+    padding: 10px 12px;
+  }
+
   .owner-layout {
     display: block;
   }

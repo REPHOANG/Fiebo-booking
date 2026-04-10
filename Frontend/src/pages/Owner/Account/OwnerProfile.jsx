@@ -180,11 +180,11 @@ const OwnerProfile = () => {
           <div className="op-hero-avatar">{avatarLetter}</div>
           <div>
             <h2 className="op-hero-name">{profileName}</h2>
-            <p className="op-hero-role">Thành viên Fiebo</p>
+            <p className="op-hero-role">Chủ sân</p>
           </div>
         </div>
         <Link to="/owner/subscription" className="op-btn op-hero-plan-btn">
-          Subscription plan
+          Membership
         </Link>
       </section>
 

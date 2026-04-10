@@ -29,7 +29,6 @@ import VerifyOTP from "../pages/auth/VerifyOTP";
 import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
-import OwnerHome from "../pages/Owner/Dashboard/OwnerHome";
 import OwnerProfile from "../pages/Owner/Account/OwnerProfile";
 import OwnerSubscription from "../pages/Owner/Account/OwnerSubscription";
 import OwnerVenues from "../pages/Owner/Venue/OwnerVenues";
@@ -52,6 +51,7 @@ import AdminUsers from "../pages/Admin/UserManagement/AdminUsers";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
+import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -84,6 +84,7 @@ const routes = [
     path: "/event/ticket/:id/payment",
     element: <ProtectedRoute element={<EventTicketPayment />} />,
   },
+  { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
   {
     path: "/",
     element: <Layout />,
@@ -114,7 +115,6 @@ const routes = [
         element: <ProtectedRoute element={<BookingList />} />,
       },
       { path: "venues", element: <Venues /> },
-      { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
     ],
   },
   {
@@ -123,7 +123,7 @@ const routes = [
       <ProtectedRoute element={<OwnerLayout />} requiredRole="FieldOwner" />
     ),
     children: [
-      { index: true, element: <OwnerHome /> },
+      { index: true, element: <OwnerDashboard /> },
       { path: "profile", element: <OwnerProfile /> },
       { path: "subscription", element: <OwnerSubscription /> },
       { path: "payout", element: <PayoutList /> },
@@ -165,9 +165,7 @@ const routes = [
   },
   {
     path: "/admin",
-    element: (
-      <ProtectedRoute element={<AdminLayout />} requiredRole="Admin" />
-    ),
+    element: <ProtectedRoute element={<AdminLayout />} requiredRole="Admin" />,
     children: [
       { index: true, element: <AdminHome /> },
       { path: "users", element: <AdminUsers /> },

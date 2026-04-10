@@ -24,3 +24,14 @@ export const getOwnerPayoutDetail = async (id) => {
   const response = await api.get(`/api/owner/payouts/${id}`);
   return response.data?.data ?? response.data;
 };
+
+export const getOwnerDashboard = async ({ fromDate, toDate, venueId } = {}) => {
+  const params = {
+    ...(fromDate ? { fromDate } : {}),
+    ...(toDate ? { toDate } : {}),
+    ...(typeof venueId === "number" ? { venueId } : {}),
+  };
+
+  const response = await api.get("/api/owner/dashboard", { params });
+  return response.data?.data ?? response.data;
+};
