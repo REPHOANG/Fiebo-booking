@@ -28,6 +28,7 @@ namespace Fiebo.Application.Interfaces
         Task<Dictionary<string, string>> GetUserFullNameAsync(List<string> userIds);
         Task<UserProfileResponse> CreateActiveUserWithoutPasswordAsync(string fullname, string phoneNumber);
         Task<bool> UpdateUserStatusAsync(string userId, UserStatus status);
+        Task<List<UserProfileResponse>> GetUsersByRoleAsync(string role);
 
     }
 }

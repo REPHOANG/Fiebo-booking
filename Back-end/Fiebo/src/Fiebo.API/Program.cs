@@ -136,6 +136,8 @@ builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IPayoutService, PayoutService>();
+builder.Services.AddScoped<ISportTypeService, SportTypeService>();
+builder.Services.AddScoped<IFinanceAdminService, FinanceAdminService>();
 
 builder.Services.AddHttpClient();
 
