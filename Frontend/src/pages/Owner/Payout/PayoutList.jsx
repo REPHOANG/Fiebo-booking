@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
 import { Box, Typography, Container, Pagination, Stack } from '@mui/material';
 import { BalanceCard } from './BalanceCard';
@@ -29,11 +30,12 @@ const parseDateSafe = (value) => {
 
 const formatDateLabel = (value) => {
   const date = parseDateSafe(value);
-  if (!date) return '--/--';
+  if (!date) return '--/--/----';
 
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}/${month}`;
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
 };
 
 const mapPayoutItem = (item, index) => {
@@ -43,6 +45,7 @@ const mapPayoutItem = (item, index) => {
 
   return {
     id: String(item?.id || `payout-${index}`),
+    payoutId: item?.id ? String(item.id) : null,
     title: `Chi trả #${item?.id || index + 1}`,
     amount: Number(item?.amount || 0),
     dateRange: `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`,
@@ -52,6 +55,7 @@ const mapPayoutItem = (item, index) => {
 };
 
 export default function PayoutList() {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
@@ -186,6 +190,11 @@ export default function PayoutList() {
                   dateRange={transaction.dateRange}
                   status={statusMap[transaction.status] || transaction.status}
                   statusKey={transaction.status}
+                  onClick={
+                    transaction.payoutId
+                      ? () => navigate(`/owner/payout/${transaction.payoutId}/details`)
+                      : undefined
+                  }
                 />
               ))}
 

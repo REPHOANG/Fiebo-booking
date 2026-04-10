@@ -281,9 +281,6 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("BankAccountId")
-                        .HasColumnType("int");
-
                     b.Property<int>("BatchId")
                         .HasColumnType("int");
 
@@ -298,14 +295,6 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ReferenceCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -314,14 +303,9 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BankAccountId");
-
                     b.HasIndex("BatchId");
 
                     b.HasIndex("OwnerId");
-
-                    b.HasIndex("ReferenceCode")
-                        .IsUnique();
 
                     b.HasIndex("BatchId", "OwnerId")
                         .IsUnique();
@@ -336,11 +320,6 @@ namespace Fiebo.Persistence.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BatchCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -1413,19 +1392,11 @@ namespace Fiebo.Persistence.Migrations
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Payout", b =>
                 {
-                    b.HasOne("Fiebo.Domain.Entities.UserBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Fiebo.Domain.Entities.PayoutBatch", "Batch")
                         .WithMany("Payouts")
                         .HasForeignKey("BatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("BankAccount");
 
                     b.Navigation("Batch");
                 });

@@ -9,7 +9,6 @@ namespace Fiebo.Domain.Entities
 {
     public class PayoutBatch : BaseEntity
     {
-        public required string BatchCode { get; set; }
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
 

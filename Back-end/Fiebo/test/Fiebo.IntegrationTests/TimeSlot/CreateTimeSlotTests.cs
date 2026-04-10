@@ -43,25 +43,26 @@ namespace Fiebo.IntegrationTests.TimeSlot
             };
 
             _factory.TimeSlotServiceMock
-                .Setup(s => s.CreateVenueTimeSlotAsync(venueId, It.IsAny<CreateVenueTimeSlotRequest>(), ownerId))
-                .ReturnsAsync(responseDto);
+                .Setup(s => s.CreateVenueTimeSlotAsync(venueId, It.IsAny<List<CreateVenueTimeSlotRequest>>(), ownerId))
+                .ReturnsAsync([responseDto]);
 
-            var response = await client.PostAsJsonAsync($"/api/owner/venue/{venueId}/time-slot", request);
+            var response = await client.PostAsJsonAsync($"/api/owner/venue/{venueId}/time-slot", new List<CreateVenueTimeSlotRequest> { request });
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var json = await FieboWebApplicationFactory.ReadJsonAsync(response);
             Assert.Equal(200, json.GetProperty("statusCode").GetInt32());
             Assert.Equal("Tạo khung giờ sân thành công", json.GetProperty("message").GetString());
-            Assert.Equal(99, json.GetProperty("data").GetProperty("id").GetInt32());
+            Assert.Equal(99, json.GetProperty("data")[0].GetProperty("id").GetInt32());
 
             _factory.TimeSlotServiceMock.Verify(s => s.CreateVenueTimeSlotAsync(
                 venueId,
-                It.Is<CreateVenueTimeSlotRequest>(r =>
-                    r.SportTypeId == 1 &&
-                    r.StartTime == new TimeOnly(10, 0) &&
-                    r.EndTime == new TimeOnly(11, 0) &&
-                    r.DayOfWeek == "Monday" &&
-                    r.Price == 150000m),
+                It.Is<List<CreateVenueTimeSlotRequest>>(r =>
+                    r.Count == 1 &&
+                    r[0].SportTypeId == 1 &&
+                    r[0].StartTime == new TimeOnly(10, 0) &&
+                    r[0].EndTime == new TimeOnly(11, 0) &&
+                    r[0].DayOfWeek == "Monday" &&
+                    r[0].Price == 150000m),
                 ownerId), Times.Once);
 
             _factory.VenueServiceMock.VerifyNoOtherCalls();
@@ -74,11 +75,11 @@ namespace Fiebo.IntegrationTests.TimeSlot
             ResetMocks();
             var client = _factory.CreateAnonymousClient();
 
-            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", new List<CreateVenueTimeSlotRequest> { ValidCreateRequest() });
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             _factory.TimeSlotServiceMock.Verify(
-                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<List<CreateVenueTimeSlotRequest>>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -88,11 +89,11 @@ namespace Fiebo.IntegrationTests.TimeSlot
             ResetMocks();
             var client = _factory.CreateAuthenticatedClient("admin-1", AppRoles.Admin);
 
-            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", new List<CreateVenueTimeSlotRequest> { ValidCreateRequest() });
 
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             _factory.TimeSlotServiceMock.Verify(
-                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<List<CreateVenueTimeSlotRequest>>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -114,7 +115,7 @@ namespace Fiebo.IntegrationTests.TimeSlot
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             _factory.TimeSlotServiceMock.Verify(
-                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<List<CreateVenueTimeSlotRequest>>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -125,10 +126,10 @@ namespace Fiebo.IntegrationTests.TimeSlot
             var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
 
             _factory.TimeSlotServiceMock
-                .Setup(s => s.CreateVenueTimeSlotAsync(10, It.IsAny<CreateVenueTimeSlotRequest>(), "owner-1"))
+                .Setup(s => s.CreateVenueTimeSlotAsync(10, It.IsAny<List<CreateVenueTimeSlotRequest>>(), "owner-1"))
                 .ThrowsAsync(new BadRequestException("Khung giờ tối thiểu là 30 phút"));
 
-            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", new List<CreateVenueTimeSlotRequest> { ValidCreateRequest() });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -140,10 +141,10 @@ namespace Fiebo.IntegrationTests.TimeSlot
             var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
 
             _factory.TimeSlotServiceMock
-                .Setup(s => s.CreateVenueTimeSlotAsync(404, It.IsAny<CreateVenueTimeSlotRequest>(), "owner-1"))
+                .Setup(s => s.CreateVenueTimeSlotAsync(404, It.IsAny<List<CreateVenueTimeSlotRequest>>(), "owner-1"))
                 .ThrowsAsync(new NotFoundException("Không tìm thấy cơ sở"));
 
-            var response = await client.PostAsJsonAsync("/api/owner/venue/404/time-slot", ValidCreateRequest());
+            var response = await client.PostAsJsonAsync("/api/owner/venue/404/time-slot", new List<CreateVenueTimeSlotRequest> { ValidCreateRequest() });
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
@@ -155,10 +156,10 @@ namespace Fiebo.IntegrationTests.TimeSlot
             var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
 
             _factory.TimeSlotServiceMock
-                .Setup(s => s.CreateVenueTimeSlotAsync(10, It.IsAny<CreateVenueTimeSlotRequest>(), "owner-1"))
+                .Setup(s => s.CreateVenueTimeSlotAsync(10, It.IsAny<List<CreateVenueTimeSlotRequest>>(), "owner-1"))
                 .ThrowsAsync(new BadRequestException("Khung giờ này đang bị trùng với khung giờ hiện có. Vui lòng chọn khung giờ khác."));
 
-            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", ValidCreateRequest());
+            var response = await client.PostAsJsonAsync("/api/owner/venue/10/time-slot", new List<CreateVenueTimeSlotRequest> { ValidCreateRequest() });
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -173,7 +174,7 @@ namespace Fiebo.IntegrationTests.TimeSlot
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             _factory.TimeSlotServiceMock.Verify(
-                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<List<CreateVenueTimeSlotRequest>>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -196,7 +197,7 @@ namespace Fiebo.IntegrationTests.TimeSlot
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             _factory.TimeSlotServiceMock.Verify(
-                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<CreateVenueTimeSlotRequest>(), It.IsAny<string?>()),
+                s => s.CreateVenueTimeSlotAsync(It.IsAny<int>(), It.IsAny<List<CreateVenueTimeSlotRequest>>(), It.IsAny<string?>()),
                 Times.Never);
         }
 

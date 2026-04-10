@@ -131,6 +131,7 @@ builder.Services.AddSingleton<SseService>();
 builder.Services.AddScoped<INotificationService, SseNotificationService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IOwnerService, OwnerService>();
 builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();

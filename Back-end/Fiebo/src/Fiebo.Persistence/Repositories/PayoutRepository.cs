@@ -60,7 +60,6 @@ namespace Fiebo.Persistence.Repositories
             return await _context.Payouts
                 .AsNoTracking()
                 .Include(p => p.Batch)
-                .Include(p => p.BankAccount)
                 .Include(p => p.PayoutDetails)
                     .ThenInclude(pd => pd.Booking)
                         .ThenInclude(b => b.Venue)

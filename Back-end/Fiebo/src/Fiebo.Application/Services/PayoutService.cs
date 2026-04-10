@@ -65,30 +65,27 @@ namespace Fiebo.Application.Services
             {
                 throw new ForbiddenException("Truy cập bị từ chối. Bạn không có thẩm quyền xem hồ sơ tài chính của giao dịch này.");
             }
- 
- 
-            // BR-03: Data Masking (Last 4 digits visible)
-            var originalAccount = payout.BankAccount.AccountNumber;
-            var maskedAccount = originalAccount.Length > 4
-                ? new string('*', originalAccount.Length - 4) + originalAccount.Substring(originalAccount.Length - 4)
-                : originalAccount;
- 
+
+
+            var bankAccount = await _unitOfWork.UserBankAccounts.GetSingleAsync(x => x.UserId == payout.OwnerId);
+            
+            var originalAccount = bankAccount?.AccountNumber ?? "N/A";
+
             var response = new DetailedPayoutResponse
             {
                 GeneralInfo = new PayoutGeneralInfoDto
                 {
-                    ReferenceCode = payout.ReferenceCode,
                     CreatedAt = payout.CreatedAt,
-                    ProcessedAt = payout.ProcessedAt,
                     Status = payout.Status.ToString(),
-                    FailureReason = payout.FailureReason
+                    FailureReason = payout.FailureReason,
+                    ProcessedAt = payout.UpdatedAt
                 },
                 FinancialSummary = new PayoutFinancialSummaryDto
                 {
                     TotalAmount = payout.Amount,
-                    BankName = payout.BankAccount.BankName,
-                    MaskedAccountNumber = maskedAccount,
-                    AccountHolderName = payout.BankAccount.AccountHolderName
+                    BankName = bankAccount?.BankName ?? "N/A",
+                    MaskedAccountNumber = originalAccount,
+                    AccountHolderName = bankAccount?.AccountHolderName ?? "N/A"
                 },
                 FacilitiesBreakdown = payout.PayoutDetails
                     .GroupBy(pd => new { pd.Booking.VenueId, VenueName = pd.Booking.Venue.Name })

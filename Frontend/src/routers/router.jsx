@@ -2,6 +2,8 @@ import React from "react";
 import { Navigate, useParams, useRoutes } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import OwnerLayout from "../components/layout/OwnerLayout";
+import AdminLayout from "../components/layout/AdminLayout";
+import StaffLayout from "../components/layout/StaffLayout";
 import CustomerHome from "../pages/Customer/Home/CustomerHome";
 import VenueDetail from "../pages/Customer/VenueDetail";
 import BookingSchedule from "../pages/Customer/Booking/BookingSchedule";
@@ -27,25 +29,29 @@ import VerifyOTP from "../pages/auth/VerifyOTP";
 import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
-import OwnerHome from "../pages/Owner/OwnerHome";
-import OwnerProfile from "../pages/Owner/OwnerProfile";
-import OwnerSubscription from "../pages/Owner/OwnerSubscription";
-import OwnerVenues from "../pages/Owner/OwnerVenues";
-import CreateVenue from "../pages/Owner/CreateVenue";
-import OwnerOfflineBooking from "../pages/Owner/OwnerOfflineBooking";
-import OwnerVenueDetail from "../pages/Owner/OwnerVenueDetail";
-import OwnerTimeSlot from "../pages/Owner/OwnerTimeSlot";
-import OwnerAddField from "../pages/Owner/OwnerAddField";
-import OwnerEditVenue from "../pages/Owner/OwnerEditVenue";
-import OwnerBookings from "../pages/Owner/OwnerBookings";
-import OwnerBookingDetail from "../pages/Owner/OwnerBookingDetail";
-import StaffList from "../pages/Owner/Staff/StaffList";
+import OwnerProfile from "../pages/Owner/Account/OwnerProfile";
+import OwnerSubscription from "../pages/Owner/Account/OwnerSubscription";
+import OwnerVenues from "../pages/Owner/Venue/OwnerVenues";
+import CreateVenue from "../pages/Owner/Venue/CreateVenue";
+import OwnerOfflineBooking from "../pages/Owner/Booking/OwnerOfflineBooking";
+import OwnerVenueDetail from "../pages/Owner/Venue/OwnerVenueDetail";
+import OwnerTimeSlot from "../pages/Owner/Venue/OwnerTimeSlot";
+import OwnerAddField from "../pages/Owner/Venue/OwnerAddField";
+import OwnerEditVenue from "../pages/Owner/Venue/OwnerEditVenue";
+import OwnerBookings from "../pages/Owner/Booking/OwnerBookings";
+import OwnerBookingDetail from "../pages/Owner/Booking/OwnerBookingDetail";
+import StaffList from "../pages/Owner/StaffManagement/StaffList";
 import OwnerEvents from "../pages/Owner/Event/OwnerEvents";
 import CreateEvent from "../pages/Owner/Event/CreateEvent";
 import OwnerEventDetail from "../pages/Owner/Event/OwnerEventDetail";
 import ServiceManagement from "../pages/Owner/VenueService/ServiceManagement";
 import PayoutList from "../pages/Owner/Payout/PayoutList";
+import AdminHome from "../pages/Admin/Dashboard/AdminHome";
+import AdminUsers from "../pages/Admin/UserManagement/AdminUsers";
+import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
+import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
+import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -78,6 +84,7 @@ const routes = [
     path: "/event/ticket/:id/payment",
     element: <ProtectedRoute element={<EventTicketPayment />} />,
   },
+  { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
   {
     path: "/",
     element: <Layout />,
@@ -108,7 +115,6 @@ const routes = [
         element: <ProtectedRoute element={<BookingList />} />,
       },
       { path: "venues", element: <Venues /> },
-      { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
     ],
   },
   {
@@ -117,10 +123,11 @@ const routes = [
       <ProtectedRoute element={<OwnerLayout />} requiredRole="FieldOwner" />
     ),
     children: [
-      { index: true, element: <OwnerHome /> },
+      { index: true, element: <OwnerDashboard /> },
       { path: "profile", element: <OwnerProfile /> },
       { path: "subscription", element: <OwnerSubscription /> },
       { path: "payout", element: <PayoutList /> },
+      { path: "payout/:id/details", element: <PayoutDetails /> },
       { path: "venues", element: <OwnerVenues /> },
       { path: "create-venue", element: <CreateVenue /> },
       { path: "offline-booking", element: <OwnerOfflineBooking /> },
@@ -138,7 +145,11 @@ const routes = [
       },
       {
         path: "venues/:id/offline-booking",
-        element: <OwnerOfflineBooking />,
+        element: <BookingSchedule />,
+      },
+      {
+        path: "venues/:id/offline-booking/confirm",
+        element: <BookingConfirmation />,
       },
       { path: "bookings", element: <OwnerBookings /> },
       { path: "bookings/:id", element: <OwnerBookingDetail /> },
@@ -154,12 +165,19 @@ const routes = [
   },
   {
     path: "/admin",
-    element: (
-      <ProtectedRoute>
-        <div>Admin Layout</div>
-      </ProtectedRoute>
-    ),
-    children: [{ index: true, element: <div>Admin Home</div> }],
+    element: <ProtectedRoute element={<AdminLayout />} requiredRole="Admin" />,
+    children: [
+      { index: true, element: <AdminHome /> },
+      { path: "users", element: <AdminUsers /> },
+    ],
+  },
+  {
+    path: "/staff",
+    element: <ProtectedRoute element={<StaffLayout />} requiredRole="Staff" />,
+    children: [
+      { index: true, element: <StaffHome /> },
+      { path: "profile", element: <Profile /> },
+    ],
   },
   { path: "*", element: <Navigate to="/" replace /> },
 ];

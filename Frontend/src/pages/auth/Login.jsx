@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
 import { login, loginWithGoogle } from '../../services/authService';
@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import Alert from '@mui/material/Alert';
 import Collapse from '@mui/material/Collapse';
+import { getHomePathByRole, hasRole } from '../../utils/roleUtils';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
 import './Login.css';
 
@@ -33,8 +34,9 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess, onOpenRegister }) => {
+const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   // Shared state
@@ -102,15 +104,29 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
     return "unknown";
   };
 
-  const hasOwnerRole = (user) => {
-    const roleRaw = user?.role ?? user?.roles ?? "";
-    if (Array.isArray(roleRaw)) {
-      return roleRaw.some((r) => String(r).toLowerCase().trim() === "fieldowner");
+  const resolveHomePath = (user) => {
+    if (isOwner || hasRole(user, "fieldowner")) return "/owner";
+    return getHomePathByRole(user);
+  };
+
+  const resolveReturnPath = () => {
+    if (typeof redirectAfterLogin === "string" && redirectAfterLogin.startsWith("/")) {
+      return redirectAfterLogin;
     }
-    return String(roleRaw)
-      .split(",")
-      .map((r) => r.toLowerCase().trim())
-      .includes("fieldowner");
+    const fromState = location.state?.from;
+    if (typeof fromState === "string" && fromState.startsWith("/")) {
+      return fromState;
+    }
+    if (fromState && typeof fromState === "object" && typeof fromState.pathname === "string") {
+      const search = typeof fromState.search === "string" ? fromState.search : "";
+      const hash = typeof fromState.hash === "string" ? fromState.hash : "";
+      return `${fromState.pathname}${search}${hash}`;
+    }
+    const redirectTo = location.state?.redirectTo;
+    if (typeof redirectTo === "string" && redirectTo.startsWith("/")) {
+      return redirectTo;
+    }
+    return "";
   };
 
   // ── Password login handler ────────────────────────────────────────────────
@@ -138,14 +154,6 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
       } else {
         localStorage.removeItem("rememberedIdentifier");
       }
-      toast.success(
-        "Đăng nhập thành công! Chào mừng " +
-          (response.user?.name || response.user?.email),
-        {
-          position: "top-right",
-          autoClose: 3000,
-        },
-      );
 
       localStorage.setItem(AUTH_STORAGE_KEY, token);
 
@@ -153,23 +161,15 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right', autoClose: 3000,
       });
 
+      const returnPath = resolveReturnPath();
+      const homePath = resolveHomePath(response.user);
+      const nextPath = returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
-        if (hasOwnerRole(response.user) || isOwner) {
-          navigate("/owner", { replace: true });
-        }
+        navigate(nextPath, { replace: true });
         onLoginSuccess();
         return;
       }
-      if (hasOwnerRole(response.user) || isOwner) {
-        navigate('/owner', { replace: true });
-        return;
-      }
-      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
-      if (roleVal === 'admin') {
-        navigate('/admin', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
+      navigate(nextPath, { replace: true });
 
     } catch (error) {
       const msg = (error?.message || "").toLowerCase();
@@ -214,23 +214,15 @@ const Login = ({ onLoginSuccess, onOpenRegister }) => {
         position: 'top-right',
         autoClose: 3000,
       });
+      const returnPath = resolveReturnPath();
+      const homePath = resolveHomePath(response.user);
+      const nextPath = returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
-        if (hasOwnerRole(response.user) || isOwner) {
-          navigate("/owner", { replace: true });
-        }
+        navigate(nextPath, { replace: true });
         onLoginSuccess();
         return;
       }
-      if (hasOwnerRole(response.user) || isOwner) {
-        navigate('/owner', { replace: true });
-        return;
-      }
-      const roleVal = (response.user?.role || response.user?.roles || "").toString().toLowerCase();
-      if (roleVal === 'admin') {
-        navigate('/admin', { replace: true });
-        return;
-      }
-      navigate('/', { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (error) {
       setAlertInfo({
         type: "error",

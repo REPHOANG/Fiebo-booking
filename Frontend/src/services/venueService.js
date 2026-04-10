@@ -75,6 +75,16 @@ export const getOwnerVenues = async () => {
 };
 
 /**
+ * GET `/api/owner/venue/select-option` — danh sách cơ sở nhẹ cho dropdown (id + name)
+ * @returns {Promise<Array<{id:number,name:string}>>}
+ */
+export const getOwnerVenueSelectOptions = async () => {
+  const response = await api.get("/api/owner/venue/select-option");
+  const data = unwrap(response);
+  return Array.isArray(data) ? data : [];
+};
+
+/**
  * PATCH `/api/owner/venues/{id}` — vô hiệu hóa cơ sở (backend: DeactivateVenue).
  */
 export const deactivateOwnerVenue = async (venueId) => {
