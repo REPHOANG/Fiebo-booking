@@ -9,5 +9,6 @@ namespace Fiebo.Domain.Repositories
 {
     public interface ISubscriptionTransactionRepository : IRepository<SubscriptionTransaction>
     {
+        Task<List<SubscriptionTransaction>> GetByOwnerIdAsync(string ownerId);
     }
 }

@@ -190,37 +190,52 @@ namespace Fiebo.Application.Services
                 return null;
             }
 
-            return MapOwnerPlan(currentPlan);
+            var lastTransaction = await _unitOfWork.SubscriptionTransactions.GetByOwnerIdAsync(ownerId);
+            var latest = lastTransaction.FirstOrDefault();
+
+            return new OwnerPlanHistoryResponse
+            {
+                OwnerPlanId = currentPlan.Id,
+                PlanId = currentPlan.PlanId,
+                PlanName = currentPlan.Plan.Name,
+                DurationDays = currentPlan.Plan.DurationDays,
+                AmountPaid = latest?.Amount ?? 0,
+                StartDate = currentPlan.StartDate,
+                EndDate = currentPlan.EndDate,
+                RemainingDays = CalculateRemainingDays(currentPlan.EndDate),
+                IsExpired = currentPlan.EndDate < DateTime.Now,
+                PaidAt = latest?.PaidAt ?? DateTime.MinValue
+            };
         }
 
         public async Task<List<OwnerPlanHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId)
         {
-            var ownerPlans = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
+            var transactions = await _unitOfWork.SubscriptionTransactions.GetByOwnerIdAsync(ownerId);
 
-            return ownerPlans.Select(MapOwnerPlan).ToList();
+            return transactions.Select(MapSubscriptionTransaction).ToList();
         }
 
-        private static OwnerPlanHistoryResponse MapOwnerPlan(OwnerPlan ownerPlan)
+        private static OwnerPlanHistoryResponse MapSubscriptionTransaction(SubscriptionTransaction transaction)
         {
             return new OwnerPlanHistoryResponse
             {
-                OwnerPlanId = ownerPlan.Id,
-                PlanId = ownerPlan.PlanId,
-                PlanName = ownerPlan.Plan.Name,
-                DurationDays = ownerPlan.Plan.DurationDays,
-                AmountPaid = ownerPlan.Price,
-                StartDate = ownerPlan.StartDate,
-                EndDate = ownerPlan.EndDate,
-                RemainingDays = CalculateRemainingDays(ownerPlan.EndDate),
-                IsExpired = ownerPlan.EndDate < DateTime.Now,
-                PaidAt = ownerPlan.PaidAt
+                OwnerPlanId = transaction.OwnerPlanId,
+                PlanId = transaction.PlanId,
+                PlanName = transaction.Plan.Name,
+                DurationDays = transaction.Plan.DurationDays,
+                AmountPaid = transaction.Amount,
+                StartDate = transaction.OwnerPlan.StartDate,
+                EndDate = transaction.OwnerPlan.EndDate,
+                RemainingDays = CalculateRemainingDays(transaction.OwnerPlan.EndDate),
+                IsExpired = transaction.OwnerPlan.EndDate < DateTime.Now,
+                PaidAt = transaction.PaidAt
             };
         }
 
         private static int CalculateRemainingDays(DateTime endDate)
         {
             var remaining = endDate.Date - DateTime.Now.Date;
-            return remaining.TotalDays < 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
+            return (int)Math.Max(0, Math.Ceiling(remaining.TotalDays));
         }
     }
 }
