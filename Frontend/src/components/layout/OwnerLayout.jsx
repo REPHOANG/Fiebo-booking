@@ -6,6 +6,7 @@ import {
   Mail,
   Menu,
   X,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   LayoutDashboard,
@@ -17,6 +18,8 @@ import {
   CalendarDays,
   ListChecks,
   UserCircle,
+  LogOut,
+  CircleDollarSign,
 } from "lucide-react";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import "./OwnerLayout.css";
@@ -31,6 +34,7 @@ const OwnerLayout = () => {
   const [venuesOpen, setVenuesOpen] = useState(true);
   const [eventsOpen, setEventsOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const userMenuRef = useRef(null);
 
   const activePath = location?.pathname || "";
@@ -121,11 +125,20 @@ const OwnerLayout = () => {
   }, [userMenuOpen]);
 
   return (
-    <div className="owner-layout">
-      <aside className={`owner-sidebar ${menuOpen ? "open" : ""}`}>
+    <div className={`owner-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <aside className={`owner-sidebar ${menuOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="owner-sidebar-top">
           <div className="owner-sidebar-brand">
-            <span className="owner-logo">Fiebo Owner</span>
+            <span className="owner-logo">{sidebarCollapsed ? "FO" : "Fiebo Owner"}</span>
+            <button
+              type="button"
+              className="owner-sidebar-collapse-btn"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
           </div>
         </div>
 
@@ -139,7 +152,7 @@ const OwnerLayout = () => {
             }
           >
             <LayoutDashboard size={16} />
-            Tổng quan
+            <span className="owner-sidebar-text">Tổng quan</span>
           </NavLink>
           <div className={`owner-nav-group ${isAccountSectionActive ? "active" : ""}`}>
             <button
@@ -147,9 +160,11 @@ const OwnerLayout = () => {
               className="owner-nav-group-btn"
               onClick={() => setAccountOpen((v) => !v)}
               aria-expanded={accountOpen}
+              title="Hồ sơ và gói"
             >
               <span className="owner-nav-group-label">
-                <UserCircle size={16} /> Hồ sơ & gói
+                <UserCircle size={16} />
+                <span className="owner-sidebar-text">Hồ sơ & gói</span>
               </span>
               <ChevronDown size={16} className={`owner-nav-caret ${accountOpen ? "open" : ""}`} />
             </button>
@@ -160,7 +175,7 @@ const OwnerLayout = () => {
                 className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
               >
                 <UserCircle size={15} />
-                Hồ sơ
+                <span className="owner-sidebar-text">Hồ sơ</span>
               </NavLink>
               <NavLink
                 to="/owner/subscription"
@@ -168,7 +183,7 @@ const OwnerLayout = () => {
                 className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
               >
                 <ListChecks size={15} />
-                Gói
+                <span className="owner-sidebar-text">Gói</span>
               </NavLink>
             </div>
           </div>
@@ -179,9 +194,11 @@ const OwnerLayout = () => {
               className="owner-nav-group-btn"
               onClick={() => setVenuesOpen((v) => !v)}
               aria-expanded={venuesOpen}
+              title="Cơ sở"
             >
               <span className="owner-nav-group-label">
-                <Building2 size={16} /> Cơ sở
+                <Building2 size={16} />
+                <span className="owner-sidebar-text">Cơ sở</span>
               </span>
               <ChevronDown size={16} className={`owner-nav-caret ${venuesOpen ? "open" : ""}`} />
             </button>
@@ -195,7 +212,7 @@ const OwnerLayout = () => {
                 }
               >
                 <Building2 size={15} />
-                Cơ sở của tôi
+                <span className="owner-sidebar-text">Cơ sở của tôi</span>
               </NavLink>
               <NavLink
                 to="/owner/offline-booking"
@@ -205,7 +222,7 @@ const OwnerLayout = () => {
                 }
               >
                 <CalendarClock size={15} />
-                Đặt sân offline
+                <span className="owner-sidebar-text">Đặt sân offline</span>
               </NavLink>
               {/* <NavLink
                 to="/owner/bookings"
@@ -225,7 +242,7 @@ const OwnerLayout = () => {
                 }
               >
                 <PlusSquare size={15} />
-                Tạo cơ sở
+                <span className="owner-sidebar-text">Tạo cơ sở</span>
               </NavLink>
                <NavLink
                 to="/owner/staff"
@@ -235,7 +252,7 @@ const OwnerLayout = () => {
                 }
               >
                 <UsersRound size={15} />
-                Nhân viên
+                <span className="owner-sidebar-text">Nhân viên</span>
               </NavLink>
             </div>
           </div>
@@ -248,7 +265,7 @@ const OwnerLayout = () => {
             }
           >
             <ReceiptText size={16} />
-            Đơn đặt sân
+            <span className="owner-sidebar-text">Đơn đặt sân</span>
           </NavLink>
 
           <NavLink
@@ -258,8 +275,8 @@ const OwnerLayout = () => {
               `owner-sidebar-link ${isActive ? "active" : ""}`
             }
           >
-            <ReceiptText size={16} />
-            Payout
+            <CircleDollarSign size={16} />
+            <span className="owner-sidebar-text">Payout</span>
           </NavLink>
 
           <div className="owner-sidebar-divider" />
@@ -270,9 +287,11 @@ const OwnerLayout = () => {
               className="owner-nav-group-btn"
               onClick={() => setEventsOpen((v) => !v)}
               aria-expanded={eventsOpen}
+              title="Sự kiện"
             >
               <span className="owner-nav-group-label">
-                <CalendarDays size={16} /> Sự kiện
+                <CalendarDays size={16} />
+                <span className="owner-sidebar-text">Sự kiện</span>
               </span>
               <ChevronDown size={16} className={`owner-nav-caret ${eventsOpen ? "open" : ""}`} />
             </button>
@@ -285,7 +304,7 @@ const OwnerLayout = () => {
                 }
               >
                 <PlusSquare size={15} />
-                Tạo sự kiện
+                <span className="owner-sidebar-text">Tạo sự kiện</span>
               </NavLink>
               <NavLink
                 to="/owner/events"
@@ -296,7 +315,7 @@ const OwnerLayout = () => {
                 }
               >
                 <ListChecks size={15} />
-                Danh sách sự kiện
+                <span className="owner-sidebar-text">Danh sách sự kiện</span>
               </NavLink>
             </div>
           </div>
@@ -304,7 +323,8 @@ const OwnerLayout = () => {
 
         <div className="owner-sidebar-footer">
           <button className="owner-logout-btn" onClick={handleLogout}>
-            Đăng xuất
+            <LogOut size={16} />
+            <span className="owner-sidebar-text">Đăng xuất</span>
           </button>
         </div>
       </aside>

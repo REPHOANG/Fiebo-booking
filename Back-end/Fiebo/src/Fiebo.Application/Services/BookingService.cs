@@ -239,7 +239,7 @@ namespace Fiebo.Application.Services
                     if (lockValue is null)
                     {
                         _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
-                throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
+                        throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
                     }
 
                     acquiredLocks.Add((lockKey, lockValue));
@@ -248,9 +248,20 @@ namespace Fiebo.Application.Services
                 // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
+                    var field = await _unitOfWork.Fields.GetByIdAsync(item.FieldId);
+                    if (field == null || field.Status != FieldStatus.Active)
+                    {
+                        _logger.LogWarning("Field does not exist or is deleted");
+                        throw new BadRequestException("Sân hiện tại không tồn tại hoặc đã bị vô hiệu hóa.");
+                    }
+                    var theSlot = await _unitOfWork.TimeSlots.GetByIdAsync(item.SlotId) ?? throw new NotFoundException("Không tìm thấy slot");
+                    if (theSlot is null || theSlot.IsDeleted == true)
+                    {
+                        _logger.LogWarning("Slot does not exist or is deleted");
+                        throw new BadRequestException("Slot hiện tại không tồn tại hoặc đã bị xóa.");
+                    }
                     var isAvailable = await _unitOfWork.BookingDetails
                         .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
-
                     if (!isAvailable)
                     {
                         _logger.LogWarning("Slot is already booked");
@@ -443,9 +454,20 @@ namespace Fiebo.Application.Services
                 // 3. Check slot availability (booking + drop-in event)
                 foreach (var item in request.Details)
                 {
+                    var field = await _unitOfWork.Fields.GetByIdAsync(item.FieldId);
+                    if(field == null || field.Status != FieldStatus.Active)
+                    {
+                        _logger.LogWarning("Field does not exist or is deleted");
+                        throw new BadRequestException("Sân hiện tại không tồn tại hoặc đã bị vô hiệu hóa.");
+                    }
+                    var theSlot = await _unitOfWork.TimeSlots.GetByIdAsync(item.SlotId) ?? throw new NotFoundException("Không tìm thấy slot");
+                    if (theSlot is null || theSlot.IsDeleted == true)
+                    {
+                        _logger.LogWarning("Slot does not exist or is deleted");
+                        throw new BadRequestException("Slot hiện tại không tồn tại hoặc đã bị xóa.");
+                    }
                     var isAvailable = await _unitOfWork.BookingDetails
                         .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
-
                     if (!isAvailable)
                     {
                         throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");

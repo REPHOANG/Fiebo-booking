@@ -41,12 +41,15 @@ const Wallet = () => {
     dayjs(to).isSameOrBefore(today);
 
   if (!isValidFrom || !isValidTo) {
-    setSearchParams({
-      page: 1,
-      size,
-      from: isValidFrom ? from : oneMonthAgo,
-      to: isValidTo ? to : today,
-    });
+    setSearchParams(
+  {
+    page: 1,
+    size,
+    from: isValidFrom ? from : oneMonthAgo,
+    to: isValidTo ? to : today,
+  },
+  { replace: true }
+);
   }
 }, [from, setSearchParams, size, to]);
 

@@ -251,6 +251,7 @@ namespace Fiebo.Application.Tests.Bookings
             SetupActiveVenueAndFields(venueRepoMock, fieldRepoMock);
 
             cacheMock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock");
+            timeSlotRepoMock.Setup(x => x.GetByIdAsync(100)).ReturnsAsync(new TimeSlot { Id = 100, IsDeleted = false, Price = 150000m });
             bookingDetailRepoMock.Setup(x => x.IsSlotAvailable(100, 10, request.BookingDate)).ReturnsAsync(false);
 
             var service = CreateService();
@@ -277,6 +278,7 @@ namespace Fiebo.Application.Tests.Bookings
             SetupActiveVenueAndFields(venueRepoMock, fieldRepoMock);
 
             cacheMock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock");
+            timeSlotRepoMock.Setup(x => x.GetByIdAsync(100)).ReturnsAsync(new TimeSlot { Id = 100, IsDeleted = false, Price = 150000m });
             bookingDetailRepoMock.Setup(x => x.IsSlotAvailable(100, 10, request.BookingDate)).ReturnsAsync(true);
             ticketEventRepoMock.Setup(x => x.IsSlotUsedByEventAsync(10, 100, request.BookingDate)).ReturnsAsync(true);
 
