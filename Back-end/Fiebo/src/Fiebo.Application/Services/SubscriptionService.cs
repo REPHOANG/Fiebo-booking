@@ -86,69 +86,87 @@ namespace Fiebo.Application.Services
                     _unitOfWork.Wallets.Update(trackedWallet);
 
                     // 5. Handle BR-02 / BR-03 Duration Logic
-                    var latestActivePlan = await _unitOfWork.OwnerPlans.GetLatestActiveAsync(ownerId, plan.Id);
+                    var currentOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
 
                     DateTime startDate;
                     DateTime endDate;
 
-                    if (latestActivePlan != null)
+                    if (currentOwnerPlan != null && currentOwnerPlan.Status == OwnerPlanStatus.Active && currentOwnerPlan.EndDate > DateTime.Now)
                     {
                         // Active Renewal: Extend from existing EndDate
-                        startDate = DateTime.Now;
-                        endDate = latestActivePlan.EndDate.AddDays(plan.DurationDays);
+                        startDate = currentOwnerPlan.StartDate; // Keep original start date for continuity
+                        endDate = currentOwnerPlan.EndDate.AddDays(plan.DurationDays);
+                        
+                        currentOwnerPlan.EndDate = endDate;
+                        currentOwnerPlan.PlanId = plan.Id; // Update to latest plan type
+                        _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
                     }
                     else
                     {
                         // New or Expired: Start today
                         startDate = DateTime.Now;
                         endDate = startDate.AddDays(plan.DurationDays);
+
+                        if (currentOwnerPlan == null)
+                        {
+                            currentOwnerPlan = new OwnerPlan
+                            {
+                                OwnerId = ownerId,
+                                PlanId = plan.Id,
+                                StartDate = startDate,
+                                EndDate = endDate,
+                                Status = OwnerPlanStatus.Active
+                            };
+                            _unitOfWork.OwnerPlans.Add(currentOwnerPlan);
+                        }
+                        else
+                        {
+                            currentOwnerPlan.PlanId = plan.Id;
+                            currentOwnerPlan.StartDate = startDate;
+                            currentOwnerPlan.EndDate = endDate;
+                            currentOwnerPlan.Status = OwnerPlanStatus.Active;
+                            _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
+                        }
                     }
 
-                    // Create entirely new row (BR-03: No Composite PK)
-                    var newOwnerPlan = new OwnerPlan
+                    // 6. Record SubscriptionTransaction (History)
+                    // We need OwnerPlanId, so we save changes if currentOwnerPlan is new
+                    await _unitOfWork.SaveChangesAsync();
+
+                    var subTransaction = new SubscriptionTransaction
                     {
-                        OwnerId = ownerId,
+                        OwnerPlanId = currentOwnerPlan.Id,
                         PlanId = plan.Id,
-                        StartDate = startDate,
-                        EndDate = endDate,
-                        PaidAt = DateTime.Now,
-                        Price = plan.Price,
-                        Status = OwnerPlanStatus.Active
+                        Amount = plan.Price,
+                        PaidAt = DateTime.Now
                     };
+                    _unitOfWork.SubscriptionTransactions.Add(subTransaction);
+                    await _unitOfWork.SaveChangesAsync();
 
-                    _unitOfWork.OwnerPlans.Add(newOwnerPlan);
-
-                    // 6. Record WalletTransaction
-                    var transaction = new WalletTransaction
+                    // 7. Record WalletTransaction
+                    var walletTransaction = new WalletTransaction
                     {
                         WalletId = trackedWallet.Id,
                         TransactionType = TransactionType.Subscription,
                         Direction = TransactionDirection.Debit,
                         Amount = plan.Price,
-                        CreatedAt = DateTime.Now
-                        // ReferenceId will be populated after save, but EF Core can handle it if we associate objects. 
-                        // However we don't have direct navigation property here so we just save first if we really need ReferenceId.
+                        CreatedAt = DateTime.Now,
+                        ReferenceId = subTransaction.Id // Points to SubscriptionTransaction
                     };
 
-                    _unitOfWork.WalletTransactions.Add(transaction);
+                    _unitOfWork.WalletTransactions.Add(walletTransaction);
 
                     await _unitOfWork.SaveChangesAsync();
-                    
-                    // Update reference id
-                    transaction.ReferenceId = newOwnerPlan.Id;
-                    await _unitOfWork.SaveChangesAsync();
-
                     await _unitOfWork.CommitTransactionAsync();
 
-                    _logger.LogInformation("Subscription created. Owner: {OwnerId}, Plan: {PlanId}", ownerId, plan.Id);
+                    _logger.LogInformation("Subscription processed. Owner: {OwnerId}, Plan: {PlanId}, TransId: {TransId}", ownerId, plan.Id, subTransaction.Id);
 
                     return new OwnerPlanResponse
                     {
-                        OwnerPlanId = newOwnerPlan.Id,
+                        OwnerPlanId = currentOwnerPlan.Id,
                         PlanName = plan.Name,
-                        StartDate = newOwnerPlan.StartDate,
-                        EndDate = newOwnerPlan.EndDate,
-                        AmountPaid = newOwnerPlan.Price,
+                        StartDate = currentOwnerPlan.StartDate,
+                        EndDate = currentOwnerPlan.EndDate,
                         RemainingBalance = trackedWallet.Balance
                     };
                 }

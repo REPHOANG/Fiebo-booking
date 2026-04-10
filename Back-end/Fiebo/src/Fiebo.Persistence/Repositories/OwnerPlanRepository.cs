@@ -17,10 +17,10 @@ namespace Fiebo.Persistence.Repositories
         {
         }
 
-        public async Task<OwnerPlan?> GetLatestActiveAsync(string ownerId, int planId)
+        public async Task<OwnerPlan?> GetByOwnerIdAsync(string ownerId)
         {
             return await _context.OwnerPlans
-                .Where(x => x.OwnerId == ownerId && x.PlanId == planId && x.Status == OwnerPlanStatus.Active)
+                .Where(x => x.OwnerId == ownerId && x.Status == OwnerPlanStatus.Active)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
         }

@@ -12,7 +12,6 @@ namespace Fiebo.Application.DTOs.Subscription
         public string PlanName { get; set; } = null!;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public decimal AmountPaid { get; set; }
         public decimal RemainingBalance { get; set; }
     }
 }

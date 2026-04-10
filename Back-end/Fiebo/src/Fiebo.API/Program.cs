@@ -103,6 +103,7 @@ builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
 builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
+builder.Services.AddScoped<ISubscriptionTransactionRepository, SubscriptionTransactionRepository>();
 builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
 builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
 builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();

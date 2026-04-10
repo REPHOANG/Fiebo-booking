@@ -242,15 +242,8 @@ namespace Fiebo.Persistence.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("varchar(450)");
 
-                    b.Property<DateTime>("PaidAt")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<int>("PlanId")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("decimal(12,2)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime(6)");
@@ -263,7 +256,8 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("OwnerId")
+                        .IsUnique();
 
                     b.HasIndex("PlanId");
 
@@ -550,6 +544,42 @@ namespace Fiebo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SubscriptionPlans");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.SubscriptionTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("OwnerPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerPlanId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("SubscriptionTransactions", (string)null);
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
@@ -1465,6 +1495,25 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("Review");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.SubscriptionTransaction", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.OwnerPlan", "OwnerPlan")
+                        .WithMany("SubscriptionTransactions")
+                        .HasForeignKey("OwnerPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fiebo.Domain.Entities.SubscriptionPlan", "Plan")
+                        .WithMany("SubscriptionTransactions")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OwnerPlan");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEventDetail", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.TicketEvent", "Event")
@@ -1706,6 +1755,11 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("Images");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.OwnerPlan", b =>
+                {
+                    b.Navigation("SubscriptionTransactions");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Payout", b =>
                 {
                     b.Navigation("PayoutDetails");
@@ -1738,6 +1792,8 @@ namespace Fiebo.Persistence.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.SubscriptionPlan", b =>
                 {
                     b.Navigation("OwnerPlans");
+
+                    b.Navigation("SubscriptionTransactions");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
