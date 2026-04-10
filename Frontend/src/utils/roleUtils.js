@@ -4,6 +4,7 @@ const ROLE_ALIASES = {
   admin: ["admin"],
   staff: ["staff", "fieldstaff"],
   fieldowner: ["fieldowner"],
+  financeadmin: ["financeadmin"],
 };
 
 export const getUserRoles = (user) => {
@@ -27,6 +28,7 @@ export const hasRole = (user, role) => {
 export const getHomePathByRole = (user) => {
   const roles = getUserRoles(user);
   if (roles.includes("admin")) return "/admin";
+  if (roles.includes("financeadmin")) return "/finance-admin";
   if (roles.includes("staff") || roles.includes("fieldstaff")) return "/staff";
   if (roles.includes("fieldowner")) return "/owner";
   return "/";

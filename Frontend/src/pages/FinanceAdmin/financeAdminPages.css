@@ -1,0 +1,191 @@
+.finance-admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.finance-admin-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.finance-admin-subtitle {
+  margin: 0;
+  color: #6b7280;
+}
+
+.finance-admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.finance-admin-kpi-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.finance-admin-kpi-label {
+  margin: 0 0 6px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.finance-admin-kpi-value {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.finance-admin-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.finance-admin-link-btn {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 10px;
+  color: #111827;
+  padding: 8px 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.finance-admin-link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.finance-admin-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.finance-admin-section h3 {
+  margin: 0 0 10px;
+}
+
+.finance-admin-alert-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #374151;
+  display: grid;
+  gap: 6px;
+}
+
+.finance-admin-filters {
+  display: grid;
+  grid-template-columns: 1fr 200px 200px;
+  gap: 10px;
+}
+
+.finance-admin-input,
+.finance-admin-select {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 0 12px;
+  background: #fff;
+}
+
+.finance-admin-table-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.finance-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.finance-admin-table th,
+.finance-admin-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #f0f2f5;
+  white-space: nowrap;
+}
+
+.finance-admin-card-list {
+  display: grid;
+  gap: 10px;
+}
+
+.finance-admin-item-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.finance-admin-item-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.finance-admin-item-meta {
+  margin: 0;
+  color: #6b7280;
+}
+
+.finance-admin-item-amount {
+  margin: 8px 0 0;
+  color: #111827;
+  font-weight: 700;
+}
+
+.finance-admin-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.finance-admin-status {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.finance-admin-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.finance-admin-status-reconciled {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.finance-admin-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .finance-admin-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-admin-item-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
