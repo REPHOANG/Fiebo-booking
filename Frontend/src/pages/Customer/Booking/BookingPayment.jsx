@@ -70,8 +70,9 @@ const TERMINAL_UNPAID_STATUSES = new Set([
 ]);
 
 const formatDateFromBooking = (b) => {
-  if (!b?.date) return "";
-  const d = b.date;
+  const rawDate = b?.date ?? b?.dateStr;
+  if (!rawDate) return "";
+  const d = rawDate;
   const dateStr =
     typeof d === "string"
       ? d
@@ -150,7 +151,11 @@ export function BookingPaymentSuccess() {
     getBookingById(bookingId)
       .then((data) => {
         if (cancelled) return;
-        const b = data?.data ?? data;
+        const b = normalizeBookingDetail(data);
+        if (!b) {
+          setError("Không đọc được thông tin đơn đặt chỗ.");
+          return;
+        }
         const st = String(b.status ?? "");
         if (!PAID_STATUSES.has(st)) {
           setError(
@@ -294,7 +299,7 @@ const BookingPayment = () => {
       }
       if (PAID_STATUSES.has(b.status)) {
         clearPaymentHoldDeadline(resolvedBookingId);
-        navigate(`/venue/${id}/booking/success?bookingId=${resolvedBookingId}`, {
+        navigate(`/venue/${id}/booking/payment/success?bookingId=${resolvedBookingId}`, {
           replace: true,
         });
         return;
@@ -568,7 +573,7 @@ const BookingPayment = () => {
       }
       dispatch(clearPaymentDraft());
       clearPaymentHoldDeadline(bookingId);
-      navigate(`/venue/${id}/booking/success?bookingId=${bookingId}`, {
+      navigate(`/venue/${id}/booking/payment/success?bookingId=${bookingId}`, {
         replace: true,
       });
     } catch (payErr) {
