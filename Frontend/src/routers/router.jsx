@@ -86,6 +86,10 @@ const routes = [
   },
   { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
   {
+    path: "wallet/top-up",
+    element: <ProtectedRoute element={<WalletTopUp />} />,
+  },
+  {
     path: "/",
     element: <Layout />,
     children: [
@@ -102,10 +106,6 @@ const routes = [
         element: <BookingPaymentSuccess />,
       },
       { path: "events", element: <Events /> },
-      {
-        path: "wallet/top-up",
-        element: <ProtectedRoute element={<WalletTopUp />} />,
-      },
       {
         path: "bookings",
         element: <ProtectedRoute element={<BookingList />} />,

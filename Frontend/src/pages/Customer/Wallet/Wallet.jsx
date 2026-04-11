@@ -24,29 +24,35 @@ const Wallet = () => {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const transactionRef = useRef(null);
+
   useEffect(() => {
-  const today = dayjs().format("YYYY-MM-DD");
-  const oneMonthAgo = dayjs().subtract(7, "day").format("YYYY-MM-DD");
+  const today = dayjs();
+  const oneMonthAgo = dayjs().subtract(1, "month");
+  const todayStr = today.format("YYYY-MM-DD");
+  const oneMonthAgoStr = oneMonthAgo.format("YYYY-MM-DD");
+
+  const parsedFrom = dayjs(from, "YYYY-MM-DD", true);
+  const parsedTo = dayjs(to, "YYYY-MM-DD", true);
 
   const isValidFrom =
-    from &&
-    dayjs(from, "YYYY-MM-DD", true).isValid() &&
-    dayjs(from).isSameOrAfter(oneMonthAgo) &&
-    dayjs(from).isSameOrBefore(today);
+    !!from &&
+    parsedFrom.isValid() &&
+    parsedFrom.isSameOrAfter(oneMonthAgo, "day") &&
+    parsedFrom.isSameOrBefore(today, "day");
 
   const isValidTo =
-    to &&
-    dayjs(to, "YYYY-MM-DD", true).isValid() &&
-    dayjs(to).isSameOrAfter(oneMonthAgo) &&
-    dayjs(to).isSameOrBefore(today);
+    !!to &&
+    parsedTo.isValid() &&
+    parsedTo.isSameOrAfter(oneMonthAgo, "day") &&
+    parsedTo.isSameOrBefore(today, "day");
 
   if (!isValidFrom || !isValidTo) {
     setSearchParams(
   {
     page: 1,
     size,
-    from: isValidFrom ? from : oneMonthAgo,
-    to: isValidTo ? to : today,
+    from: isValidFrom ? from : oneMonthAgoStr,
+    to: isValidTo ? to : todayStr,
   },
   { replace: true }
 );
