@@ -9,6 +9,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IUnitOfWork : IDisposable
     {
+        IAdminDashboardRepository AdminDashboard { get; }
         IWalletRepository Wallets { get; }
         IBookingRepository Bookings { get; }
 
