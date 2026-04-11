@@ -41,6 +41,7 @@ namespace Fiebo.Persistence.Repositories
         public IVenueServiceItemRepository VenueServiceItems { get; }
         public ISubscriptionPlanRepository SubscriptionPlans { get; }
         public IOwnerPlanRepository OwnerPlans { get; }
+        public ISubscriptionTransactionRepository SubscriptionTransactions { get; }
         public ICancelBookingRepository CancelBooking { get; }
         public IUserBankAccountRepository UserBankAccounts { get; }
         public IPayoutRepository Payouts { get; }
@@ -68,6 +69,7 @@ namespace Fiebo.Persistence.Repositories
             IVenueServiceItemRepository venueServiceItemRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IOwnerPlanRepository ownerPlanRepository,
+            ISubscriptionTransactionRepository subscriptionTransactionRepository,
             ICancelBookingRepository cancelBookingRepository,
             IUserBankAccountRepository userBankAccountRepository,
             IPayoutRepository payoutRepository
@@ -98,6 +100,7 @@ namespace Fiebo.Persistence.Repositories
             VenueServiceItems = venueServiceItemRepository;
             SubscriptionPlans = subscriptionPlanRepository;
             OwnerPlans = ownerPlanRepository;
+            SubscriptionTransactions = subscriptionTransactionRepository;
             CancelBooking = cancelBookingRepository;
             UserBankAccounts = userBankAccountRepository;
             Payouts = payoutRepository;

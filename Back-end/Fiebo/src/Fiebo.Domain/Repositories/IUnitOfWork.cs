@@ -39,6 +39,7 @@ namespace Fiebo.Domain.Repositories
         IVenueServiceItemRepository VenueServiceItems { get; }
         ISubscriptionPlanRepository SubscriptionPlans { get; }
         IOwnerPlanRepository OwnerPlans { get; }
+        ISubscriptionTransactionRepository SubscriptionTransactions { get; }
         ICancelBookingRepository CancelBooking { get; }
         IUserBankAccountRepository UserBankAccounts { get; }
         IPayoutRepository Payouts { get; }

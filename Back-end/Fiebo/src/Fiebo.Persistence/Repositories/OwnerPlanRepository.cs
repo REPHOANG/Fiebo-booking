@@ -17,10 +17,11 @@ namespace Fiebo.Persistence.Repositories
         {
         }
 
-        public async Task<OwnerPlan?> GetLatestActiveAsync(string ownerId, int planId)
+        public async Task<OwnerPlan?> GetByOwnerIdAsync(string ownerId)
         {
             return await _context.OwnerPlans
-                .Where(x => x.OwnerId == ownerId && x.PlanId == planId && x.Status == OwnerPlanStatus.Active)
+                .Include(x => x.Plan)
+                .Where(x => x.OwnerId == ownerId && x.Status == OwnerPlanStatus.Active)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
         }
@@ -35,16 +36,6 @@ namespace Fiebo.Persistence.Repositories
                 .OrderByDescending(x => x.EndDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
-        }
-
-        public async Task<List<OwnerPlan>> GetByOwnerIdAsync(string ownerId)
-        {
-            return await _context.OwnerPlans
-                .Include(x => x.Plan)
-                .Where(x => x.OwnerId == ownerId)
-                .OrderByDescending(x => x.PaidAt)
-                .ThenByDescending(x => x.CreatedAt)
-                .ToListAsync();
         }
     }
 }

@@ -359,6 +359,21 @@ namespace Fiebo.Infrastructure.ExternalServices
 
             return result.Succeeded;
         }
+        public async Task<List<UserProfileResponse>> GetUsersByRoleAsync(string role)
+        {
+            // Lấy toàn bộ user có chứa Role này từ Database thông qua UserManager
+            var users = await _userManager.GetUsersInRoleAsync(role);
+
+            // Map sang DTO để trả về cho tầng Application
+            return users.Select(u => new UserProfileResponse
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                Email = u.Email,
+                PhoneNumber = u.PhoneNumber,
+                Status = u.Status.ToString() // Hoặc map theo đúng kiểu Status của bạn
+            }).ToList();
+        }
     }
 }
 
