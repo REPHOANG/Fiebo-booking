@@ -1,0 +1,145 @@
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.admin-subtitle {
+  margin: 0;
+  color: #6b7280;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.admin-card-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.admin-card-value {
+  margin: 0;
+  color: #111827;
+  font-weight: 700;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.admin-input,
+.admin-select {
+  height: 40px;
+}
+
+.admin-textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.admin-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.admin-btn-primary {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
+.admin-table-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
+}
+
+.admin-inline-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-status-open,
+.admin-status-active,
+.admin-status-verified,
+.admin-status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-status-locked,
+.admin-status-suspended,
+.admin-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-status-pending,
+.admin-status-pending-kyc {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+@media (max-width: 900px) {
+  .admin-controls {
+    flex-direction: column;
+  }
+}

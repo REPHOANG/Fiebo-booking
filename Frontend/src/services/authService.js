@@ -37,6 +37,7 @@ export const register = async (data) => {
       password: data.password,
       confirmPassword: data.confirmPassword,
       dateOfBirth: data.dateOfBirth,
+      role: data.role || 'Customer',
     });
     const res = response.data;
     return {
