@@ -27,15 +27,15 @@ const AdminLayout = () => {
           <NavLink to="/admin" end>
             Tổng quan
           </NavLink>
-          <NavLink to="/admin/audit-logs">Audit log</NavLink>
-          <NavLink to="/admin/reports">Export report</NavLink>
-          <NavLink to="/admin/customers">Khach hang</NavLink>
-          <NavLink to="/admin/venues">Khoa/mo san</NavLink>
-          <NavLink to="/admin/owners">Owner profile</NavLink>
-          <NavLink to="/admin/venue-registrations">Duyet dang ky san</NavLink>
-          <NavLink to="/admin/finance-admins">Finance admin</NavLink>
-          <NavLink to="/admin/sports">Sport catalog</NavLink>
-          <NavLink to="/admin/policies">Policies</NavLink>
+          <NavLink to="/admin/audit-logs">Nhật ký kiểm toán</NavLink>
+          <NavLink to="/admin/reports">Báo cáo xuất</NavLink>
+          <NavLink to="/admin/customers">Khách hàng</NavLink>
+          <NavLink to="/admin/venues">Khóa/mở sân</NavLink>
+          <NavLink to="/admin/owners">Hồ sơ chủ sở hữu</NavLink>
+          <NavLink to="/admin/venue-registrations">Duyệt đăng ký sân</NavLink>
+          <NavLink to="/admin/finance-admins">Quản trị tài chính</NavLink>
+          <NavLink to="/admin/sports">Danh mục thể thao</NavLink>
+          <NavLink to="/admin/policies">Chính sách</NavLink>
         </nav>
       </aside>
 

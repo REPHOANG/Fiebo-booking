@@ -9,7 +9,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setRegistrationPending } from '../../store/authSlice';
 import { register } from '../../services/authService';
-import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
 import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
@@ -87,6 +86,7 @@ const Register = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
   const isOwnerFlow = accountRole === 'FieldOwner';
   const loginPath = '/login';
   const loginText = isOwnerFlow ? 'Đăng nhập' : 'Đăng nhập tại đây';
@@ -106,6 +106,7 @@ const Register = ({
 
   const onSubmit = async (data) => {
     setIsLoading(true);
+    setServerError('');
     try {
       await register({
         fullName: data.fullName,
@@ -118,24 +119,14 @@ const Register = ({
       });
 
       dispatch(setRegistrationPending({ email: data.email, phone: data.phone || '' }));
-
-      toast.success(
-        isOwnerFlow
-          ? '✅ Tài khoản Owner đã tạo! Vui lòng kiểm tra email để lấy mã OTP'
-          : '✅ Tài khoản đã tạo! Vui lòng kiểm tra email để lấy mã OTP',
-        {
-        position: 'top-right',
-        autoClose: 4000,
-        },
-      );
       onClose?.();
       navigate('/verify-otp');
     } catch (error) {
       const errorMsg = error.message || error.details || 'Đăng ký thất bại';
       if (errorMsg.toLowerCase().includes('already exist')) {
-        toast.error('Email hoặc số điện thoại đã được đăng ký', { position: 'top-right', autoClose: 3000 });
+        setServerError('Email hoặc số điện thoại đã được đăng ký');
       } else {
-        toast.error(errorMsg, { position: 'top-right', autoClose: 3000 });
+        setServerError(errorMsg);
       }
     } finally {
       setIsLoading(false);
@@ -291,6 +282,10 @@ const Register = ({
           </div>
           { (errors.agreeTerms && (isSubmitted || submitCount > 0)) && (
             <p className="field-error">{errors.agreeTerms.message}</p>
+          )}
+
+          {serverError && (
+            <p className="field-error server-error">{serverError}</p>
           )}
 
           <button

@@ -33,19 +33,17 @@ const FinanceAdminLayout = () => {
           <NavLink to="/finance-admin" end>
             Tong quan
           </NavLink>
-          <NavLink to="/finance-admin/owner-payouts">Owner payout</NavLink>
+          <NavLink to="/finance-admin/owner-payouts">Thanh toán cho chủ sân</NavLink>
           <NavLink to="/finance-admin/process-owner-payouts">
-            Process owner payout
+            Xử lý thanh toán cho chủ sân
           </NavLink>
           <NavLink to="/finance-admin/owner-subscription-transactions">
-            Owner subscriptions
+            Giao dịch đăng ký của chủ sân
           </NavLink>
-          <NavLink to="/finance-admin/revenue-reports">Revenue report</NavLink>
-          <NavLink to="/finance-admin/withdrawal-requests">
-            Withdrawal requests
-          </NavLink>
+          <NavLink to="/finance-admin/revenue-reports">Báo cáo doanh thu</NavLink>
+          <NavLink to="/finance-admin/withdrawal-requests">Yêu cầu rút tiền</NavLink>
           <NavLink to="/finance-admin/process-withdrawal-requests">
-            Process withdrawals
+            Xử lý yêu cầu rút tiền
           </NavLink>
         </nav>
       </aside>
@@ -73,7 +71,7 @@ const FinanceAdminLayout = () => {
               onClick={handleLogout}
             >
               <LogOut size={16} />
-              <span>Dang xuat</span>
+              <span>Đăng xuất</span>
             </button>
           </div>
         </header>

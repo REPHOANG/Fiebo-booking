@@ -88,6 +88,15 @@ body::before {
   background: #fff5f5 !important;
 }
 
+.server-error {
+  font-size: 13px;
+  padding: 8px 10px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
 .input-error:focus {
   box-shadow: 0 0 0 3px rgba(229,62,62,0.15) !important;
 }
