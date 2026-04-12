@@ -38,6 +38,7 @@
     "react-scripts": "5.0.1",
     "react-spinners": "^0.17.0",
     "react-toastify": "^11.0.5",
+    "recharts": "^3.8.1",
     "sass": "^1.97.3",
     "sweetalert2": "^11.26.22",
     "web-vitals": "^2.1.4",

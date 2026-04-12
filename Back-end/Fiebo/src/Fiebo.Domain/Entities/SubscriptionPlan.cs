@@ -14,5 +14,6 @@ namespace Fiebo.Domain.Entities
 
         // Navigation
         public ICollection<OwnerPlan> OwnerPlans { get; set; } = [];
+        public ICollection<SubscriptionTransaction> SubscriptionTransactions { get; set; } = [];
     }
 }

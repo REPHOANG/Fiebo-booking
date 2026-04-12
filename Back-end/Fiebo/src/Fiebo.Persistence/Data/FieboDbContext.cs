@@ -42,6 +42,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<BookingServiceItem> BookingServiceItems { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
         public DbSet<OwnerPlan> OwnerPlans { get; set; }
+        public DbSet<SubscriptionTransaction> SubscriptionTransactions { get; set; }
         public DbSet<PayoutBatch> PayoutBatches { get; set; }
         public DbSet<Payout> Payouts { get; set; }
         public DbSet<PayoutDetail> PayoutDetails { get; set; }
@@ -614,7 +615,6 @@ namespace Fiebo.Persistence.Data
                 entity.HasKey(x => x.Id);
                 entity.Property(x => x.Id).ValueGeneratedOnAdd();
                 entity.Property(x => x.OwnerId).HasMaxLength(450).IsRequired();
-                entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
                 entity.Property(x => x.Status).HasConversion<int>();
 
                 entity.HasOne(op => op.Plan)
@@ -625,6 +625,28 @@ namespace Fiebo.Persistence.Data
                 entity.HasOne<ApplicationUser>()
                       .WithMany()
                       .HasForeignKey(op => op.OwnerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.OwnerId).IsUnique();
+            });
+
+            // SubscriptionTransaction
+            modelBuilder.Entity<SubscriptionTransaction>(entity =>
+            {
+                entity.ToTable("SubscriptionTransactions");
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+                entity.Property(x => x.Amount).HasPrecision(12, 2).IsRequired();
+                entity.Property(x => x.PaidAt).IsRequired();
+
+                entity.HasOne(x => x.OwnerPlan)
+                      .WithMany(x => x.SubscriptionTransactions)
+                      .HasForeignKey(x => x.OwnerPlanId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(x => x.Plan)
+                      .WithMany(x => x.SubscriptionTransactions)
+                      .HasForeignKey(x => x.PlanId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 

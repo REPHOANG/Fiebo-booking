@@ -10,6 +10,7 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IOwnerPlanRepository : IRepository<OwnerPlan>
     {
-        Task<OwnerPlan?> GetLatestActiveAsync(string ownerId, int planId);
+        Task<OwnerPlan?> GetByOwnerIdAsync(string ownerId);
+        Task<OwnerPlan?> GetCurrentActiveByOwnerIdAsync(string ownerId);
     }
 }

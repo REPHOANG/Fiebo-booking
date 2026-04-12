@@ -27,3 +27,35 @@ export const subscribeOwnerToPlan = async (planId) => {
     data,
   };
 };
+
+const mapOwnerPlan = (p) => ({
+  ownerPlanId: Number(p?.ownerPlanId ?? p?.OwnerPlanId ?? 0),
+  planId: Number(p?.planId ?? p?.PlanId ?? 0),
+  planName: p?.planName ?? p?.PlanName ?? "",
+  durationDays: Number(p?.durationDays ?? p?.DurationDays ?? 0),
+  amountPaid: Number(p?.amountPaid ?? p?.AmountPaid ?? 0),
+  startDate: p?.startDate ?? p?.StartDate ?? null,
+  endDate: p?.endDate ?? p?.EndDate ?? null,
+  remainingDays: Number(p?.remainingDays ?? p?.RemainingDays ?? 0),
+  isExpired: Boolean(p?.isExpired ?? p?.IsExpired ?? false),
+  paidAt: p?.paidAt ?? p?.PaidAt ?? null,
+});
+
+/**
+ * GET `/api/owner/subscriptions/overview` — thông tin gói hiện tại + lịch sử mua.
+ */
+export const getOwnerSubscriptionOverview = async () => {
+  const res = await api.get("/api/owner/subscriptions/overview");
+  const raw = res.data?.data ?? res.data?.Data ?? {};
+
+  const rawCurrentPlan = raw?.currentPlan ?? raw?.CurrentPlan ?? null;
+  const rawPurchaseHistory =
+    raw?.purchaseHistory ?? raw?.PurchaseHistory ?? raw?.history ?? raw?.History ?? [];
+
+  return {
+    currentPlan: rawCurrentPlan ? mapOwnerPlan(rawCurrentPlan) : null,
+    purchaseHistory: Array.isArray(rawPurchaseHistory)
+      ? rawPurchaseHistory.map(mapOwnerPlan)
+      : [],
+  };
+};

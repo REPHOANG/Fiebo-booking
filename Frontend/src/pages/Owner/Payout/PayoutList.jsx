@@ -30,11 +30,12 @@ const parseDateSafe = (value) => {
 
 const formatDateLabel = (value) => {
   const date = parseDateSafe(value);
-  if (!date) return '--/--';
+  if (!date) return '--/--/----';
 
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}/${month}`;
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
 };
 
 const mapPayoutItem = (item, index) => {

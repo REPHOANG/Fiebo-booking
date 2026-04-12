@@ -15,6 +15,7 @@ namespace Fiebo.Persistence.Repositories
         private readonly FieboDbContext _context;
         private IDbContextTransaction? _transaction;
 
+        public IAdminDashboardRepository AdminDashboard { get; }
         public IWalletRepository Wallets { get; }
         public IBookingRepository Bookings { get; }
         public IVenueRepository Venues { get; }
@@ -41,11 +42,13 @@ namespace Fiebo.Persistence.Repositories
         public IVenueServiceItemRepository VenueServiceItems { get; }
         public ISubscriptionPlanRepository SubscriptionPlans { get; }
         public IOwnerPlanRepository OwnerPlans { get; }
+        public ISubscriptionTransactionRepository SubscriptionTransactions { get; }
         public ICancelBookingRepository CancelBooking { get; }
         public IUserBankAccountRepository UserBankAccounts { get; }
         public IPayoutRepository Payouts { get; }
 
         public UnitOfWork(FieboDbContext context,
+            IAdminDashboardRepository adminDashboardRepository,
             IWalletRepository walletRepository,
             IBookingRepository bookingRepository,
             IVenueRepository venueRepository,
@@ -68,6 +71,7 @@ namespace Fiebo.Persistence.Repositories
             IVenueServiceItemRepository venueServiceItemRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
             IOwnerPlanRepository ownerPlanRepository,
+            ISubscriptionTransactionRepository subscriptionTransactionRepository,
             ICancelBookingRepository cancelBookingRepository,
             IUserBankAccountRepository userBankAccountRepository,
             IPayoutRepository payoutRepository
@@ -75,6 +79,7 @@ namespace Fiebo.Persistence.Repositories
             )
         {
             _context = context;
+            AdminDashboard = adminDashboardRepository;
             Wallets = walletRepository;
             Bookings = bookingRepository;
             Venues = venueRepository;
@@ -98,6 +103,7 @@ namespace Fiebo.Persistence.Repositories
             VenueServiceItems = venueServiceItemRepository;
             SubscriptionPlans = subscriptionPlanRepository;
             OwnerPlans = ownerPlanRepository;
+            SubscriptionTransactions = subscriptionTransactionRepository;
             CancelBooking = cancelBookingRepository;
             UserBankAccounts = userBankAccountRepository;
             Payouts = payoutRepository;

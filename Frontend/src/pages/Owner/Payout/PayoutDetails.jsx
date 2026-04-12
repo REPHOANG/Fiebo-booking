@@ -231,7 +231,7 @@ export default function PayoutDetails() {
               </div>
               <div>
                 <p style={{ ...fontStyle, fontSize: '16px', fontWeight: 700, color: '#191c1e', margin: '0 0 4px 0' }}>
-                  {financialSummary?.accountHolderName || '--'}
+                  {financialSummary?.accountHolderName?.toUpperCase() || '--'}
                 </p>
                 <p style={{ ...fontStyle, fontSize: '13px', color: '#45464d', margin: 0, letterSpacing: '0.02em' }}>
                   Ngân hàng: {financialSummary?.bankName || '--'} | Số tài khoản: {financialSummary?.accountNumber || financialSummary?.maskedAccountNumber || '--'}
@@ -289,9 +289,6 @@ export default function PayoutDetails() {
                     <div>
                       <p style={{ ...fontStyle, fontSize: '16px', fontWeight: 800, color: '#191c1e', margin: '0 0 4px 0' }}>
                         {formatVND(Number(venue?.subtotal || 0))}
-                      </p>
-                      <p style={{ ...fontStyle, fontSize: '10px', color: '#45464d', fontWeight: 700, letterSpacing: '0.05em', margin: 0 }}>
-                        TẠM TÍNH
                       </p>
                     </div>
                     {isExpanded ? <ExpandLess /> : <ExpandMore />}
@@ -356,12 +353,6 @@ export default function PayoutDetails() {
               </p>
             </Paper>
           ) : null}
-        </div>
-
-        <div style={{ paddingTop: '32px', borderTop: '1px solid rgba(0,0,0,0.1)', textAlign: 'center' }}>
-          <p style={{ ...fontStyle, fontSize: '10px', color: '#45464d', fontWeight: 500, letterSpacing: '0.1em', margin: 0 }}>
-            Mã giao dịch: PAY-{id || '--'} | Ngày tạo: {formatDateTime(generalInfo?.createdAt)}
-          </p>
         </div>
       </Container>
     </div>

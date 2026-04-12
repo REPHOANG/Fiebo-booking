@@ -103,9 +103,11 @@ builder.Services.AddScoped<IFieldImageRepository, FieldImageRepository>();
 builder.Services.AddScoped<IVenueServiceItemRepository, VenueServiceItemRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IOwnerPlanRepository, OwnerPlanRepository>();
+builder.Services.AddScoped<ISubscriptionTransactionRepository, SubscriptionTransactionRepository>();
 builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
 builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
 builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
@@ -136,6 +138,9 @@ builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IPayoutService, PayoutService>();
+builder.Services.AddScoped<ISportTypeService, SportTypeService>();
+builder.Services.AddScoped<IFinanceAdminService, FinanceAdminService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
 builder.Services.AddHttpClient();
 
