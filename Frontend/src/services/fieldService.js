@@ -276,15 +276,19 @@ export const searchVenues = async ({
   radiusKm,
   userLat,
   userLng,
+  provinceId,
+  wardId,
 } = {}) => {
   const params = { page, pageSize };
-  if (location) params.location = location;
+  if (location) params.name = location;
   if (date) params.date = date;
   if (time) params.time = time;
   if (sportTypeId != null && sportTypeId !== '') params.sportTypeId = sportTypeId;
   if (radiusKm != null) params.radiusKm = radiusKm;
   if (userLat != null) params.userLat = userLat;
   if (userLng != null) params.userLng = userLng;
+  if (provinceId != null && provinceId !== '') params.provinceId = provinceId;
+  if (wardId != null && wardId !== '') params.wardId = wardId;
   const response = await api.get('/api/Venue/search', { params });
   const raw = response.data?.data ?? response.data ?? {};
   const items = raw.items ?? raw.Items ?? [];

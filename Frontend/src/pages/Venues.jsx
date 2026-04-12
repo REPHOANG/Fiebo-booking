@@ -380,6 +380,8 @@ const Venues = () => {
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
   const [appliedBookingDate, setAppliedBookingDate] = useState("");
   const [appliedBookingTime, setAppliedBookingTime] = useState("");
+  const [appliedProvinceId, setAppliedProvinceId] = useState("");
+  const [appliedWardId, setAppliedWardId] = useState("");
   const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
 
   const sportDraftMismatch =
@@ -505,6 +507,8 @@ const Venues = () => {
         appliedBookingDate,
         appliedBookingTime,
         appliedRadiusKm ?? "",
+        appliedProvinceId,
+        appliedWardId,
       ].join("|"),
     [
       searchTerm,
@@ -514,6 +518,8 @@ const Venues = () => {
       appliedBookingDate,
       appliedBookingTime,
       appliedRadiusKm,
+      appliedProvinceId,
+      appliedWardId,
     ],
   );
 
@@ -549,6 +555,8 @@ const Venues = () => {
           appliedRadiusKm > 0
             ? { radiusKm: appliedRadiusKm }
             : {}),
+          ...(appliedProvinceId ? { provinceId: appliedProvinceId } : {}),
+          ...(appliedWardId ? { wardId: appliedWardId } : {}),
         });
 
         if (seq !== fetchSeqRef.current) return;
@@ -584,6 +592,8 @@ const Venues = () => {
       appliedBookingDate,
       appliedBookingTime,
       appliedRadiusKm,
+      appliedProvinceId,
+      appliedWardId,
     ],
   );
 
@@ -689,6 +699,8 @@ const Venues = () => {
     setAppliedRadiusKm(null);
     setAppliedBookingDate(pendingBookingDate);
     setAppliedBookingTime(pendingBookingTime);
+    setAppliedProvinceId(selectedProvinceId);
+    setAppliedWardId(selectedDistrictId);
     commitSportToUrl();
     applyPendingSearchText();
     setShowFilterPanel(false);
@@ -770,6 +782,8 @@ const Venues = () => {
     setAppliedRadiusKm(null);
     setAppliedBookingDate("");
     setAppliedBookingTime("");
+    setAppliedProvinceId("");
+    setAppliedWardId("");
     setSearchTerm("");
     setInputValue("");
     setSearchParams(
