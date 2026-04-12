@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import {
   MapPin, Star, Search, Frown, X, Clock,
   Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
-  MessageSquare, User, Loader2, SlidersHorizontal, Heart, Navigation, Dumbbell,
+  MessageSquare, User, Loader2, SlidersHorizontal, Navigation, Dumbbell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -44,22 +44,6 @@ const formatTimeForApi = (t) => {
 };
 
 /* ── Helpers ──────────────────────────────────────────────────── */
-const readStoredUserGeo = () => {
-  try {
-    const raw = localStorage.getItem("userLocation");
-    if (!raw) return { userLat: null, userLng: null };
-    const j = JSON.parse(raw);
-    if (j?.lat != null && j?.lng != null) {
-      const userLat = Number(j.lat);
-      const userLng = Number(j.lng);
-      if (Number.isFinite(userLat) && Number.isFinite(userLng)) {
-        return { userLat, userLng };
-      }
-    }
-  } catch (_) {}
-  return { userLat: null, userLng: null };
-};
-
 const formatRelativeTime = (dateStr) => {
   if (!dateStr) return "";
   const now = new Date();
@@ -355,7 +339,7 @@ const Venues = () => {
   const [inputValue, setInputValue] = useState(initialSearch);
   const [totalItems, setTotalItems] = useState(0);
   /** Đọc vị trí đã lưu ngay khi khởi tạo để tránh hai lần đổi `filtersKey` → hai request chồng chéo, response cũ ghi đè danh sách. */
-  const [userGeo, setUserGeo] = useState(() => readStoredUserGeo());
+  const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
 
   // Add filter panel state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -684,15 +668,17 @@ const Venues = () => {
 
   const getPendingSearchText = () => {
     if (pendingKeyword) return pendingKeyword;
+    // Khi đã chọn tỉnh/quận bằng ID, không gửi tên làm search text
+    if (selectedProvinceId) return "";
     return [province, district].filter(Boolean).join(" ").trim();
   };
 
   const applyPendingSearchText = () => {
     const text = getPendingSearchText();
-    if (text) {
-      setSearchTerm(text);
-      setInputValue(text);
-    }
+    setSearchTerm(text || "");
+    // Hiển thị tên tỉnh/quận trên ô tìm kiếm dù không gửi làm search text
+    const display = pendingKeyword || [province, district].filter(Boolean).join(" ").trim();
+    if (display) setInputValue(display);
   };
 
   const applyAreaFilter = () => {
@@ -722,9 +708,6 @@ const Venues = () => {
 
     const finish = (lat, lng) => {
       setUserGeo({ userLat: lat, userLng: lng });
-      try {
-        localStorage.setItem("userLocation", JSON.stringify({ lat, lng }));
-      } catch (_) {}
       setAppliedRadiusKm(r);
       commitSportToUrl();
       applyPendingSearchText();
@@ -1036,12 +1019,6 @@ const Venues = () => {
                           )}
                         </div>
                       </div>
-                    </div>
-                    <div className="filter-save-row">
-                      <button className="venues-save-location" type="button">
-                        <Heart size={17} strokeWidth={2} />
-                        Lưu địa điểm
-                      </button>
                     </div>
                   </div>
                 )}
