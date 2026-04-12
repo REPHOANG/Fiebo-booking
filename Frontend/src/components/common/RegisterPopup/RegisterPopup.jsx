@@ -16,7 +16,6 @@ const RegisterPopup = ({
   const modal = (
     <div
       className="login-popup-overlay register-popup-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Đăng ký"

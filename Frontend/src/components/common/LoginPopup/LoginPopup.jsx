@@ -13,7 +13,6 @@ const LoginPopup = ({ open, onClose, onOpenRegister, redirectAfterLogin }) => {
   const modal = (
     <div
       className="login-popup-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Đăng nhập"
