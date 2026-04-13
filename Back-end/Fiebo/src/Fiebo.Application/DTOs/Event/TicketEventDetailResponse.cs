@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +9,7 @@ namespace Fiebo.Application.DTOs.Event
     public class TicketEventDetailResponse
     {
         public int EventId { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         public string VenueName { get; set; } = null!;
         public string VenueAddress { get; set; } = null!;

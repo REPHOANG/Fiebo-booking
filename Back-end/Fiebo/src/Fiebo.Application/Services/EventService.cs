@@ -86,6 +86,7 @@ namespace Fiebo.Application.Services
 
             var ticketEvent = new TicketEvent
             {
+                Name = request.Name,
                 EventDate = request.EventDate,
                 PricePerPerson = request.PricePerPerson,
                 MinPlayer = request.MinPlayer,
@@ -129,6 +130,7 @@ namespace Fiebo.Application.Services
                 return new DropInEventListItemResponse
                 {
                     EventId = e.Id,
+                    Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
@@ -175,6 +177,7 @@ namespace Fiebo.Application.Services
             return new TicketEventDetailResponse
             {
                 EventId = eventDetail.Id,
+                Name = eventDetail.Name,
                 VenueName = firstDetail.Field.Venue?.Name ?? "",
                 VenueAddress = address,
                 EventDate = eventDetail.EventDate,
@@ -212,6 +215,7 @@ namespace Fiebo.Application.Services
                 ParticipantId = participant.Id,
                 Fullname = participant.Fullname,
                 PhoneNumber = participant.PhoneNumber,
+                EventName = participant.Event.Name,
                 EventDate = participant.Event.EventDate,
                 TicketQuantity = participant.TicketQuantity,
                 PricePerTicket = participant.PricePerTicket,
@@ -377,6 +381,7 @@ namespace Fiebo.Application.Services
             return new OwnerTicketEventDetailResponse
             {
                 Id = ticketEvent.Id,
+                Name = ticketEvent.Name,
                 Description = ticketEvent.Description,
                 EventDate = ticketEvent.EventDate,
                 MinPlayer = ticketEvent.MinPlayer,
@@ -419,6 +424,10 @@ namespace Fiebo.Application.Services
                 throw new Exception("Không thể chỉnh sửa vì đã có người chơi đăng ký tham gia.");
             }
 
+            if (!string.IsNullOrEmpty(request.Name))
+            {
+                ticketEvent.Name = request.Name;
+            }
             ticketEvent.Description = request.Description;
             ticketEvent.MinPlayer = request.MinPlayer;
             ticketEvent.MaxPlayer = request.MaxPlayer;
@@ -458,6 +467,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu");
             }
 
+            dropInEvent.Name = request.Name;
             dropInEvent.PricePerPerson = request.PricePerPerson;
             dropInEvent.MinPlayer = request.MinPlayer;
             dropInEvent.MaxPlayer = request.MaxPlayer;
@@ -476,6 +486,7 @@ namespace Fiebo.Application.Services
                 return new OwnerDropInEventListItemResponse
                 {
                     EventId = e.Id,
+                    Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
@@ -511,6 +522,7 @@ namespace Fiebo.Application.Services
                 {
                     TicketParticipantId = tp.Id,
                     EventId = tp.EventId,
+                    Name = tp.Event.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = tp.Event.EventDate,
                     TicketQuantity = tp.TicketQuantity,

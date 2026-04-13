@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +8,7 @@ namespace Fiebo.Application.DTOs.Event
 {
     public class UpdateDropInEventRequest
     {
+        public string? Name { get; set; }
         public string? Description { get; set; }
         public int MinPlayer { get; set; }
         public int MaxPlayer { get; set; }
