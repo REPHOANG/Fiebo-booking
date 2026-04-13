@@ -40,5 +40,19 @@ namespace Fiebo.API.Services
 
             await _sseService.SendToUserAsync(userId, payload);
         }
+
+        public async Task NotifyEventCancelledByOwnerAsync(string userId, int eventId, string eventName, string? cancelNote, decimal refundAmount)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "event_cancelled_by_owner",
+                eventId,
+                eventName,
+                cancelNote,
+                refundAmount
+            });
+
+            await _sseService.SendToUserAsync(userId, payload);
+        }
     }
 }

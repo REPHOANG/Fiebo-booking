@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
@@ -36,6 +36,13 @@ namespace Fiebo.Persistence.Repositories
                 .ThenInclude(te => te.Details)
                     .ThenInclude(d => d.Slot)
                 .FirstOrDefaultAsync(tp => tp.Id == participantId);
+        }
+
+        public async Task<List<TicketParticipant>> GetJoinedParticipantsByEventIdAsync(int eventId)
+        {
+            return await _context.TicketParticipants
+                .Where(tp => tp.EventId == eventId && tp.Status == TicketParticipantStatus.Joined)
+                .ToListAsync();
         }
 
         public async Task<(List<TicketParticipant> Items, int TotalCount)> GetCustomerEventHistoryAsync(
