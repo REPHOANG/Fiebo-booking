@@ -1,7 +1,7 @@
-import React from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import React, { useEffect, useRef } from "react";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Building2, MapPin, MapPinned } from "lucide-react";
+import { Building2, MapPin, MapPinned, Plus, X } from "lucide-react";
 
 // Fix Leaflet default marker icons (Vite/CRA asset resolution)
 try {
@@ -23,6 +23,30 @@ function MapClickHandler({ onPick }) {
       onPick?.(e.latlng.lat, e.latlng.lng);
     },
   });
+  return null;
+}
+
+function MapViewportController({ center, shouldAnimate }) {
+  const map = useMap();
+  const lastCenterRef = useRef(null);
+
+  useEffect(() => {
+    if (!Array.isArray(center) || center.length !== 2) return;
+    const [lat, lng] = center;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const nextKey = `${lat}:${lng}`;
+    if (lastCenterRef.current === nextKey) return;
+    lastCenterRef.current = nextKey;
+
+    if (shouldAnimate) {
+      map.flyTo(center, Math.max(map.getZoom(), 16), { duration: 1.2 });
+      return;
+    }
+
+    map.setView(center, map.getZoom());
+  }, [center, map, shouldAnimate]);
+
   return null;
 }
 
@@ -50,6 +74,8 @@ export default function CreateVenueStepBasic({
   pickedPosition,
   pickCoords,
   useMyLocation,
+  isLocating,
+  isLocationButtonDisabled = false,
   isSubmitting,
   onCancel,
   /** Ảnh đại diện đã có trên server (tiếp tục từ bản nháp) */
@@ -80,45 +106,65 @@ export default function CreateVenueStepBasic({
 
           <div className="cv-form-group cv-full-width">
             <label>Ảnh đại diện cơ sở (tùy chọn)</label>
-            <input
-              ref={thumbnailInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
-            />
-            {thumbnailFile ? (
-              <div className="cv-thumb-meta">
-                <p className="cv-wizard-hint cv-thumb-name">
-                  Đã chọn: <strong>{thumbnailFile.name}</strong>
-                </p>
-                <button
-                  type="button"
-                  className="cv-thumb-remove-btn"
-                  onClick={() => {
-                    setThumbnailFile(null);
-                    if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
-                  }}
-                >
-                  Xóa ảnh
-                </button>
-              </div>
-            ) : null}
-            {thumbnailPreviewUrl ? (
-              <div className="cv-thumb-preview">
-                <img
-                  src={thumbnailPreviewUrl}
-                  alt="Xem trước ảnh đại diện cơ sở"
-                  className="cv-thumb-preview-img"
-                />
-              </div>
-            ) : null}
+            <span className="cv-doc-gallery-label">
+              Ảnh đại diện cơ sở
+              <span className="cv-doc-gallery-sublabel">
+                Tối đa 1 ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn file · bấm X để gỡ ảnh khỏi form
+              </span>
+            </span>
+            <ul className="cv-doc-gallery cv-doc-gallery--thumbnail" aria-label="Ảnh đại diện cơ sở">
+              {thumbnailPreviewUrl ? (
+                <li className="cv-doc-gallery-item">
+                  <div className="cv-doc-gallery-tile cv-doc-gallery-tile--thumbnail">
+                    <img
+                      src={thumbnailPreviewUrl}
+                      alt="Xem trước ảnh đại diện cơ sở"
+                      title={thumbnailFile?.name || "Ảnh đại diện cơ sở"}
+                    />
+                    <button
+                      type="button"
+                      className="cv-doc-gallery-remove"
+                      aria-label="Xóa ảnh đại diện"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setThumbnailFile(null);
+                        if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+                      }}
+                    >
+                      <X size={14} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </li>
+              ) : null}
+              {!thumbnailPreviewUrl && existingThumbnailUrl ? (
+                <li className="cv-doc-gallery-item">
+                  <div className="cv-doc-gallery-tile cv-doc-gallery-tile--server cv-doc-gallery-tile--thumbnail">
+                    <img src={existingThumbnailUrl} alt="Ảnh đại diện đang dùng" />
+                    <span className="cv-doc-gallery-badge">Đã lưu</span>
+                  </div>
+                </li>
+              ) : null}
+              {!thumbnailPreviewUrl ? (
+                <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
+                  <label className="cv-doc-gallery-add cv-doc-gallery-add--thumbnail">
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="cv-doc-file-input-sr-only"
+                      onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
+                    />
+                    <Plus size={26} strokeWidth={2.2} aria-hidden />
+                    <span className="cv-doc-gallery-add-text">Thêm ảnh</span>
+                  </label>
+                </li>
+              ) : null}
+            </ul>
             {!thumbnailPreviewUrl && existingThumbnailUrl ? (
-              <div className="cv-thumb-preview">
-                <p className="cv-wizard-hint" style={{ marginBottom: 8 }}>
-                  Ảnh đại diện đang dùng (đã lưu trên máy chủ)
-                </p>
-                <img src={existingThumbnailUrl} alt="" className="cv-thumb-preview-img" />
-              </div>
+              <p className="cv-wizard-hint cv-doc-gallery-hint">
+                Ảnh đại diện đang dùng (đã lưu trên máy chủ).
+              </p>
             ) : null}
           </div>
 
@@ -198,27 +244,24 @@ export default function CreateVenueStepBasic({
               <MapPinned size={18} /> Vị trí trên bản đồ
             </h3>
             <div className="cv-map-actions">
-              <button type="button" className="cv-map-btn" onClick={useMyLocation}>
-                Dùng vị trí hiện tại
-              </button>
-              {hasCoords ? (
-                <a
-                  className="cv-map-link"
-                  href={`https://www.google.com/maps?q=${lat},${lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MapPin size={14} /> Mở trong Google Maps
-                </a>
-              ) : null}
             </div>
             <div className="cv-map-wrapper">
+              <button
+                type="button"
+                className="cv-map-btn cv-map-btn--overlay"
+                onClick={useMyLocation}
+                disabled={isLocationButtonDisabled}
+                aria-busy={isLocating}
+              >
+                {isLocating ? "Đang định vị..." : "Dùng vị trí hiện tại"}
+              </button>
               <MapContainer
                 center={pickedPosition}
                 zoom={16}
                 scrollWheelZoom={true}
                 className="cv-map-leaflet"
               >
+                <MapViewportController center={pickedPosition} shouldAnimate={hasCoords} />
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
