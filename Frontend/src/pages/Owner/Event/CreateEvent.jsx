@@ -7,6 +7,7 @@ import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
+import { Maximize } from "@mui/icons-material";
 
 const createEventFormSchema = yup.object({
   venueId: yup.string().required("Vui lòng chọn cơ sở."),
@@ -22,19 +23,20 @@ const createEventFormSchema = yup.object({
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối thiểu phải lớn hơn 0")
-    .required(),
+    .required("Nhập số người tối thiểu"),
   maxPlayer: yup
     .number()
+    .max(50, "Số người tối đa không được vượt quá 50")
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối đa không hợp lệ")
-    .required()
+    .required("Nhập số người tối đa")
     .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
       const min = this.parent.minPlayer;
       if (min == null || max == null) return true;
       return max >= min;
     }),
-  description: yup.string().optional(),
+  description: yup.string().max(200, "Mô tả không được vượt quá 200 ký tự").optional(),
 });
 
 const formatPrice = (n) => {
@@ -175,7 +177,7 @@ const CreateEvent = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [slotSelectionError, setSlotSelectionError] = useState(false);
-  const [expandedFieldId, setExpandedFieldId] = useState(null);
+  const [expandedFieldIds, setExpandedFieldIds] = useState([]);
   /** "" = tất cả loại sân; khác thì lọc theo sportTypeName */
   const [sportTypeFilter, setSportTypeFilter] = useState("");
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
@@ -255,7 +257,7 @@ const CreateEvent = () => {
     setSchedule(null);
     setEventListForDate([]);
     setSelectedDetails([]);
-    setExpandedFieldId(null);
+    setExpandedFieldIds([]);
     setSportTypeFilter("");
     const id = Number(nextVenueId);
     if (!id) {
@@ -283,7 +285,7 @@ const CreateEvent = () => {
     setVenue(null);
     setSchedule(null);
     setSelectedDetails([]);
-    setExpandedFieldId(null);
+    setExpandedFieldIds([]);
     setSportTypeFilter("");
     try {
       const v = await getVenueDetail(id);
@@ -307,7 +309,7 @@ const CreateEvent = () => {
     setSchedule(null);
     setEventListForDate([]);
     setSelectedDetails([]);
-    setExpandedFieldId(null);
+    setExpandedFieldIds([]);
     setSportTypeFilter("");
     try {
       const dateStr = eventDate.slice(0, 10);
@@ -362,10 +364,13 @@ const CreateEvent = () => {
 
   /** Sân đang mở "Phóng to" không còn trong danh sách sau khi lọc → thu gọn */
   useEffect(() => {
-    if (expandedFieldId == null) return;
-    const visible = filteredSlotsByField.some((g) => g.fieldId === expandedFieldId);
-    if (!visible) setExpandedFieldId(null);
-  }, [expandedFieldId, filteredSlotsByField]);
+    if (!expandedFieldIds.length) return;
+    const visibleIds = new Set(filteredSlotsByField.map((g) => g.fieldId));
+    setExpandedFieldIds((prev) => {
+      const next = prev.filter((fieldId) => visibleIds.has(fieldId));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [expandedFieldIds.length, filteredSlotsByField]);
 
   const toggleSlot = (item) => {
     if (item.status !== "available") return;
@@ -373,9 +378,7 @@ const CreateEvent = () => {
     setSelectedDetails((prev) => {
       const has = prev.some((d) => `${d.fieldId}-${d.slotId}` === key);
       if (has) return prev.filter((d) => `${d.fieldId}-${d.slotId}` !== key);
-      const mixed = prev.some((d) => d.fieldId !== item.fieldId);
-      const base = mixed ? prev.filter((d) => d.fieldId === item.fieldId) : prev;
-      return [...base, { fieldId: item.fieldId, slotId: item.slotId }];
+      return [...prev, { fieldId: item.fieldId, slotId: item.slotId }];
     });
     setSlotSelectionError(false);
   };
@@ -427,9 +430,6 @@ const CreateEvent = () => {
     <div className="owner-home create-event-page">
       <div className="owner-home-header">
         <h1>Tạo sự kiện</h1>
-        <Link to="/owner/events" className="oh-create-btn">
-          Danh sách
-        </Link>
       </div>
 
       <div className="owner-home-content">
@@ -514,7 +514,7 @@ const CreateEvent = () => {
             <div className="ce-section">
               <h3>Chọn khung giờ (ít nhất 1)</h3>
               <p className="ce-single-field-hint">
-                Một sự kiện chỉ dùng slot trên một sân. Phóng to sân khác sẽ bỏ chọn slot ở sân trước.
+                Có thể chọn slot trên nhiều sân. Bấm "Phóng to" ở nhiều sân để mở đồng thời các khung giờ cần chọn.
               </p>
               {sportTypeOptions.length > 0 && (
                 <div className="ce-row ce-sport-filter-row">
@@ -559,23 +559,20 @@ const CreateEvent = () => {
                           type="button"
                           className="ce-field-toggle"
                           onClick={() => {
-                            const prev = expandedFieldId;
                             const fid = group.fieldId;
-                            const next = prev === fid ? null : fid;
-                            setExpandedFieldId(next);
-                            if (next !== null && next !== prev) {
-                              setSelectedDetails((details) =>
-                                details.filter((d) => d.fieldId === next),
-                              );
-                            }
+                            setExpandedFieldIds((prev) =>
+                              prev.includes(fid)
+                                ? prev.filter((fieldId) => fieldId !== fid)
+                                : [...prev, fid],
+                            );
                           }}
                         >
-                          {expandedFieldId === group.fieldId ? "Thu nhỏ" : "Phóng to"}
+                          {expandedFieldIds.includes(group.fieldId) ? "Thu nhỏ" : "Phóng to"}
                         </button>
                       </div>
                     </div>
 
-                    {expandedFieldId === group.fieldId ? (
+                    {expandedFieldIds.includes(group.fieldId) ? (
                       <div className="ce-compact-grid">
                         {group.slots.map((item) => {
                           const disabled = item.status !== "available";

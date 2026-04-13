@@ -5,7 +5,6 @@ import { getEventList } from "../../services/eventService";
 import { getVenueDetail } from "../../services/fieldService";
 import "./EventList.css";
 
-const avatars = ["🧑‍🦱", "🧔", "👩‍🦰", "👨‍🦲", "👩‍🦱", "🧑‍🦳"];
 
 const normalize = (s) => String(s || "").trim().toLowerCase();
 const pick = (obj, ...keys) => {

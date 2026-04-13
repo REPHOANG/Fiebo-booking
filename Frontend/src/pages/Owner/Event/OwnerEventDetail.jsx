@@ -179,7 +179,6 @@ const OwnerEventDetail = () => {
     <div className="owner-home oed-page">
       <div className="owner-home-header">
         <h1>Chi tiết sự kiện #{d.id}</h1>
-        <Link to="/owner/events" className="oh-create-btn">Danh sách</Link>
       </div>
 
       <div className="owner-home-content">

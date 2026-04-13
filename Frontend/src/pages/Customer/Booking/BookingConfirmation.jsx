@@ -688,7 +688,7 @@ const BookingConfirmation = () => {
             return;
           }
           navigate(
-            `/booking/${venue?.id || "unknown"}/payment?bookingId=${bookingId}`,
+            `/booking/${bookingId}/payment`,
             {
               state: {
                 venue,

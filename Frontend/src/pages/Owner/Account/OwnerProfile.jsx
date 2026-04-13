@@ -314,57 +314,7 @@ const OwnerProfile = () => {
         </section>
       </div>
 
-      <section className="op-card op-card--wide op-payout-card">
-        <div className="op-payout-head">
-          <h2 className="op-card-title" style={{ marginBottom: 0 }}>
-            Payout
-          </h2>
-          <Link to="/owner/payout" className="op-btn op-btn--secondary op-btn--sm">
-            Xem tất cả
-          </Link>
-        </div>
-
-        <div className="op-payout-summary">
-          <div className="op-payout-stat">
-            <span>Tạm giữ chờ chi trả</span>
-            <strong>{formatVnd(pendingPayout)}</strong>
-          </div>
-          <div className="op-payout-stat">
-            <span>Lịch chi trả tiếp theo</span>
-            <strong>{nextPayoutLabel}</strong>
-          </div>
-        </div>
-
-        {payoutLoading ? (
-          <p className="op-muted">Đang tải dữ liệu payout…</p>
-        ) : recentPayouts.length === 0 ? (
-          <p className="op-muted">Chưa có giao dịch payout.</p>
-        ) : (
-          <div className="op-payout-list">
-            {recentPayouts.map((item, idx) => {
-              const id = item?.id ?? `payout-${idx}`;
-              const amount = Number(item?.amount || 0);
-              const fromDate = formatDateLabel(item?.fromDate);
-              const toDate = formatDateLabel(item?.toDate);
-              const statusLabel = translatePayoutStatus(item?.status);
-              return (
-                <div key={id} className="op-payout-item">
-                  <div>
-                    <p className="op-payout-item-title">Chi trả #{id}</p>
-                    <p className="op-payout-item-meta">
-                      {fromDate} - {toDate}
-                    </p>
-                  </div>
-                  <div className="op-payout-item-right">
-                    <strong>{formatVnd(amount)}</strong>
-                    <span>{statusLabel}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      
     </div>
   );
 };

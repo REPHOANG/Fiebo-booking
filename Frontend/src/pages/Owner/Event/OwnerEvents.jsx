@@ -45,9 +45,6 @@ const OwnerEvents = () => {
     <div className="owner-home owner-events-page">
       <div className="owner-home-header">
         <h1>Danh sách sự kiện</h1>
-        <Link to="/owner/events/create" className="oh-create-btn">
-          + Tạo sự kiện
-        </Link>
       </div>
 
       <div className="owner-home-content">

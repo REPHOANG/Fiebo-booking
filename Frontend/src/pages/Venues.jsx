@@ -793,22 +793,7 @@ const Venues = () => {
         </motion.p>
       </div>
 
-      {/* Quick stats */}
-      <div className="venues-stats">
-        <div className="stat-item">
-          <span className="stat-value">{totalItems}</span>
-          <span className="stat-label">Sân khả dụng</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value">{sportFilterOptions.length}</span>
-          <span className="stat-label">Môn thể thao</span>
-        </div>  
-        <div className="stat-item">
-          <span className="stat-value">10+</span>
-          <span className="stat-label">Thành phố</span>
-        </div>
-      </div>
-
+    
       {/* Search + advanced filters */}
       <div className={`venues-search-block ${showFilterPanel ? "venues-search-block--open" : ""}`}>
         <div className="venues-search-bar">

@@ -1303,48 +1303,48 @@ const BookingSchedule = () => {
                           >
                             <span className="bs-field-name">{getFieldDisplayName(field)}</span>
                           </div>
-                          {gSlots.map((gs, si) => {
-                            const sk = normalizeText(group.sportType);
-                            const continuationSet = slotContinuationStartsBySport.get(sk);
-                            if (continuationSet?.has(gs.label)) return null;
-                            const spanMap = slotSpanBySportAndStart.get(sk);
-                            const rawSpan = Number(spanMap?.get(gs.label) ?? 1);
-                            const span = Math.max(1, Math.min(rawSpan, gSlots.length - si));
-                            const globalSi = globalIdxForSlotLabel(gs.label);
-                            const eid =
-                              !isNoScheduleGroup && globalSi >= 0
+                          {isNoScheduleGroup ? (
+                            <div
+                              className="bs-cell no-config bs-cell-no-slot-merged"
+                              title="Sân này chưa có time slot"
+                              style={{ gridColumn: `span ${gSlots.length}` }}
+                            >
+                              Chưa có time slot
+                            </div>
+                          ) : (
+                            gSlots.map((gs, si) => {
+                              const sk = normalizeText(group.sportType);
+                              const continuationSet = slotContinuationStartsBySport.get(sk);
+                              if (continuationSet?.has(gs.label)) return null;
+                              const spanMap = slotSpanBySportAndStart.get(sk);
+                              const rawSpan = Number(spanMap?.get(gs.label) ?? 1);
+                              const span = Math.max(1, Math.min(rawSpan, gSlots.length - si));
+                              const globalSi = globalIdxForSlotLabel(gs.label);
+                              const eid = globalSi >= 0
                                 ? getEventIdForCell(field.originalIdx, globalSi)
                                 : null;
-                            const rem = eid != null ? remainingByEventId.get(eid) : undefined;
-                            const cellClass = isNoScheduleGroup
-                              ? "bs-cell no-config"
-                              : globalSi >= 0
+                              const cellClass = globalSi >= 0
                                 ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)} ${getLockedRunExtraClass(field.originalIdx, globalSi)}`.trim()
                                 : `bs-cell locked ${getOffGridLockedRunClass(si, gSlots)}`.trim();
-                            return (
-                              <div
-                                key={`${field.originalIdx}-${si}-${gs.label}`}
-                                className={cellClass}
-                                onClick={() =>
-                                  !isNoScheduleGroup && globalSi >= 0
-                                    ? handleCellClick(field.originalIdx, globalSi)
-                                    : undefined
-                                }
-                                role={
-                                  isNoScheduleGroup || isLocked(globalSi) ? undefined : eid != null ? "link" : "button"
-                                }
-                                data-event-nav={!isNoScheduleGroup && eid != null && !isLocked(globalSi) ? "true" : undefined}
-                                title={
-                                  isNoScheduleGroup
-                                    ? "Lịch trống — chưa cấu hình khung giờ cho môn này"
-                                    : eid != null
-                                      ? "Sự kiện — xem chi tiết"
+                              return (
+                                <div
+                                  key={`${field.originalIdx}-${si}-${gs.label}`}
+                                  className={cellClass}
+                                  onClick={() =>
+                                    globalSi >= 0
+                                      ? handleCellClick(field.originalIdx, globalSi)
                                       : undefined
-                                }
-                                style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
-                              />
-                            );
-                          })}
+                                  }
+                                  role={
+                                    isLocked(globalSi) ? undefined : eid != null ? "link" : "button"
+                                  }
+                                  data-event-nav={eid != null && !isLocked(globalSi) ? "true" : undefined}
+                                  title={eid != null ? "Sự kiện — xem chi tiết" : undefined}
+                                  style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
+                                />
+                              );
+                            })
+                          )}
                           <div />
                         </React.Fragment>
                       ))}
