@@ -17,7 +17,8 @@ const createEventFormSchema = yup.object({
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập phí hợp lệ")
     .required("Nhập phí tham gia")
-    .positive("Phí tham gia phải lớn hơn 0"),
+    .min(10000, "Phí tham gia tối thiểu là 10.000 VNĐ")
+    .max(500000, "Phí tham gia tối đa là 500.000 VNĐ"),
   minPlayer: yup
     .number()
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
@@ -152,7 +153,8 @@ const CreateEvent = () => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(createEventFormSchema),
-    mode: "onSubmit",
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       venueId: "",
       eventDate: "",
@@ -621,7 +623,8 @@ const CreateEvent = () => {
                 Phí tham gia (VNĐ/người)
                 <input
                   type="number"
-                  min={1}
+                  min={10000}
+                  max={500000}
                   placeholder="50000"
                   className={errors.pricePerPerson ? "ce-input-error" : ""}
                   {...register("pricePerPerson")}
@@ -637,6 +640,7 @@ const CreateEvent = () => {
                 <input
                   type="number"
                   min={1}
+                  max={50}
                   className={errors.minPlayer ? "ce-input-error" : ""}
                   {...register("minPlayer")}
                 />
@@ -646,7 +650,8 @@ const CreateEvent = () => {
                 Số người tối đa
                 <input
                   type="number"
-                  min={1}
+                  min={Number(watch("minPlayer")) || 1}
+                  max={50}
                   className={errors.maxPlayer ? "ce-input-error" : ""}
                   {...register("maxPlayer")}
                 />
@@ -654,13 +659,15 @@ const CreateEvent = () => {
               </label>
             </div>
             <label className="ce-full">
-              Mô tả (tuỳ chọn)
+              Mô tả (tối đa 200 ký tự)
               <textarea
                 className={errors.description ? "ce-input-error" : ""}
                 {...register("description")}
                 placeholder="VD: Bóng đá 5 người, giao lưu cuối tuần"
                 rows={3}
+                maxLength={200}
               />
+              {errors.description && <span className="ce-field-error">{errors.description.message}</span>}
             </label>
           </div>
 
