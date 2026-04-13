@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Building2, MapPin, MapPinned, Plus, X } from "lucide-react";
+import { Building2, Check, ChevronDown, MapPin, MapPinned, Plus, X } from "lucide-react";
 
 // Fix Leaflet default marker icons (Vite/CRA asset resolution)
 try {
@@ -50,6 +50,146 @@ function MapViewportController({ center, shouldAnimate }) {
   return null;
 }
 
+function splitTimeParts(value) {
+  const match = /^(\d{2}):(\d{2})$/.exec(String(value || "").trim());
+  const safeHours = match ? Number(match[1]) : 5;
+  const safeMinutes = match ? match[2] : "00";
+  const period = safeHours >= 12 ? "PM" : "AM";
+  const hours12 = safeHours % 12 || 12;
+  return {
+    hours: String(hours12).padStart(2, "0"),
+    minutes: safeMinutes === "30" ? "30" : "00",
+    period,
+  };
+}
+
+function joinTimeParts(hours12Text, minutesText, period) {
+  const hours12 = Number(hours12Text);
+  const safeHours12 = Number.isFinite(hours12) && hours12 >= 1 && hours12 <= 12 ? hours12 : 12;
+  let hours24 = safeHours12 % 12;
+  if (period === "PM") hours24 += 12;
+  return `${String(hours24).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
+}
+
+const TIME_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
+  const value = String(index + 1).padStart(2, "0");
+  return { value, label: `${index + 1} giờ` };
+});
+
+const TIME_MINUTE_OPTIONS = [
+  { value: "00", label: "00 phút" },
+  { value: "30", label: "30 phút" },
+];
+
+const TIME_PERIOD_OPTIONS = [
+  { value: "AM", label: "Sáng" },
+  { value: "PM", label: "Chiều" },
+];
+
+function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <div className={`cv-time-dropdown ${className}${isOpen ? " is-open" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="cv-time-dropdown-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={ariaLabel}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <span className="cv-time-dropdown-value">{selectedOption.label}</span>
+        <ChevronDown size={18} className="cv-time-dropdown-chevron" aria-hidden />
+      </button>
+      {isOpen ? (
+        <div className="cv-time-dropdown-panel" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                className={`cv-time-dropdown-option${isSelected ? " active" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {isSelected ? <Check size={16} strokeWidth={2.5} aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TimeSegmentField({ name, label, value, register, setValue, error }) {
+  const parts = splitTimeParts(value);
+
+  const updateTime = (nextParts) => {
+    setValue(name, joinTimeParts(nextParts.hours, nextParts.minutes, nextParts.period), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  return (
+    <div className="cv-form-group cv-time-field cv-full-width">
+      <label>
+        {label} <span className="cv-required">*</span>
+      </label>
+      <input type="hidden" {...register(name)} value={value} readOnly />
+      <div className="cv-time-segments" aria-label={label}>
+        <SegmentedDropdown
+          className="cv-time-segment cv-time-segment--hour"
+          value={parts.hours}
+          options={TIME_HOUR_OPTIONS}
+          ariaLabel={`${label} - giờ`}
+          onChange={(nextHours) => updateTime({ ...parts, hours: nextHours })}
+        />
+        <SegmentedDropdown
+          className="cv-time-segment cv-time-segment--minute"
+          value={parts.minutes}
+          options={TIME_MINUTE_OPTIONS}
+          ariaLabel={`${label} - phút`}
+          onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
+        />
+        <SegmentedDropdown
+          className="cv-time-segment cv-time-segment--period"
+          value={parts.period}
+          options={TIME_PERIOD_OPTIONS}
+          ariaLabel={`${label} - buổi`}
+          onChange={(nextPeriod) => updateTime({ ...parts, period: nextPeriod })}
+        />
+      </div>
+      <p className="cv-time-hint">Chọn theo dạng giờ và phút, mỗi 30 phút một mốc</p>
+      {error ? <p className="cv-error-text">{error.message}</p> : null}
+    </div>
+  );
+}
+
 /**
  * Bước 1: Thông tin cơ sở + địa chỉ + bản đồ
  */
@@ -59,6 +199,8 @@ export default function CreateVenueStepBasic({
   handleSubmit,
   onSubmit,
   setValue,
+  openTimeValue,
+  closeTimeValue,
   thumbnailFile,
   setThumbnailFile,
   thumbnailPreviewUrl,
@@ -168,21 +310,23 @@ export default function CreateVenueStepBasic({
             ) : null}
           </div>
 
-          <div className="cv-form-group">
-            <label>
-              Giờ mở cửa <span className="cv-required">*</span>
-            </label>
-            <input type="time" {...reg("openTime")} />
-            {errors.openTime ? <p className="cv-error-text">{errors.openTime.message}</p> : null}
-          </div>
+          <TimeSegmentField
+            name="openTime"
+            label="Giờ mở cửa"
+            value={openTimeValue}
+            register={reg}
+            setValue={setValue}
+            error={errors.openTime}
+          />
 
-          <div className="cv-form-group">
-            <label>
-              Giờ đóng cửa <span className="cv-required">*</span>
-            </label>
-            <input type="time" {...reg("closeTime")} />
-            {errors.closeTime ? <p className="cv-error-text">{errors.closeTime.message}</p> : null}
-          </div>
+          <TimeSegmentField
+            name="closeTime"
+            label="Giờ đóng cửa"
+            value={closeTimeValue}
+            register={reg}
+            setValue={setValue}
+            error={errors.closeTime}
+          />
           </div>
         </div>
 

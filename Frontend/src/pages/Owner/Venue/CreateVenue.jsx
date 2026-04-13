@@ -18,6 +18,15 @@ import CreateVenueStepDocuments from "../CreateVenueSteps/CreateVenueStepDocumen
 import CreateVenueStepReview from "../CreateVenueSteps/CreateVenueStepReview";
 import "./CreateVenue.css";
 
+function isThirtyMinuteTime(value) {
+  if (!value || typeof value !== "string") return false;
+  const match = /^(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours >= 0 && hours <= 23 && (minutes === 0 || minutes === 30);
+}
+
 // ── Yup Validation (Step 1: Create Venue draft) ──
 const schema = yup.object({
   name: yup
@@ -26,10 +35,20 @@ const schema = yup.object({
     .min(3, "Tên cơ sở ít nhất 3 ký tự")
     .required("Vui lòng nhập tên cơ sở"),
   description: yup.string().optional(),
-  openTime: yup.string().required("Vui lòng nhập giờ mở cửa"),
+  openTime: yup
+    .string()
+    .required("Vui lòng nhập giờ mở cửa")
+    .test("thirty-minute-open", "Giờ mở cửa chỉ được chọn mỗi 30 phút", (value) => {
+      if (!value) return true;
+      return isThirtyMinuteTime(value);
+    }),
   closeTime: yup
     .string()
     .required("Vui lòng nhập giờ đóng cửa")
+    .test("thirty-minute-close", "Giờ đóng cửa chỉ được chọn mỗi 30 phút", (value) => {
+      if (!value) return true;
+      return isThirtyMinuteTime(value);
+    })
     .test("after-open", "Giờ đóng phải sau giờ mở", function (value) {
       const { openTime } = this.parent;
       if (!openTime || !value) return true;
@@ -683,6 +702,8 @@ const CreateVenue = () => {
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
             setValue={setValue}
+            openTimeValue={rwOpen}
+            closeTimeValue={rwClose}
             thumbnailFile={thumbnailFile}
             setThumbnailFile={setThumbnailFile}
             thumbnailPreviewUrl={thumbnailPreviewUrl}
