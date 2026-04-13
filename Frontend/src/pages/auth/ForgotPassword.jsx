@@ -47,7 +47,7 @@ const resetSchema = yup.object({
     .required('Vui lòng xác nhận mật khẩu'),
 });
 
-const ForgotPassword = () => {
+const ForgotPassword = ({ onOpenLogin, isPopup = false }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -175,7 +175,11 @@ const ForgotPassword = () => {
         confirmPassword: data.confirmPassword,
       });
       toast.success('Đặt lại mật khẩu thành công!');
-      goCustomerHomeLogin(navigate);
+      if (typeof onOpenLogin === 'function') {
+        onOpenLogin();
+      } else {
+        goCustomerHomeLogin(navigate);
+      }
     } catch (error) {
       toast.error(error.message || 'Không thể đặt lại mật khẩu');
     } finally {
@@ -185,6 +189,7 @@ const ForgotPassword = () => {
 
   const handleBackClick = () => {
     if (step > 1) setStep(step - 1);
+    else if (typeof onOpenLogin === 'function') onOpenLogin();
     else goCustomerHomeLogin(navigate);
   };
 
@@ -204,10 +209,14 @@ const ForgotPassword = () => {
   
   return (
     <div className="forgot-password-page">
-      <div className="bg-element football"></div>
-      <div className="bg-element basketball"></div>
-      <div className="bg-element tennis"></div>
-      <div className="bg-element shuttlecock"></div>
+      {!isPopup ? (
+        <>
+          <div className="bg-element football"></div>
+          <div className="bg-element basketball"></div>
+          <div className="bg-element tennis"></div>
+          <div className="bg-element shuttlecock"></div>
+        </>
+      ) : null}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -267,13 +276,19 @@ const ForgotPassword = () => {
             
             <div className="form-footer">
               <span>Nhớ mật khẩu của bạn? </span>
-              <Link
-                to="/"
-                className="link"
-                state={{ [OPEN_AUTH_STATE_KEY]: 'login' }}
-              >
-                Đăng nhập
-              </Link>
+              {typeof onOpenLogin === 'function' ? (
+                <button type="button" className="link forgot-inline-link" onClick={onOpenLogin}>
+                  Đăng nhập
+                </button>
+              ) : (
+                <Link
+                  to="/"
+                  className="link"
+                  state={{ [OPEN_AUTH_STATE_KEY]: 'login' }}
+                >
+                  Đăng nhập
+                </Link>
+              )}
             </div>
           </motion.form>
         )}

@@ -260,6 +260,16 @@
   transition: color 0.2s;
 }
 
+button.forgot-link.auth-inline-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .forgot-link:hover {
   color: #2b9550;
 }
@@ -522,4 +532,8 @@ button.auth-inline-link.signup-link {
   color: #667eea;
   font-weight: 700;
   text-decoration: underline;
+}
+
+button.auth-inline-link.forgot-link {
+  text-decoration: none;
 }

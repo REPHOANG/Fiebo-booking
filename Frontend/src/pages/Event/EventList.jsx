@@ -221,14 +221,7 @@ const EventList = () => {
             </div>
 
             <div className="es-foot">
-              <div className="es-people">
-                <div className="es-avatars" aria-hidden="true">
-                  {Array.from({ length: Math.min(3, s.joined) }).map((_, idx) => (
-                    <span className="es-avatar" key={idx}>
-                      {avatars[(s.id + idx) % avatars.length]}
-                    </span>
-                  ))}
-                </div>
+              <div className="es-people">       
                 <span className="es-remaining-pill">Còn {s.remaining} vé</span>
               </div>
               <span className="es-price">{s.price}</span>

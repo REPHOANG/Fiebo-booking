@@ -117,12 +117,23 @@ const BookingConfirmation = () => {
   const [venueServiceCatalog, setVenueServiceCatalog] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(false);
 
+  // Data passed from BookingSchedule via navigate state
+  const bookingState = location.state;
+  const venue = bookingState?.venue;
+  const fields = bookingState?.fields ?? [];
+  const selectedDate = bookingState?.selectedDate;
+  const selectedSlots = bookingState?.selectedSlots ?? [];
+  const slots = bookingState?.slots ?? [];
+  const slotSummary = bookingState?.slotSummary;
+  const venueSchedule = bookingState?.venueSchedule;
+  const isWalkInBooking = bookingState?.walkIn;
+
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
     if (!user) return;
-    if (!didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
+    if (!isWalkInBooking && !didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
     if (!didEditPhoneRef.current) setGuestPhone(user?.phone || user?.phoneNumber || "");
-  }, [user]);
+  }, [user, isWalkInBooking]);
 
   // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
   // Profile lấy từ DB nên luôn có fullName, phoneNumber nếu user đã cập nhật.
@@ -136,7 +147,7 @@ const BookingConfirmation = () => {
         const name = (profile.fullName || profile.name || "").toString().trim();
         const phone = (profile.phoneNumber || profile.phone || "").toString().trim().replace(/\s/g, "");
         if (name) {
-          if (!didEditNameRef.current) setGuestName(name);
+          if (!isWalkInBooking && !didEditNameRef.current) setGuestName(name);
           setNameError("");
         }
         if (phone) {
@@ -156,17 +167,6 @@ const BookingConfirmation = () => {
   // Form-level validation: require fullname and phone
   const isFormValid = Boolean((displayName || "").toString().trim() && (displayPhone || "").toString().trim());
   const canConfirm = Boolean(isAuthenticated && isFormValid);
-
-  // Data passed from BookingSchedule via navigate state
-  const bookingState = location.state;
-  const venue = bookingState?.venue;
-  const fields = bookingState?.fields ?? [];
-  const selectedDate = bookingState?.selectedDate;
-  const selectedSlots = bookingState?.selectedSlots ?? [];
-  const slots = bookingState?.slots ?? [];
-  const slotSummary = bookingState?.slotSummary;
-  const venueSchedule = bookingState?.venueSchedule;
-  const isWalkInBooking = bookingState?.walkIn;
 
   // GET `/api/venue/{venueId}/services` — dịch vụ kèm theo do chủ sân cấu hình
   useEffect(() => {

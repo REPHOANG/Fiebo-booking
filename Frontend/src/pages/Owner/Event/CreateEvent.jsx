@@ -474,14 +474,14 @@ const CreateEvent = () => {
                 />
                 {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
               </label>
-              <button
+              {/* <button
                 type="button"
                 className="ce-btn secondary"
                 onClick={loadVenue}
                 disabled={loadingVenue || !venueId}
               >
                 {loadingVenue ? "Đang tải…" : "Tải thông tin"}
-              </button>
+              </button> */}
             </div>
             {venue && (
               <p className="ce-venue-name">

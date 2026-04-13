@@ -178,7 +178,11 @@ function getBookingTypeMeta(item) {
     : { label: "Đơn ngày", className: "bl-type-tag bl-type-tag--daily" };
 }
 
-const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
+const FALLBACK_VENUE_IMAGE = "https://c.pxhere.com/photos/c0/3e/football_pitch_football_rush_american_football-976043.jpg!s2";
+const handleImgError = (e) => {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = FALLBACK_VENUE_IMAGE;
+};
 
 
 function normEventHistoryItem(raw) {
@@ -381,10 +385,10 @@ const BookingList = () => {
     isLoading: loadingList,
     error: listError,
   } = useQuery({
-    queryKey: ["bookingHistory", { page, fromDate: activeFromDate, toDate: activeToDate }],
+    queryKey: ["bookingHistory", { fromDate: activeFromDate, toDate: activeToDate }],
     queryFn: () =>
       getBookingHistory({
-        pageNumber: page,
+        pageNumber: 1,
         pageSize: PAGE_SIZE,
         ...(activeFromDate ? { fromDate: activeFromDate } : {}),
         ...(activeToDate ? { toDate: activeToDate } : {}),
@@ -395,10 +399,10 @@ const BookingList = () => {
   });
 
   const { data: eventHistoryData, isLoading: loadingEventList } = useQuery({
-    queryKey: ["customerEventHistory", { eventPage }],
+    queryKey: ["customerEventHistory"],
     queryFn: () =>
       getCustomerEventHistory({
-        pageIndex: eventPage,
+        pageIndex: 1,
         pageSize: PAGE_SIZE,
       }),
     keepPreviousData: true,
@@ -469,37 +473,6 @@ const BookingList = () => {
     );
   }, [list, eventItems, activeTab, activeTypeFilter]);
 
-  /** Thống kê sidebar: chỉ đơn/vé hoàn thành trong tháng hiện tại (theo tiêu đề card). */
-  const sideStatsCompleted = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-
-    const venueCompleted = list.filter(
-      (b) =>
-        String(b.status || "").toLowerCase() === "completed" &&
-        isSameCalendarMonth(b.bookingDate, y, m),
-    );
-    const eventCompleted = (eventItems || [])
-      .map(normEventHistoryItem)
-      .filter(Boolean)
-      .filter(
-        (ev) =>
-          resolveEventListStatus(ev.participantStatus, ev.eventStatus) ===
-            "completed" && isSameCalendarMonth(ev.eventDate, y, m),
-      );
-
-    const count = venueCompleted.length + eventCompleted.length;
-    const sum =
-      venueCompleted.reduce(
-        (s, b) => s + Number(b.totalPrice ?? 0),
-        0,
-      ) +
-      eventCompleted.reduce((s, e) => s + Number(e.totalAmount ?? 0), 0);
-
-    return { count, sum };
-  }, [list, eventItems]);
-
   const venueCatalog = useMemo(() => {
     if (Array.isArray(venueCatalogData)) return venueCatalogData;
     return venueCatalogData?.items || venueCatalogData?.Items || [];
@@ -546,7 +519,7 @@ const BookingList = () => {
       const items = res.items || [];
       setHistoryItems((prev) => [...prev, ...items]);
       setTotalItems(res.totalItems ?? historyItems.length + items.length);
-      setPage(nextPage);
+      setPage(nextPage); // chỉ để track UI, không ảnh hưởng queryKey
     } catch (e) {
     } finally {
       setLoadingMore(false);
@@ -923,7 +896,7 @@ const BookingList = () => {
                     transition={{ delay: idx * 0.04 }}
                   >
                     <div className="bl-card-media">
-                      <img src={thumb} alt={ev.venueName || "venue"} />
+                      <img src={thumb} alt={ev.venueName || "venue"} onError={handleImgError} />
                     </div>
                     <div className="bl-list-info">
                       <span className="bl-type-tag bl-type-tag--event">Sự kiện</span>
@@ -1002,7 +975,7 @@ const BookingList = () => {
                   transition={{ delay: idx * 0.04 }}
                 >
                   <div className="bl-card-media">
-                    <img src={thumb} alt={b.venueName || "venue"} />
+                    <img src={thumb} alt={b.venueName || "venue"} onError={handleImgError} />
                   </div>
                   <div className="bl-list-info">
                     <span className="bl-type-tag bl-type-tag--daily">Đơn ngày</span>
@@ -1096,23 +1069,6 @@ const BookingList = () => {
               </div>
             )}
           </div>
-          <aside className="bl-side">
-            <div className="bl-side-card">
-              <h3>Thống kê tháng {String(new Date().getMonth() + 1).padStart(2, "0")}</h3>
-              <div className="bl-side-stats">
-                <div>
-                  <span>Số lần đặt</span>
-                  <strong>{sideStatsCompleted.count}</strong>
-                </div>
-                <div>
-                  <span>Tổng chi</span>
-                  <strong>
-                    {formatPrice(sideStatsCompleted.sum)}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       )}
 

@@ -232,7 +232,6 @@ const EventDetail = () => {
             <ArrowLeft size={18} strokeWidth={2.25} />
             {backLabel}
           </Link>
-          <p className="ed-eyebrow">Drop-in · Mã #{pick(event, "eventId", "EventId") ?? eventId}</p>
           <h1 className="ed-title">{title}</h1>
           {venueName ? <p className="ed-subtitle">{venueName}</p> : null}
         </div>
@@ -326,10 +325,7 @@ const EventDetail = () => {
         <aside className="ed-aside">
           <div className="ed-join-card er-register-card">
             <h2 className="ed-join-title">Đăng ký tham gia</h2>
-            <p className="ed-join-hint">
-              Chọn số lượng vé và điền thông tin. Sau khi bấm đăng ký, bạn sẽ chuyển tới bước thanh toán để
-              giữ chỗ.
-            </p>
+            
             {soldOut ? (
               <p className="ed-soldout">Sự kiện đã đủ người tham gia.</p>
             ) : null}
@@ -403,7 +399,7 @@ const EventDetail = () => {
               onClick={handleJoin}
               disabled={submitting || soldOut}
             >
-              {submitting ? "Đang xử lý…" : soldOut ? "Hết chỗ" : "Đăng ký (giữ chỗ)"}
+              {submitting ? "Đang xử lý…" : soldOut ? "Hết chỗ" : "Đăng ký"}
             </button>
             <Link to="/" className="ed-home-link">
               Về trang chủ

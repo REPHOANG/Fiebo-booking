@@ -24,8 +24,8 @@ import EventList from "../pages/Event/EventList";
 import Events from "../pages/Event/Events";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
-import ForgotPassword from "../pages/auth/ForgotPassword";
 import VerifyOTP from "../pages/auth/VerifyOTP";
+import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
 import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
@@ -77,7 +77,10 @@ const routes = [
   { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
+  {
+    path: "/forgot-password",
+    element: <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }} />,
+  },
   { path: "/rating", element: <GiveRating /> },
   { path: "/profile", element: <ProtectedRoute element={<Profile />} /> },
   { path: "/venue/:id", element: <VenueDetail /> },
@@ -109,10 +112,10 @@ const routes = [
         path: "venue/:id/social-session",
         element: <ProtectedRoute element={<EventList />} />,
       },
-      { path: "venue/:id/booking/confirm", element: <BookingConfirmation /> },
-      { path: "venue/:id/booking/payment", element: <BookingPayment /> },
+      { path: "booking/:id/confirm", element: <BookingConfirmation /> },
+      { path: "booking/:id/payment", element: <BookingPayment /> },
       {
-        path: "venue/:id/booking/payment/success",
+        path: "booking/:id/payment/success",
         element: <BookingPaymentSuccess />,
       },
       { path: "events", element: <Events /> },
