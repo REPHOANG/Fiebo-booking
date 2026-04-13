@@ -590,7 +590,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Sự kiện không có slot hợp lệ.");
 
             var eventStartDateTime = ticketEvent.EventDate.ToDateTime(firstDetail.Slot.StartTime);
-            if ((eventStartDateTime - DateTime.Now).TotalHours < 2)
+            if ((eventStartDateTime - DateTime.Now).TotalHours < 6)
                 throw new BadRequestException("Bạn không thể tự hủy sự kiện khi thời gian bắt đầu chỉ còn dưới 2 tiếng. Vui lòng liên hệ CSKH Fiebo để được hỗ trợ.");
 
             // 5. Load all paid (Joined) participants
