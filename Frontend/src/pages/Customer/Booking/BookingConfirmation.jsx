@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import * as yup from "yup";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Calendar, Search, Loader2 } from "lucide-react";
 import { createBooking, createWalkInBooking } from "../../../services/bookingService";
@@ -36,6 +37,23 @@ const getUnavailableKeysFromSchedule = (schedule) => {
     });
   });
   return keys;
+};
+
+const normalizePhoneNumber = (value) => String(value ?? "").replace(/\D/g, "").trim();
+
+const guestPhoneSchema = yup
+  .string()
+  .transform((value) => normalizePhoneNumber(value))
+  .required("Vui lòng nhập số điện thoại.")
+  .matches(/^0\d{8,10}$/, "Số điện thoại phải bắt đầu bằng số 0 và gồm 9 đến 11 chữ số.");
+
+const getPhoneValidationError = (value) => {
+  try {
+    guestPhoneSchema.validateSync(value);
+    return "";
+  } catch (error) {
+    return error?.message || "Số điện thoại không hợp lệ.";
+  }
 };
 
 
@@ -132,7 +150,7 @@ const BookingConfirmation = () => {
   React.useEffect(() => {
     if (!user) return;
     if (!isWalkInBooking && !didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
-    if (!didEditPhoneRef.current) setGuestPhone(user?.phone || user?.phoneNumber || "");
+    if (!didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(user?.phone || user?.phoneNumber || ""));
   }, [user, isWalkInBooking]);
 
   // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
@@ -151,8 +169,8 @@ const BookingConfirmation = () => {
           setNameError("");
         }
         if (phone) {
-          if (!didEditPhoneRef.current) setGuestPhone(phone);
-          setPhoneError("");
+          if (!didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(phone));
+          setPhoneError(getPhoneValidationError(phone));
         }
       } catch (_) {
         // ignore (e.g. 401, network)
@@ -165,7 +183,9 @@ const BookingConfirmation = () => {
   const displayPhone = guestPhone;
 
   // Form-level validation: require fullname and phone
-  const isFormValid = Boolean((displayName || "").toString().trim() && (displayPhone || "").toString().trim());
+  const isFormValid = Boolean(
+    (displayName || "").toString().trim() && !getPhoneValidationError(displayPhone),
+  );
   const canConfirm = Boolean(isAuthenticated && isFormValid);
 
   // GET `/api/venue/{venueId}/services` — dịch vụ kèm theo do chủ sân cấu hình
@@ -371,11 +391,12 @@ const BookingConfirmation = () => {
       if (!bookingState || venue?.id == null) return;
       // Client-side validation: require name and phone before attempting
       const fullnameCheck = (displayName || guestName || "").toString().trim();
-      const phoneCheck = (displayPhone || guestPhone || "").toString().trim();
-      if (!fullnameCheck || !phoneCheck) {
+      const phoneCheck = normalizePhoneNumber(displayPhone || guestPhone || "");
+      const nextPhoneError = getPhoneValidationError(phoneCheck);
+      if (!fullnameCheck || nextPhoneError) {
         if (!fullnameCheck) setNameError("Vui lòng nhập họ tên.");
-        if (!phoneCheck) setPhoneError("Vui lòng nhập số điện thoại.");
-        toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+        if (nextPhoneError) setPhoneError(nextPhoneError);
+        toast.error(!fullnameCheck ? "Vui lòng nhập đầy đủ họ tên và số điện thoại." : nextPhoneError);
         return;
       }
 
@@ -417,7 +438,7 @@ const BookingConfirmation = () => {
           });
 
           const fullname = (displayName || guestName || "").trim();
-          const phoneNumber = (displayPhone || guestPhone || "").trim();
+          const phoneNumber = normalizePhoneNumber(displayPhone || guestPhone || "");
           const payload = {
             venueId: Number(venue?.id),
             bookingDate: selectedDate,
@@ -514,9 +535,11 @@ const BookingConfirmation = () => {
         });
 
         const fullname = (displayName || guestName || "").trim();
-        const phoneNumber = (displayPhone || guestPhone || "").trim();
-        if (!fullname || !phoneNumber) {
-          toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+        const phoneNumber = normalizePhoneNumber(displayPhone || guestPhone || "");
+        const nextPhoneError = getPhoneValidationError(phoneNumber);
+        if (!fullname || nextPhoneError) {
+          if (nextPhoneError) setPhoneError(nextPhoneError);
+          toast.error(!fullname ? "Vui lòng nhập đầy đủ họ tên và số điện thoại." : nextPhoneError);
           return;
         }
 
@@ -576,7 +599,7 @@ const BookingConfirmation = () => {
         }
 
         navigate(
-          `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+          `/booking/${venue?.id || "unknown"}/payment?bookingId=${bookingId}`,
           {
             state: {
               venue,
@@ -639,7 +662,7 @@ const BookingConfirmation = () => {
             venueId: Number(venue?.id),
             bookingDate: selectedDate,
             fullname: (displayName || guestName || "").trim(),
-            phoneNumber: (displayPhone || guestPhone || "").trim(),
+            phoneNumber: normalizePhoneNumber(displayPhone || guestPhone || ""),
             bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows),
             details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
           };
@@ -665,7 +688,7 @@ const BookingConfirmation = () => {
             return;
           }
           navigate(
-            `/venue/${venue?.id || "unknown"}/booking/payment?bookingId=${bookingId}`,
+            `/booking/${venue?.id || "unknown"}/payment?bookingId=${bookingId}`,
             {
               state: {
                 venue,
@@ -853,12 +876,17 @@ const BookingConfirmation = () => {
                   value={guestPhone}
                   onChange={(e) => {
                     didEditPhoneRef.current = true;
-                    setGuestPhone(e.target.value.replace(/[^0-9]/g, ""));
-                    if (e.target.value && e.target.value.trim().length > 0) setPhoneError("");
+                    const nextPhone = normalizePhoneNumber(e.target.value);
+                    setGuestPhone(nextPhone);
+                    if (!nextPhone) {
+                      setPhoneError("");
+                    } else {
+                      setPhoneError(getPhoneValidationError(nextPhone));
+                    }
                   }}
                   onBlur={() => {
-                    const phoneVal = (displayPhone || guestPhone || "").toString().trim();
-                    if (!phoneVal) setPhoneError("Vui lòng nhập số điện thoại.");
+                    const phoneVal = normalizePhoneNumber(displayPhone || guestPhone || "");
+                    setPhoneError(getPhoneValidationError(phoneVal));
                   }}
                 />
                 {phoneError && <p className="bc-field-error" role="alert">{phoneError}</p>}

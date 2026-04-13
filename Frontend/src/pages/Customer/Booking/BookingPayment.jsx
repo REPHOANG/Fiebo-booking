@@ -235,7 +235,7 @@ export function BookingPaymentSuccess() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/venue/${id}/booking/payment?bookingId=${bookingId}`)
+                  navigate(`/booking/${id}/payment?bookingId=${bookingId}`)
                 }
                 className="bp-back-link"
               >
@@ -299,7 +299,7 @@ const BookingPayment = () => {
       }
       if (PAID_STATUSES.has(b.status)) {
         clearPaymentHoldDeadline(resolvedBookingId);
-        navigate(`/venue/${id}/booking/payment/success?bookingId=${resolvedBookingId}`, {
+        navigate(`/booking/${id}/payment/success?bookingId=${resolvedBookingId}`, {
           replace: true,
         });
         return;
@@ -573,7 +573,7 @@ const BookingPayment = () => {
       }
       dispatch(clearPaymentDraft());
       clearPaymentHoldDeadline(bookingId);
-      navigate(`/venue/${id}/booking/payment/success?bookingId=${bookingId}`, {
+      navigate(`/booking/${id}/payment/success?bookingId=${bookingId}`, {
         replace: true,
       });
     } catch (payErr) {
