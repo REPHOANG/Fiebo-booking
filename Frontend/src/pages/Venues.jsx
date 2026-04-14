@@ -1103,6 +1103,9 @@ const Venues = () => {
           {venues.map((venue, idx) => {
             const isLast = venues.length === idx + 1;
             const venueId = venue.venueId ?? venue.VenueId;
+            const venueName = venue.name ?? venue.Name ?? venue.venueName ?? venue.VenueName ?? "";
+            const openTime = venue.openTime ?? venue.OpenTime;
+            const closeTime = venue.closeTime ?? venue.CloseTime;
             return (
               <motion.div
                 ref={isLast ? lastVenueRef : null}
@@ -1121,7 +1124,7 @@ const Venues = () => {
                 <div className="venue-image">
                   <img
                     src={venue.thumbnailUrl || venue.ThumbnailUrl || "/placeholder-venue.jpg"}
-                    alt={venue.venueName ?? venue.VenueName ?? ""}
+                    alt={venueName}
                     loading="lazy"
                   />
                   <span className="sport-badge">
@@ -1129,21 +1132,22 @@ const Venues = () => {
                   </span>
                 </div>
                 <div className="venue-info">
-                  <h3>{venue.venueName ?? venue.VenueName}</h3>
+                  <h3>{venueName}</h3>
                   <p className="location">
                     <MapPin size={15} /> {getLocation(venue)}
                   </p>
+                  {openTime && closeTime && (
+                    <p className="venue-hours">
+                      <Clock size={15} />
+                      <span>Mở cửa {formatTime(openTime)} - Đóng cửa {formatTime(closeTime)}</span>
+                    </p>
+                  )}
                   <div className="rating-row">
                     <div className="rating">
                       <Star size={15} className="star" />
                       <span>{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
                     </div>
-                    {(venue.openTime || venue.OpenTime) && (venue.closeTime || venue.CloseTime) && (
-                      <span className="price">
-                        {formatTime(venue.openTime || venue.OpenTime)} -{" "}
-                        {formatTime(venue.closeTime || venue.CloseTime)}
-                      </span>
-                    )}
+                    <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
                   </div>
                   {(venue.distanceKm ?? venue.DistanceKm) != null && (
                     <p className="venue-distance">
