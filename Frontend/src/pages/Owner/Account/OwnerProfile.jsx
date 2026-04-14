@@ -13,7 +13,6 @@ import {
   changePassword as changePasswordAPI,
 } from "../../../services/authService";
 import { updateProfile as updateProfileRedux } from "../../../store/authSlice";
-import { getOwnerPayouts } from "../../../services/ownerService";
 import "./OwnerProfile.css";
 
 const errMessage = (e) =>
@@ -40,14 +39,7 @@ const formatDateLabel = (value) => {
 const formatVnd = (value) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value || 0));
 
-const translatePayoutStatus = (raw) => {
-  const s = String(raw || "").toLowerCase().trim();
-  if (!s) return "Đang chờ";
-  if (s === "completed" || s === "paid" || s === "success") return "Đã nhận";
-  if (s === "processing" || s === "in_progress" || s === "in-progress") return "Đang xử lý";
-  if (s === "failed" || s === "rejected" || s === "error") return "Thất bại";
-  return "Đang chờ";
-};
+
 
 const profileSchema = yup.object({
   fullName: yup.string().trim().required("Vui lòng nhập họ tên."),
@@ -76,10 +68,6 @@ const OwnerProfile = () => {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["owner-profile"],
     queryFn: getProfile,
-  });
-  const { data: payoutData, isLoading: payoutLoading } = useQuery({
-    queryKey: ["owner-payout-brief"],
-    queryFn: () => getOwnerPayouts({ page: 1, pageSize: 4 }),
   });
 
   const {
@@ -167,11 +155,6 @@ const OwnerProfile = () => {
 
   const profileErr = (name) => profileErrors[name]?.message;
   const pwdErr = (name) => pwdErrors[name]?.message;
-  const pendingPayout = Number(payoutData?.pendingPayout || 0);
-  const nextPayoutLabel = payoutData?.nextPayout
-    ? formatDateLabel(payoutData.nextPayout)
-    : "Chưa có lịch";
-  const recentPayouts = Array.isArray(payoutData?.payouts?.items) ? payoutData.payouts.items : [];
 
   return (
     <div className="owner-profile">
