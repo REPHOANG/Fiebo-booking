@@ -36,8 +36,9 @@ namespace Fiebo.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(te => te.Status == TicketEventStatus.Pending &&
-                             te.Details.Any(d => d.Field.Status == FieldStatus.Active &&
-                                                 d.Field.Venue!.Status == VenueStatus.Active))
+                             te.Details.All(d => d.Field.Status == FieldStatus.Active &&
+                                                 d.Field.Venue!.Status == VenueStatus.Active
+                                                 && !d.Slot.IsDeleted))
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
                         .ThenInclude(f => f.Venue)

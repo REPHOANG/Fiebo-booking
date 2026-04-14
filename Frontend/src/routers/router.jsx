@@ -52,6 +52,8 @@ import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
+import FinanceAdminManagement from "../pages/Admin/FinanceAdminManagement/FinanceAdminManagement";
+import SportCatalog from "../pages/Admin/SportCatalog/SportCatalog";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -89,6 +91,7 @@ const routes = [
     path: "wallet/top-up",
     element: <ProtectedRoute element={<WalletTopUp />} />,
   },
+
   {
     path: "/",
     element: <Layout />,
@@ -169,6 +172,14 @@ const routes = [
     children: [
       { index: true, element: <AdminHome /> },
       { path: "users", element: <AdminUsers /> },
+      {
+        path: "finance-admin",
+        element: <FinanceAdminManagement />,
+      },
+      {
+        path: "sport-catalog",
+        element: <SportCatalog />,
+      },
     ],
   },
   {

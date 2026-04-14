@@ -212,16 +212,6 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
             }
 
-            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
-            foreach (var fieldId in uniqueFieldIds)
-            {
-                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
-                if (field == null || field.Status != FieldStatus.Active)
-                {
-                    throw new BadRequestException("Sân hiện tại không hoạt động.");
-                }
-            }
-
             // 1. Build lock keys for each slot
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
@@ -559,7 +549,13 @@ namespace Fiebo.Application.Services
             var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
 
-            return $"Refund {refundPercentage}% — {refundAmount:N0} VND will be returned to your wallet.";
+            return refundPercentage switch
+            {
+                100 => $"Quý khách hủy lịch trước 24 giờ so với giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                70 => $"Quý khách hủy lịch trong khoảng 12–24 giờ trước giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                50 => $"Quý khách hủy lịch trong khoảng 6–12 giờ trước giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                _ => $"Quý khách hủy lịch trong vòng dưới 6 giờ trước giờ bắt đầu, vì vậy sẽ không được hoàn tiền."
+            };
         }
 
         public async Task<bool> CancelBookingAsync(int bookingId, string userId)

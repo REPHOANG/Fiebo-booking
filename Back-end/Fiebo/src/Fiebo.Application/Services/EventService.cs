@@ -405,29 +405,6 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task UpdateDropInEventAsync(int eventId, UpdateDropInEventRequest request, string ownerId)
-        {
-            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
-
-            if (ticketEvent == null)
-            {
-                throw new Exception("Sự kiện không tồn tại hoặc bạn không có quyền.");
-            }
-
-            if (ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled))
-            {
-                throw new Exception("Không thể chỉnh sửa vì đã có người chơi đăng ký tham gia.");
-            }
-
-            ticketEvent.Description = request.Description;
-            ticketEvent.MinPlayer = request.MinPlayer;
-            ticketEvent.MaxPlayer = request.MaxPlayer;
-            ticketEvent.PricePerPerson = request.PricePerPerson;
-
-            _unitOfWork.TicketEvents.Update(ticketEvent);
-            await _unitOfWork.SaveChangesAsync();
-        }
-
         public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string ownerId)
         {
             var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);

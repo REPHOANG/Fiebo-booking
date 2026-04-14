@@ -92,6 +92,10 @@ namespace Fiebo.Application.Services
             {
                 return true;
             }
+            if(topUpRequest.Amount != request.TransferAmount)
+            {
+                throw new BadRequestException("Số tiền nạp không khớp.");
+            }
             await _unitOfWork.BeginTransactionAsync();
             try
             {
