@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -12,6 +12,10 @@ namespace Fiebo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_OwnerPlans_AspNetUsers_OwnerId",
+                table: "OwnerPlans");
+
             migrationBuilder.DropIndex(
                 name: "IX_OwnerPlans_OwnerId",
                 table: "OwnerPlans");
@@ -61,6 +65,14 @@ namespace Fiebo.Persistence.Migrations
                 column: "OwnerId",
                 unique: true);
 
+            migrationBuilder.AddForeignKey(
+                name: "FK_OwnerPlans_AspNetUsers_OwnerId",
+                table: "OwnerPlans",
+                column: "OwnerId",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
             migrationBuilder.CreateIndex(
                 name: "IX_SubscriptionTransactions_OwnerPlanId",
                 table: "SubscriptionTransactions",
@@ -77,6 +89,10 @@ namespace Fiebo.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "SubscriptionTransactions");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_OwnerPlans_AspNetUsers_OwnerId",
+                table: "OwnerPlans");
 
             migrationBuilder.DropIndex(
                 name: "IX_OwnerPlans_OwnerId",
@@ -102,6 +118,14 @@ namespace Fiebo.Persistence.Migrations
                 name: "IX_OwnerPlans_OwnerId",
                 table: "OwnerPlans",
                 column: "OwnerId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_OwnerPlans_AspNetUsers_OwnerId",
+                table: "OwnerPlans",
+                column: "OwnerId",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
         }
     }
 }

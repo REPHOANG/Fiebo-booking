@@ -9,9 +9,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setRegistrationPending } from '../../store/authSlice';
 import { register } from '../../services/authService';
-import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 import './Register.css';
 
 // ── Yup schema ──────────────────────────────────────────────────────────────
@@ -73,12 +73,24 @@ const schema = yup.object({
 });
 
 // ── Component ────────────────────────────────────────────────────────────────
-const Register = ({ onSwitchToLogin, onClose }) => {
+const Register = ({
+  onSwitchToLogin,
+  onClose,
+  accountRole = 'Customer',
+  variant = 'default',
+  onSwitchToOwnerRegister,
+  onSwitchToCustomerRegister,
+}) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const isOwnerFlow = accountRole === 'FieldOwner';
+  const loginPath = '/login';
+  const loginText = isOwnerFlow ? 'Đăng nhập' : 'Đăng nhập tại đây';
+  const submitLabel = isOwnerFlow ? 'Tạo tài khoản Owner' : 'Tạo tài khoản';
 
   const {
     register: field,
@@ -94,6 +106,7 @@ const Register = ({ onSwitchToLogin, onClose }) => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
+    setServerError('');
     try {
       await register({
         fullName: data.fullName,
@@ -102,22 +115,18 @@ const Register = ({ onSwitchToLogin, onClose }) => {
         password: data.password,
         confirmPassword: data.confirmPassword,
         dateOfBirth: data.dateOfBirth,
+        role: accountRole,
       });
 
       dispatch(setRegistrationPending({ email: data.email, phone: data.phone || '' }));
-
-      toast.success('✅ Tài khoản đã tạo! Vui lòng kiểm tra email để lấy mã OTP', {
-        position: 'top-right',
-        autoClose: 4000,
-      });
       onClose?.();
       navigate('/verify-otp');
     } catch (error) {
       const errorMsg = error.message || error.details || 'Đăng ký thất bại';
       if (errorMsg.toLowerCase().includes('already exist')) {
-        toast.error('Email hoặc số điện thoại đã được đăng ký', { position: 'top-right', autoClose: 3000 });
+        setServerError('Email hoặc số điện thoại đã được đăng ký');
       } else {
-        toast.error(errorMsg, { position: 'top-right', autoClose: 3000 });
+        setServerError(errorMsg);
       }
     } finally {
       setIsLoading(false);
@@ -125,15 +134,16 @@ const Register = ({ onSwitchToLogin, onClose }) => {
   };
 
   return (
-    <div className="register-page">
+    <div className={`register-page ${variant === 'owner' ? 'register-page-owner' : ''}`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="register-card"
+        className={`register-card ${variant === 'owner' ? 'register-card-owner' : ''}`}
       >
         <div className="register-header">
           <img src={fieboLogo} alt="Fiebo Logo" className="register-logo" />
+          {isOwnerFlow && <p className="register-account-chip">Khu vực dành cho chủ sân</p>}
         </div>
 
         <form className="register-form" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -274,6 +284,10 @@ const Register = ({ onSwitchToLogin, onClose }) => {
             <p className="field-error">{errors.agreeTerms.message}</p>
           )}
 
+          {serverError && (
+            <p className="field-error server-error">{serverError}</p>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
@@ -281,7 +295,7 @@ const Register = ({ onSwitchToLogin, onClose }) => {
           >
             {isLoading
               ? <><div className="spinner"></div><span>Đang tạo tài khoản...</span></>
-              : 'Tạo tài khoản'
+              : submitLabel
             }
           </button>
 
@@ -293,10 +307,56 @@ const Register = ({ onSwitchToLogin, onClose }) => {
                 className="signin-link auth-inline-link"
                 onClick={onSwitchToLogin}
               >
-                Đăng nhập tại đây
+                {loginText}
               </button>
             ) : (
-              <Link to="/login" className="signin-link">Đăng nhập tại đây</Link>
+              <Link to={loginPath} className="signin-link">{loginText}</Link>
+            )}
+          </div>
+
+          <div className="switch-account-prompt">
+            {isOwnerFlow ? (
+              <>
+                <span>Bạn muốn đặt sân như khách hàng? </span>
+                {typeof onSwitchToCustomerRegister === 'function' ? (
+                  <button
+                    type="button"
+                    className="signin-link auth-inline-link"
+                    onClick={onSwitchToCustomerRegister}
+                  >
+                    Đăng ký tài khoản khách
+                  </button>
+                ) : (
+                  <Link
+                    to="/"
+                    className="signin-link"
+                    state={{ [OPEN_AUTH_STATE_KEY]: 'register' }}
+                  >
+                    Đăng ký tài khoản khách
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <span>Bạn là chủ sân? </span>
+                {typeof onSwitchToOwnerRegister === 'function' ? (
+                  <button
+                    type="button"
+                    className="signin-link auth-inline-link"
+                    onClick={onSwitchToOwnerRegister}
+                  >
+                    Đăng ký Owner
+                  </button>
+                ) : (
+                  <Link
+                    to="/"
+                    className="signin-link"
+                    state={{ [OPEN_AUTH_STATE_KEY]: 'register-owner' }}
+                  >
+                    Đăng ký Owner
+                  </Link>
+                )}
+              </>
             )}
           </div>
         </form>

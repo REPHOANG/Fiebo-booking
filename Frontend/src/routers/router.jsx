@@ -3,6 +3,7 @@ import { Navigate, useParams, useRoutes } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import OwnerLayout from "../components/layout/OwnerLayout";
 import AdminLayout from "../components/layout/AdminLayout";
+import FinanceAdminLayout from "../components/layout/FinanceAdminLayout";
 import StaffLayout from "../components/layout/StaffLayout";
 import CustomerHome from "../pages/Customer/Home/CustomerHome";
 import VenueDetail from "../pages/Customer/VenueDetail";
@@ -21,7 +22,6 @@ import EventTicketDetail from "../pages/Event/EventTicketDetail";
 import EventTicketPayment from "../pages/Event/EventTicketPayment";
 import EventList from "../pages/Event/EventList";
 import Events from "../pages/Event/Events";
-import OwnerLogin from "../pages/auth/OwnerLogin";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
@@ -47,7 +47,22 @@ import OwnerEventDetail from "../pages/Owner/Event/OwnerEventDetail";
 import ServiceManagement from "../pages/Owner/VenueService/ServiceManagement";
 import PayoutList from "../pages/Owner/Payout/PayoutList";
 import AdminHome from "../pages/Admin/Dashboard/AdminHome";
-import AdminUsers from "../pages/Admin/UserManagement/AdminUsers";
+import AdminAuditLog from "../pages/Admin/AuditLog/AdminAuditLog";
+import AdminReports from "../pages/Admin/Reports/AdminReports";
+import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
+import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
+import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
+import AdminVenueRegistrations from "../pages/Admin/VenueRegistration/AdminVenueRegistrations";
+import AdminFinanceAdmins from "../pages/Admin/FinanceAdminManagement/AdminFinanceAdmins";
+import AdminSportCatalog from "../pages/Admin/SportCatalog/AdminSportCatalog";
+import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
+import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
+import FinanceAdminOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminOwnerPayouts";
+import FinanceAdminProcessOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminProcessOwnerPayouts";
+import FinanceAdminOwnerSubscriptionTransactions from "../pages/FinanceAdmin/Subscription/FinanceAdminOwnerSubscriptionTransactions";
+import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdminRevenueReport";
+import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
+import FinanceAdminProcessWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminProcessWithdrawalRequests";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
@@ -62,8 +77,7 @@ const OwnerVenueTimeSlotLegacyRedirect = () => {
 
 const routes = [
   { path: "/login", element: <Login /> },
-  { path: "/owner/login", element: <OwnerLogin /> },
-  { path: "/register", element: <Register /> },
+    { path: "/register", element: <Register /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/rating", element: <GiveRating /> },
@@ -171,7 +185,43 @@ const routes = [
     element: <ProtectedRoute element={<AdminLayout />} requiredRole="Admin" />,
     children: [
       { index: true, element: <AdminHome /> },
-      { path: "users", element: <AdminUsers /> },
+      { path: "audit-logs", element: <AdminAuditLog /> },
+      { path: "reports", element: <AdminReports /> },
+      { path: "customers", element: <AdminCustomers /> },
+      { path: "venues", element: <AdminVenueModeration /> },
+      { path: "owners", element: <AdminOwners /> },
+      { path: "venue-registrations", element: <AdminVenueRegistrations /> },
+      { path: "finance-admins", element: <AdminFinanceAdmins /> },
+      { path: "sports", element: <AdminSportCatalog /> },
+      { path: "policies", element: <AdminPolicies /> },
+      { path: "users", element: <AdminCustomers /> },
+    ],
+  },
+  {
+    path: "/finance-admin",
+    element: (
+      <ProtectedRoute
+        element={<FinanceAdminLayout />}
+        requiredRole="FinanceAdmin"
+      />
+    ),
+    children: [
+      { index: true, element: <FinanceAdminHome /> },
+      { path: "owner-payouts", element: <FinanceAdminOwnerPayouts /> },
+      { path: "process-owner-payouts", element: <FinanceAdminProcessOwnerPayouts /> },
+      {
+        path: "owner-subscription-transactions",
+        element: <FinanceAdminOwnerSubscriptionTransactions />,
+      },
+      { path: "revenue-reports", element: <FinanceAdminRevenueReport /> },
+      { path: "withdrawal-requests", element: <FinanceAdminWithdrawalRequests /> },
+      {
+        path: "process-withdrawal-requests",
+        element: <FinanceAdminProcessWithdrawalRequests />,
+      },
+      { path: "transactions", element: <Navigate to="/finance-admin/owner-subscription-transactions" replace /> },
+      { path: "payout-reconciliation", element: <Navigate to="/finance-admin/process-owner-payouts" replace /> },
+      { path: "reports", element: <Navigate to="/finance-admin/revenue-reports" replace /> },
       {
         path: "finance-admin",
         element: <FinanceAdminManagement />,

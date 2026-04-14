@@ -6,7 +6,7 @@
 
 .owner-sidebar {
   width: 260px;
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
   border-right: 1px solid rgba(15, 23, 42, 0.06);
   padding: 18px 16px;
   position: sticky;
@@ -15,6 +15,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .owner-sidebar-top {
@@ -78,8 +80,37 @@
 
 .owner-sidebar-nav {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   margin-top: 6px;
+  align-content: start;
+  grid-auto-rows: max-content;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+.owner-sidebar-nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+.owner-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.owner-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.38);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.owner-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.55);
+  background-clip: content-box;
 }
 
 .owner-nav-group {
@@ -129,7 +160,7 @@
 
 .owner-nav-group-btn:hover {
   background: rgba(19, 154, 68, 0.06);
-  color: #139a44;
+  color: #0f172a;
 }
 
 .owner-nav-sub {
@@ -163,8 +194,8 @@
   text-decoration: none;
   transition: all 0.15s ease-in-out;
   font-weight: 650;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  background: rgba(255, 255, 255, 0.92);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -172,9 +203,9 @@
 }
 
 .owner-sidebar-sublink:hover {
-  border-color: rgba(19, 154, 68, 0.18);
+  border-color: rgba(19, 154, 68, 0.2);
   background: rgba(19, 154, 68, 0.05);
-  color: #139a44;
+  color: #0f172a;
   transform: translateX(2px);
 }
 
@@ -209,7 +240,7 @@
 
 .owner-sidebar-link:hover {
   background: rgba(19, 154, 68, 0.06);
-  color: #139a44;
+  color: #0f172a;
 }
 
 .owner-sidebar-link.active {
@@ -232,7 +263,7 @@
 .owner-sidebar-divider {
   height: 1px;
   background: rgba(15, 23, 42, 0.06);
-  margin: 8px 0;
+  margin: 10px 0 8px;
 }
 
 .owner-sidebar-footer {
@@ -240,6 +271,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  flex-shrink: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 22%);
 }
 
 .owner-logout-btn {
@@ -658,11 +693,12 @@
     z-index: 50;
     border-right: 1px solid rgba(15, 23, 42, 0.06);
     border-bottom: none;
-    padding: 12px;
+    padding: 14px 12px 12px;
     gap: 10px;
     transform: translateX(-105%);
     transition: transform 180ms ease;
     overflow-y: auto;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.28);
   }
   .owner-sidebar.open {
     transform: translateX(0);

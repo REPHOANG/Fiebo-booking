@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +12,7 @@ namespace Fiebo.Application.DTOs.Event
         public string Fullname { get; set; } = null!; 
         public string PhoneNumber { get; set; } = null!;
 
+        public string EventName { get; set; } = string.Empty;
         public DateOnly EventDate { get; set; }
         public List<TicketEventSlotResponse> Slots { get; set; } = [];
 

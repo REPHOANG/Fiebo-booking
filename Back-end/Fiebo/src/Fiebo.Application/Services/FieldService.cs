@@ -182,7 +182,7 @@ namespace Fiebo.Application.Services
             // MSG-E03 / Image Validation: Check if images are valid
             if (request.Images != null && request.Images.Any())
             {
-                ImageValidator.ValidateFiles(request.Images, min: 0, max: 5);
+                ImageValidator.ValidateFiles(request.Images, min: 0, max: 10);
 
                 foreach (var file in request.Images)
                 {

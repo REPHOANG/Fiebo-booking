@@ -15,6 +15,7 @@ namespace Fiebo.Persistence.Repositories
         private readonly FieboDbContext _context;
         private IDbContextTransaction? _transaction;
 
+        public IAdminDashboardRepository AdminDashboard { get; }
         public IWalletRepository Wallets { get; }
         public IBookingRepository Bookings { get; }
         public IVenueRepository Venues { get; }
@@ -47,6 +48,7 @@ namespace Fiebo.Persistence.Repositories
         public IPayoutRepository Payouts { get; }
 
         public UnitOfWork(FieboDbContext context,
+            IAdminDashboardRepository adminDashboardRepository,
             IWalletRepository walletRepository,
             IBookingRepository bookingRepository,
             IVenueRepository venueRepository,
@@ -77,6 +79,7 @@ namespace Fiebo.Persistence.Repositories
             )
         {
             _context = context;
+            AdminDashboard = adminDashboardRepository;
             Wallets = walletRepository;
             Bookings = bookingRepository;
             Venues = venueRepository;

@@ -14,8 +14,9 @@ import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import Alert from '@mui/material/Alert';
 import Collapse from '@mui/material/Collapse';
-import { getHomePathByRole, hasRole } from '../../utils/roleUtils';
+import { getHomePathByRole } from '../../utils/roleUtils';
 import fieboLogo from '../../assets/images/Logo với chữ.png';
+import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 import './Login.css';
 
 // ── Yup schema for password login ──────────────────────────────────────────
@@ -44,7 +45,6 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
   const [alertInfo, setAlertInfo] = useState(null);
 
   // OTP removed: no phone-login state
@@ -104,10 +104,7 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
     return "unknown";
   };
 
-  const resolveHomePath = (user) => {
-    if (isOwner || hasRole(user, "fieldowner")) return "/owner";
-    return getHomePathByRole(user);
-  };
+  const resolveHomePath = (user) => getHomePathByRole(user);
 
   const resolveReturnPath = () => {
     if (typeof redirectAfterLogin === "string" && redirectAfterLogin.startsWith("/")) {
@@ -163,7 +160,8 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
 
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
-      const nextPath = returnPath || homePath;
+      const forceDashboard = homePath === "/admin" || homePath === "/finance-admin";
+      const nextPath = forceDashboard ? homePath : (returnPath || homePath);
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });
         onLoginSuccess();
@@ -216,7 +214,8 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
       });
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
-      const nextPath = returnPath || homePath;
+      const forceDashboard = homePath === "/admin" || homePath === "/finance-admin";
+      const nextPath = forceDashboard ? homePath : (returnPath || homePath);
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });
         onLoginSuccess();
@@ -338,14 +337,6 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
                   <span>Nhớ tài khoản</span>
                 </label>
 
-                <label className="remember-me">
-                  <input
-                    type="checkbox"
-                    checked={isOwner}
-                    onChange={e => setIsOwner(e.target.checked)}
-                  />
-                  <span>Chủ sân</span>
-                </label>
               </div>
 
               <Link to="/forgot-password" className="forgot-link">
@@ -393,6 +384,26 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
               ) : (
                 <Link to="/register" className="signup-link">
                   Đăng ký tại đây
+                </Link>
+              )}
+            </div>
+            <div className="signup-prompt">
+              <span>Bạn là chủ sân? </span>
+              {typeof onOpenRegister === "function" ? (
+                <button
+                  type="button"
+                  className="signup-link auth-inline-link"
+                  onClick={() => onOpenRegister({ accountRole: "FieldOwner" })}
+                >
+                  Đăng ký Owner
+                </button>
+              ) : (
+                <Link
+                  to="/"
+                  className="signup-link"
+                  state={{ [OPEN_AUTH_STATE_KEY]: "register-owner" }}
+                >
+                  Đăng ký Owner
                 </Link>
               )}
             </div>

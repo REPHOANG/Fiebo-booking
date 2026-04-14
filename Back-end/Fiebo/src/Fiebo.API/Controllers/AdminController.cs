@@ -1,5 +1,6 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.AdminDashboard;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -14,10 +15,12 @@ namespace Fiebo.API.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IFinanceAdminService _financeAdminService;
+        private readonly IAdminDashboardService _adminDashboardService;
 
-        public AdminController(IFinanceAdminService financeAdminService)
+        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService)
         {
             _financeAdminService = financeAdminService;
+            _adminDashboardService = adminDashboardService;
         }
 
         /// <summary>
@@ -56,6 +59,33 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Thêm nhân viên thành công."
+            });
+        }
+
+        /// <summary>
+        /// Xem bảng điều khiển phân tích Admin
+        /// </summary>
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard([FromQuery] DashboardRequest request)
+        {
+            var result = await _adminDashboardService.GetDashboardAsync(request);
+            
+            // BR-A2: Empty State Check (If there's no data for the queried period, return specific message, but still DTO to avoid breaking charts UI structure)
+            if (result.TotalRevenue.Value == 0 && result.TotalBookings.Value == 0)
+            {
+                return Ok(new ApiResponse<AdminDashboardResponse>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Không tìm thấy dữ liệu cho khoảng thời gian này. Vui lòng thử khoảng thời gian khác.",
+                    Data = result
+                });
+            }
+
+            return Ok(new ApiResponse<AdminDashboardResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy dữ liệu bảng điều khiển thành công.",
+                Data = result
             });
         }
     }

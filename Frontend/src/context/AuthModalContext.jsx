@@ -18,6 +18,7 @@ export const OPEN_AUTH_STATE_KEY = "openAuth";
 
 export function AuthModalProvider({ children }) {
   const [active, setActive] = useState(null); // 'login' | 'register' | null
+  const [registerRole, setRegisterRole] = useState("Customer"); // 'Customer' | 'FieldOwner'
   const [redirectAfterLogin, setRedirectAfterLogin] = useState("");
   const location = useLocation();
 
@@ -32,9 +33,14 @@ export function AuthModalProvider({ children }) {
     },
     [location.pathname, location.search, location.hash],
   );
-  const openRegister = useCallback(() => setActive("register"), []);
+  const openRegister = useCallback((options = {}) => {
+    const role = options?.accountRole === "FieldOwner" ? "FieldOwner" : "Customer";
+    setRegisterRole(role);
+    setActive("register");
+  }, []);
   const closeAuthModal = useCallback(() => {
     setActive(null);
+    setRegisterRole("Customer");
     setRedirectAfterLogin("");
   }, []);
 
@@ -57,13 +63,16 @@ export function AuthModalProvider({ children }) {
       <LoginPopup
         open={active === "login"}
         onClose={closeAuthModal}
-        onOpenRegister={() => setActive("register")}
+        onOpenRegister={openRegister}
         redirectAfterLogin={redirectAfterLogin}
       />
       <RegisterPopup
         open={active === "register"}
         onClose={closeAuthModal}
         onOpenLogin={() => setActive("login")}
+        accountRole={registerRole}
+        onOpenOwnerRegister={() => openRegister({ accountRole: "FieldOwner" })}
+        onOpenCustomerRegister={() => openRegister({ accountRole: "Customer" })}
       />
     </AuthModalContext.Provider>
   );
@@ -88,9 +97,10 @@ export function AuthModalRouteSync() {
   const redirectTo = location.state?.redirectTo;
 
   useEffect(() => {
-    if (openAuth !== "login" && openAuth !== "register") return;
+    if (openAuth !== "login" && openAuth !== "register" && openAuth !== "register-owner") return;
 
     if (openAuth === "login") openLogin({ redirectTo });
+    else if (openAuth === "register-owner") openRegister({ accountRole: "FieldOwner" });
     else openRegister();
 
     const { [OPEN_AUTH_STATE_KEY]: _removed, redirectTo: _removedRedirect, ...rest } = location.state || {};

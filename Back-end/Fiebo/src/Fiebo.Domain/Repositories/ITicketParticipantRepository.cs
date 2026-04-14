@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +11,7 @@ namespace Fiebo.Domain.Repositories
     {
         Task<int> GetCurrentPlayer(int eventId);
         Task<TicketParticipant?> GetTicketDetailAsync(int participantId);
+        Task<List<TicketParticipant>> GetJoinedParticipantsByEventIdAsync(int eventId);
         Task<(List<TicketParticipant> Items, int TotalCount)> GetCustomerEventHistoryAsync(
             string userId,
             int pageIndex,

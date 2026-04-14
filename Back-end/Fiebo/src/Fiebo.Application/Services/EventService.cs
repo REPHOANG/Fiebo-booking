@@ -20,12 +20,21 @@ namespace Fiebo.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<EventService> _logger;
         private readonly ICacheService _cacheService;
+        private readonly INotificationService _notificationService;
+        private readonly IIdentityService _identityService;
         private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
-        public EventService(IUnitOfWork unitOfWork, ILogger<EventService> logger, ICacheService cacheService)
+        public EventService(
+            IUnitOfWork unitOfWork,
+            ILogger<EventService> logger,
+            ICacheService cacheService,
+            INotificationService notificationService,
+            IIdentityService identityService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _cacheService = cacheService;
+            _notificationService = notificationService;
+            _identityService = identityService;
         }
 
         public async Task<int> CreateDropInEventAsync(CreateDropInEventRequest request, string userId)
@@ -64,6 +73,9 @@ namespace Fiebo.Application.Services
                 var slot = await _unitOfWork.TimeSlots.GetByIdAsync(detail.SlotId);
                 if (slot == null)
                     throw new NotFoundException($"Không tìm thấy khung giờ với ID {detail.SlotId}.");
+                
+                if (slot.VenueId != venue.Id) 
+                    throw new BadRequestException($"Khung giờ (SlotId={detail.SlotId}) không thuộc cùng cơ sở với sân (FieldId={detail.FieldId}).");
             }
 
             // BR-34: Check slot availability (no booking or event overlap)
@@ -86,6 +98,7 @@ namespace Fiebo.Application.Services
 
             var ticketEvent = new TicketEvent
             {
+                Name = request.Name,
                 EventDate = request.EventDate,
                 PricePerPerson = request.PricePerPerson,
                 MinPlayer = request.MinPlayer,
@@ -129,6 +142,7 @@ namespace Fiebo.Application.Services
                 return new DropInEventListItemResponse
                 {
                     EventId = e.Id,
+                    Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
@@ -175,6 +189,7 @@ namespace Fiebo.Application.Services
             return new TicketEventDetailResponse
             {
                 EventId = eventDetail.Id,
+                Name = eventDetail.Name,
                 VenueName = firstDetail.Field.Venue?.Name ?? "",
                 VenueAddress = address,
                 EventDate = eventDetail.EventDate,
@@ -212,6 +227,7 @@ namespace Fiebo.Application.Services
                 ParticipantId = participant.Id,
                 Fullname = participant.Fullname,
                 PhoneNumber = participant.PhoneNumber,
+                EventName = participant.Event.Name,
                 EventDate = participant.Event.EventDate,
                 TicketQuantity = participant.TicketQuantity,
                 PricePerTicket = participant.PricePerTicket,
@@ -377,6 +393,7 @@ namespace Fiebo.Application.Services
             return new OwnerTicketEventDetailResponse
             {
                 Id = ticketEvent.Id,
+                Name = ticketEvent.Name,
                 Description = ticketEvent.Description,
                 EventDate = ticketEvent.EventDate,
                 MinPlayer = ticketEvent.MinPlayer,
@@ -403,6 +420,33 @@ namespace Fiebo.Application.Services
                     JoinedAt = p.JoinedAt
                 }).ToList()
             };
+        }
+
+        public async Task UpdateDropInEventAsync(int eventId, UpdateDropInEventRequest request, string ownerId)
+        {
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
+
+            if (ticketEvent == null)
+            {
+                throw new Exception("Sự kiện không tồn tại hoặc bạn không có quyền.");
+            }
+
+            if (ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled))
+            {
+                throw new Exception("Không thể chỉnh sửa vì đã có người chơi đăng ký tham gia.");
+            }
+
+            if (!string.IsNullOrEmpty(request.Name))
+            {
+                ticketEvent.Name = request.Name;
+            }
+            ticketEvent.Description = request.Description;
+            ticketEvent.MinPlayer = request.MinPlayer;
+            ticketEvent.MaxPlayer = request.MaxPlayer;
+            ticketEvent.PricePerPerson = request.PricePerPerson;
+
+            _unitOfWork.TicketEvents.Update(ticketEvent);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string ownerId)
@@ -435,6 +479,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu");
             }
 
+            dropInEvent.Name = request.Name;
             dropInEvent.PricePerPerson = request.PricePerPerson;
             dropInEvent.MinPlayer = request.MinPlayer;
             dropInEvent.MaxPlayer = request.MaxPlayer;
@@ -453,6 +498,7 @@ namespace Fiebo.Application.Services
                 return new OwnerDropInEventListItemResponse
                 {
                     EventId = e.Id,
+                    Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
@@ -488,6 +534,7 @@ namespace Fiebo.Application.Services
                 {
                     TicketParticipantId = tp.Id,
                     EventId = tp.EventId,
+                    Name = tp.Event.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = tp.Event.EventDate,
                     TicketQuantity = tp.TicketQuantity,
@@ -513,6 +560,121 @@ namespace Fiebo.Application.Services
                 Page = filter.PageIndex,   
                 PageSize = filter.PageSize
             };
+        }
+
+        /// <summary>
+        /// BR-144 / BR-145: Owner cancels a Drop-in Event.
+        /// Blocked if StartTime is within 2 hours. Issues 100% refund to all Joined participants.
+        /// </summary>
+        public async Task<int> CancelDropInEventAsync(int eventId, string ownerId, string? cancelNote)
+        {
+            // 1. Load the event (with details for start time, and participants for refund)
+            var ticketEvent = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
+            if (ticketEvent == null)
+                throw new NotFoundException("Sự kiện này không tồn tại.");
+
+            // 2. Authorize: only the owner of the event may cancel it
+            if (ticketEvent.OwnerId != ownerId)
+                throw new UnauthorizedAccessException("Bạn không có quyền hủy sự kiện này.");
+
+            // 3. Guard: can only cancel if still Pending
+            if (ticketEvent.Status != TicketEventStatus.Pending)
+                throw new BadRequestException("Chỉ sự kiện đang chờ mới có thể hủy.");
+
+            // 4. BR-144: Reject if StartTime < 2 hours from now
+            var firstDetail = ticketEvent.Details
+                .OrderBy(d => d.Slot.StartTime)
+                .FirstOrDefault();
+
+            if (firstDetail == null)
+                throw new BadRequestException("Sự kiện không có slot hợp lệ.");
+
+            var eventStartDateTime = ticketEvent.EventDate.ToDateTime(firstDetail.Slot.StartTime);
+            if ((eventStartDateTime - DateTime.Now).TotalHours < 6)
+                throw new BadRequestException("Bạn không thể tự hủy sự kiện khi thời gian bắt đầu chỉ còn dưới 2 tiếng. Vui lòng liên hệ CSKH Fiebo để được hỗ trợ.");
+
+            // 5. Load all paid (Joined) participants
+            var joinedParticipants = await _unitOfWork.TicketParticipants.GetJoinedParticipantsByEventIdAsync(eventId);
+            int refundedCount = joinedParticipants.Count;
+
+            // 6. A2: If no participants, skip refund + notification
+            if (refundedCount > 0)
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                try
+                {
+                    foreach (var participant in joinedParticipants)
+                    {
+                        // BR-145: 100% refund to each participant's wallet
+                        var wallet = await _unitOfWork.Wallets.GetByUserId(participant.UserId);
+                        if (wallet == null)
+                        {
+                            _logger.LogWarning("Wallet not found for user {UserId} during event {EventId} cancel refund", participant.UserId, eventId);
+                            continue;
+                        }
+
+                        wallet.Balance += participant.TotalPrice;
+                        _unitOfWork.Wallets.Update(wallet);
+
+                        _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                        {
+                            WalletId = wallet.Id,
+                            TransactionType = TransactionType.Refund,
+                            Direction = TransactionDirection.Credit,
+                            Amount = participant.TotalPrice,
+                            ReferenceId = ticketEvent.Id
+                        });
+
+                        // Mark participant as Cancelled
+                        participant.Status = TicketParticipantStatus.Cancelled;
+                        _unitOfWork.TicketParticipants.Update(participant);
+                    }
+
+                    // 7. Cancel the event
+                    ticketEvent.Status = TicketEventStatus.Cancelled;
+                    _unitOfWork.TicketEvents.Update(ticketEvent);
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogError(ex, "Failed to cancel event {EventId} and process refunds", eventId);
+                    throw;
+                }
+
+                // 8. Send push notifications (fire-and-forget, don't fail the whole request)
+                foreach (var participant in joinedParticipants)
+                {
+                    try
+                    {
+                        await _notificationService.NotifyEventCancelledByOwnerAsync(
+                            participant.UserId,
+                            eventId,
+                            ticketEvent.Name,
+                            cancelNote,
+                            participant.TotalPrice);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send cancellation notification to user {UserId}", participant.UserId);
+                    }
+                }
+            }
+            else
+            {
+                // A2: No participants — just cancel the event
+                ticketEvent.Status = TicketEventStatus.Cancelled;
+                _unitOfWork.TicketEvents.Update(ticketEvent);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            _logger.LogInformation(
+                "Event {EventId} cancelled by owner {OwnerId}. Refunded {Count} participants.",
+                eventId, ownerId, refundedCount);
+
+            return refundedCount;
         }
     }
 }
