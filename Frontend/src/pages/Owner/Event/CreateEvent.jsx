@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
+import { getVenueSchedule } from "../../../services/fieldService";
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
@@ -11,6 +11,12 @@ import "./CreateEvent.css";
 const createEventFormSchema = yup.object({
   venueId: yup.string().required("Vui lòng chọn cơ sở."),
   eventDate: yup.string().required("Vui lòng chọn ngày."),
+  eventName: yup
+    .string()
+    .trim()
+    .required("Vui lòng nhập tên sự kiện")
+    .min(3, "Tên sự kiện tối thiểu 3 ký tự")
+    .max(100, "Tên sự kiện tối đa 100 ký tự"),
   pricePerPerson: yup
     .number()
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
@@ -36,11 +42,6 @@ const createEventFormSchema = yup.object({
     }),
   description: yup.string().optional(),
 });
-
-const formatPrice = (n) => {
-  if (n == null || Number.isNaN(n)) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
-};
 
 /** Chuẩn hóa thời gian từ API (e.g. "18:00:00" hoặc "18:00") thành "HH:mm" */
 const normalizeTime = (t) => {
@@ -154,6 +155,7 @@ const CreateEvent = () => {
     defaultValues: {
       venueId: "",
       eventDate: "",
+      eventName: "",
       pricePerPerson: "",
       minPlayer: "4",
       maxPlayer: "10",
@@ -166,10 +168,8 @@ const CreateEvent = () => {
 
   const [venues, setVenues] = useState([]);
   const [loadingVenues, setLoadingVenues] = useState(false);
-  const [venue, setVenue] = useState(null);
   const [schedule, setSchedule] = useState(null);
   const [eventListForDate, setEventListForDate] = useState([]);
-  const [loadingVenue, setLoadingVenue] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState([]); // [{ fieldId, slotId }]
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -181,19 +181,27 @@ const CreateEvent = () => {
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
   const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
-  const venueDisplayName =
-    venue?.name ?? venue?.venueName ?? venue?.Name ?? venue?.VenueName;
+  const selectedVenueName = useMemo(() => {
+    const id = Number(venueId);
+    if (!id) return "";
+    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
+    return pick(match, "name", "Name", "venueName", "VenueName") ?? "";
+  }, [venueId, venues]);
 
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
     () =>
-      getEventOccupiedKeys(eventListForDate, venueDisplayName, eventDate),
-    [eventListForDate, venueDisplayName, eventDate],
+      getEventOccupiedKeys(eventListForDate, selectedVenueName, eventDate),
+    [eventListForDate, selectedVenueName, eventDate],
   );
 
   /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
   const slotsByFieldWithStatus = useMemo(
-    () => getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate),
+    () => {
+      // Force recalculation every tick so "past" status updates in realtime.
+      void pastSlotsTick;
+      return getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate);
+    },
     [schedule, eventOccupiedKeys, eventDate, pastSlotsTick],
   );
 
@@ -257,43 +265,6 @@ const CreateEvent = () => {
     setSelectedDetails([]);
     setExpandedFieldId(null);
     setSportTypeFilter("");
-    const id = Number(nextVenueId);
-    if (!id) {
-      setVenue(null);
-      return;
-    }
-    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
-    if (!match) {
-      setVenue(null);
-      return;
-    }
-    const normalizedName =
-      pick(match, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
-    setVenue({ ...match, name: normalizedName });
-  };
-
-  const loadVenue = async () => {
-    const id = Number(venueId);
-    if (!id) {
-      setError("Vui lòng chọn cơ sở.");
-      return;
-    }
-    setError("");
-    setLoadingVenue(true);
-    setVenue(null);
-    setSchedule(null);
-    setSelectedDetails([]);
-    setExpandedFieldId(null);
-    setSportTypeFilter("");
-    try {
-      const v = await getVenueDetail(id);
-      setVenue(v ?? null);
-      if (!v) setError("Không tìm thấy cơ sở.");
-    } catch (e) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được thông tin cơ sở.");
-    } finally {
-      setLoadingVenue(false);
-    }
   };
 
   const loadSchedule = async () => {
@@ -323,7 +294,7 @@ const CreateEvent = () => {
 
   /** Khi đã có schedule + venue + ngày → lấy danh sách sự kiện để đánh dấu slot "sự kiện" */
   useEffect(() => {
-    if (!schedule?.sportTypes?.length || !venue || !eventDate) {
+    if (!schedule?.sportTypes?.length || !selectedVenueName || !eventDate) {
       setEventListForDate([]);
       return;
     }
@@ -336,7 +307,7 @@ const CreateEvent = () => {
         if (mounted) setEventListForDate([]);
       });
     return () => { mounted = false; };
-  }, [schedule, venue, eventDate]);
+  }, [schedule, selectedVenueName, eventDate]);
 
   /** Cập nhật khóa slot "đã qua" theo thời gian thực khi chọn đúng ngày hôm nay */
   useEffect(() => {
@@ -399,8 +370,10 @@ const CreateEvent = () => {
     setSlotSelectionError(false);
     setSubmitLoading(true);
     try {
+      const eventName = values.eventName?.trim() || "";
       const payload = {
         eventDate: values.eventDate.slice(0, 10),
+        name: eventName,
         details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),
         pricePerPerson: values.pricePerPerson,
         minPlayer: values.minPlayer,
@@ -474,20 +447,7 @@ const CreateEvent = () => {
                 />
                 {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
               </label>
-              <button
-                type="button"
-                className="ce-btn secondary"
-                onClick={loadVenue}
-                disabled={loadingVenue || !venueId}
-              >
-                {loadingVenue ? "Đang tải…" : "Tải thông tin"}
-              </button>
             </div>
-            {venue && (
-              <p className="ce-venue-name">
-                Cơ sở: <strong>{venueDisplayName}</strong>
-              </p>
-            )}
             <div className="ce-row">
               <label>
                 Ngày sự kiện
@@ -512,10 +472,7 @@ const CreateEvent = () => {
 
           {slotsByFieldWithStatus.length > 0 && (
             <div className="ce-section">
-              <h3>Chọn khung giờ (ít nhất 1)</h3>
-              <p className="ce-single-field-hint">
-                Một sự kiện chỉ dùng slot trên một sân. Phóng to sân khác sẽ bỏ chọn slot ở sân trước.
-              </p>
+              <h3>Chọn khung giờ</h3>
               {sportTypeOptions.length > 0 && (
                 <div className="ce-row ce-sport-filter-row">
                   <label>
@@ -619,6 +576,21 @@ const CreateEvent = () => {
 
           <div className="ce-section">
             <h3>Thông tin sự kiện</h3>
+            <div className="ce-row">
+              <label>
+                Tên sự kiện
+                <input
+                  type="text"
+                  maxLength={100}
+                  placeholder="Ví dụ: Giao lưu bóng đá cuối tuần"
+                  className={errors.eventName ? "ce-input-error" : ""}
+                  {...register("eventName")}
+                />
+                {errors.eventName && (
+                  <span className="ce-field-error">{errors.eventName.message}</span>
+                )}
+              </label>
+            </div>
             <div className="ce-row">
               <label>
                 Phí tham gia (VNĐ/người)

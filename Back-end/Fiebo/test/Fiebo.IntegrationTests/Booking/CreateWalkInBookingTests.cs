@@ -30,7 +30,7 @@ namespace Fiebo.IntegrationTests.Booking
             var request = ValidRequest();
 
             _factory.BookingServiceMock
-                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
+                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId, AppRoles.FieldStaff))
                 .ReturnsAsync(true);
 
             var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldStaff);
@@ -50,7 +50,8 @@ namespace Fiebo.IntegrationTests.Booking
                     r.Details.Count == 1 &&
                     r.Details[0].FieldId == 1 &&
                     r.Details[0].SlotId == 10),
-                userId), Times.Once);
+                userId,
+                AppRoles.FieldStaff), Times.Once);
         }
 
         [Fact]
@@ -61,7 +62,7 @@ namespace Fiebo.IntegrationTests.Booking
             var request = ValidRequest();
 
             _factory.BookingServiceMock
-                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
+                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId, AppRoles.FieldOwner))
                 .ReturnsAsync(true);
 
             var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldOwner);
@@ -73,7 +74,8 @@ namespace Fiebo.IntegrationTests.Booking
                 It.Is<CreateBookingRequest>(r =>
                     r.VenueId == request.VenueId &&
                     r.BookingDate == request.BookingDate),
-                userId), Times.Once);
+                userId,
+                AppRoles.FieldOwner), Times.Once);
         }
 
         [Fact]
@@ -86,7 +88,7 @@ namespace Fiebo.IntegrationTests.Booking
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             _factory.BookingServiceMock.Verify(
-                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>()),
+                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -100,7 +102,7 @@ namespace Fiebo.IntegrationTests.Booking
 
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             _factory.BookingServiceMock.Verify(
-                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>()),
+                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -112,7 +114,7 @@ namespace Fiebo.IntegrationTests.Booking
             var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldStaff);
 
             _factory.BookingServiceMock
-                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
+                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId, AppRoles.FieldStaff))
                 .ThrowsAsync(new BadRequestException("Cơ sở này hiện không hoạt động."));
 
             var response = await client.PostAsJsonAsync("/api/booking/walk-in", ValidRequest());
@@ -128,7 +130,7 @@ namespace Fiebo.IntegrationTests.Booking
             var client = _factory.CreateAuthenticatedClient(userId, AppRoles.FieldStaff);
 
             _factory.BookingServiceMock
-                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId))
+                .Setup(s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), userId, AppRoles.FieldStaff))
                 .ThrowsAsync(new ResourceConflictException("Sân hiện tại hiện không có slot trống."));
 
             var response = await client.PostAsJsonAsync("/api/booking/walk-in", ValidRequest());
@@ -146,7 +148,7 @@ namespace Fiebo.IntegrationTests.Booking
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             _factory.BookingServiceMock.Verify(
-                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>()),
+                s => s.CreateWalkInBookingAsync(It.IsAny<CreateBookingRequest>(), It.IsAny<string>(), It.IsAny<string?>()),
                 Times.Never);
         }
 

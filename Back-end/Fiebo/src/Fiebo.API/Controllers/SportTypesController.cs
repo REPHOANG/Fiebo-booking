@@ -43,14 +43,6 @@ namespace Fiebo.API.Controllers
             [FromBody] CreateSportTypeRequest request,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Tên môn thể thao không được để trống."
-                });
-            }
 
             var sportId = await _sportTypeService.CreateSportTypeAsync(request, cancellationToken);
 
@@ -90,14 +82,6 @@ namespace Fiebo.API.Controllers
             [FromBody] UpdateSportTypeRequest request,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    StatusCode = StatusCodes.Status400BadRequest,
-                    Message = "Tên môn thể thao không được để trống."
-                });
-            }
 
             await _sportTypeService.UpdateSportTypeAsync(id, request, cancellationToken);
 

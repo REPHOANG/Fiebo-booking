@@ -14,5 +14,9 @@ namespace Fiebo.Domain.Repositories
         Task<bool> IsSlotUsedByEventAsync(int fieldId, int slotId, DateOnly eventDate);
         Task<TicketEvent?> GetEventDetailForOwnerAsync(int eventId, string ownerId);
         Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId);
+        Task<List<(int SlotId, int FieldId)>> GetUsedSlots(
+            List<int> slotIds,
+            List<int> fieldIds,
+            DateOnly bookingDate);
     }
 }

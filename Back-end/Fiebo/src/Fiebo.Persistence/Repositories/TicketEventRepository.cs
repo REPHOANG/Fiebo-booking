@@ -36,8 +36,9 @@ namespace Fiebo.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(te => te.Status == TicketEventStatus.Pending &&
-                             te.Details.Any(d => d.Field.Status == FieldStatus.Active &&
-                                                 d.Field.Venue!.Status == VenueStatus.Active))
+                             te.Details.All(d => d.Field.Status == FieldStatus.Active &&
+                                                 d.Field.Venue!.Status == VenueStatus.Active
+                                                 && !d.Slot.IsDeleted))
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
                         .ThenInclude(f => f.Venue)
@@ -79,10 +80,25 @@ namespace Fiebo.Persistence.Repositories
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
                         .ThenInclude(f => f.Venue)
-                .Include(te => te.Details)
-                    .ThenInclude(d => d.Slot)
                 .Include(te => te.Participants)
                 .OrderByDescending(te => te.CreatedAt)
+                .ToListAsync();
+        }
+        public async Task<List<(int SlotId, int FieldId)>> GetUsedSlots(
+            List<int> slotIds,
+            List<int> fieldIds,
+            DateOnly bookingDate)
+        {
+            return await _context.TicketEventDetails
+                .AsNoTracking()
+                .Where(d =>
+                    slotIds.Contains(d.SlotId) &&
+                    fieldIds.Contains(d.FieldId) &&
+                    d.Event.EventDate == bookingDate &&
+                    d.Event.Status == TicketEventStatus.Pending
+                )
+                .Select(d => new ValueTuple<int, int>(d.SlotId, d.FieldId))
+                .Distinct()
                 .ToListAsync();
         }
     }

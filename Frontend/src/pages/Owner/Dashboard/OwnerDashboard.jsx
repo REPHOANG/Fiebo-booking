@@ -327,7 +327,7 @@ export default function OwnerDashboardVer2() {
 					<CardContent>
 						<Box className="od2-chart-head">
 							<Box>
-								<Typography className="od2-chart-title">Phân bổ theo sân</Typography>
+								<Typography className="od2-chart-title">Phân bổ theo cơ sở</Typography>
 							</Box>
 							<ToggleButtonGroup
 								color="primary"

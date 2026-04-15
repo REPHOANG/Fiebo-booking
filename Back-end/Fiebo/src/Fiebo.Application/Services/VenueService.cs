@@ -457,6 +457,21 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException(
                     "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
             }
+            if(request.CloseTime.Minute % 30 != 0 || request.OpenTime.Minute % 30 != 0)
+            {
+                throw new BadRequestException(
+                    "Giờ mở cửa và đóng cửa phải là các khoảng thời gian chẵn 30 phút");
+            }
+            var province = await _unitOfWork.Provinces.GetByIdAsync(request.ProvinceId);
+            if (province == null)
+            {
+                throw new BadRequestException("Tỉnh/Thành phố không hợp lệ");
+            }
+            var ward = await _unitOfWork.Wards.GetByIdAsync(request.WardId);
+            if(ward == null || ward.ProvinceId != request.ProvinceId)
+            {
+                throw new BadRequestException("Phường/Xã không hợp lệ hoặc không thuộc tỉnh/thành phố đã chọn");
+            }
 
             var file = request.Thumbnail;
             var fileList = file != null ? new List<IFormFile> { file } : [];

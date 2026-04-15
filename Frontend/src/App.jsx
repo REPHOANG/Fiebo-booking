@@ -50,38 +50,6 @@ const App = () => {
   }, [token, dispatch]);
 
 
-  // Persist react-query cache to IndexedDB via localforage
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const persister = {
-      persistClient: async (client) => {
-        try {
-          await localforage.setItem("react_query_offline_cache", client);
-        } catch (e) {
-          console.warn("Failed to persist react-query cache", e);
-        }
-      },
-      restoreClient: async () => {
-        try {
-          const data = await localforage.getItem("react_query_offline_cache");
-          return data || undefined;
-        } catch (e) {
-          console.warn("Failed to restore react-query cache", e);
-          return undefined;
-        }
-      },
-      removeClient: async () => {
-        try {
-          await localforage.removeItem("react_query_offline_cache");
-        } catch (e) {
-          console.warn("Failed to remove react-query cache", e);
-        }
-      },
-    };
-
-    persistQueryClient({ queryClient, persister, maxAge: 1000 * 60 * 60 * 24 });
-  }, [queryClient]);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [location, setLocation] = useState(null);
   const initRanRef = useRef(false);
