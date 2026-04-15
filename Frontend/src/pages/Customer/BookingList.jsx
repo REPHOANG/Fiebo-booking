@@ -975,7 +975,7 @@ const BookingList = () => {
                         ) : null}
                       </div>
                       <div className="bl-list-price">
-                        <Receipt size={14} /> {formatPrice(ev.totalAmount)} · {ev.ticketQuantity} vé
+                        <Receipt size={14} /> {formatVND(ev.totalAmount)} · {ev.ticketQuantity} vé
                       </div>
                     </div>
                     <div className="bl-list-actions">
@@ -1049,7 +1049,7 @@ const BookingList = () => {
                     </div>
                     {b.totalPrice && (
                       <div className="bl-list-price">
-                        <Receipt size={14} /> {formatPrice(b.totalPrice)}
+                        <Receipt size={14} /> {formatVND(b.totalPrice)}
                       </div>
                     )}
                   </div>
