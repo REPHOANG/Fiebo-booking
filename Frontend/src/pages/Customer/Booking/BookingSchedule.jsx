@@ -1410,7 +1410,7 @@ const BookingSchedule = () => {
               });
               return;
             }
-            navigate(`/booking/${id}/confirm`, {
+            navigate(`/venue/${id}/booking`, {
               state: {
                 venue,
                 fields,

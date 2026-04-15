@@ -247,12 +247,10 @@ export default function CreateVenueStepBasic({
           </div>
 
           <div className="cv-form-group cv-full-width">
-            <label>Ảnh đại diện cơ sở (tùy chọn)</label>
+            
             <span className="cv-doc-gallery-label">
               Ảnh đại diện cơ sở
-              <span className="cv-doc-gallery-sublabel">
-                Tối đa 1 ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn file · bấm X để gỡ ảnh khỏi form
-              </span>
+             
             </span>
             <ul className="cv-doc-gallery cv-doc-gallery--thumbnail" aria-label="Ảnh đại diện cơ sở">
               {thumbnailPreviewUrl ? (

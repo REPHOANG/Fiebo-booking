@@ -74,6 +74,21 @@ const Events = () => {
     return Array.from(mapByVenue.values());
   }, [events, query]);
 
+  const emptyMessage = useMemo(() => {
+    const keyword = String(query || "").trim();
+    if (keyword) {
+      return {
+        title: "Không tìm thấy sự kiện phù hợp",
+        description: `Hiện chưa có sự kiện nào khớp với từ khóa \"${keyword}\".`,
+      };
+    }
+
+    return {
+      title: "Hiện chưa có sự kiện",
+      description: "Các buổi giao lưu và sự kiện mới sẽ xuất hiện tại đây khi được mở đăng ký.",
+    };
+  }, [query]);
+
   const openEventRegister = (eventId) => {
     if (!isAuthenticated) {
       openLogin();
@@ -131,6 +146,14 @@ const Events = () => {
       <div className="ev-grid">
         {isLoading ? (
           <div className="ev-loading">Đang tải...</div>
+        ) : cards.length === 0 ? (
+          <div className="ev-empty">
+            <div className="ev-empty-icon">
+              <CalendarDays size={24} />
+            </div>
+            <h3 className="ev-empty-title">{emptyMessage.title}</h3>
+            <p className="ev-empty-text">{emptyMessage.description}</p>
+          </div>
         ) : (
           cards.map((v) => (
             <div key={v.id} className="ev-card">
