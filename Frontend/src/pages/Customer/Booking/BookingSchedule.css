@@ -927,6 +927,19 @@
   background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
 }
 
+.bs-cell-no-slot-merged {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: #f8fafc;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 /* Sự kiện còn chỗ (RemainingTicketQuantity > 0) — vàng */
 .bs-cell.event {
   background: linear-gradient(145deg, #fde047 0%, #eab308 55%, #ca8a04 100%);

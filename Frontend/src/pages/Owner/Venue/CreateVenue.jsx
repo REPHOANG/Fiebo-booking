@@ -18,6 +18,15 @@ import CreateVenueStepDocuments from "../CreateVenueSteps/CreateVenueStepDocumen
 import CreateVenueStepReview from "../CreateVenueSteps/CreateVenueStepReview";
 import "./CreateVenue.css";
 
+function isThirtyMinuteTime(value) {
+  if (!value || typeof value !== "string") return false;
+  const match = /^(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours >= 0 && hours <= 23 && (minutes === 0 || minutes === 30);
+}
+
 // ── Yup Validation (Step 1: Create Venue draft) ──
 const schema = yup.object({
   name: yup
@@ -26,10 +35,20 @@ const schema = yup.object({
     .min(3, "Tên cơ sở ít nhất 3 ký tự")
     .required("Vui lòng nhập tên cơ sở"),
   description: yup.string().optional(),
-  openTime: yup.string().required("Vui lòng nhập giờ mở cửa"),
+  openTime: yup
+    .string()
+    .required("Vui lòng nhập giờ mở cửa")
+    .test("thirty-minute-open", "Giờ mở cửa chỉ được chọn mỗi 30 phút", (value) => {
+      if (!value) return true;
+      return isThirtyMinuteTime(value);
+    }),
   closeTime: yup
     .string()
     .required("Vui lòng nhập giờ đóng cửa")
+    .test("thirty-minute-close", "Giờ đóng cửa chỉ được chọn mỗi 30 phút", (value) => {
+      if (!value) return true;
+      return isThirtyMinuteTime(value);
+    })
     .test("after-open", "Giờ đóng phải sau giờ mở", function (value) {
       const { openTime } = this.parent;
       if (!openTime || !value) return true;
@@ -65,6 +84,8 @@ const DOC_SLOTS = [
 ];
 
 const STEPS = ["Tạo cơ sở", "Giấy tờ", "Xác nhận"];
+const LOCATION_TOAST_ID = "create-venue-location";
+const LOCATION_BUTTON_COOLDOWN_MS = 1500;
 
 function normalizeTimeForApi(t) {
   if (!t || typeof t !== "string") return "";
@@ -146,6 +167,19 @@ function formatReviewDate(iso) {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
+function getLocationErrorMessage(err) {
+  switch (err?.code) {
+    case 1:
+      return null;
+    case 2:
+      return "Không xác định được vị trí hiện tại.";
+    case 3:
+      return "Lấy vị trí quá lâu, vui lòng thử lại.";
+    default:
+      return err?.message || "Không lấy được vị trí hiện tại.";
+  }
+}
+
 const CreateVenue = () => {
   const navigate = useNavigate();
   const { id: routeVenueId } = useParams();
@@ -164,6 +198,11 @@ const CreateVenue = () => {
   const [districtOptions, setDistrictOptions] = useState([]);
   const [loadingProvinces, setLoadingProvinces] = useState(false);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLocationCooldown, setIsLocationCooldown] = useState(false);
+  const locationRequestRef = useRef(0);
+  const locationClickLockRef = useRef(false);
+  const locationCooldownTimeoutRef = useRef(null);
 
   const venueId = createdVenue?.venueId ?? createdVenue?.VenueId ?? null;
 
@@ -189,6 +228,15 @@ const CreateVenue = () => {
       URL.revokeObjectURL(url);
     };
   }, [thumbnailFile]);
+
+  useEffect(
+    () => () => {
+      if (locationCooldownTimeoutRef.current) {
+        clearTimeout(locationCooldownTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const {
     register: reg,
@@ -345,23 +393,72 @@ const CreateVenue = () => {
   );
 
   const useMyLocation = useCallback(() => {
+    if (locationClickLockRef.current || isLocating || isLocationCooldown) return;
+
+    const startLocationCooldown = () => {
+      if (locationCooldownTimeoutRef.current) {
+        clearTimeout(locationCooldownTimeoutRef.current);
+      }
+      setIsLocationCooldown(true);
+      locationCooldownTimeoutRef.current = setTimeout(() => {
+        locationClickLockRef.current = false;
+        setIsLocationCooldown(false);
+        locationCooldownTimeoutRef.current = null;
+      }, LOCATION_BUTTON_COOLDOWN_MS);
+    };
+
+    locationClickLockRef.current = true;
+
     if (!navigator?.geolocation) {
-      toast.error("Trình duyệt không hỗ trợ định vị (geolocation).");
+      toast.error("Trình duyệt không hỗ trợ định vị (geolocation).", {
+        toastId: LOCATION_TOAST_ID,
+      });
+      startLocationCooldown();
       return;
     }
+    locationRequestRef.current += 1;
+    const requestId = locationRequestRef.current;
+    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (requestId !== locationRequestRef.current) return;
         const a = pos?.coords?.latitude;
         const o = pos?.coords?.longitude;
         pickCoords(a, o);
-        toast.success("Đã lấy vị trí hiện tại.");
+        if (toast.isActive(LOCATION_TOAST_ID)) {
+          toast.update(LOCATION_TOAST_ID, {
+            render: "Đã lấy vị trí hiện tại.",
+            type: "success",
+            autoClose: 1000,
+            closeButton: true,
+          });
+        } else {
+          toast.success("Đã lấy vị trí hiện tại.", { toastId: LOCATION_TOAST_ID });
+        }
+        setIsLocating(false);
+        startLocationCooldown();
       },
       (err) => {
-        toast.error(err?.message || "Không lấy được vị trí hiện tại.");
+        if (requestId !== locationRequestRef.current) return;
+        const message = getLocationErrorMessage(err);
+        if (!message) {
+          toast.dismiss(LOCATION_TOAST_ID);
+        } else if (toast.isActive(LOCATION_TOAST_ID)) {
+          toast.update(LOCATION_TOAST_ID, {
+            render: message,
+            type: "error",
+            autoClose: 2000,
+            closeButton: true,
+          });
+        } else {
+          toast.error(message, { toastId: LOCATION_TOAST_ID });
+        }
+        setIsLocating(false);
+        startLocationCooldown();
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
-  }, [pickCoords]);
+  }, [isLocating, isLocationCooldown, pickCoords]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
@@ -605,6 +702,8 @@ const CreateVenue = () => {
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}
             setValue={setValue}
+            openTimeValue={rwOpen}
+            closeTimeValue={rwClose}
             thumbnailFile={thumbnailFile}
             setThumbnailFile={setThumbnailFile}
             thumbnailPreviewUrl={thumbnailPreviewUrl}
@@ -620,6 +719,8 @@ const CreateVenue = () => {
             pickedPosition={pickedPosition}
             pickCoords={pickCoords}
             useMyLocation={useMyLocation}
+            isLocating={isLocating}
+            isLocationButtonDisabled={isLocating || isLocationCooldown}
             isSubmitting={isSubmitting}
             onCancel={() => navigate(-1)}
             existingThumbnailUrl={existingThumbnailUrl}

@@ -9,6 +9,7 @@ import React, {
 import { useLocation, useNavigate } from "react-router-dom";
 import LoginPopup from "../components/common/LoginPopup/LoginPopup";
 import RegisterPopup from "../components/common/RegisterPopup/RegisterPopup";
+import ForgotPasswordPopup from "../components/common/ForgotPasswordPopup/ForgotPasswordPopup";
 import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 
 const AuthModalContext = createContext(null);
@@ -17,7 +18,7 @@ const AuthModalContext = createContext(null);
 export const OPEN_AUTH_STATE_KEY = "openAuth";
 
 export function AuthModalProvider({ children }) {
-  const [active, setActive] = useState(null); // 'login' | 'register' | null
+  const [active, setActive] = useState(null); // 'login' | 'register' | 'forgot-password' | null
   const [registerRole, setRegisterRole] = useState("Customer"); // 'Customer' | 'FieldOwner'
   const [redirectAfterLogin, setRedirectAfterLogin] = useState("");
   const location = useLocation();
@@ -38,6 +39,9 @@ export function AuthModalProvider({ children }) {
     setRegisterRole(role);
     setActive("register");
   }, []);
+  const openForgotPassword = useCallback(() => {
+    setActive("forgot-password");
+  }, []);
   const closeAuthModal = useCallback(() => {
     setActive(null);
     setRegisterRole("Customer");
@@ -53,8 +57,8 @@ export function AuthModalProvider({ children }) {
   }, [active]);
 
   const value = useMemo(
-    () => ({ openLogin, openRegister, closeAuthModal, active }),
-    [openLogin, openRegister, closeAuthModal, active],
+    () => ({ openLogin, openRegister, openForgotPassword, closeAuthModal, active }),
+    [openLogin, openRegister, openForgotPassword, closeAuthModal, active],
   );
 
   return (
@@ -64,6 +68,7 @@ export function AuthModalProvider({ children }) {
         open={active === "login"}
         onClose={closeAuthModal}
         onOpenRegister={openRegister}
+        onOpenForgotPassword={openForgotPassword}
         redirectAfterLogin={redirectAfterLogin}
       />
       <RegisterPopup
@@ -73,6 +78,11 @@ export function AuthModalProvider({ children }) {
         accountRole={registerRole}
         onOpenOwnerRegister={() => openRegister({ accountRole: "FieldOwner" })}
         onOpenCustomerRegister={() => openRegister({ accountRole: "Customer" })}
+      />
+      <ForgotPasswordPopup
+        open={active === "forgot-password"}
+        onClose={closeAuthModal}
+        onOpenLogin={() => setActive("login")}
       />
     </AuthModalContext.Provider>
   );
@@ -92,14 +102,22 @@ export function useAuthModal() {
 export function AuthModalRouteSync() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { openLogin, openRegister } = useAuthModal();
+  const { openLogin, openRegister, openForgotPassword } = useAuthModal();
   const openAuth = location.state?.[OPEN_AUTH_STATE_KEY];
   const redirectTo = location.state?.redirectTo;
 
   useEffect(() => {
-    if (openAuth !== "login" && openAuth !== "register" && openAuth !== "register-owner") return;
+    if (
+      openAuth !== "login" &&
+      openAuth !== "register" &&
+      openAuth !== "register-owner" &&
+      openAuth !== "forgot-password"
+    ) {
+      return;
+    }
 
     if (openAuth === "login") openLogin({ redirectTo });
+    else if (openAuth === "forgot-password") openForgotPassword();
     else if (openAuth === "register-owner") openRegister({ accountRole: "FieldOwner" });
     else openRegister();
 
@@ -109,7 +127,16 @@ export function AuthModalRouteSync() {
       replace: true,
       state: hasRest ? rest : {},
     });
-  }, [openAuth, redirectTo, location.pathname, location.search, navigate, openLogin, openRegister]);
+  }, [
+    openAuth,
+    redirectTo,
+    location.pathname,
+    location.search,
+    navigate,
+    openLogin,
+    openRegister,
+    openForgotPassword,
+  ]);
 
   return null;
 }

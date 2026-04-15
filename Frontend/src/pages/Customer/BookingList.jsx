@@ -184,7 +184,12 @@ function getBookingTypeMeta(item) {
     : { label: "Đơn ngày", className: "bl-type-tag bl-type-tag--daily" };
 }
 
-const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
+const FALLBACK_VENUE_IMAGE = "https://c.pxhere.com/photos/c0/3e/football_pitch_football_rush_american_football-976043.jpg!s2";
+const handleImgError = (e) => {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = FALLBACK_VENUE_IMAGE;
+};
+
 
 function normEventHistoryItem(raw) {
   const ticketParticipantId =
@@ -396,13 +401,10 @@ const BookingList = () => {
     isLoading: loadingList,
     error: listError,
   } = useQuery({
-    queryKey: [
-      "bookingHistory",
-      { page, fromDate: activeFromDate, toDate: activeToDate },
-    ],
+    queryKey: ["bookingHistory", { fromDate: activeFromDate, toDate: activeToDate }],
     queryFn: () =>
       getBookingHistory({
-        pageNumber: page,
+        pageNumber: 1,
         pageSize: PAGE_SIZE,
         ...(activeFromDate ? { fromDate: activeFromDate } : {}),
         ...(activeToDate ? { toDate: activeToDate } : {}),
@@ -413,10 +415,10 @@ const BookingList = () => {
   });
 
   const { data: eventHistoryData, isLoading: loadingEventList } = useQuery({
-    queryKey: ["customerEventHistory", { eventPage }],
+    queryKey: ["customerEventHistory"],
     queryFn: () =>
       getCustomerEventHistory({
-        pageIndex: eventPage,
+        pageIndex: 1,
         pageSize: PAGE_SIZE,
       }),
     keepPreviousData: true,
@@ -490,34 +492,6 @@ const BookingList = () => {
     );
   }, [list, eventItems, activeTab, activeTypeFilter]);
 
-  /** Thống kê sidebar: chỉ đơn/vé hoàn thành trong tháng hiện tại (theo tiêu đề card). */
-  const sideStatsCompleted = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-
-    const venueCompleted = list.filter(
-      (b) =>
-        String(b.status || "").toLowerCase() === "completed" &&
-        isSameCalendarMonth(b.bookingDate, y, m),
-    );
-    const eventCompleted = (eventItems || [])
-      .map(normEventHistoryItem)
-      .filter(Boolean)
-      .filter(
-        (ev) =>
-          resolveEventListStatus(ev.participantStatus, ev.eventStatus) ===
-            "completed" && isSameCalendarMonth(ev.eventDate, y, m),
-      );
-
-    const count = venueCompleted.length + eventCompleted.length;
-    const sum =
-      venueCompleted.reduce((s, b) => s + Number(b.totalPrice ?? 0), 0) +
-      eventCompleted.reduce((s, e) => s + Number(e.totalAmount ?? 0), 0);
-
-    return { count, sum };
-  }, [list, eventItems]);
-
   const venueCatalog = useMemo(() => {
     if (Array.isArray(venueCatalogData)) return venueCatalogData;
     return venueCatalogData?.items || venueCatalogData?.Items || [];
@@ -566,7 +540,7 @@ const BookingList = () => {
       const items = res.items || [];
       setHistoryItems((prev) => [...prev, ...items]);
       setTotalItems(res.totalItems ?? historyItems.length + items.length);
-      setPage(nextPage);
+      setPage(nextPage); // chỉ để track UI, không ảnh hưởng queryKey
     } catch (e) {
     } finally {
       setLoadingMore(false);
@@ -593,7 +567,7 @@ const BookingList = () => {
   };
 
   const handleContinuePaymentFromList = (venueId, bookingId) => {
-    navigate(`/venue/${venueId}/booking/payment?bookingId=${bookingId}`, {
+    navigate(`/booking/${bookingId}/payment`, {
       state: { bookingId },
     });
   };
@@ -950,212 +924,173 @@ const BookingList = () => {
                 );
               }
               return combinedList.map((row, idx) => {
-                if (row.kind === "event") {
-                  const ev = row.data;
-                  const stLower = resolveEventListStatus(
-                    ev.participantStatus,
-                    ev.eventStatus,
-                  );
-                  const slotLabel = (ev.slots || [])
-                    .map(
-                      (s) =>
-                        `${formatTime(s.startTime)}–${formatTime(s.endTime)}`,
-                    )
-                    .join(", ");
-                  const thumb =
-                    venueThumbByName.get(
-                      String(ev.venueName || "")
-                        .trim()
-                        .toLowerCase(),
-                    ) || FALLBACK_VENUE_IMAGE;
-                  return (
-                    <motion.div
-                      key={row.id}
-                      className="bl-list-item bl-list-item--event"
-                      initial={{ opacity: 0, y: 24 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.04 }}
-                    >
-                      <div className="bl-card-media">
-                        <img src={thumb} alt={ev.venueName || "venue"} />
-                      </div>
-                      <div className="bl-list-info">
-                        <span className="bl-type-tag bl-type-tag--event">
-                          Sự kiện
-                        </span>
-                        <div className="bl-badge-row">
-                          <span className="bl-list-badge" data-status={stLower}>
-                            {eventHistoryStatusIcon(
-                              ev.participantStatus,
-                              ev.eventStatus,
-                            )}
-                            {translateEventHistoryStatus(
-                              ev.participantStatus,
-                              ev.eventStatus,
-                            )}
-                          </span>
-                          <span className="bl-list-id">
-                            Vé #{ev.ticketParticipantId}
-                          </span>
-                        </div>
-                        <h3 className="bl-list-venue">{ev.venueName || "—"}</h3>
-                        <div className="bl-list-meta">
-                          <span className="bl-meta-item">
-                            <Calendar size={14} /> {formatDate(ev.eventDate)}
-                          </span>
-                          {slotLabel ? (
-                            <span className="bl-meta-item">
-                              <Clock size={14} />
-                              <span className="bl-ellipsis">{slotLabel}</span>
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="bl-list-price">
-                          <Receipt size={14} /> {ev.totalAmount} ·{" "}
-                          {ev.ticketQuantity} vé
-                        </div>
-                      </div>
-                      <div className="bl-list-actions">
-                        {stLower === "pending" && (
-                          <button
-                            type="button"
-                            className="bl-btn primary bl-btn-sm"
-                            onClick={() =>
-                              navigate(
-                                `/event/ticket/${ev.ticketParticipantId}/payment`,
-                              )
-                            }
-                          >
-                            <CreditCard size={16} className="bl-btn-icon" />{" "}
-                            Thanh toán
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="bl-btn secondary bl-btn-sm"
-                          onClick={() =>
-                            navigate(`/event/ticket/${ev.ticketParticipantId}`)
-                          }
-                        >
-                          <Ticket size={16} className="bl-btn-icon" /> Xem vé
-                        </button>
-                        {ev.eventId != null ? (
-                          <button
-                            type="button"
-                            className="bl-btn outline bl-btn-sm"
-                            onClick={() => navigate(`/event/${ev.eventId}`)}
-                          >
-                            <AlertCircle size={16} className="bl-btn-icon" /> Sự
-                            kiện
-                          </button>
-                        ) : null}
-                      </div>
-                    </motion.div>
-                  );
-                }
-                const b = row.data;
+              if (row.kind === "event") {
+                const ev = row.data;
+                const stLower = resolveEventListStatus(
+                  ev.participantStatus,
+                  ev.eventStatus,
+                );
+                const slotLabel = (ev.slots || [])
+                  .map((s) => `${formatTime(s.startTime)}–${formatTime(s.endTime)}`)
+                  .join(", ");
                 const thumb =
-                  venueThumbById.get(Number(b.venueId)) ||
-                  venueThumbByName.get(
-                    String(b.venueName || "")
-                      .trim()
-                      .toLowerCase(),
-                  ) ||
+                  venueThumbByName.get(String(ev.venueName || "").trim().toLowerCase()) ||
                   FALLBACK_VENUE_IMAGE;
                 return (
                   <motion.div
                     key={row.id}
-                    className="bl-list-item bl-list-item--daily"
+                    className="bl-list-item bl-list-item--event"
                     initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
                   >
                     <div className="bl-card-media">
-                      <img src={thumb} alt={b.venueName || "venue"} />
+                      <img src={thumb} alt={ev.venueName || "venue"} onError={handleImgError} />
                     </div>
                     <div className="bl-list-info">
-                      <span className="bl-type-tag bl-type-tag--daily">
-                        Đơn ngày
-                      </span>
+                      <span className="bl-type-tag bl-type-tag--event">Sự kiện</span>
                       <div className="bl-badge-row">
-                        <span
-                          className="bl-list-badge"
-                          data-status={(b.status || "").toLowerCase()}
-                        >
-                          {statusIcon(b.status)}
-                          {translateStatus(b.status)}
+                        <span className="bl-list-badge" data-status={stLower}>
+                          {eventHistoryStatusIcon(
+                            ev.participantStatus,
+                            ev.eventStatus,
+                          )}
+                          {translateEventHistoryStatus(
+                            ev.participantStatus,
+                            ev.eventStatus,
+                          )}
                         </span>
-                        <span className="bl-list-id">Mã #{b.bookingId}</span>
+                        <span className="bl-list-id">Vé #{ev.ticketParticipantId}</span>
                       </div>
-                      <h3 className="bl-list-venue">{b.venueName || "—"}</h3>
+                      <h3 className="bl-list-venue">{ev.venueName || "—"}</h3>
                       <div className="bl-list-meta">
                         <span className="bl-meta-item">
-                          <Calendar size={14} /> {formatDate(b.bookingDate)}
+                          <Calendar size={14} /> {formatDate(ev.eventDate)}
                         </span>
-                        {b.address && (
+                        {slotLabel ? (
                           <span className="bl-meta-item">
-                            <MapPin size={14} />
-                            <span className="bl-ellipsis">{b.address}</span>
+                            <Clock size={14} />
+                            <span className="bl-ellipsis">{slotLabel}</span>
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      {b.totalPrice && (
-                        <div className="bl-list-price">
-                          <Receipt size={14} /> {b.totalPrice}
-                        </div>
-                      )}
+                      <div className="bl-list-price">
+                        <Receipt size={14} /> {formatVND(ev.totalAmount)} · {ev.ticketQuantity} vé
+                      </div>
                     </div>
                     <div className="bl-list-actions">
-                      {(b.status || "").toLowerCase() === "pending" && (
+                      {stLower === "pending" && (
                         <button
                           type="button"
                           className="bl-btn primary bl-btn-sm"
                           onClick={() =>
-                            handleContinuePaymentFromList(
-                              b.venueId,
-                              b.bookingId,
-                            )
+                            navigate(`/event/ticket/${ev.ticketParticipantId}/payment`)
                           }
                         >
-                          <CreditCard size={16} className="bl-btn-icon" /> Thanh
-                          toán
-                        </button>
-                      )}
-                      {(b.status || "").toLowerCase() === "booked" && (
-                        <button
-                          type="button"
-                          className="bl-btn danger bl-btn-sm"
-                          onClick={() => handleCancelFromList(b.bookingId)}
-                          disabled={cancelMutation.isLoading}
-                        >
-                          <XCircle size={16} className="bl-btn-icon" />
-                          {cancelMutation.isLoading ? "Đang huỷ..." : "Hủy"}
-                        </button>
-                      )}
-                      {(b.status || "").toLowerCase() === "completed" && (
-                        <button
-                          type="button"
-                          className="bl-btn primary bl-btn-sm"
-                          onClick={() => handleOpenRatingFromList(b.bookingId)}
-                        >
-                          <CheckCircle2 size={16} className="bl-btn-icon" />{" "}
-                          Đánh giá
+                          <CreditCard size={16} className="bl-btn-icon" /> Thanh toán
                         </button>
                       )}
                       <button
                         type="button"
                         className="bl-btn secondary bl-btn-sm"
-                        onClick={() => {
-                          setDatePanelOpen(false);
-                          setDetailPopupId(b.bookingId);
-                        }}
+                        onClick={() => navigate(`/event/ticket/${ev.ticketParticipantId}`)}
                       >
-                        <AlertCircle size={16} className="bl-btn-icon" /> Xem
-                        chi tiết
+                        <Ticket size={16} className="bl-btn-icon" /> Xem vé
                       </button>
+                      {ev.eventId != null ? (
+                        <button
+                          type="button"
+                          className="bl-btn outline bl-btn-sm"
+                          onClick={() => navigate(`/event/${ev.eventId}`)}
+                        >
+                          <AlertCircle size={16} className="bl-btn-icon" /> Sự kiện
+                        </button>
+                      ) : null}
                     </div>
                   </motion.div>
                 );
+              }
+              const b = row.data;
+              const thumb =
+                venueThumbById.get(Number(b.venueId)) ||
+                venueThumbByName.get(String(b.venueName || "").trim().toLowerCase()) ||
+                FALLBACK_VENUE_IMAGE;
+              return (
+                <motion.div
+                  key={row.id}
+                  className="bl-list-item bl-list-item--daily"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                >
+                  <div className="bl-card-media">
+                    <img src={thumb} alt={b.venueName || "venue"} onError={handleImgError} />
+                  </div>
+                  <div className="bl-list-info">
+                    <span className="bl-type-tag bl-type-tag--daily">Đơn ngày</span>
+                    <div className="bl-badge-row">
+                      <span className="bl-list-badge" data-status={(b.status || "").toLowerCase()}>
+                        {statusIcon(b.status)}
+                        {translateStatus(b.status)}
+                      </span>
+                      <span className="bl-list-id">Mã #{b.bookingId}</span>
+                    </div>
+                    <h3 className="bl-list-venue">{b.venueName || "—"}</h3>
+                    <div className="bl-list-meta">
+                      <span className="bl-meta-item">
+                        <Calendar size={14} /> {formatDate(b.bookingDate)}
+                      </span>
+                      {b.address && (
+                        <span className="bl-meta-item">
+                          <MapPin size={14} />
+                          <span className="bl-ellipsis">{b.address}</span>
+                        </span>
+                      )}
+                    </div>
+                    {b.totalPrice && (
+                      <div className="bl-list-price">
+                        <Receipt size={14} /> {formatVND(b.totalPrice)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="bl-list-actions">
+                    {(b.status || "").toLowerCase() === "pending" && (
+                      <button
+                        type="button"
+                        className="bl-btn primary bl-btn-sm"
+                        onClick={() => handleContinuePaymentFromList(b.venueId, b.bookingId)}
+                      >
+                        <CreditCard size={16} className="bl-btn-icon" /> Thanh toán
+                      </button>
+                    )}
+                    {(b.status || "").toLowerCase() === "booked" && (
+                      <button type="button" className="bl-btn danger bl-btn-sm" onClick={() => handleCancelFromList(b.bookingId)} disabled={cancelMutation.isLoading}>
+                        <XCircle size={16} className="bl-btn-icon" />
+                        {cancelMutation.isLoading ? "Đang huỷ..." : "Hủy"}
+                      </button>
+                    )}
+                    {(b.status || "").toLowerCase() === "completed" && (
+                      <button
+                        type="button"
+                        className="bl-btn primary bl-btn-sm"
+                        onClick={() => handleOpenRatingFromList(b.bookingId)}
+                      >
+                        <CheckCircle2 size={16} className="bl-btn-icon" /> Đánh giá
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="bl-btn secondary bl-btn-sm"
+                      onClick={() => {
+                        setDatePanelOpen(false);
+                        setDetailPopupId(b.bookingId);
+                      }}
+                    >
+                      <AlertCircle size={16} className="bl-btn-icon" /> Xem chi tiết
+                    </button>
+                  </div>
+                </motion.div>
+              );
               });
             })()}
             {historyItems.length < totalItems && (
@@ -1185,24 +1120,6 @@ const BookingList = () => {
               </div>
             )}
           </div>
-          <aside className="bl-side">
-            <div className="bl-side-card">
-              <h3>
-                Thống kê tháng{" "}
-                {String(new Date().getMonth() + 1).padStart(2, "0")}
-              </h3>
-              <div className="bl-side-stats">
-                <div>
-                  <span>Số lần đặt</span>
-                  <strong>{sideStatsCompleted.count}</strong>
-                </div>
-                <div>
-                  <span>Tổng chi</span>
-                  <strong>{(sideStatsCompleted.sum)}</strong>
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       )}
 

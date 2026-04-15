@@ -77,6 +77,10 @@ const pickThumb = (booking) =>
   booking?.ImageUrl ||
   "";
 
+const getVenueOptionId = (venue) => venue?.venueId ?? venue?.VenueId ?? venue?.id ?? venue?.Id;
+
+const getVenueOptionName = (venue) => venue?.name ?? venue?.Name ?? "";
+
 const OwnerBookings = () => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
@@ -105,7 +109,7 @@ const OwnerBookings = () => {
   const venueOptions = useMemo(
     () =>
       [...venues].sort((a, b) =>
-        String(a?.name ?? a?.Name ?? "").localeCompare(String(b?.name ?? b?.Name ?? ""), "vi", {
+        String(getVenueOptionName(a)).localeCompare(String(getVenueOptionName(b)), "vi", {
           sensitivity: "base",
         }),
       ),
@@ -139,6 +143,11 @@ const OwnerBookings = () => {
       const baseParams = { pageNumber: page, pageSize: PAGE_SIZE };
       const venueId = selectedVenueId !== "" ? Number(String(selectedVenueId)) : NaN;
       if (Number.isFinite(venueId) && venueId > 0) baseParams.venueId = venueId;
+      else if (selectedVenueId) {
+        const matchedVenue = venueOptions.find((venue) => String(getVenueOptionId(venue)) === String(selectedVenueId));
+        const venueName = String(getVenueOptionName(matchedVenue)).trim();
+        if (venueName) baseParams.venueName = venueName;
+      }
 
       if (selectedDate) {
         baseParams.fromDate = selectedDate;
@@ -183,7 +192,7 @@ const OwnerBookings = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedVenueId, selectedDate, statusFilter]);
+  }, [page, selectedVenueId, selectedDate, statusFilter, venueOptions]);
 
   useEffect(() => {
     loadList();
@@ -274,8 +283,8 @@ const OwnerBookings = () => {
             >
               <option value="">{venuesLoading ? "Đang tải cơ sở..." : "Tất cả cơ sở"}</option>
               {venueOptions.map((v) => {
-                const id = v?.venueId ?? v?.VenueId;
-                const name = v?.name ?? v?.Name ?? `Cơ sở #${id}`;
+                const id = getVenueOptionId(v);
+                const name = getVenueOptionName(v) || `Cơ sở #${id}`;
                 return (
                   <option key={id} value={String(id)}>
                     {name}

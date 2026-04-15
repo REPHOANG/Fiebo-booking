@@ -77,9 +77,7 @@ export default function CreateVenueStepDocuments({
       ) : (
         <>
           <fieldset disabled={isSubmitting} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <div className="cv-wizard-hint">
-              Venue #{venueId} · Trạng thái: <strong>{createdVenue?.status ?? "DRAFT"}</strong>
-            </div>
+            
             <div className="cv-docs">
               {docs.map((d, di) => {
                 const existing = d.existingImageUrls ?? [];
@@ -170,11 +168,7 @@ export default function CreateVenueStepDocuments({
                       </div>
                       <div className="cv-form-group cv-full-width">
                         <span className="cv-doc-gallery-label">
-                          Ảnh giấy tờ <span className="cv-required">*</span>
-                          <span className="cv-doc-gallery-sublabel">
-                            Tối đa 5 ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn file · bấm X chỉ sửa trên form (gửi lên
-                            máy chủ khi bấm Lưu &amp; Tiếp tục)
-                          </span>
+                       <span className="cv-required">Ảnh giấy tờ * (tối đa 5 ảnh)</span>
                         </span>
                         <ul
                           className={`cv-doc-gallery${imageError ? " cv-doc-gallery-invalid" : ""}`}
@@ -267,18 +261,8 @@ export default function CreateVenueStepDocuments({
                             </li>
                           ) : null}
                         </ul>
-                        {total === 0 ? (
-                          <p className="cv-wizard-hint cv-doc-gallery-hint">
-                            Chưa có ảnh - bấm ô &quot;Thêm ảnh&quot; để chọn file.
-                          </p>
-                        ) : null}
-                        {existing.length > 0 || files.length > 0 ? (
-                          <p className="cv-wizard-hint cv-doc-gallery-hint">
-                            Không gọi API khi bấm X - chỉ khi bấm <strong>Lưu &amp; Tiếp tục</strong> mới gửi ảnh mới
-                            lên máy chủ (hoặc sang bước xác nhận nếu đã đủ ảnh). Tải mới lần đầu cần chọn file cho{" "}
-                            <strong>cả hai</strong> loại giấy trong cùng một lần.
-                          </p>
-                        ) : null}
+                        
+                        
                         {imageError ? <p className="cv-error-text">{imageError}</p> : null}
                       </div>
                     </div>

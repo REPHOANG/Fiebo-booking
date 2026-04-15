@@ -35,7 +35,7 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
+const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectAfterLogin = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -339,9 +339,23 @@ const Login = ({ onLoginSuccess, onOpenRegister, redirectAfterLogin = "" }) => {
 
               </div>
 
-              <Link to="/forgot-password" className="forgot-link">
-                Quên mật khẩu?
-              </Link>
+              {typeof onOpenForgotPassword === "function" ? (
+                <button
+                  type="button"
+                  className="forgot-link auth-inline-link"
+                  onClick={onOpenForgotPassword}
+                >
+                  Quên mật khẩu?
+                </button>
+              ) : (
+                <Link
+                  to="/"
+                  className="forgot-link"
+                  state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }}
+                >
+                  Quên mật khẩu?
+                </Link>
+              )}
             </div>
 
             <button
