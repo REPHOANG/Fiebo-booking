@@ -652,51 +652,6 @@ const OwnerVenueDetail = () => {
                 tạo sân.
               </p>
             )}
-          </div>
-
-          <div className="ovd-card ovd-card--services">
-            <div className="ovd-title-row">
-              <h3 className="ovd-subtitle">
-                <Package size={18} /> Dịch vụ kèm theo
-              </h3>
-              <div className="ovd-actions">
-                <Link
-                  className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}
-                  to={canEditVenue ? `/owner/venue/${id}/services` : "#"}
-                  onClick={(e) => {
-                    if (!canEditVenue) e.preventDefault();
-                  }}
-                >
-                  <Package size={15} /> Quản lý dịch vụ
-                </Link>
-              </div>
-            </div>
-            {servicesLoading ? (
-              <p className="ovd-muted">Đang tải danh sách dịch vụ…</p>
-            ) : venueServices.length > 0 ? (
-              <p className="ovd-muted">
-                Hiện có <strong>{venueServices.length}</strong> dịch vụ (cho thuê bóng, bán nước, giữ xe…)
-                đang hiển thị công khai cho khách. Bấm &quot;Quản lý dịch vụ&quot; để xem/chỉnh sửa đầy đủ.
-              </p>
-            ) : (
-              <p className="ovd-muted">
-                Chưa có dịch vụ kèm theo. Bấm &quot;Quản lý dịch vụ&quot; để thêm danh mục cho cơ sở.
-              </p>
-            )}
-            {!canEditVenue ? (
-              <p className="ovd-muted">
-                Cơ sở ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể chỉnh sửa
-                dịch vụ lúc này.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="ovd-card">
-            <div className="ovd-title-row">
-              <h3 className="ovd-subtitle">
-                <Calendar size={18} /> Danh sách sân
-              </h3>
-            </div>
             <div className="ovd-filters">
               <input
                 className="ovd-input"
