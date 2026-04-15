@@ -1,0 +1,17 @@
+.finance-admin-page,
+.finance-admin-page * {
+  font-family: "Be Vietnam Pro", sans-serif;
+}
+
+.finance-admin-select,
+.finance-admin-select .ant-select-selector,
+.finance-admin-select .ant-select-selection-item,
+.finance-admin-select .ant-select-selection-placeholder,
+.finance-admin-select .ant-select-arrow {
+  font-family: "Be Vietnam Pro", sans-serif !important;
+}
+
+.finance-admin-select-dropdown,
+.finance-admin-select-dropdown * {
+  font-family: "Be Vietnam Pro", sans-serif !important;
+}

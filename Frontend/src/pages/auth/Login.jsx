@@ -365,7 +365,6 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
             >
               {isLoading ? (
                 <>
-                  <div className="spinner"></div>
                   <span>Đang đăng nhập...</span>
                 </>
               ) : (

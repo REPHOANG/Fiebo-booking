@@ -182,7 +182,7 @@ namespace Fiebo.Application.Services
             // MSG-E03 / Image Validation: Check if images are valid
             if (request.Images != null && request.Images.Any())
             {
-                ImageValidator.ValidateFiles(request.Images, min: 0, max: 5);
+                ImageValidator.ValidateFiles(request.Images, min: 0, max: 10);
 
                 foreach (var file in request.Images)
                 {
@@ -244,7 +244,12 @@ namespace Fiebo.Application.Services
             {
                 throw new ForbiddenException("Bạn không có quyền chỉnh sửa sân này.");
             }
-            ImageValidator.ValidateFiles(files, 0, 20);
+            var images = await _unitOfWork.FieldImages.FindAsync(i => i.FieldId == fieldId);
+            if(images.Count() + files.Count > 10)
+            {
+                throw new BadRequestException("Mỗi sân chỉ được phép có tối đa 10 hình ảnh.");
+            }
+            ImageValidator.ValidateFiles(files, 0, 10);
             foreach (var file in files)
             {
                 var uploadResult = await _cloudinaryService.UploadImageAsync(file);

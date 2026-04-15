@@ -37,6 +37,20 @@ namespace Fiebo.Application.DTOs.Booking
         public int CancelledBookings { get; set; }
     }
 
+    internal sealed class OwnerDashboardEventSummary
+    {
+        public int BookingCount { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    internal sealed class OwnerDashboardEventParticipantRow
+    {
+        public int EventId { get; set; }
+        public DateTime JoinedAt { get; set; }
+        public decimal TotalPrice { get; set; }
+        public string? VenueName { get; set; }
+    }
+
     internal sealed class OwnerDashboardTrendData
     {
         public List<string> Labels { get; set; } = [];

@@ -49,5 +49,13 @@ namespace Fiebo.Persistence.Repositories
         {
             return _dbSet.AsQueryable();
         }
+
+        public async Task<List<T>> GetByIdsAsync(List<int> ids)
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .Where(x => ids.Contains(EF.Property<int>(x, "Id")))
+                .ToListAsync();
+        }
     }
 }

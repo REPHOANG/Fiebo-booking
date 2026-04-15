@@ -4,6 +4,9 @@ namespace Fiebo.Application.DTOs.Event
 {
     public class CreateDropInEventRequest
     {
+        [Required(ErrorMessage = "Tên sự kiện không được bỏ trống")]
+        public string Name { get; set; } = string.Empty;
+
         [Required]
         public DateOnly EventDate { get; set; }
 

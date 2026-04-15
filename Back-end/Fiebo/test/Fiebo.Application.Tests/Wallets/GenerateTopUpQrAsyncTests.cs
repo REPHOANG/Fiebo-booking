@@ -53,7 +53,14 @@ namespace Fiebo.Application.Tests.Wallets
         }
 
         [Fact]
-        public async Task GenerateTopUpQrAsync_ShouldReturnQr_WhenWalletExists()
+        public async Task GenerateTopUpQrAsync_ShouldThrow_WhenUserIdIsNull()
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                _walletService.GenerateTopUpQrAsync(100, null));
+        }
+
+        [Fact]
+        public async Task GenerateTopUpQrAsync_ShouldCreateTopUpRequestAndReturnId_WhenWalletExists()
         {
             // Arrange
 
@@ -67,30 +74,28 @@ namespace Fiebo.Application.Tests.Wallets
                 TopUpRequests = []
             };
 
-            var qrResponse = new QrPaymentResponseDto
-            {
-                QrImageUrl = "QR_TEST",
-                BankName = "Test Bank",
-                AccountName = "Test Account",
-                AccountNumber = "123456789",
-                TransferContent = "FIEBOTU1"
-            };
-
             _mocker.GetMock<IUnitOfWork>()
                 .Setup(x => x.Wallets.GetByUserId("user1"))
                 .ReturnsAsync(wallet);
 
-            _mocker.GetMock<IQrPaymentService>()
-                .Setup(x => x.GenerateQrPayment(It.IsAny<decimal>(), It.IsAny<int>()))
-                .Returns(qrResponse);
+            Domain.Entities.TopUpRequest? captured = null;
+            _mocker.GetMock<IUnitOfWork>()
+                .Setup(x => x.TopUpRequests.Add(It.IsAny<Domain.Entities.TopUpRequest>()))
+                .Callback<Domain.Entities.TopUpRequest>(r =>
+                {
+                    r.Id = 123;
+                    captured = r;
+                });
 
             // Act
             var result = await _walletService.GenerateTopUpQrAsync(100, "user1");
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal("QR_TEST", result.QrImageUrl);
-            Assert.Equal("Test Bank", result.BankName);
+            Assert.Equal(123, result);
+            Assert.NotNull(captured);
+            Assert.Equal(wallet.Id, captured!.WalletId);
+            Assert.Equal(100, captured.Amount);
+            Assert.Equal(TopUpStatus.Pending, captured.Status);
 
             _mocker.GetMock<IUnitOfWork>()
                 .Verify(x => x.TopUpRequests.Add(It.IsAny<Domain.Entities.TopUpRequest>()), Times.Once);

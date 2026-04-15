@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { getEventOwner, updateEventOwner } from "../../../services/eventService";
+import CancelReasonModal from "../../../components/common/CancelReasonModal/CancelReasonModal";
+import {
+  cancelEventOwner,
+  getEventOwner,
+  updateEventOwner,
+} from "../../../services/eventService";
 import "./OwnerEventDetail.css";
 
 const editEventSchema = yup.object({
+  name: yup
+    .string()
+    .trim()
+    .required("Vui lòng nhập tên sự kiện")
+    .min(3, "Tên sự kiện tối thiểu 3 ký tự")
+    .max(100, "Tên sự kiện tối đa 100 ký tự"),
   description: yup.string().optional(),
   minPlayer: yup
     .number()
@@ -35,7 +47,10 @@ const editEventSchema = yup.object({
 
 const formatPrice = (n) => {
   if (n == null || Number.isNaN(n)) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(n);
 };
 
 const formatDate = (d) => {
@@ -53,19 +68,18 @@ const formatTime = (t) => {
 
 const translateStatus = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "Đang chờ";
-  if (s === "scheduled") return "Đã lên lịch";
-  if (s === "active") return "Đang diễn ra";
+  if (s === "pending") return "Chưa diễn ra";
+  if (s === "ongoing") return "Đang diễn ra";
   if (s === "completed") return "Hoàn thành";
   if (s === "cancelled" || s === "canceled") return "Đã hủy";
-  if (s === "draft") return "Bản nháp";
   return status || "—";
 };
 
 const translateParticipantStatus = (status) => {
   const s = (status || "").toLowerCase();
   if (s === "pending") return "Chờ";
-  if (s === "pendingpayment" || s === "pending_payment") return "Chờ thanh toán";
+  if (s === "pendingpayment" || s === "pending_payment")
+    return "Chờ thanh toán";
   if (s === "confirmed" || s === "paid") return "Đã xác nhận";
   if (s === "cancelled" || s === "canceled") return "Đã hủy";
   if (s === "used") return "Đã sử dụng";
@@ -73,13 +87,22 @@ const translateParticipantStatus = (status) => {
   return status || "—";
 };
 
+const CANCEL_REASON_OPTIONS = [
+  "Điều kiện thời tiết không phù hợp",
+  "Sân không thể hoạt động theo lịch",
+  "Điều chỉnh kế hoạch tổ chức",
+  "Khác",
+];
+
 const OwnerEventDetail = () => {
   const { id } = useParams();
-  const [detail, setDetail] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const [actionError, setActionError] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState("");
+  const [customCancelReason, setCustomCancelReason] = useState("");
+  const [cancelReasonError, setCancelReasonError] = useState("");
 
   const {
     register,
@@ -90,6 +113,7 @@ const OwnerEventDetail = () => {
     resolver: yupResolver(editEventSchema),
     mode: "onTouched",
     defaultValues: {
+      name: "",
       description: "",
       minPlayer: 0,
       maxPlayer: 0,
@@ -97,55 +121,114 @@ const OwnerEventDetail = () => {
     },
   });
 
+  const {
+    data: detail,
+    isLoading: loading,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useQuery({
+    queryKey: ["owner-event-detail", id],
+    queryFn: () => getEventOwner(id),
+    enabled: Boolean(id),
+    retry: 0,
+  });
+
   useEffect(() => {
-    let mounted = true;
-    const fetchDetail = async () => {
-      if (!id) return;
-      setLoading(true);
-      setError("");
-      try {
-        const data = await getEventOwner(id);
-        if (mounted) {
-          setDetail(data);
-          reset({
-            description: data?.description ?? "",
-            minPlayer: data?.minPlayer ?? 0,
-            maxPlayer: data?.maxPlayer ?? 0,
-            pricePerPerson: data?.pricePerPerson ?? 0,
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setDetail(null);
-          setError(e?.response?.data?.message || e?.message || "Không tải được chi tiết sự kiện.");
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchDetail();
-    return () => { mounted = false; };
-  }, [id]);
+    if (!detail) return;
+    reset({
+      name:
+        detail?.name ??
+        detail?.eventName ??
+        detail?.title ??
+        detail?.Name ??
+        detail?.EventName ??
+        detail?.Title ??
+        "",
+      description: detail?.description ?? "",
+      minPlayer: detail?.minPlayer ?? 0,
+      maxPlayer: detail?.maxPlayer ?? 0,
+      pricePerPerson: detail?.pricePerPerson ?? 0,
+    });
+  }, [detail, reset]);
+
+  const updateEventMutation = useMutation({
+    mutationFn: (payload) => updateEventOwner(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["owner-event-detail", id] });
+      setEditMode(false);
+    },
+    onError: (err) => {
+      setActionError(
+        err?.response?.data?.message || err?.message || "Cập nhật thất bại.",
+      );
+    },
+  });
 
   const onSaveEdit = async (values) => {
-    if (!id || !detail?.isEditable) return;
-    setSaving(true);
-    setError("");
-    try {
-      const payload = {
-        description: values.description?.trim() || null,
-        minPlayer: Number(values.minPlayer) || 0,
-        maxPlayer: Number(values.maxPlayer) || 0,
-        pricePerPerson: Number(values.pricePerPerson) || 0,
-      };
-      await updateEventOwner(id, payload);
-      setDetail((prev) => (prev ? { ...prev, ...payload } : null));
+    if (!id || !detail?.isEditable || updateEventMutation.isPending) return;
+
+    const payload = {
+      name: values.name?.trim() || "",
+      description: values.description?.trim() || null,
+      minPlayer: Number(values.minPlayer) || 0,
+      maxPlayer: Number(values.maxPlayer) || 0,
+      pricePerPerson: Number(values.pricePerPerson) || 0,
+    };
+
+    setActionError("");
+    await updateEventMutation.mutateAsync(payload);
+  };
+
+  const cancelEventMutation = useMutation({
+    mutationFn: ({ cancelNote }) => cancelEventOwner(id, { cancelNote }),
+    onSuccess: async () => {
+      await refetchDetail();
       setEditMode(false);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Cập nhật thất bại.");
-    } finally {
-      setSaving(false);
+      setShowCancelPopup(false);
+      setSelectedCancelReason("");
+      setCustomCancelReason("");
+      setCancelReasonError("");
+    },
+    onError: (err) => {
+      setActionError(err?.response?.data?.message || err?.message || "Hủy sự kiện thất bại.");
+    },
+  });
+
+  const openCancelPopup = () => {
+    setActionError("");
+    setCancelReasonError("");
+    setShowCancelPopup(true);
+  };
+
+  const closeCancelPopup = () => {
+    if (cancelEventMutation.isPending) return;
+    setShowCancelPopup(false);
+    setSelectedCancelReason("");
+    setCustomCancelReason("");
+    setCancelReasonError("");
+  };
+
+  const confirmCancelEvent = async () => {
+    if (!id || !detail?.isEditable || cancelEventMutation.isPending) return;
+
+    if (!selectedCancelReason) {
+      setCancelReasonError("Vui lòng chọn lý do hủy.");
+      return;
     }
+
+    const cancelNote =
+      selectedCancelReason === "Khác"
+        ? customCancelReason.trim()
+        : selectedCancelReason;
+
+    if (!cancelNote) {
+      setCancelReasonError("Vui lòng nhập lý do hủy.");
+      return;
+    }
+
+    setCancelReasonError("");
+    setActionError("");
+    await cancelEventMutation.mutateAsync({ cancelNote });
   };
 
   if (loading) {
@@ -158,57 +241,113 @@ const OwnerEventDetail = () => {
     );
   }
 
-  if (error && !detail) {
+  if (detailError && !detail) {
     return (
       <div className="owner-home oed-page">
         <div className="owner-home-header">
-          <Link to="/owner/events" className="oed-back">← Danh sách sự kiện</Link>
+          <Link to="/owner/events" className="oed-back">
+            ← Danh sách sự kiện
+          </Link>
         </div>
         <div className="owner-home-content">
-          <div className="oed-error">{error}</div>
+          <div className="oed-error">
+            {detailError?.response?.data?.message || detailError?.message || "Không tải được chi tiết sự kiện."}
+          </div>
         </div>
       </div>
     );
   }
 
   const d = detail || {};
+  const statusLower = String(d.status || "").toLowerCase();
+  const showCancelButton = statusLower === "pending";
+  const canCancel = Boolean(d.isEditable) && !editMode && !cancelEventMutation.isPending;
+  const eventName =
+    d.name ?? d.eventName ?? d.title ?? d.Name ?? d.EventName ?? d.Title;
   const slots = d.slots ?? [];
   const participants = d.participants ?? [];
 
   return (
     <div className="owner-home oed-page">
-      <div className="owner-home-header">
+      <div className="owner-home-header" style={{
+        marginBottom:"10px"
+      }}>
         <h1>Chi tiết sự kiện #{d.id}</h1>
       </div>
 
       <div className="owner-home-content">
-        {error && <div className="oed-error" role="alert">{error}</div>}
+        {actionError && (
+          <div className="oed-error" role="alert">
+            {actionError}
+          </div>
+        )}
 
         <div className="oed-card">
           <div className="oed-meta">
-            <span className="oed-badge" data-status={(d.status || "").toLowerCase()}>
-              {translateStatus(d.status)}
-            </span>
-            <span>Ngày: {formatDate(d.eventDate)}</span>
-            {d.isEditable && <span className="oed-editable">Có thể sửa</span>}
-          </div>
-
-          {!editMode ? (
-            <>
-              {d.description && <p className="oed-desc">{d.description}</p>}
-              <ul className="oed-info">
-                <li>Số người tối thiểu: <strong>{d.minPlayer}</strong></li>
-                <li>Số người tối đa: <strong>{d.maxPlayer}</strong></li>
-                <li>Phí tham gia: <strong>{formatPrice(d.pricePerPerson)}</strong></li>
-              </ul>
-              {d.isEditable && (
-                <button type="button" className="oed-btn secondary" onClick={() => setEditMode(true)}>
-                  Sửa thông tin
+            <div className="oed-meta-left">
+              <span
+                className="oed-badge"
+                data-status={(d.status || "").toLowerCase()}
+              >
+                {translateStatus(d.status)}
+              </span>
+              <span>Ngày: {formatDate(d.eventDate)}</span>
+            </div>
+            <div className="oed-meta-right">
+              <button
+                type="button"
+                className="oed-btn oed-edit-btn"
+                onClick={() => setEditMode(true)}
+                disabled={!d.isEditable || editMode || cancelEventMutation.isPending || updateEventMutation.isPending}
+              >
+                Sửa thông tin
+              </button>
+              {showCancelButton && (
+                <button
+                  type="button"
+                  className="oed-btn oed-cancel-btn"
+                  onClick={openCancelPopup}
+                  disabled={!canCancel}
+                >
+                  Huỷ sự kiện
                 </button>
               )}
+            </div>
+          </div>
+          {!editMode ? (
+            <>
+              <p className="oed-desc">
+                <strong>Tên sự kiện:</strong> {eventName || "—"}
+              </p>
+              <p className="oed-desc">
+                <strong>Mô tả:</strong> {d.description || "—"}
+              </p>
+              <ul className="oed-info">
+                <li>
+                  Số người tối thiểu: <strong>{d.minPlayer}</strong>
+                </li>
+                <li>
+                  Số người tối đa: <strong>{d.maxPlayer}</strong>
+                </li>
+                <li>
+                  Phí tham gia: <strong>{formatPrice(d.pricePerPerson)}</strong>
+                </li>
+              </ul>
+              
             </>
           ) : (
-            <form className="oed-edit-form" onSubmit={handleSubmit(onSaveEdit)} noValidate>
+            <form
+              className="oed-edit-form"
+              onSubmit={handleSubmit(onSaveEdit)}
+              noValidate
+            >
+              <label>
+                Tên sự kiện
+                <input type="text" maxLength={100} {...register("name")} />
+                {errors.name && (
+                  <span className="oed-field-error">{errors.name.message}</span>
+                )}
+              </label>
               <label>
                 Mô tả
                 <textarea {...register("description")} rows={2} />
@@ -218,14 +357,18 @@ const OwnerEventDetail = () => {
                   Số người tối thiểu
                   <input type="number" min={1} {...register("minPlayer")} />
                   {errors.minPlayer && (
-                    <span className="oed-field-error">{errors.minPlayer.message}</span>
+                    <span className="oed-field-error">
+                      {errors.minPlayer.message}
+                    </span>
                   )}
                 </label>
                 <label>
                   Số người tối đa
                   <input type="number" min={1} {...register("maxPlayer")} />
                   {errors.maxPlayer && (
-                    <span className="oed-field-error">{errors.maxPlayer.message}</span>
+                    <span className="oed-field-error">
+                      {errors.maxPlayer.message}
+                    </span>
                   )}
                 </label>
               </div>
@@ -233,14 +376,24 @@ const OwnerEventDetail = () => {
                 Phí tham gia (VNĐ)
                 <input type="number" min={0} {...register("pricePerPerson")} />
                 {errors.pricePerPerson && (
-                  <span className="oed-field-error">{errors.pricePerPerson.message}</span>
+                  <span className="oed-field-error">
+                    {errors.pricePerPerson.message}
+                  </span>
                 )}
               </label>
               <div className="oed-edit-actions">
-                <button type="submit" className="oed-btn primary" disabled={saving}>
-                  {saving ? "Đang lưu…" : "Lưu"}
+                <button
+                  type="submit"
+                  className="oed-btn primary"
+                  disabled={updateEventMutation.isPending}
+                >
+                  {updateEventMutation.isPending ? "Đang lưu…" : "Lưu"}
                 </button>
-                <button type="button" className="oed-btn link" onClick={() => setEditMode(false)}>
+                <button
+                  type="button"
+                  className="oed-btn link"
+                  onClick={() => setEditMode(false)}
+                >
                   Huỷ
                 </button>
               </div>
@@ -249,9 +402,14 @@ const OwnerEventDetail = () => {
 
           <h4>Khung giờ</h4>
           <ul className="oed-slots">
-            {slots.length === 0 ? "—" : slots.map((s, i) => (
-              <li key={i}>{s.fieldName ?? "Sân"} — {formatTime(s.startTime)}–{formatTime(s.endTime)}</li>
-            ))}
+            {slots.length === 0
+              ? "—"
+              : slots.map((s, i) => (
+                  <li key={i}>
+                    {s.fieldName ?? "Sân"} — {formatTime(s.startTime)}–
+                    {formatTime(s.endTime)}
+                  </li>
+                ))}
           </ul>
 
           <h4>Người tham gia ({participants.length})</h4>
@@ -276,7 +434,11 @@ const OwnerEventDetail = () => {
                       <td>{p.phoneNumber ?? p.phone}</td>
                       <td>{p.ticketQuantity ?? 0}</td>
                       <td>{translateParticipantStatus(p.status)}</td>
-                      <td>{p.joinedAt ? new Date(p.joinedAt).toLocaleString("vi-VN") : "—"}</td>
+                      <td>
+                        {p.joinedAt
+                          ? new Date(p.joinedAt).toLocaleString("vi-VN")
+                          : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -284,6 +446,31 @@ const OwnerEventDetail = () => {
             </div>
           )}
         </div>
+
+        <CancelReasonModal
+          open={showCancelPopup}
+          title="Huỷ sự kiện"
+          description="Chọn lý do huỷ sự kiện"
+          reasons={CANCEL_REASON_OPTIONS}
+          selectedReason={selectedCancelReason}
+          onSelectReason={(reason) => {
+            setSelectedCancelReason(reason);
+            setCancelReasonError("");
+          }}
+          allowCustomReason
+          customOptionLabel="Khác"
+          customReason={customCancelReason}
+          onCustomReasonChange={(value) => {
+            setCustomCancelReason(value);
+            setCancelReasonError("");
+          }}
+          errorMessage={cancelReasonError}
+          isSubmitting={cancelEventMutation.isPending}
+          onClose={closeCancelPopup}
+          onConfirm={confirmCancelEvent}
+          cancelText="Đóng"
+          confirmText="Xác nhận huỷ"
+        />
       </div>
     </div>
   );

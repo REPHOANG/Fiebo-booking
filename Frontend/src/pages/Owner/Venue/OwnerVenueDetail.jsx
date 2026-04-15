@@ -263,24 +263,6 @@ const OwnerVenueDetail = () => {
     };
   }, [id]);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setServicesLoading(true);
-      try {
-        const data = await getVenueServices(Number(id), 1, 50, "");
-        if (mounted) setVenueServices(data?.items ?? []);
-      } catch {
-        if (mounted) setVenueServices([]);
-      } finally {
-        if (mounted) setServicesLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
   const address = useMemo(() => {
     if (!venue) return "";
     return [venue.addressDetail, venue.ward, venue.province].filter(Boolean).join(", ");

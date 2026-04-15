@@ -262,5 +262,29 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// BR-144 / BR-145: Owner cancels a Drop-in Event (self-service, blocked within 2h of start).
+        /// Triggers 100% refund for all paid participants.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FieldOwner)]
+        [HttpPost("/api/owner/event/{id}/cancel")]
+        public async Task<IActionResult> CancelDropInEvent([FromRoute] int id, [FromBody] CancelEventRequest request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+
+            var refundedCount = await _eventService.CancelDropInEventAsync(id, ownerId, request.CancelNote);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = refundedCount > 0
+                    ? $"Đã hủy sự kiện thành công. Hệ thống đang tiến hành hoàn tiền cho {refundedCount} người chơi đã đăng ký."
+                    : "Đã hủy sự kiện thành công. Không có người chơi nào cần hoàn tiền.",
+                Data = new { RefundedPlayerCount = refundedCount }
+            });
+        }
     }
 }
