@@ -2,7 +2,6 @@ import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import "./WalletTransactionHistory.css";
 import { formatDateToTime, formatVND } from "../../../utils/helperFunction";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import {
@@ -20,12 +19,12 @@ export default function WalletTransactionHistory({
   page,
   from,
   to,
+  onFilterChange,
+  onPageChange,
 }) {
   const today = dayjs().format("YYYY-MM-DD");
   const minDate = dayjs().subtract(1, "month").format("YYYY-MM-DD");
 
-  // eslint-disable-next-line no-unused-vars
-  const [searchParams, setSearchParams] = useSearchParams();
   const [start, setStart] = useState(from);
   const [end, setEnd] = useState(to);
   const [err, setErr] = useState(false);
@@ -34,19 +33,9 @@ export default function WalletTransactionHistory({
     setStart(from);
     setEnd(to);
   }, [from, to]);
-  const changeQuery = (list) => {
-    setSearchParams((prev) => {
-      const params = new URLSearchParams(prev);
-      list.forEach((e) => params.set(e.key, e.value));
-      return params;
-    });
-  };
 
   const changePage = (v) => {
-    changeQuery([
-      { key: "page", value: v },
-      { key: "transaction", value: true },
-    ]);
+    onPageChange?.(v);
   };
 
   const handleSearch = () => {
@@ -57,11 +46,10 @@ export default function WalletTransactionHistory({
 
     setErr(false);
 
-    changeQuery([
-      { key: "page", value: 1 },
-      { key: "from", value: dayjs(start).format("YYYY-MM-DD") },
-      { key: "to", value: dayjs(end).format("YYYY-MM-DD") },
-    ]);
+    onFilterChange?.({
+      from: dayjs(start).format("YYYY-MM-DD"),
+      to: dayjs(end).format("YYYY-MM-DD"),
+    });
   };
 
   // Map loại giao dịch
@@ -122,20 +110,20 @@ export default function WalletTransactionHistory({
               <DatePicker
                 label="Ngày bắt đầu"
                 format="DD/MM/YYYY"
-                value={dayjs(start)}
+                value={start ? dayjs(start) : null}
                 minDate={dayjs(minDate)}
                 maxDate={dayjs(today)}
-                onChange={(v) => setStart(dayjs(v).format("YYYY-MM-DD"))}
+                onChange={(v) => setStart(v ? dayjs(v).format("YYYY-MM-DD") : "")}
                 renderInput={(params) => <TextField size="small" {...params} />}
               />
 
               <DatePicker
                 label="Ngày kết thúc"
                 format="DD/MM/YYYY"
-                value={dayjs(end)}
-                minDate={dayjs(start)}
+                value={end ? dayjs(end) : null}
+                minDate={start ? dayjs(start) : dayjs(minDate)}
                 maxDate={dayjs(today)}
-                onChange={(v) => setEnd(dayjs(v).format("YYYY-MM-DD"))}
+                onChange={(v) => setEnd(v ? dayjs(v).format("YYYY-MM-DD") : "")}
                 renderInput={(params) => <TextField {...params} />}
               />
               <Button variant="contained" onClick={handleSearch}>

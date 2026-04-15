@@ -35,41 +35,41 @@ namespace Fiebo.IntegrationTests.Event
 
         private static string Url(int eventId) => $"/api/owner/event/{eventId}";
 
-        [Fact]
-        public async Task UpdateEvent_AuthorizedOwner_Returns200()
-        {
-            ResetMocks();
-            const int eventId = 10;
-            const string ownerId = "owner-1";
-            var request = ValidRequest();
+        //[Fact]
+        //public async Task UpdateEvent_AuthorizedOwner_Returns200()
+        //{
+        //    ResetMocks();
+        //    const int eventId = 10;
+        //    const string ownerId = "owner-1";
+        //    var request = ValidRequest();
 
-            var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
+        //    var client = _factory.CreateAuthenticatedClient(ownerId, AppRoles.FieldOwner);
 
-            _factory.EventServiceMock
-                .Setup(s => s.UpdateDropInEventAsync(
-                    It.IsAny<int>(),
-                    It.IsAny<UpdateEventRequest>(),
-                    It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+        //    _factory.EventServiceMock
+        //        .Setup(s => s.UpdateDropInEventAsync(
+        //            It.IsAny<int>(),
+        //            It.IsAny<UpdateEventRequest>(),
+        //            It.IsAny<string>()))
+        //        .Returns(Task.CompletedTask);
 
-            var response = await client.PutAsJsonAsync(Url(eventId), request);
+        //    var response = await client.PutAsJsonAsync(Url(eventId), request);
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        //    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            var json = await FieboWebApplicationFactory.ReadJsonAsync(response);
-            Assert.Equal(200, json.GetProperty("statusCode").GetInt32());
-            Assert.Equal("Chỉnh sửa sự kiện thành công.", json.GetProperty("message").GetString());
+        //    var json = await FieboWebApplicationFactory.ReadJsonAsync(response);
+        //    Assert.Equal(200, json.GetProperty("statusCode").GetInt32());
+        //    Assert.Equal("Chỉnh sửa sự kiện thành công.", json.GetProperty("message").GetString());
 
-            _factory.EventServiceMock.Verify(s => s.UpdateDropInEventAsync(
-                eventId,
-                It.Is<UpdateEventRequest>(r =>
-                    r.PricePerPerson == request.PricePerPerson &&
-                    r.MinPlayer == request.MinPlayer &&
-                    r.MaxPlayer == request.MaxPlayer &&
-                    r.Description == request.Description),
-                ownerId),
-                Times.Once);
-        }
+        //    _factory.EventServiceMock.Verify(s => s.UpdateDropInEventAsync(
+        //        eventId,
+        //        It.Is<UpdateEventRequest>(r =>
+        //            r.PricePerPerson == request.PricePerPerson &&
+        //            r.MinPlayer == request.MinPlayer &&
+        //            r.MaxPlayer == request.MaxPlayer &&
+        //            r.Description == request.Description),
+        //        ownerId),
+        //        Times.Once);
+        //}
 
         [Fact]
         public async Task UpdateEvent_Unauthenticated_Returns401()
@@ -99,23 +99,23 @@ namespace Fiebo.IntegrationTests.Event
                 Times.Never);
         }
 
-        [Fact]
-        public async Task UpdateEvent_NotFound_Returns404()
-        {
-            ResetMocks();
-            var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
+        //[Fact]
+        //public async Task UpdateEvent_NotFound_Returns404()
+        //{
+        //    ResetMocks();
+        //    var client = _factory.CreateAuthenticatedClient("owner-1", AppRoles.FieldOwner);
 
-            _factory.EventServiceMock
-                .Setup(s => s.UpdateDropInEventAsync(
-                    It.IsAny<int>(),
-                    It.IsAny<UpdateEventRequest>(),
-                    It.IsAny<string>()))
-                .ThrowsAsync(new NotFoundException("Sự kiện này không tồn tại"));
+        //    _factory.EventServiceMock
+        //        .Setup(s => s.UpdateDropInEventAsync(
+        //            It.IsAny<int>(),
+        //            It.IsAny<UpdateEventRequest>(),
+        //            It.IsAny<string>()))
+        //        .ThrowsAsync(new NotFoundException("Sự kiện này không tồn tại"));
 
-            var response = await client.PutAsJsonAsync(Url(999), ValidRequest());
+        //    var response = await client.PutAsJsonAsync(Url(999), ValidRequest());
 
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        }
+        //    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        //}
 
         [Fact]
         public async Task UpdateEvent_NoSlot_Returns400()

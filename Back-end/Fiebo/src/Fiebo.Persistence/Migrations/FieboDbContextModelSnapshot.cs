@@ -606,6 +606,10 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("MinPlayer")
                         .HasColumnType("int");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("OwnerId")
                         .IsRequired()
                         .HasColumnType("longtext");

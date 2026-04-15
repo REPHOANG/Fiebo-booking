@@ -143,12 +143,12 @@ export const mapOwnerDistributionData = (dashboardData, distributionMode = "book
 export const aggregateOwnerDistributionData = (
   distributionData = [],
   maxItems = 8,
-  othersLabel = "Khac",
+  othersLabel = "Khác",
 ) => {
   const safeData = Array.isArray(distributionData)
     ? distributionData
         .map((item) => ({
-          name: item?.name || "Khong xac dinh",
+          name: item?.name || "Không xác định",
           value: Number(item?.value || 0),
         }))
         .filter((item) => item.value > 0)

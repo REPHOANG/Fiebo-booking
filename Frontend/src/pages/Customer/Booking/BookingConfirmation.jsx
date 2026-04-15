@@ -239,61 +239,6 @@ const BookingConfirmation = () => {
     } catch (e) {}
   }, [bookingState]);
 
-  // Poll venue schedule periodically while on this page (must run before early return for rules of hooks)
-  useEffect(() => {
-    if (!bookingState?.venue?.id || !bookingState?.selectedDate) return;
-    const venue = bookingState.venue;
-    const selectedDate = bookingState.selectedDate;
-    const fields = bookingState.fields;
-    const venueSchedule = bookingState.venueSchedule;
-    let mounted = true;
-    const POLL_MS = 10000;
-
-    const poll = async () => {
-      try {
-        const res = await getVenueSchedule(venue.id, selectedDate);
-        if (!mounted) return;
-        const serverSlots = [];
-        (res?.sportTypes || []).forEach((st) => (st.slots || []).forEach((s) => serverSlots.push(s)));
-
-        const startToIdx = {};
-        serverSlots.forEach((s) => {
-          const hhmm = (s.startTime || "").slice(0, 5);
-          const idx = venueSchedule?.slots ? venueSchedule.slots.findIndex((sl) => sl.label === hhmm) : -1;
-          if (idx >= 0) startToIdx[s.slotId] = idx;
-        });
-
-        const booked = [];
-        (res?.sportTypes || []).forEach((st) => {
-          (st.fields || []).forEach((f) => {
-            const fieldId = f.fieldId;
-            const fieldIdx = (fields || []).findIndex((ff) => Number(ff.id ?? ff.fieldId) === Number(fieldId));
-            if (fieldIdx < 0) return;
-            (f.unavailableSlots || []).forEach((us) => {
-              const slotIdx = startToIdx[us.slotId];
-              if (slotIdx != null && slotIdx >= 0) booked.push({ fieldIdx, slotIdx });
-            });
-          });
-        });
-
-        if (booked.length) {
-          try {
-            dispatch(addBookedSlots({ venueId: String(venue.id), date: selectedDate, slots: booked }));
-          } catch (e) {}
-        }
-      } catch (e) {
-        // ignore polling errors
-      }
-    };
-
-    poll();
-    const idt = setInterval(poll, POLL_MS);
-    return () => {
-      mounted = false;
-      clearInterval(idt);
-    };
-  }, [bookingState?.venue?.id, bookingState?.selectedDate, bookingState?.fields, bookingState?.venueSchedule, dispatch]);
-
   // Format the date nicely
   const formattedDate = useMemo(() => {
     if (!selectedDate) return "";
@@ -403,10 +348,6 @@ const BookingConfirmation = () => {
       if (isWalkInBooking) {
         setIsSubmitting(true);
         try {
-          try {
-            dispatch(clearDraft(String(venue?.id)));
-          } catch (e) {}
-
           let schedule = localSchedule || venueSchedule;
           if (!schedule && venue?.id && selectedDate) {
             const res = await getVenueSchedule(venue.id, selectedDate);
@@ -474,6 +415,9 @@ const BookingConfirmation = () => {
           }
 
           await createWalkInBooking(payload);
+          try {
+            dispatch(clearDraft(String(venue?.id)));
+          } catch (e) {}
           toast.success("Đã tạo lịch đặt offline thành công.");
           navigate("/owner/bookings", { replace: true });
         } catch (err) {
@@ -493,10 +437,6 @@ const BookingConfirmation = () => {
       try {
       // Note: removed optimistic slot locking here. Slots will be reserved
       // only after server confirms booking (see below). We still clear draft.
-      try {
-        dispatch(clearDraft(String(venue?.id)));
-      } catch (e) {}
-
       // Create booking request on server with required payload structure
       try {
         // Get schedule to map (fieldId, startTime) -> server slotId
@@ -598,6 +538,10 @@ const BookingConfirmation = () => {
           return;
         }
 
+        try {
+          dispatch(clearDraft(String(venue?.id)));
+        } catch (e) {}
+
         navigate(
           `/booking/${venue?.id || "unknown"}/payment?bookingId=${bookingId}`,
           {
@@ -687,6 +631,9 @@ const BookingConfirmation = () => {
             toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
             return;
           }
+          try {
+            dispatch(clearDraft(String(venue?.id)));
+          } catch (e) {}
           navigate(
             `/booking/${bookingId}/payment`,
             {

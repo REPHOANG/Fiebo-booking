@@ -27,19 +27,9 @@ namespace Fiebo.IntegrationTests.Wallet
             ResetMocks();
             const string userId = "customer-1";
 
-            var responseDto = new QrPaymentResponseDto
-            {
-                QrImageUrl = "https://img.test/qr.png",
-                BankName = "VCB",
-                AccountName = "FIEBO",
-                AccountNumber = "0123456789",
-                Amount = 200000m,
-                TransferContent = "FIEBOTU100"
-            };
-
             _factory.WalletServiceMock
                 .Setup(s => s.GenerateTopUpQrAsync(200000m, userId))
-                .ReturnsAsync(responseDto);
+                .ReturnsAsync(100);
 
             var client = _factory.CreateAuthenticatedClient(userId);
             var response = await client.PostAsJsonAsync("/api/wallet/top-up", new TopUpRequest { Amount = 200000m });
@@ -49,8 +39,7 @@ namespace Fiebo.IntegrationTests.Wallet
             var json = await FieboWebApplicationFactory.ReadJsonAsync(response);
             Assert.Equal(200, json.GetProperty("statusCode").GetInt32());
             Assert.Equal("Tạo yêu cầu nạp tiền thành công.", json.GetProperty("message").GetString());
-            Assert.Equal("https://img.test/qr.png", json.GetProperty("data").GetProperty("qrImageUrl").GetString());
-            Assert.Equal("FIEBOTU100", json.GetProperty("data").GetProperty("transferContent").GetString());
+            Assert.Equal(100, json.GetProperty("data").GetProperty("topUpId").GetInt32());
 
             _factory.WalletServiceMock.Verify(s => s.GenerateTopUpQrAsync(200000m, userId), Times.Once);
         }
@@ -65,7 +54,7 @@ namespace Fiebo.IntegrationTests.Wallet
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             _factory.WalletServiceMock.Verify(
-                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string>()),
+                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -79,7 +68,7 @@ namespace Fiebo.IntegrationTests.Wallet
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             _factory.WalletServiceMock.Verify(
-                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string>()),
+                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string?>()),
                 Times.Never);
         }
 
@@ -93,7 +82,7 @@ namespace Fiebo.IntegrationTests.Wallet
 
                 Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
                 _factory.WalletServiceMock.Verify(
-                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string>()),
+                s => s.GenerateTopUpQrAsync(It.IsAny<decimal>(), It.IsAny<string?>()),
                 Times.Never);
             }
 
