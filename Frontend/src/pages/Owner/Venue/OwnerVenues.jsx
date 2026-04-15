@@ -187,7 +187,6 @@ const OwnerVenues = () => {
       <div className="ov-header">
         <div>
           <h1>Danh sách cơ sở của tôi</h1>
-          <p>Quản lý các cơ sở và sân bạn đang sở hữu.</p>
         </div>
         <div className="ov-header-right">
           <label className="ov-search">
@@ -296,13 +295,6 @@ const OwnerVenues = () => {
           </div>
 
           <p className="ov-tab-hint" id="ov-tab-hint">
-            {listTab === "approved"
-              ? "Chỉ hiển thị cơ sở có trạng thái Active (đang hoạt động)."
-              : listTab === "draft"
-                ? "Cơ sở đang lưu nháp (Draft), chưa gửi duyệt hoặc đang hoàn thiện hồ sơ."
-                : listTab === "pending"
-                  ? "Gồm cơ sở Pending (đã gửi chờ duyệt) và Inactive (đã vô hiệu hóa)."
-                  : "Cơ sở bị từ chối duyệt (trạng thái Rejected trên hệ thống)."}
           </p>
 
           <div

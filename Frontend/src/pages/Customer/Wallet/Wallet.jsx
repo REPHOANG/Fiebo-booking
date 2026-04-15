@@ -1,11 +1,8 @@
 import { Box, Container, Stack } from "@mui/material";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import dayjs from "dayjs";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import LoadingPage from "../../../components/ui/Loading/LoadingPage";
 import {
   getWalletBalance,
@@ -14,50 +11,24 @@ import {
 import WalletBalance from "./WalletBalance";
 import WalletTransactionHistory from "./WalletTransactionHistory";
 
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isSameOrAfter);
 const Wallet = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  // Lấy giá trị tham số từ URL
-  const page = searchParams.get("page") || 1;
-  const size = searchParams.get("size") || 5;
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const transactionRef = useRef(null);
-
-  useEffect(() => {
   const today = dayjs();
   const oneMonthAgo = dayjs().subtract(1, "month");
-  const todayStr = today.format("YYYY-MM-DD");
-  const oneMonthAgoStr = oneMonthAgo.format("YYYY-MM-DD");
+  const [page, setPage] = useState(1);
+  const [size] = useState(5);
+  const [from, setFrom] = useState(oneMonthAgo.format("YYYY-MM-DD"));
+  const [to, setTo] = useState(today.format("YYYY-MM-DD"));
+  const transactionRef = useRef(null);
 
-  const parsedFrom = dayjs(from, "YYYY-MM-DD", true);
-  const parsedTo = dayjs(to, "YYYY-MM-DD", true);
+  const handleFilterChange = ({ from: nextFrom, to: nextTo }) => {
+    setPage(1);
+    setFrom(nextFrom);
+    setTo(nextTo);
+  };
 
-  const isValidFrom =
-    !!from &&
-    parsedFrom.isValid() &&
-    parsedFrom.isSameOrAfter(oneMonthAgo, "day") &&
-    parsedFrom.isSameOrBefore(today, "day");
-
-  const isValidTo =
-    !!to &&
-    parsedTo.isValid() &&
-    parsedTo.isSameOrAfter(oneMonthAgo, "day") &&
-    parsedTo.isSameOrBefore(today, "day");
-
-  if (!isValidFrom || !isValidTo) {
-    setSearchParams(
-  {
-    page: 1,
-    size,
-    from: isValidFrom ? from : oneMonthAgoStr,
-    to: isValidTo ? to : todayStr,
-  },
-  { replace: true }
-);
-  }
-}, [from, setSearchParams, size, to]);
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+  };
 
   const {
     data: history,
@@ -101,7 +72,8 @@ const Wallet = () => {
                 to={to}
                 totalPages={history.totalPages}
                 transactions={history.items}
-                searchParams={searchParams}
+                onFilterChange={handleFilterChange}
+                onPageChange={handlePageChange}
               />
             </Box>
           </Stack>

@@ -64,11 +64,7 @@ const OwnerOfflineBooking = () => {
       <div className="oob-header">
         <div>
           <h1>Đặt sân offline</h1>
-          <p>Chọn cơ sở để bắt đầu đặt sân offline.</p>
         </div>
-        <Link to="/owner/venues" className="oob-secondary-btn">
-          Danh sách cơ sở
-        </Link>
       </div>
 
       {loading ? (

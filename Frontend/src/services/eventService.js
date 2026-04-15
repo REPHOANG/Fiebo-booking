@@ -33,6 +33,12 @@ export const updateEventOwner = async (eventId, payload) => {
   return unwrap(response);
 };
 
+/** POST /api/owner/event/{id}/cancel - Hủy sự kiện (Owner) */
+export const cancelEventOwner = async (eventId, payload) => {
+  const response = await api.post(`/api/owner/event/${eventId}/cancel`, payload);
+  return unwrap(response);
+};
+
 export const joinEvent = async (eventId, payload = {}) => {
   // Backend: POST /api/Event/{id}/join
   const response = await api.post(`/api/Event/${eventId}/join`, payload);

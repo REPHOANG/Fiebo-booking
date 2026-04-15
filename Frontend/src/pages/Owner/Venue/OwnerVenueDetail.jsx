@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { getOwnerVenueFields, getVenueDetail } from "../../../services/fieldService";
-import { deactivateOwnerVenue, getVenueDraft, getVenueServices } from "../../../services/venueService";
+import { deactivateOwnerVenue, getVenueDraft } from "../../../services/venueService";
 import "./OwnerVenueDetail.css";
 
 const formatTime = (timeSpan) => {
@@ -198,8 +198,6 @@ const OwnerVenueDetail = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sportFilter, setSportFilter] = useState("all");
-  const [venueServices, setVenueServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -245,24 +243,6 @@ const OwnerVenueDetail = () => {
         if (mounted) setFields([]);
       } finally {
         if (mounted) setFieldsLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setServicesLoading(true);
-      try {
-        const data = await getVenueServices(Number(id), 1, 50, "");
-        if (mounted) setVenueServices(data?.items ?? []);
-      } catch {
-        if (mounted) setVenueServices([]);
-      } finally {
-        if (mounted) setServicesLoading(false);
       }
     })();
     return () => {
@@ -673,18 +653,9 @@ const OwnerVenueDetail = () => {
                 </Link>
               </div>
             </div>
-            {servicesLoading ? (
-              <p className="ovd-muted">Đang tải danh sách dịch vụ…</p>
-            ) : venueServices.length > 0 ? (
-              <p className="ovd-muted">
-                Hiện có <strong>{venueServices.length}</strong> dịch vụ (cho thuê bóng, bán nước, giữ xe…)
-                đang hiển thị công khai cho khách. Bấm &quot;Quản lý dịch vụ&quot; để xem/chỉnh sửa đầy đủ.
-              </p>
-            ) : (
-              <p className="ovd-muted">
-                Chưa có dịch vụ kèm theo. Bấm &quot;Quản lý dịch vụ&quot; để thêm danh mục cho cơ sở.
-              </p>
-            )}
+            <p className="ovd-muted">
+              Danh sách dịch vụ sẽ được tải và quản lý tại trang &quot;Quản lý dịch vụ&quot; của cơ sở này.
+            </p>
             {!canEditVenue ? (
               <p className="ovd-muted">
                 Cơ sở ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể chỉnh sửa

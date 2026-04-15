@@ -43,8 +43,12 @@ namespace Fiebo.Application.Services
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        public async Task<QrPaymentResponseDto> GenerateTopUpQrAsync(decimal amount, string userId)
+        public async Task<int> GenerateTopUpQrAsync(decimal amount, string? userId)
         {
+            if(userId == null)
+            {
+                throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId);
             if (wallet == null)
             {
@@ -58,7 +62,7 @@ namespace Fiebo.Application.Services
             };
             _unitOfWork.TopUpRequests.Add(topUpRequest);
             await _unitOfWork.SaveChangesAsync();
-            return _qrPaymentService.GenerateQrPayment(amount, topUpRequest.Id);
+            return topUpRequest.Id;
         }
 
         public async Task<decimal> GetBalanceAsync(string userId)
@@ -381,6 +385,25 @@ namespace Fiebo.Application.Services
 
             _unitOfWork.UserBankAccounts.Remove(account);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<QrPaymentResponseDto> GetTopUpRequest(int topUpId, string? userId)
+        {
+            if(userId == null)
+            {
+                throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
+            var topUpRequest = await _unitOfWork.TopUpRequests.GetByIdAsync(topUpId) ?? throw new NotFoundException("Không tìm thấy yêu cầu nạp tiền.");
+            if(topUpRequest.Status == TopUpStatus.Paid)
+            {
+                throw new BadRequestException("Yêu cầu nạp tiền đã được xử lý.");
+            }
+            var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
+            if(wallet.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập yêu cầu nạp tiền này.");
+            }
+            return _qrPaymentService.GenerateQrPayment(topUpRequest.Amount, topUpRequest.Id);
         }
     }
 }

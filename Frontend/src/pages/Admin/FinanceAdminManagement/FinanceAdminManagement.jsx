@@ -25,6 +25,7 @@ import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import CreateFinanceAdminForm from "./CreateFinanceAdminForm";
 import { createFinanceAdmin, getFinanceAdmins } from "../../../services/adminService";
+import { formatDateTime } from "../../../utils/helperFunction";
 import "./FinanceAdminManagement.css";
 
 const statusStyle = {
@@ -32,13 +33,7 @@ const statusStyle = {
   inactive: { label: "Vô hiệu hóa", bg: "#fee2e2", color: "#991b1b" },
 };
 
-const toDate = (value) => new Date(`${value}T00:00:00`);
-const formatDate = (value) =>
-  toDate(value).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+
 
 const getInitials = (name) =>
   name
@@ -47,6 +42,11 @@ const getInitials = (name) =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
+
+const toDate = (value) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date(0) : date;
+};
 
 const FinanceAdminManagement = () => {
   const queryClient = useQueryClient();
@@ -69,13 +69,13 @@ const FinanceAdminManagement = () => {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     select: (list) => {
-      const today = new Date().toISOString().slice(0, 10);
+      const createdAt = new Date().toISOString();
       return (Array.isArray(list) ? list : []).map((item, index) => ({
         id: `FIN-${new Date().getFullYear()}-${String(index + 1).padStart(3, "0")}`,
         name: item?.fullName || "Chưa có tên",
         email: item?.username || "-",
         phone: "-",
-        createdAt: today,
+        createdAt,
         status:
           String(item?.status || "")
             .trim()
@@ -157,7 +157,7 @@ const FinanceAdminManagement = () => {
     <Box
       className="finance-admin-page"
       sx={{
-        p: { xs: 2, md: 3 },
+        px: { xs: 2, md: 3 },
         pb: 12,
         minHeight: "100vh",
         backgroundColor: "#f8f9fa",
@@ -167,7 +167,7 @@ const FinanceAdminManagement = () => {
         },
       }}
     >
-      <Box sx={{ maxWidth: 980, mx: "auto" }}>
+      <Box>
         <Box sx={{ mb: 2.5 }}>
           <Typography
             sx={{
@@ -377,7 +377,7 @@ const FinanceAdminManagement = () => {
                         sx={{ color: "#7b7487", fontSize: 18 }}
                       />
                       <Typography sx={{ color: "#4a4455", fontSize: 12 }}>
-                        Tạo lúc: {formatDate(item.createdAt)}
+                        Tạo lúc: {formatDateTime(item.createdAt)}
                       </Typography>
                     </Stack>
 

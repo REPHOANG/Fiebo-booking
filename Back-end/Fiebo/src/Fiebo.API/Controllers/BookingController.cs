@@ -203,7 +203,8 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-            var result = await _bookingService.CreateWalkInBookingAsync(request, userId);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var result = await _bookingService.CreateWalkInBookingAsync(request, userId, role);
 
             return Ok(new ApiResponse<object>
             {

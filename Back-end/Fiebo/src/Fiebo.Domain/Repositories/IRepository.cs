@@ -22,5 +22,6 @@ namespace Fiebo.Domain.Repositories
         void Remove(T entity);
         void RemoveRange(IEnumerable<T> entities);
         void Update(T entity);
+        Task<List<T>> GetByIdsAsync(List<int> ids);
     }
 }
