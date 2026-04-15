@@ -11,6 +11,7 @@ namespace Fiebo.Application.DTOs.Venue
     public class CreateVenueRequest
     {
         [Required]
+        [MaxLength(50)]
         public string Name { get; set; } = null!;
 
         [Required]
@@ -18,10 +19,11 @@ namespace Fiebo.Application.DTOs.Venue
 
         [Required]
         public TimeOnly CloseTime { get; set; }
-
+        [MaxLength(500)]
         public string? Description { get; set; }
 
         [Required]
+        [MaxLength(100)]
         public string AddressDetail { get; set; } = null!;
 
         public int ProvinceId { get; set; }

@@ -101,5 +101,23 @@ namespace Fiebo.Persistence.Repositories
                     b.BookingDate >= today &&
                     (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Booked));
         }
+
+        public async Task<List<(int SlotId, int FieldId)>> GetUnavailableSlots(
+            List<int> slotIds,
+            List<int> fieldIds,
+            DateOnly bookingDate)
+        {
+            return await _context.BookingDetails
+                .AsNoTracking()
+                .Where(bd =>
+                    slotIds.Contains(bd.SlotId) &&
+                    fieldIds.Contains(bd.FieldId) &&
+                    bd.Booking.BookingDate == bookingDate &&
+                    (bd.Booking.Status == BookingStatus.Booked || bd.Booking.Status == BookingStatus.Pending)
+                )
+                .Select(bd => new ValueTuple<int, int>(bd.SlotId, bd.FieldId))
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }

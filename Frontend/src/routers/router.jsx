@@ -13,6 +13,7 @@ import BookingPayment, {
   BookingPaymentSuccess,
 } from "../pages/Customer/Booking/BookingPayment";
 import WalletTopUp from "../pages/Customer/WalletTopUp";
+import WalletTopUpDetail from "../pages/Customer/WalletTopUpDetail";
 import BookingList from "../pages/Customer/BookingList";
 import Wallet from "../pages/Customer/Wallet/Wallet";
 import GiveRating from "../pages/Customer/GiveRating/GiveRating";
@@ -53,8 +54,6 @@ import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
 import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
 import AdminVenueRegistrations from "../pages/Admin/VenueRegistration/AdminVenueRegistrations";
-import AdminFinanceAdmins from "../pages/Admin/FinanceAdminManagement/AdminFinanceAdmins";
-import AdminSportCatalog from "../pages/Admin/SportCatalog/AdminSportCatalog";
 import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
 import FinanceAdminOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminOwnerPayouts";
@@ -67,6 +66,9 @@ import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
+import FinanceAdminManagement from "../pages/Admin/FinanceAdminManagement/FinanceAdminManagement";
+import SportCatalog from "../pages/Admin/SportCatalog/SportCatalog";
+import NotFoundPage from "../components/ui/Error/NotFoundPage";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -103,6 +105,15 @@ const routes = [
   },
   { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
   {
+    path: "wallet/top-up",
+    element: <ProtectedRoute element={<WalletTopUp />} />,
+  },
+  {
+    path: "wallet/top-up/:id",
+    element: <ProtectedRoute element={<WalletTopUpDetail />} />,
+  },
+
+  {
     path: "/",
     element: <Layout />,
     children: [
@@ -119,10 +130,6 @@ const routes = [
         element: <BookingPaymentSuccess />,
       },
       { path: "events", element: <Events /> },
-      {
-        path: "wallet/top-up",
-        element: <ProtectedRoute element={<WalletTopUp />} />,
-      },
       {
         path: "bookings",
         element: <ProtectedRoute element={<BookingList />} />,
@@ -191,8 +198,8 @@ const routes = [
       { path: "venues", element: <AdminVenueModeration /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "venue-registrations", element: <AdminVenueRegistrations /> },
-      { path: "finance-admins", element: <AdminFinanceAdmins /> },
-      { path: "sports", element: <AdminSportCatalog /> },
+      { path: "finance-admins", element: <FinanceAdminManagement /> },
+      { path: "sports", element: <SportCatalog /> },
       { path: "policies", element: <AdminPolicies /> },
       { path: "users", element: <AdminCustomers /> },
     ],
@@ -232,7 +239,7 @@ const routes = [
       { path: "profile", element: <Profile /> },
     ],
   },
-  { path: "*", element: <Navigate to="/" replace /> },
+  { path: "*", element: <NotFoundPage /> },
 ];
 
 const AppRoutes = () => useRoutes(routes);

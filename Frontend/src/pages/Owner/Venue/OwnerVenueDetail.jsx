@@ -15,7 +15,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { getOwnerVenueFields, getVenueDetail, toggleOwnerFieldStatus } from "../../../services/fieldService";
+import { getOwnerVenueFields, getVenueDetail } from "../../../services/fieldService";
 import { deactivateOwnerVenue, getVenueDraft, getVenueServices } from "../../../services/venueService";
 import "./OwnerVenueDetail.css";
 
@@ -210,7 +210,6 @@ const OwnerVenueDetail = () => {
   const [sportFilter, setSportFilter] = useState("all");
   const [venueServices, setVenueServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(false);
-  const [fieldStatusLoading, setFieldStatusLoading] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -256,24 +255,6 @@ const OwnerVenueDetail = () => {
         if (mounted) setFields([]);
       } finally {
         if (mounted) setFieldsLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setServicesLoading(true);
-      try {
-        const data = await getVenueServices(Number(id), 1, 50, "");
-        if (mounted) setVenueServices(data?.items ?? []);
-      } catch {
-        if (mounted) setVenueServices([]);
-      } finally {
-        if (mounted) setServicesLoading(false);
       }
     })();
     return () => {
@@ -670,6 +651,51 @@ const OwnerVenueDetail = () => {
                 tạo sân.
               </p>
             )}
+          </div>
+
+          <div className="ovd-card ovd-card--services">
+            <div className="ovd-title-row">
+              <h3 className="ovd-subtitle">
+                <Package size={18} /> Dịch vụ kèm theo
+              </h3>
+              <div className="ovd-actions">
+                <Link
+                  className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}
+                  to={canEditVenue ? `/owner/venue/${id}/services` : "#"}
+                  onClick={(e) => {
+                    if (!canEditVenue) e.preventDefault();
+                  }}
+                >
+                  <Package size={15} /> Quản lý dịch vụ
+                </Link>
+              </div>
+            </div>
+            {servicesLoading ? (
+              <p className="ovd-muted">Đang tải danh sách dịch vụ…</p>
+            ) : venueServices.length > 0 ? (
+              <p className="ovd-muted">
+                Hiện có <strong>{venueServices.length}</strong> dịch vụ (cho thuê bóng, bán nước, giữ xe…)
+                đang hiển thị công khai cho khách. Bấm &quot;Quản lý dịch vụ&quot; để xem/chỉnh sửa đầy đủ.
+              </p>
+            ) : (
+              <p className="ovd-muted">
+                Chưa có dịch vụ kèm theo. Bấm &quot;Quản lý dịch vụ&quot; để thêm danh mục cho cơ sở.
+              </p>
+            )}
+            {!canEditVenue ? (
+              <p className="ovd-muted">
+                Cơ sở ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể chỉnh sửa
+                dịch vụ lúc này.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="ovd-card">
+            <div className="ovd-title-row">
+              <h3 className="ovd-subtitle">
+                <Calendar size={18} /> Danh sách sân
+              </h3>
+            </div>
             <div className="ovd-filters">
               <input
                 className="ovd-input"

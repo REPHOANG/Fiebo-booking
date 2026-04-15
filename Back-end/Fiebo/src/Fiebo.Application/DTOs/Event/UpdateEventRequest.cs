@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,6 +9,9 @@ namespace Fiebo.Application.DTOs.Event
 {
     public class UpdateEventRequest
     {
+        [Required(ErrorMessage = "Tên sự kiện không được bỏ trống")]
+        public string Name { get; set; } = string.Empty;
+
         [Required]
         [Range(1, int.MaxValue)]
         public decimal PricePerPerson { get; set; }

@@ -14,8 +14,22 @@ export const getWalletBalance = async () => {
 
 /**
  * Nạp tiền vào ví (POST /api/Wallet/top-up).
- * Tạo yêu cầu nạp và trả về thông tin chuyển khoản (QR, tài khoản nhận, số tiền, nội dung).
+ * Tạo yêu cầu nạp và trả về top-up id.
  * @param {{ amount: number }} payload — amount (VND)
+ * @returns {Promise<{ id: string | number }>}
+ */
+export const topUpWallet = async (payload) => {
+  const body = typeof payload?.amount === 'number' ? { amount: payload.amount } : payload ?? {};
+  const response = await api.post('/api/Wallet/top-up', body);
+  const d = response.data?.data ?? response.data ?? {};
+  return {
+    id: d?.id ?? d?.Id ?? d?.topUpId ?? d?.TopUpId,
+  };
+};
+
+/**
+ * Lấy thông tin nạp ví theo top-up id (GET /api/wallet/top-up/{id}).
+ * @param {string | number} id
  * @returns {Promise<{
  *   qrImageUrl: string,
  *   bankName: string,
@@ -23,11 +37,10 @@ export const getWalletBalance = async () => {
  *   accountNumber: string,
  *   amount: number,
  *   transferContent: string
- * }>}
+ * }>} 
  */
-export const topUpWallet = async (payload) => {
-  const body = typeof payload?.amount === 'number' ? { amount: payload.amount } : payload ?? {};
-  const response = await api.post('/api/Wallet/top-up', body);
+export const getTopUpDetail = async (id) => {
+  const response = await api.get(`/api/wallet/top-up/${id}`);
   const d = response.data?.data ?? response.data ?? {};
   return {
     qrImageUrl: d?.qrImageUrl ?? d?.QrImageUrl ?? '',

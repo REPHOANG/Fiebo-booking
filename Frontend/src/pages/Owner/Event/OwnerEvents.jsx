@@ -3,17 +3,34 @@ import { Link } from "react-router-dom";
 import { getEventListOwner } from "../../../services/eventService";
 import "./OwnerEvents.css";
 
-const formatPrice = (n) => {
-  if (n == null || Number.isNaN(n)) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
-};
-
 const formatDate = (d) => {
   if (!d) return "";
   const s = String(d).slice(0, 10);
   if (!s) return "";
   const [y, m, day] = s.split("-");
   return `${day}/${m}/${y}`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return "—";
+  return dt.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const translateStatus = (status) => {
+  const s = String(status || "").toLowerCase();
+  if (s === "pending") return "Chưa diễn ra";
+  if (s === "ongoing" || s === "active") return "Đang diễn ra";
+  if (s === "completed") return "Hoàn thành";
+  if (s === "cancelled" || s === "canceled") return "Đã hủy";
+  return status || "—";
 };
 
 const OwnerEvents = () => {
@@ -43,7 +60,9 @@ const OwnerEvents = () => {
 
   return (
     <div className="owner-home owner-events-page">
-      <div className="owner-home-header">
+      <div className="owner-home-header" style={{
+        marginBottom:"10px"
+      }}>
         <h1>Danh sách sự kiện</h1>
       </div>
 
@@ -69,11 +88,12 @@ const OwnerEvents = () => {
               <thead>
                 <tr>
                   <th>Mã</th>
+                  <th>Tên sự kiện</th>
                   <th>Cơ sở</th>
                   <th>Ngày</th>
-                  <th>Giá vé</th>
-                  <th>Còn lại</th>
-                  <th>Khung giờ</th>
+                  <th>Thời gian tạo</th>
+                  <th>Trạng thái</th>
+                  <th>Người tham gia</th>
                   <th></th>
                 </tr>
               </thead>
@@ -81,18 +101,22 @@ const OwnerEvents = () => {
                 {list.map((ev) => (
                   <tr key={ev.eventId}>
                     <td>{ev.eventId}</td>
+                    <td>{ev.name?.trim() || "—"}</td>
                     <td>{ev.venueName ?? ""}</td>
                     <td>{formatDate(ev.eventDate)}</td>
-                    <td>{formatPrice(ev.ticketPrice)}</td>
-                    <td>{ev.remainingTicketQuantity ?? 0}</td>
-                    <td className="oe-slots-cell">
-                      {Array.isArray(ev.slots) && ev.slots.length > 0
-                        ? ev.slots.map((s, i) => (
-                            <span key={i} className="oe-slot-tag">
-                              {s.fieldName ?? "Sân"} {formatSlotTime(s.startTime)}–{formatSlotTime(s.endTime)}
-                            </span>
-                          ))
-                        : "—"}
+                    <td>{formatDateTime(ev.createdAt)}</td>
+                    <td>
+                      <span className={`oe-status-badge oe-status-${String(ev.status || "").toLowerCase()}`}>
+                        {translateStatus(ev.status)}
+                      </span>
+                    </td>
+                    <td>
+                      {Math.max(
+                        0,
+                        Number(ev.totalTicketQuantity ?? 0) - Number(ev.remainingTicketQuantity ?? 0),
+                      )}
+                      /
+                      {Number(ev.totalTicketQuantity ?? 0)}
                     </td>
                     <td>
                       <Link to={`/owner/events/${ev.eventId}`} className="oe-link">
@@ -108,13 +132,6 @@ const OwnerEvents = () => {
       </div>
     </div>
   );
-};
-
-function formatSlotTime(t) {
-  if (!t) return "";
-  const s = String(t).trim();
-  const part = s.split(":")[0] + ":" + (s.split(":")[1] || "00");
-  return part.length >= 5 ? part.slice(0, 5) : part;
 }
 
 export default OwnerEvents;

@@ -60,7 +60,12 @@ namespace Fiebo.Application.Services
             var isExists = await _unitOfWork.SportTypes.IsNameExistsAsync(request.Name, id, cancellationToken);
             if (isExists)
             {
-                throw new ResourceConflictException($"Tên môn thể thao '{request.Name}' đã tồn tại trong hệ thống.");
+                throw new BadRequestException($"Tên môn thể thao '{request.Name}' đã tồn tại trong hệ thống.");
+            }
+            var isUsed = await _unitOfWork.Fields.FindAsync(f => f.SportTypeId == id);
+            if(isUsed.Any())
+            {
+                throw new BadRequestException($"Môn thể thao này đang được sử dụng trong hệ thống, không thể cập nhật.");
             }
 
             sportType.Name = request.Name;
