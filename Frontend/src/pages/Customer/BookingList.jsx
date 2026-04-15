@@ -184,7 +184,11 @@ function getBookingTypeMeta(item) {
     : { label: "Đơn ngày", className: "bl-type-tag bl-type-tag--daily" };
 }
 
-const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
+const FALLBACK_VENUE_IMAGE = "https://c.pxhere.com/photos/c0/3e/football_pitch_football_rush_american_football-976043.jpg!s2";
+const handleImgError = (e) => {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = FALLBACK_VENUE_IMAGE;
+};
 
 
 function normEventHistoryItem(raw) {
@@ -397,10 +401,7 @@ const BookingList = () => {
     isLoading: loadingList,
     error: listError,
   } = useQuery({
-    queryKey: [
-      "bookingHistory",
-      { page, fromDate: activeFromDate, toDate: activeToDate },
-    ],
+    queryKey: ["bookingHistory", { fromDate: activeFromDate, toDate: activeToDate }],
     queryFn: () =>
       getBookingHistory({
         pageNumber: 1,
@@ -490,34 +491,6 @@ const BookingList = () => {
         new Date(String(b.sortDate || 0)) - new Date(String(a.sortDate || 0)),
     );
   }, [list, eventItems, activeTab, activeTypeFilter]);
-
-  /** Thống kê sidebar: chỉ đơn/vé hoàn thành trong tháng hiện tại (theo tiêu đề card). */
-  const sideStatsCompleted = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth() + 1;
-
-    const venueCompleted = list.filter(
-      (b) =>
-        String(b.status || "").toLowerCase() === "completed" &&
-        isSameCalendarMonth(b.bookingDate, y, m),
-    );
-    const eventCompleted = (eventItems || [])
-      .map(normEventHistoryItem)
-      .filter(Boolean)
-      .filter(
-        (ev) =>
-          resolveEventListStatus(ev.participantStatus, ev.eventStatus) ===
-            "completed" && isSameCalendarMonth(ev.eventDate, y, m),
-      );
-
-    const count = venueCompleted.length + eventCompleted.length;
-    const sum =
-      venueCompleted.reduce((s, b) => s + Number(b.totalPrice ?? 0), 0) +
-      eventCompleted.reduce((s, e) => s + Number(e.totalAmount ?? 0), 0);
-
-    return { count, sum };
-  }, [list, eventItems]);
 
   const venueCatalog = useMemo(() => {
     if (Array.isArray(venueCatalogData)) return venueCatalogData;
@@ -1147,7 +1120,6 @@ const BookingList = () => {
               </div>
             )}
           </div>
-         
         </div>
       )}
 
