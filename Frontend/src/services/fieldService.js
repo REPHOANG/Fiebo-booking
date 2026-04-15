@@ -225,6 +225,17 @@ export const updateOwnerField = async (fieldId, payload, venueId) => {
   throw lastError;
 };
 
+/**
+ * Owner: Toggle field status Active/Inactive
+ * PATCH `/api/owner/venue/{venueId}/fields/{fieldId}`
+ * @param {number|string} venueId
+ * @param {number|string} fieldId
+ */
+export const toggleOwnerFieldStatus = async (venueId, fieldId) => {
+  const response = await api.patch(`/api/owner/venue/${venueId}/fields/${fieldId}`);
+  return response.data?.data ?? response.data;
+};
+
 /** Owner: thêm ảnh cho sân đã tồn tại (POST `/api/Media/field/{id}/upload`) */
 export const uploadOwnerFieldImages = async (fieldId, files) => {
   const arr = Array.isArray(files) ? files.filter(Boolean) : [];

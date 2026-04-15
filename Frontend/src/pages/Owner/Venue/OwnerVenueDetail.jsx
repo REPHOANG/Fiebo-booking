@@ -11,9 +11,11 @@ import {
   ChevronRight,
   Plus,
   Package,
+  CircleOff,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { getOwnerVenueFields, getVenueDetail } from "../../../services/fieldService";
+import { getOwnerVenueFields, getVenueDetail, toggleOwnerFieldStatus } from "../../../services/fieldService";
 import { deactivateOwnerVenue, getVenueDraft, getVenueServices } from "../../../services/venueService";
 import "./OwnerVenueDetail.css";
 
@@ -186,6 +188,14 @@ function normalizeVenueDetailShape(raw) {
   };
 }
 
+const formatFieldStatusLabel = (status) => {
+  const lower = String(status || "").toLowerCase().trim();
+  if (lower === "active") return "Đang hoạt động";
+  if (lower === "inactive") return "Đã vô hiệu hóa";
+  if (lower === "draft") return "Bản nháp";
+  return status || "Không xác định";
+};
+
 const OwnerVenueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -200,6 +210,7 @@ const OwnerVenueDetail = () => {
   const [sportFilter, setSportFilter] = useState("all");
   const [venueServices, setVenueServices] = useState([]);
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [fieldStatusLoading, setFieldStatusLoading] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -424,7 +435,7 @@ const OwnerVenueDetail = () => {
   return (
     <div className="owner-venue-detail">
       <div className="ovd-header">
-        <button className="ovd-back" onClick={() => navigate(-1)}>
+        <button className="ovd-back" onClick={() => navigate("/owner/venues") }>
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
@@ -437,8 +448,14 @@ const OwnerVenueDetail = () => {
           >
             <Calendar size={16} /> Time slot
           </Link>
-          <Link className="ovd-btn ovd-btn--secondary" to="/owner/venues">
-            Danh sách cơ sở
+          <Link
+            className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}
+            to={canEditVenue ? `/owner/venue/${id}/services` : "#"}
+            onClick={(e) => {
+              if (!canEditVenue) e.preventDefault();
+            }}
+          >
+            <Package size={16} /> Quản lý dịch vụ
           </Link>
           <Link className="ovd-btn ovd-btn--primary" to={`/owner/venues/${id}/offline-booking`}>
             <Calendar size={16} /> Đặt offline
@@ -487,13 +504,6 @@ const OwnerVenueDetail = () => {
           <div className="ovd-card ovd-main-card">
             <div className="ovd-main-head">
               <div className="ovd-main-info">
-                {canEditVenue ? (
-                  <div style={{ marginBottom: 8 }}>
-                    <Link className="ovd-toggle-btn" to={`/owner/venues/${id}/edit`}>
-                      Chỉnh sửa thông tin cơ sở
-                    </Link>
-                  </div>
-                ) : null}
                 <h1 className="ovd-title">{venue.name ?? `Cơ sở #${id}`}</h1>
                 <div className="ovd-meta">
                   {address ? (
@@ -515,6 +525,11 @@ const OwnerVenueDetail = () => {
                 ) : (
                   <div className="ovd-main-cover ovd-main-cover--placeholder">Chưa có ảnh</div>
                 )}
+                {canEditVenue ? (
+                  <Link className="ovd-toggle-btn ovd-main-edit-action" to={`/owner/venues/${id}/edit`}>
+                    Chỉnh sửa thông tin cơ sở
+                  </Link>
+                ) : null}
               </div>
             </div>
           </div>
@@ -625,10 +640,11 @@ const OwnerVenueDetail = () => {
         </div>
 
         <div className="ovd-col-right">
+
           <div className="ovd-card">
             <div className="ovd-title-row">
               <h3 className="ovd-subtitle">
-                <Calendar size={18} /> Thêm sân
+                <Calendar size={18} /> Danh sách sân
               </h3>
               <div className="ovd-actions">
                 <Link
@@ -654,51 +670,6 @@ const OwnerVenueDetail = () => {
                 tạo sân.
               </p>
             )}
-          </div>
-
-          <div className="ovd-card ovd-card--services">
-            <div className="ovd-title-row">
-              <h3 className="ovd-subtitle">
-                <Package size={18} /> Dịch vụ kèm theo
-              </h3>
-              <div className="ovd-actions">
-                <Link
-                  className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}
-                  to={canEditVenue ? `/owner/venue/${id}/services` : "#"}
-                  onClick={(e) => {
-                    if (!canEditVenue) e.preventDefault();
-                  }}
-                >
-                  <Package size={15} /> Quản lý dịch vụ
-                </Link>
-              </div>
-            </div>
-            {servicesLoading ? (
-              <p className="ovd-muted">Đang tải danh sách dịch vụ…</p>
-            ) : venueServices.length > 0 ? (
-              <p className="ovd-muted">
-                Hiện có <strong>{venueServices.length}</strong> dịch vụ (cho thuê bóng, bán nước, giữ xe…)
-                đang hiển thị công khai cho khách. Bấm &quot;Quản lý dịch vụ&quot; để xem/chỉnh sửa đầy đủ.
-              </p>
-            ) : (
-              <p className="ovd-muted">
-                Chưa có dịch vụ kèm theo. Bấm &quot;Quản lý dịch vụ&quot; để thêm danh mục cho cơ sở.
-              </p>
-            )}
-            {!canEditVenue ? (
-              <p className="ovd-muted">
-                Cơ sở ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể chỉnh sửa
-                dịch vụ lúc này.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="ovd-card">
-            <div className="ovd-title-row">
-              <h3 className="ovd-subtitle">
-                <Calendar size={18} /> Danh sách sân
-              </h3>
-            </div>
             <div className="ovd-filters">
               <input
                 className="ovd-input"
@@ -737,7 +708,7 @@ const OwnerVenueDetail = () => {
             ) : filteredFields.length === 0 ? (
               <p className="ovd-muted">Không có sân phù hợp bộ lọc.</p>
             ) : (
-              <div className="ovd-fields">
+              <div className="ovd-fields ovd-fields-scroll">
                 {filteredFields.map((f) => {
                   const fieldId = f?.fieldId ?? f?.FieldId;
                   const fieldName = f?.fieldName ?? f?.FieldName ?? "—";
@@ -750,26 +721,88 @@ const OwnerVenueDetail = () => {
                       ? `${Number(minPrice).toLocaleString("vi-VN")} – ${Number(maxPrice).toLocaleString("vi-VN")} đ`
                       : "—";
                   const statusLower = String(status || "").toLowerCase();
+                  const canToggleFieldStatus = canEditVenue && fieldId != null && ["active", "inactive"].includes(statusLower);
+                  const isFieldStatusLoading = fieldId != null && Boolean(fieldStatusLoading[fieldId]);
+                  const toggleFieldLabel = statusLower === "inactive" ? "Kích hoạt" : "Vô hiệu hóa";
 
                   return (
-                    <div key={fieldId ?? fieldName} className="ovd-field-row" data-status={statusLower}>
-                      <div className="ovd-field-main">
-                        <strong className="ovd-field-name">{fieldName}</strong>
-                        <span className="ovd-field-meta">{sportType}</span>
+                    <div key={fieldId ?? fieldName} className="ovd-field-row ovd-field-card" data-status={statusLower}>
+                      <div className="ovd-field-summary">
+                        <div className="ovd-field-main">
+                          <div className="ovd-field-heading">
+                            <strong className="ovd-field-name">{fieldName}</strong>
+                            <span className="ovd-field-status-badge">{formatFieldStatusLabel(status)}</span>
+                          </div>
+                          <div className="ovd-field-meta-row">
+                            <span className="ovd-field-chip">{sportType}</span>
+                          </div>
+                        </div>
+                        <div className="ovd-field-right">
+                          <span className="ovd-field-price-label">Mức giá</span>
+                          <span className="ovd-field-price">{priceLabel}</span>
+                        </div>
                       </div>
-                      <div className="ovd-field-right">
-                        <span className="ovd-field-price">{priceLabel}</span>
-                        <span className="ovd-field-status">{status}</span>
-                      </div>
-                      {canEditVenue && fieldId != null ? (
-                        <div className="ovd-field-actions">
+                      {fieldId != null ? (
+                        <div className="ovd-field-actions ovd-field-actions--card">
                           <Link
-                            className="ovd-toggle-btn"
+                            className={`ovd-toggle-btn ${!canEditVenue ? "is-disabled" : ""}`}
                             to={`/owner/venues/${id}/edit-field/${fieldId}`}
                             state={{ venueDraftHint }}
+                            onClick={(e) => {
+                              if (!canEditVenue) e.preventDefault();
+                            }}
                           >
                             Chỉnh sửa
                           </Link>
+                          <button
+                            type="button"
+                            className={`ovd-toggle-btn ovd-toggle-btn--warn ${!canToggleFieldStatus ? "is-disabled" : ""}`}
+                            disabled={!canToggleFieldStatus || isFieldStatusLoading}
+                            onClick={async () => {
+                              if (!canToggleFieldStatus || fieldId == null) return;
+                              const ok = window.confirm(`${toggleFieldLabel} sân "${fieldName}"?`);
+                              if (!ok) return;
+                              setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: true }));
+                              try {
+                                await toggleOwnerFieldStatus(id, fieldId);
+                                setFields((prev) =>
+                                  (prev || []).map((item) => {
+                                    const currentId = item?.fieldId ?? item?.FieldId;
+                                    if (currentId !== fieldId) return item;
+                                    const nextStatus = statusLower === "inactive" ? "Active" : "Inactive";
+                                    return {
+                                      ...item,
+                                      status: nextStatus,
+                                      Status: nextStatus,
+                                    };
+                                  })
+                                );
+                                toast.success(statusLower === "inactive" ? "Đã kích hoạt sân." : "Đã vô hiệu hóa sân.");
+                              } catch (error) {
+                                toast.error(
+                                  error?.response?.data?.message ??
+                                  error?.message ??
+                                  "Không cập nhật được trạng thái sân."
+                                );
+                              } finally {
+                                setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: false }));
+                              }
+                            }}
+                            title={
+                              !canToggleFieldStatus
+                                ? "Chỉ sân ở trạng thái hoạt động hoặc đã vô hiệu hóa mới có thể đổi trạng thái."
+                                : undefined
+                            }
+                          >
+                            {isFieldStatusLoading ? (
+                              <Loader2 size={14} className="ovd-spinner" />
+                            ) : statusLower === "inactive" ? (
+                              <RotateCcw size={14} />
+                            ) : (
+                              <CircleOff size={14} />
+                            )}
+                            {isFieldStatusLoading ? "Đang xử lý..." : toggleFieldLabel}
+                          </button>
                         </div>
                       ) : null}
                     </div>
