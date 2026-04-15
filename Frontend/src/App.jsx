@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { persistQueryClient } from "@tanstack/react-query-persist-client";
-import localforage from "localforage";
 import { BrowserRouter as Router } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -51,7 +49,6 @@ const App = () => {
 
 
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
-  const [location, setLocation] = useState(null);
   const initRanRef = useRef(false);
 
 
@@ -98,7 +95,6 @@ const App = () => {
     setShowLocationPrompt(false);
     localStorage.setItem("locationPromptAsked", "true");
     if (coords) {
-      setLocation(coords);
       localStorage.setItem("userLocation", JSON.stringify(coords));
     }
   };

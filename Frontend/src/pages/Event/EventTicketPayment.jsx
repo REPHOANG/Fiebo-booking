@@ -8,6 +8,7 @@ import "../Customer/Booking/BookingPayment.css";
 
 const formatPrice = (price) => (Number(price) > 0 ? `${Number(price).toLocaleString("vi-VN")} đ` : "0 đ");
 const EVENT_TICKET_GRACE_KEY = (ticketId) => `fiebo_event_ticket_grace_${ticketId}`;
+const DEFAULT_PAYMENT_SECONDS = 5 * 60;
 
 /** Thời gian còn lại (giây) đến khi hết hạn thanh toán. Null = không có thông tin. */
 const secondsLeftFromExpiredAt = (expiredAt) => {
@@ -100,7 +101,6 @@ const EventTicketPayment = () => {
   }, []);
 
   // Nếu backend trả expiredAt đã qua (thường do lệch giờ), dùng grace local để tránh luôn hiện 00:00.
-  const DEFAULT_PAYMENT_SECONDS = 5 * 60;
   useEffect(() => {
     const initial = secondsLeftFromExpiredAt(expiredAt);
     if (initial == null || initial <= 0) {

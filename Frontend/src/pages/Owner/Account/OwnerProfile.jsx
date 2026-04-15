@@ -21,25 +21,6 @@ const errMessage = (e) =>
   e?.message ??
   "Có lỗi xảy ra. Vui lòng thử lại.";
 
-const parseDateSafe = (value) => {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-};
-
-const formatDateLabel = (value) => {
-  const d = parseDateSafe(value);
-  if (!d) return "--/--";
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-const formatVnd = (value) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value || 0));
-
-
 
 const profileSchema = yup.object({
   fullName: yup.string().trim().required("Vui lòng nhập họ tên."),

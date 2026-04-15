@@ -405,12 +405,12 @@ const BookingPayment = () => {
       lastBookingIdRef.current = bid;
       holdUntilMsRef.current = null;
     }
-  }, [bookingDetail?.bookingId]);
+  }, [bookingDetail]);
 
   useEffect(() => {
     if (!bookingDetail) return;
     setExpired(false);
-  }, [bookingDetail?.bookingId]);
+  }, [bookingDetail]);
 
   useEffect(() => {
     if (!bookingDetail || expired) return;

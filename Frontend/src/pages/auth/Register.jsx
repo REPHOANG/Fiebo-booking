@@ -95,14 +95,11 @@ const Register = ({
   const {
     register: field,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitted, submitCount },
   } = useForm({
     resolver: yupResolver(schema),
     mode: 'onTouched',
   });
-
-  const agreeChecked = watch('agreeTerms', false);
 
   const onSubmit = async (data) => {
     setIsLoading(true);

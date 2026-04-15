@@ -423,17 +423,11 @@ const OwnerTimeSlot = () => {
     [activeDayValidationByRow],
   );
 
-  const activeDayHasAnySlot = Boolean(daysHavingAnySlot[activeDayKey]);
   const canUseDurationTemplate =
     !saving && !loadingSlots && !!sportTypeId && !activeDayHasPersistedSlot;
   const allowedDurations = useMemo(() => new Set([30, 60, 90]), []);
   const parsedDuration = Number(slotDuration);
   const normalizedDuration = allowedDurations.has(parsedDuration) ? parsedDuration : 60;
-  const slotDurationLabel = useMemo(() => {
-    if (normalizedDuration === 90) return "1h30p";
-    if (normalizedDuration === 60) return "1h";
-    return "30p";
-  }, [normalizedDuration]);
 
   /** Gắn thêm trên từng ô giá (một số trình duyệt chỉ chặn ổn định khi listener trên chính input) */
   useEffect(() => {
@@ -647,7 +641,6 @@ const OwnerTimeSlot = () => {
     editSnapshotRef.current = null;
     setEditingRowIdx(null);
 
-    // toast.success(`Đã tạo tự động ${generated.length} khung (${slotDurationLabel}) cho ${weekDayLabels[activeDayIndex]}.`);
   }, [
     canUseDurationTemplate,
     venueOpenTime,
@@ -655,9 +648,6 @@ const OwnerTimeSlot = () => {
     normalizedDuration,
     activeDayKey,
     weekDates,
-    slotDurationLabel,
-    weekDayLabels,
-    activeDayIndex,
   ]);
 
   const sortedOwnerVenues = useMemo(() => {

@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import {
-  SearchIcon,
-  ShoppingCartIcon,
-  MenuIcon,
-  XIcon,
   BellIcon,
-  UserIcon,
-  LogOutIcon,
   ChevronDownIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,22 +23,11 @@ const Header = () => {
     (user?.role || user?.roles || "")
       .toString()
       .toLowerCase() === "fieldowner";
-  
+
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { openLogin } = useAuthModal();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -54,9 +37,15 @@ const Header = () => {
     setUserMenuOpen(false);
   };
 
+  const handleMegaMenuBlur = (event) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setVenuesMegaActive(false);
+  };
+
   return (
-    <header className={`header ${scrolled ? "scrolled" : ""}`}>
-      <div className="header-container">
+    <>
+      <header className="header">
+        <div className="header-container">
         {/* LEFT */}
         <div className="header-left">
           <Link to="/" className="logo">
@@ -70,7 +59,9 @@ const Header = () => {
             <div
               className="mega-wrapper"
               onMouseEnter={() => setVenuesMegaActive(true)}
+              onMouseLeave={() => setVenuesMegaActive(false)}
               onFocusCapture={() => setVenuesMegaActive(true)}
+              onBlurCapture={handleMegaMenuBlur}
             >
               <NavLink to="/venues" className="mega-link">
                 Sân
@@ -197,8 +188,10 @@ const Header = () => {
 
         {/* Mobile Toggle */}
        
-      </div>
-    </header>
+        </div>
+      </header>
+      <div className="header-spacer" aria-hidden="true" />
+    </>
   );
 };
 

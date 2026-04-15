@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import { MapPin, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { searchVenues } from "../services/fieldService";
 import { getSportTypes, normalizeSportTypeList } from "../services/sportTypeService";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";

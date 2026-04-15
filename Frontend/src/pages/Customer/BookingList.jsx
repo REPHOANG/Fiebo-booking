@@ -102,14 +102,6 @@ function normHistoryItem(it) {
   };
 }
 
-/** Lọc theo tháng dương lịch (khớp tiêu đề “Thống kê tháng …”). */
-function isSameCalendarMonth(dateVal, year, month1to12) {
-  if (dateVal == null || dateVal === "") return false;
-  const d = new Date(dateVal);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getFullYear() === year && d.getMonth() + 1 === month1to12;
-}
-
 /** Các năm cho bộ lọc (khớp min/max trước đây của ô nhập). */
 const BOOKING_LIST_YEAR_OPTIONS = Array.from({ length: 101 }, (_, i) =>
   String(2000 + i),
@@ -169,19 +161,6 @@ function translateStatus(status) {
   if (s === "ownercancelled") return "Đã hủy (chủ sân)";
   if (s === "expired") return "Hết hạn";
   return status || "—";
-}
-
-function getBookingTypeMeta(item) {
-  const rawType = String(
-    item?.bookingType ?? item?.type ?? item?.category ?? "",
-  ).toLowerCase();
-  const isEvent =
-    rawType.includes("event") ||
-    rawType.includes("sự kiện") ||
-    rawType.includes("su kien");
-  return isEvent
-    ? { label: "Sự kiện", className: "bl-type-tag bl-type-tag--event" }
-    : { label: "Đơn ngày", className: "bl-type-tag bl-type-tag--daily" };
 }
 
 const FALLBACK_VENUE_IMAGE = "https://c.pxhere.com/photos/c0/3e/football_pitch_football_rush_american_football-976043.jpg!s2";
@@ -399,7 +378,6 @@ const BookingList = () => {
   const {
     data: bookingHistoryData,
     isLoading: loadingList,
-    error: listError,
   } = useQuery({
     queryKey: ["bookingHistory", { fromDate: activeFromDate, toDate: activeToDate }],
     queryFn: () =>

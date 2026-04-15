@@ -122,10 +122,9 @@ const BookingConfirmation = () => {
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [nameError, setNameError] = useState("");
-  const [confirmError, setConfirmError] = useState("");
+  const [, setConfirmError] = useState("");
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
-  const [isRetrying, setIsRetrying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceQty, setServiceQty] = useState({});
   const [showServicePopup, setShowServicePopup] = useState(false);
@@ -178,7 +177,7 @@ const BookingConfirmation = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isWalkInBooking]);
 
   const displayName = guestName;
   const displayPhone = guestPhone;
@@ -576,81 +575,6 @@ const BookingConfirmation = () => {
         setIsSubmitting(false);
       }
     })();
-  };
-
-  // Attempt to refresh schedule and remap selected slots to server slotIds
-  const attemptRemap = async () => {
-    if (!venue?.id || !selectedDate) return;
-    setIsRetrying(true);
-    try {
-      const res = await getVenueSchedule(venue.id, selectedDate);
-      setLocalSchedule(res);
-
-      const details = buildDetailsFromSchedule(res, fields, slots, selectedSlots);
-
-      if (details.length === 0) {
-        setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
-      } else {
-        setConfirmError("");
-        const seen = new Set();
-        const uniqueDetails = details.filter((d) => {
-          const key = `${d.fieldId}-${d.slotId}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        try {
-          const payload = {
-            venueId: Number(venue?.id),
-            bookingDate: selectedDate,
-            fullname: (displayName || guestName || "").trim(),
-            phoneNumber: normalizePhoneNumber(displayPhone || guestPhone || ""),
-            bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows),
-            details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
-          };
-          const res = await createBooking(payload);
-          const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
-          const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-          const ttlSeconds = expireAt
-            ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
-            : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
-          try {
-            dispatch(
-              addBookedSlots({
-                venueId: String(venue?.id),
-                date: selectedDate,
-                slots: selectedSlots,
-                ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
-              }),
-            );
-          } catch (e) {}
-
-          if (!bookingId) {
-            toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
-            return;
-          }
-          try {
-            dispatch(clearDraft(String(venue?.id)));
-          } catch (e) {}
-          navigate(
-            `/booking/${bookingId}/payment`,
-            {
-              state: {
-                venue,
-                selectedDate,
-                selectedSlots,
-              },
-            },
-          );
-        } catch (err) {
-          toast.error(err?.message || 'Không thể tạo đặt chỗ.');
-        }
-      }
-      } catch (e) {
-      toast.error('Không thể lấy lịch từ server. Vui lòng thử lại.');
-    } finally {
-      setIsRetrying(false);
-    }
   };
 
   if (!bookingState) {

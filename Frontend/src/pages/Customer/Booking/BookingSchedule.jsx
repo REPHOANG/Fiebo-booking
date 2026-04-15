@@ -85,23 +85,6 @@ const addMinutesToLabel = (label, plusMinutes) => {
 const getFieldDisplayName = (field) =>
   String(field?.name ?? field?.fieldName ?? field?.Name ?? field?.FieldName ?? "Sân").trim() || "Sân";
 
-/** Danh sách URL ảnh sân từ nhiều dạng DTO */
-const getFieldImageList = (field) => {
-  if (!field) return [];
-  const raw =
-    field.images ??
-    field.Images ??
-    field.imageUrls ??
-    field.ImageUrls ??
-    field.photos ??
-    field.thumbnailUrl ??
-    field.ThumbnailUrl ??
-    null;
-  if (Array.isArray(raw)) return raw.map((x) => (x == null ? "" : String(x))).filter(Boolean);
-  if (typeof raw === "string" && raw.trim()) return [raw.trim()];
-  return [];
-};
-
 const tooltipPositionFromEvent = (e) => {
   const margin = 12;
   const tw = 200;
@@ -520,7 +503,7 @@ const BookingSchedule = () => {
   const lockedBefore = useMemo(() => {
     if (selectedDate !== todayStr()) return -1;
     if (!slots.length) return -1;
-    const now = new Date();
+    const now = new Date(timeTick);
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const slotEndMin = (s) => s.h * 60 + s.m + (s.stepMinutes ?? 60);
     const idx = slots.findIndex((s) => slotEndMin(s) > nowMin);
@@ -583,9 +566,6 @@ const BookingSchedule = () => {
     [eventIdByCell]
   );
 
-  /** Không còn gọi GET Event list → không có số vé còn lại; ô sự kiện từ lịch luôn kiểu "còn chỗ" (vàng) trừ khi sau này API lịch trả thêm. */
-  const remainingByEventId = useMemo(() => new Map(), []);
-
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
     [bookedForDate]
@@ -613,21 +593,21 @@ const BookingSchedule = () => {
 
   // If a slot becomes booked (e.g., after confirm/payment), remove it from current selection
   useEffect(() => {
-    if (!selectedSlots || !selectedSlots.length) return;
-    const remaining = selectedSlots.filter((s) => !isBooked(s.fieldIdx, s.slotIdx));
-    if (remaining.length !== selectedSlots.length) {
-      setSelectedSlots(remaining);
-    }
-  }, [bookedForDate]);
+    setSelectedSlots((prev) => {
+      if (!prev.length) return prev;
+      const remaining = prev.filter((s) => !isBooked(s.fieldIdx, s.slotIdx));
+      return remaining.length === prev.length ? prev : remaining;
+    });
+  }, [isBooked]);
 
   // If a slot becomes event, remove it from current selection
   useEffect(() => {
-    if (!selectedSlots || !selectedSlots.length) return;
-    const remaining = selectedSlots.filter((s) => !isEventBlock(s.fieldIdx, s.slotIdx));
-    if (remaining.length !== selectedSlots.length) {
-      setSelectedSlots(remaining);
-    }
-  }, [eventBlocks]);
+    setSelectedSlots((prev) => {
+      if (!prev.length) return prev;
+      const remaining = prev.filter((s) => !isEventBlock(s.fieldIdx, s.slotIdx));
+      return remaining.length === prev.length ? prev : remaining;
+    });
+  }, [isEventBlock]);
 
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>
@@ -977,7 +957,7 @@ const BookingSchedule = () => {
     const totalMinutes = groups.reduce((sum, g) => sum + (g.totalMinutes || 0), 0);
     const totalPrice = groups.reduce((sum, g) => sum + g.slotCount * g.pricePerSlot, 0);
     return { groups, totalMinutes, totalPrice };
-  }, [selectedSlots, slots, fields, venue, venueSchedule]);
+  }, [selectedSlots, slots, fields, venueSchedule]);
 
   const handleMouseDown = (e) => {
     if (!gridRef.current) return;
