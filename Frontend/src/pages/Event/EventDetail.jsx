@@ -47,7 +47,7 @@ const EventDetail = () => {
     scheduleReturn?.date != null &&
     String(scheduleReturn.date).length > 0;
   const backHref = backFromSchedule
-    ? `/venue/${scheduleReturn.venueId}/booking?date=${encodeURIComponent(
+    ? `/venue/${scheduleReturn.venueId}/booking/schedule?date=${encodeURIComponent(
         String(scheduleReturn.date).slice(0, 10)
       )}`
     : "/events";

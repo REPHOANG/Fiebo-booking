@@ -6,6 +6,7 @@ import { getVenueDetail } from "../../services/fieldService";
 import "./EventList.css";
 
 
+
 const normalize = (s) => String(s || "").trim().toLowerCase();
 const pick = (obj, ...keys) => {
   for (const k of keys) {

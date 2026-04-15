@@ -288,7 +288,7 @@ const CreateEvent = () => {
       const dateStr = eventDate.slice(0, 10);
       const s = await getVenueSchedule(id, dateStr);
       setSchedule(s ?? null);
-      if (!s?.sportTypes?.length) setError("Không có khung giờ cho ngày này.");
+      if (!s?.sportTypes?.length) setError("Cơ sở này chưa có sân nào.");
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Không tải được lịch.");
     } finally {
@@ -419,7 +419,7 @@ const CreateEvent = () => {
             <h3>Cơ sở &amp; ngày</h3>
             <div className="ce-row">
               <label>
-                Cơ sở (Venue)
+                Cơ sở 
                 <Controller
                   name="venueId"
                   control={control}

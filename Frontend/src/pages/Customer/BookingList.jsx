@@ -593,7 +593,7 @@ const BookingList = () => {
   };
 
   const handleContinuePaymentFromList = (venueId, bookingId) => {
-    navigate(`/booking/${venueId}/payment?bookingId=${bookingId}`, {
+    navigate(`/booking/${bookingId}/payment`, {
       state: { bookingId },
     });
   };

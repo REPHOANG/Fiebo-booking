@@ -118,15 +118,15 @@ const routes = [
     element: <Layout />,
     children: [
       { index: true, path: "", element: <CustomerHome /> },
-      { path: "venue/:id/booking", element: <BookingSchedule /> },
+      { path: "venue/:id/booking/schedule", element: <BookingSchedule /> },
       {
         path: "venue/:id/social-session",
         element: <ProtectedRoute element={<EventList />} />,
       },
-      { path: "booking/:id/confirm", element: <BookingConfirmation /> },
-      { path: "booking/:id/payment", element: <BookingPayment /> },
+      { path: "venue/:id/booking", element: <BookingConfirmation /> },
+      { path: "booking/:bookingId/payment", element: <BookingPayment /> },
       {
-        path: "booking/:id/payment/success",
+        path: "booking/:bookingId/payment/success",
         element: <BookingPaymentSuccess />,
       },
       { path: "events", element: <Events /> },
