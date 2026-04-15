@@ -79,7 +79,7 @@ const Events = () => {
     if (keyword) {
       return {
         title: "Không tìm thấy sự kiện phù hợp",
-        description: `Hiện chưa có sự kiện nào khớp với từ khóa \"${keyword}\".`,
+        description: `Hiện chưa có sự kiện nào khớp với từ khóa "${keyword}".`,
       };
     }
 
