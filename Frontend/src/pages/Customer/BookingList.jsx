@@ -185,6 +185,7 @@ function getBookingTypeMeta(item) {
 }
 
 const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
+const FALLBACK_VENUE_IMAGE = "/placeholder-venue.jpg";
 
 function normEventHistoryItem(raw) {
   const ticketParticipantId =
