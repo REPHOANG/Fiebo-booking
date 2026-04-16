@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { ArrowLeft, Calendar, Clock, MapPin, Ticket, Users } from "lucide-react";
 import { getEventById, joinEvent } from "../../services/eventService";
+import { getProfile } from "../../services/authService";
 import "./EventDetail.css";
 import "./EventRegister.css";
 
@@ -35,6 +36,9 @@ const formatTime = (t) => {
   return s.length >= 5 ? s.slice(0, 5) : s;
 };
 
+const normalizePhoneNumber = (value) =>
+  String(value ?? "").replace(/\s/g, "").trim();
+
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -47,7 +51,7 @@ const EventDetail = () => {
     scheduleReturn?.date != null &&
     String(scheduleReturn.date).length > 0;
   const backHref = backFromSchedule
-    ? `/venue/${scheduleReturn.venueId}/booking?date=${encodeURIComponent(
+    ? `/venue/${scheduleReturn.venueId}/booking/schedule?date=${encodeURIComponent(
         String(scheduleReturn.date).slice(0, 10)
       )}`
     : "/events";
@@ -57,11 +61,13 @@ const EventDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [event, setEvent] = useState(null);
   const [error, setError] = useState(null);
-  const user = useSelector((s) => s.auth?.user);
+  const { user, isAuthenticated } = useSelector((s) => s.auth || {});
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [note, setNote] = useState("");
+  const didEditNameRef = useRef(false);
+  const didEditPhoneRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,11 +91,39 @@ const EventDetail = () => {
 
   useEffect(() => {
     const nextName = user?.name || user?.fullName || "";
-    const nextPhone = user?.phone || user?.phoneNumber || "";
-    if (nextName && !fullName) setFullName(nextName);
-    if (nextPhone && !phoneNumber) setPhoneNumber(nextPhone);
+    const nextPhone = normalizePhoneNumber(user?.phone || user?.phoneNumber || "");
+    if (nextName && !didEditNameRef.current && !fullName) setFullName(nextName);
+    if (nextPhone && !didEditPhoneRef.current && !phoneNumber) setPhoneNumber(nextPhone);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const profile = await getProfile();
+        if (cancelled || !profile) return;
+
+        const nextName = String(profile.fullName || profile.name || "").trim();
+        const nextPhone = normalizePhoneNumber(profile.phoneNumber || profile.phone || "");
+
+        if (nextName && !didEditNameRef.current && !fullName) {
+          setFullName(nextName);
+        }
+        if (nextPhone && !didEditPhoneRef.current && !phoneNumber) {
+          setPhoneNumber(nextPhone);
+        }
+      } catch (_) {
+        // ignore profile prefill failures
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, fullName, phoneNumber]);
 
   const venueName = pick(event, "venueName", "VenueName") ?? "";
   const venueAddress = pick(event, "venueAddress", "VenueAddress") ?? "";
@@ -232,7 +266,6 @@ const EventDetail = () => {
             <ArrowLeft size={18} strokeWidth={2.25} />
             {backLabel}
           </Link>
-          <p className="ed-eyebrow">Drop-in · Mã #{pick(event, "eventId", "EventId") ?? eventId}</p>
           <h1 className="ed-title">{title}</h1>
           {venueName ? <p className="ed-subtitle">{venueName}</p> : null}
         </div>
@@ -326,10 +359,7 @@ const EventDetail = () => {
         <aside className="ed-aside">
           <div className="ed-join-card er-register-card">
             <h2 className="ed-join-title">Đăng ký tham gia</h2>
-            <p className="ed-join-hint">
-              Chọn số lượng vé và điền thông tin. Sau khi bấm đăng ký, bạn sẽ chuyển tới bước thanh toán để
-              giữ chỗ.
-            </p>
+            
             {soldOut ? (
               <p className="ed-soldout">Sự kiện đã đủ người tham gia.</p>
             ) : null}
@@ -369,7 +399,10 @@ const EventDetail = () => {
                 <span>Họ và tên</span>
                 <input
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    didEditNameRef.current = true;
+                    setFullName(e.target.value);
+                  }}
                   placeholder="Nguyễn Văn A"
                   autoComplete="name"
                   disabled={submitting || soldOut}
@@ -379,7 +412,10 @@ const EventDetail = () => {
                 <span>Số điện thoại</span>
                 <input
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => {
+                    didEditPhoneRef.current = true;
+                    setPhoneNumber(e.target.value);
+                  }}
                   placeholder="09xxxxxxxx"
                   inputMode="tel"
                   autoComplete="tel"
@@ -403,7 +439,7 @@ const EventDetail = () => {
               onClick={handleJoin}
               disabled={submitting || soldOut}
             >
-              {submitting ? "Đang xử lý…" : soldOut ? "Hết chỗ" : "Đăng ký (giữ chỗ)"}
+              {submitting ? "Đang xử lý…" : soldOut ? "Hết chỗ" : "Đăng ký"}
             </button>
             <Link to="/" className="ed-home-link">
               Về trang chủ

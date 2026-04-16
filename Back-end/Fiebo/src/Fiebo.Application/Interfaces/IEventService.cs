@@ -23,5 +23,6 @@ namespace Fiebo.Application.Interfaces
         Task<List<OwnerDropInEventListItemResponse>> GetOwnerEventListAsync(string ownerId);
         Task<PagedResult<CustomerEventHistoryResponse>> GetCustomerEventHistoryAsync(string userId, EventHistoryFilter filter);
         Task<int> CancelDropInEventAsync(int eventId, string ownerId, string? cancelNote);
+        Task CustomerCancelDropInEventAsync(int ticketId, string? userId);
     }
 }

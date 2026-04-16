@@ -66,7 +66,7 @@ namespace Fiebo.Application.Tests.Venues
         // =========================
 
         [Fact]
-        public async Task Should_Pass_WhenCloseTimeJustGreater()
+        public async Task Should_ThrowBadRequest_WhenTimeNotAlignedToThirtyMinutes()
         {
             var service = CreateService();
             var request = ValidRequest();
@@ -74,9 +74,8 @@ namespace Fiebo.Application.Tests.Venues
             request.OpenTime = new TimeOnly(10, 0);
             request.CloseTime = request.OpenTime.AddMinutes(1);
 
-            var result = await service.CreateVenueAsync(request, "owner");
-
-            Assert.NotNull(result);
+            await Assert.ThrowsAsync<BadRequestException>(async () =>
+                await service.CreateVenueAsync(request, "owner"));
         }
 
         // =========================
@@ -89,6 +88,7 @@ namespace Fiebo.Application.Tests.Venues
             var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
             var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
             var cloudMock = _fixture.Freeze<Mock<ICloudinaryService>>();
+            SetupValidLocationData();
 
             var service = CreateService();
             var request = ValidRequest();
@@ -110,6 +110,7 @@ namespace Fiebo.Application.Tests.Venues
             var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
             var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
             var cloudMock = _fixture.Freeze<Mock<ICloudinaryService>>();
+            SetupValidLocationData();
 
             cloudMock
                 .Setup(x => x.UploadImageAsync(It.IsAny<IFormFile>()))
@@ -149,6 +150,29 @@ namespace Fiebo.Application.Tests.Venues
                 Latitude = 10,
                 Longitude = 10
             };
+        }
+
+        private void SetupValidLocationData()
+        {
+            var provinceRepoMock = _fixture.Freeze<Mock<IProvinceRepository>>();
+            var wardRepoMock = _fixture.Freeze<Mock<IWardRepository>>();
+            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
+
+            uowMock.Setup(x => x.Provinces).Returns(provinceRepoMock.Object);
+            uowMock.Setup(x => x.Wards).Returns(wardRepoMock.Object);
+
+            provinceRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Province
+            {
+                Id = 1,
+                Name = "HCM"
+            });
+
+            wardRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Ward
+            {
+                Id = 1,
+                Name = "Ward 1",
+                ProvinceId = 1
+            });
         }
 
         private IFormFile CreateFakeImage()

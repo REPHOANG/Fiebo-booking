@@ -7,6 +7,7 @@ using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
+using Fiebo.Application.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,12 +43,28 @@ namespace Fiebo.Application.Services
             if (request.Details.Count == 0)
                 throw new BadRequestException("Phải chọn ít nhất một sân và khung giờ.");
 
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách sân và khung giờ bị trùng lặp.");
+
             // BR-33: MinPlayer > 0, MaxPlayer >= MinPlayer
             if (request.MinPlayer <= 0)
                 throw new BadRequestException("Số người tối thiểu phải lớn hơn 0.");
 
             if (request.MaxPlayer < request.MinPlayer)
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
+
+            var now = DateTime.Now;
+            var maxEventDate = BookingDateValidator.GetMaxDate(now);
+
+            if (request.EventDate < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày tổ chức không hợp lệ.");
+
+            if (request.EventDate > maxEventDate)
+                throw new BadRequestException($"Chỉ có thể tạo sự kiện đến hết ngày {maxEventDate:dd/MM/yyyy}.");
 
             // Verify all fields exist and belong to a venue owned by this user
             int? venueId = null;
@@ -73,8 +90,11 @@ namespace Fiebo.Application.Services
                 var slot = await _unitOfWork.TimeSlots.GetByIdAsync(detail.SlotId);
                 if (slot == null)
                     throw new NotFoundException($"Không tìm thấy khung giờ với ID {detail.SlotId}.");
-                
-                if (slot.VenueId != venue.Id) 
+                if (slot.IsDeleted == true)
+                {
+                    throw new BadRequestException($"Khung giờ đã bị xóa.");
+                }
+                if (slot.VenueId != venue.Id)
                     throw new BadRequestException($"Khung giờ (SlotId={detail.SlotId}) không thuộc cùng cơ sở với sân (FieldId={detail.FieldId}).");
             }
 
@@ -173,8 +193,25 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Sự kiện này không tồn tại");
             }
+            if (eventDetail.Status != TicketEventStatus.Pending)
+            {
+                throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
+            }
             var firstDetail = eventDetail.Details.First();
-            var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}"; var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
+            var venue = firstDetail.Field.Venue;
+            if (venue == null || venue.Status != VenueStatus.Active)
+                throw new BadRequestException("Cơ sở hiện không hoạt động");
+            foreach (var d in eventDetail.Details)
+            {
+                if (d.Field == null || d.Field.Status != FieldStatus.Active)
+                    throw new BadRequestException("Sân trong sự kiện không còn hoạt động");
+
+                if (d.Slot == null || d.Slot.IsDeleted)
+                    throw new BadRequestException("Slot trong sự kiện không còn hợp lệ");
+            }
+
+            var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}";
+            var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
 
             var slots = eventDetail.Details
                 .Select(d => new TicketEventSlotResponse
@@ -389,7 +426,7 @@ namespace Fiebo.Application.Services
 
             // Logic kiểm tra: Nếu mảng Participants có bất kỳ ai thì không cho sửa
             bool hasParticipants = ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled);
-
+            bool isEditable = !hasParticipants && ticketEvent.Status == TicketEventStatus.Pending;
             return new OwnerTicketEventDetailResponse
             {
                 Id = ticketEvent.Id,
@@ -402,7 +439,7 @@ namespace Fiebo.Application.Services
                 Status = ticketEvent.Status.ToString(),
 
                 // Nút Edit sẽ ẩn nếu IsEditable = false
-                IsEditable = !hasParticipants,
+                IsEditable = isEditable,
 
                 Slots = ticketEvent.Details.Select(d => new EventSlotResponse
                 {
@@ -420,33 +457,6 @@ namespace Fiebo.Application.Services
                     JoinedAt = p.JoinedAt
                 }).ToList()
             };
-        }
-
-        public async Task UpdateDropInEventAsync(int eventId, UpdateDropInEventRequest request, string ownerId)
-        {
-            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
-
-            if (ticketEvent == null)
-            {
-                throw new Exception("Sự kiện không tồn tại hoặc bạn không có quyền.");
-            }
-
-            if (ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled))
-            {
-                throw new Exception("Không thể chỉnh sửa vì đã có người chơi đăng ký tham gia.");
-            }
-
-            if (!string.IsNullOrEmpty(request.Name))
-            {
-                ticketEvent.Name = request.Name;
-            }
-            ticketEvent.Description = request.Description;
-            ticketEvent.MinPlayer = request.MinPlayer;
-            ticketEvent.MaxPlayer = request.MaxPlayer;
-            ticketEvent.PricePerPerson = request.PricePerPerson;
-
-            _unitOfWork.TicketEvents.Update(ticketEvent);
-            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string ownerId)
@@ -474,7 +484,7 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Không thể chỉnh sửa sự kiện khi đã có người đăng kí");
             }
-            if(request.MaxPlayer < request.MinPlayer)
+            if (request.MaxPlayer < request.MinPlayer)
             {
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu");
             }
@@ -501,20 +511,10 @@ namespace Fiebo.Application.Services
                     Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
-                    TicketPrice = e.PricePerPerson,
                     TotalTicketQuantity = e.MaxPlayer,
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
                     Status = e.Status.ToString(),
                     CreatedAt = e.CreatedAt,
-                    Slots = e.Details
-                        .Select(d => new TicketEventSlotResponse
-                        {
-                            FieldName = d.Field.Name,
-                            StartTime = d.Slot.StartTime,
-                            EndTime = d.Slot.EndTime
-                        })
-                        .OrderBy(s => s.StartTime)
-                        .ToList()
                 };
             }).ToList();
         }
@@ -557,14 +557,14 @@ namespace Fiebo.Application.Services
             {
                 Items = mappedItems,
                 TotalItems = totalRecords,
-                Page = filter.PageIndex,   
+                Page = filter.PageIndex,
                 PageSize = filter.PageSize
             };
         }
 
         /// <summary>
         /// BR-144 / BR-145: Owner cancels a Drop-in Event.
-        /// Blocked if StartTime is within 2 hours. Issues 100% refund to all Joined participants.
+        /// Blocked if StartTime is within 6 hours. Issues 100% refund to all Joined participants.
         /// </summary>
         public async Task<int> CancelDropInEventAsync(int eventId, string ownerId, string? cancelNote)
         {
@@ -581,7 +581,7 @@ namespace Fiebo.Application.Services
             if (ticketEvent.Status != TicketEventStatus.Pending)
                 throw new BadRequestException("Chỉ sự kiện đang chờ mới có thể hủy.");
 
-            // 4. BR-144: Reject if StartTime < 2 hours from now
+            // 4. BR-144: Reject if StartTime < 6 hours from now
             var firstDetail = ticketEvent.Details
                 .OrderBy(d => d.Slot.StartTime)
                 .FirstOrDefault();
@@ -591,7 +591,7 @@ namespace Fiebo.Application.Services
 
             var eventStartDateTime = ticketEvent.EventDate.ToDateTime(firstDetail.Slot.StartTime);
             if ((eventStartDateTime - DateTime.Now).TotalHours < 6)
-                throw new BadRequestException("Bạn không thể tự hủy sự kiện khi thời gian bắt đầu chỉ còn dưới 2 tiếng. Vui lòng liên hệ CSKH Fiebo để được hỗ trợ.");
+                throw new BadRequestException("Bạn không thể tự hủy sự kiện khi thời gian bắt đầu chỉ còn dưới 6 tiếng. Vui lòng liên hệ CSKH Fiebo để được hỗ trợ.");
 
             // 5. Load all paid (Joined) participants
             var joinedParticipants = await _unitOfWork.TicketParticipants.GetJoinedParticipantsByEventIdAsync(eventId);
@@ -676,5 +676,55 @@ namespace Fiebo.Application.Services
 
             return refundedCount;
         }
+
+        public async Task CustomerCancelDropInEventAsync(int ticketId, string? userId)
+        {
+            if (userId == null)
+                throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
+
+            var ticket = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId) ?? throw new NotFoundException("Không tìm thấy vé tham gia sự kiện.");
+            if (ticket.Status != TicketParticipantStatus.Joined)
+                throw new BadRequestException("Chỉ có vé đã thanh toán có thể hủy.");
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                ticket.Status = TicketParticipantStatus.Cancelled;
+                _unitOfWork.TicketParticipants.Update(ticket);
+                var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
+                var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(ticket.EventId)
+                    ?? throw new NotFoundException("Không tìm thấy slot của sự kiện.");
+
+                if (earliestSlot.Slot == null)
+                    throw new BadRequestException("Slot không hợp lệ.");
+                var thisEvent = await _unitOfWork.TicketEvents.GetByIdAsync(ticket.EventId) ?? throw new NotFoundException("Không tìm thấy sự kiện.");
+                var eventDateTime = thisEvent.EventDate
+                    .ToDateTime(earliestSlot.Slot.StartTime);
+
+                var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
+                if (hoursBeforeEvent > 6)
+                {
+                    throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
+                }
+                wallet.Balance += ticket.TotalPrice;
+                _unitOfWork.Wallets.Update(wallet);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.Refund,
+                    Direction = TransactionDirection.Credit,
+                    Amount = ticket.TotalPrice,
+                    ReferenceId = ticket.EventId
+                });
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
+                throw;
+            }
+        }
+
     }
 }

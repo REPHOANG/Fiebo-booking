@@ -31,7 +31,7 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
     onClose && onClose();
     setTimeout(() => {
       if (onSelectRegular) onSelectRegular();
-      navigate(`/venue/${venueId}/booking`);
+      navigate(`/venue/${venueId}/booking/schedule`);
     }, 0);
   };
 

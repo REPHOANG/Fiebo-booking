@@ -317,7 +317,6 @@
   margin-bottom: 0;
   padding: 18px 0;
   border-top: 1px dashed rgba(15, 23, 42, 0.1);
-  border-bottom: 1px dashed rgba(15, 23, 42, 0.1);
   width: 100%;
   box-sizing: border-box;
 }
@@ -790,6 +789,26 @@
   flex-shrink: 0;
 }
 
+.venue-hours {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -2px 0 14px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #0f766e;
+  line-height: 1.45;
+}
+
+.venue-hours svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.venue-hours span {
+  display: block;
+}
+
 /* Rating row */
 .rating-row {
   display: flex;
@@ -1009,6 +1028,7 @@
   .venue-image { height: 140px; }
   .venue-info { padding: 16px; min-height: 140px; }
   .venue-info h3 { font-size: 1rem; }
+  .venue-hours { font-size: 0.8rem; margin-bottom: 12px; }
   .venue-info .book-btn { padding: 10px 0; border-radius: 12px; }
 }
 

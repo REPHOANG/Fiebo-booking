@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   useLocation,
   useNavigate,
   useParams,
-  useSearchParams,
 } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
@@ -30,37 +29,7 @@ import { useAuthModal } from "../../../context/AuthModalContext";
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
 
-const HOLD_SECONDS = 5 * 60; // 5 minutes
-
-/** Giữ mốc hết hạn đếm 5p theo bookingId — F5 / quay lại từ Sân đã đặt không reset (theo phiên tab). */
-const paymentHoldUntilKey = (bookingId) =>
-  `fiebo_payment_hold_until_${bookingId}`;
-
-function readPaymentHoldUntilMs(bookingId) {
-  if (bookingId == null) return null;
-  try {
-    const raw = sessionStorage.getItem(paymentHoldUntilKey(bookingId));
-    if (!raw) return null;
-    const ms = Number(raw);
-    return Number.isFinite(ms) ? ms : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function writePaymentHoldUntilMs(bookingId, untilMs) {
-  if (bookingId == null) return;
-  try {
-    sessionStorage.setItem(paymentHoldUntilKey(bookingId), String(untilMs));
-  } catch (_) {}
-}
-
-function clearPaymentHoldDeadline(bookingId) {
-  if (bookingId == null) return;
-  try {
-    sessionStorage.removeItem(paymentHoldUntilKey(bookingId));
-  } catch (_) {}
-}
+const HOLD_SECONDS = 5 * 60; // fallback for local slot cache only
 
 const PAID_STATUSES = new Set(["Booked", "Completed"]);
 const TERMINAL_UNPAID_STATUSES = new Set([
@@ -131,11 +100,9 @@ function normalizeBookingDetail(raw) {
  * Trang thành công — URL riêng + replace sau thanh toán để nút Back không quay lại form payment.
  */
 export function BookingPaymentSuccess() {
-  const { id } = useParams();
+  const { bookingId: bookingIdParam } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const bookingIdRaw = searchParams.get("bookingId");
-  const bookingId = bookingIdRaw ? Number(bookingIdRaw) : NaN;
+  const bookingId = bookingIdParam ? Number(bookingIdParam) : NaN;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -234,9 +201,7 @@ export function BookingPaymentSuccess() {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
               <button
                 type="button"
-                onClick={() =>
-                  navigate(`/venue/${id}/booking/payment?bookingId=${bookingId}`)
-                }
+                onClick={() => navigate(`/booking/${bookingId}/payment`)}
                 className="bp-back-link"
               >
                 Đi tới thanh toán
@@ -257,21 +222,19 @@ export function BookingPaymentSuccess() {
 }
 
 const BookingPayment = () => {
-  const { id } = useParams();
+  const { bookingId: bookingIdParam } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
   const { openLogin } = useAuthModal();
 
   const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
-  const bookingIdFromQuery = searchParams.get("bookingId");
-  const parsedQuery = bookingIdFromQuery ? Number(bookingIdFromQuery) : NaN;
+  const routeBookingId = bookingIdParam ? Number(bookingIdParam) : NaN;
   const fromState = paymentState?.reservationId ?? paymentState?.bookingId;
   const resolvedBookingId =
-    Number.isFinite(parsedQuery) && parsedQuery > 0
-      ? parsedQuery
+    Number.isFinite(routeBookingId) && routeBookingId > 0
+      ? routeBookingId
       : fromState != null && Number(fromState) > 0
         ? Number(fromState)
         : null;
@@ -290,22 +253,13 @@ const BookingPayment = () => {
         }
         return;
       }
-      if (String(b.venueId) !== String(id)) {
-        if (!silent) {
-          setBookingLoadError("Đơn này không thuộc cơ sở đang mở.");
-          setBookingDetail(null);
-        }
-        return;
-      }
       if (PAID_STATUSES.has(b.status)) {
-        clearPaymentHoldDeadline(resolvedBookingId);
-        navigate(`/venue/${id}/booking/payment/success?bookingId=${resolvedBookingId}`, {
+        navigate(`/booking/${resolvedBookingId}/payment/success`, {
           replace: true,
         });
         return;
       }
       if (TERMINAL_UNPAID_STATUSES.has(b.status)) {
-        clearPaymentHoldDeadline(resolvedBookingId);
         setBookingLoadError(
           "Đơn không còn ở trạng thái chờ thanh toán (hết hạn hoặc đã hủy).",
         );
@@ -315,16 +269,8 @@ const BookingPayment = () => {
       setBookingDetail(b);
       setBookingLoadError(null);
     },
-    [id, navigate, resolvedBookingId],
+    [navigate, resolvedBookingId],
   );
-
-  useEffect(() => {
-    if (!resolvedBookingId) return;
-    const q = bookingIdFromQuery ? Number(bookingIdFromQuery) : NaN;
-    if (!Number.isFinite(q) || q !== resolvedBookingId) {
-      setSearchParams({ bookingId: String(resolvedBookingId) }, { replace: true });
-    }
-  }, [resolvedBookingId, bookingIdFromQuery, setSearchParams]);
 
   useEffect(() => {
     if (!resolvedBookingId) {
@@ -411,53 +357,31 @@ const BookingPayment = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(HOLD_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [expired, setExpired] = useState(false);
 
-  /**
-   * Đếm ngược 5 phút theo bookingId: lần đầu tạo mốc, lưu sessionStorage để F5 / vào lại từ Sân đã đặt
-   * không reset. Hết giờ → màn hết hạn (không dùng ExpiredAt server).
-   */
-  const holdUntilMsRef = useRef(null);
-  const lastBookingIdRef = useRef(null);
-  useEffect(() => {
-    const bid = bookingDetail?.bookingId;
-    if (bid == null) return;
-    if (lastBookingIdRef.current !== bid) {
-      lastBookingIdRef.current = bid;
-      holdUntilMsRef.current = null;
-    }
-  }, [bookingDetail?.bookingId]);
-
+  /** Đếm ngược theo expiredAt từ API detail booking. */
   useEffect(() => {
     if (!bookingDetail) return;
-    setExpired(false);
-  }, [bookingDetail?.bookingId]);
 
-  useEffect(() => {
-    if (!bookingDetail || expired) return;
-
-    const bid = bookingDetail.bookingId;
-    if (holdUntilMsRef.current == null) {
-      let until = readPaymentHoldUntilMs(bid);
-      if (until == null) {
-        until = Date.now() + HOLD_SECONDS * 1000;
-        writePaymentHoldUntilMs(bid, until);
-      }
-      holdUntilMsRef.current = until;
+    const deadlineMs = new Date(bookingDetail.expiredAt).getTime();
+    if (!Number.isFinite(deadlineMs)) {
+      setTimeLeft(0);
+      setExpired(true);
+      return;
     }
 
     const tick = () => {
-      const deadline = holdUntilMsRef.current;
-      const secs = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+      const secs = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
       setTimeLeft(secs);
       if (secs <= 0) setExpired(true);
+      else setExpired(false);
     };
 
     tick();
     const idTimer = setInterval(tick, 1000);
     return () => clearInterval(idTimer);
-  }, [bookingDetail, bookingDetail?.bookingId, expired]);
+  }, [bookingDetail]);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -572,8 +496,7 @@ const BookingPayment = () => {
         // non-fatal: continue
       }
       dispatch(clearPaymentDraft());
-      clearPaymentHoldDeadline(bookingId);
-      navigate(`/venue/${id}/booking/payment/success?bookingId=${bookingId}`, {
+      navigate(`/booking/${bookingId}/payment/success`, {
         replace: true,
       });
     } catch (payErr) {
@@ -601,6 +524,7 @@ const BookingPayment = () => {
   };
 
   if (expired) {
+    const venueId = bookingDetail?.venueId ?? paymentState?.venue?.id;
     return (
       <motion.div {...pageTransition}>
         <div className="bp-main">
@@ -610,8 +534,8 @@ const BookingPayment = () => {
             </div>
             <h2>Hết thời gian thanh toán trên trang này</h2>
             <p>
-              Đã hết thời gian 5 phút thanh toán cho đơn này (cùng mốc kể cả khi tải lại trang hoặc
-              tiếp tục từ Sân đã đặt trong phiên tab). Vui lòng đặt lại hoặc kiểm tra đơn tại
+              Đơn đã hết hạn thanh toán theo thời gian giữ chỗ từ hệ thống. Vui lòng đặt lại hoặc
+              kiểm tra đơn tại
               &quot;Sân đã đặt&quot;.
             </p>
             <div className="bp-expired-actions">
@@ -625,7 +549,7 @@ const BookingPayment = () => {
               <button
                 type="button"
                 className="bp-back-link secondary"
-                onClick={() => navigate(`/venue/${id}?book=1`)}
+                onClick={() => navigate(venueId ? `/venue/${venueId}?book=1` : "/bookings")}
               >
                 Đặt sân mới
               </button>

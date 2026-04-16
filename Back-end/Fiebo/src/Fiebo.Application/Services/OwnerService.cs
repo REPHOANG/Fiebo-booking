@@ -38,10 +38,335 @@ namespace Fiebo.Application.Services
             var refundByBookingId = await GetRefundByBookingIdAsync(allBookingIds);
             var metrics = OwnerDashboardHelper.CalculateDashboardMetrics(currentRows, previousRows, refundByBookingId);
             var peakSlot = OwnerDashboardHelper.GetPeakSlot(currentRows);
-            var trendData = await GetTrendDataAsync(ownerId, from, to, venueId, periodDays);
-            var distributionRows = await GetDistributionRowsAsync(ownerId, from, to);
+            var currentEventSummary = await GetEventSummaryAsync(ownerId, from, to, venueId);
+            var previousEventSummary = await GetEventSummaryAsync(ownerId, previousFrom, previousTo, venueId);
 
-            return OwnerDashboardHelper.BuildOwnerDashboardResponse(from, to, venueId, metrics, peakSlot, trendData, distributionRows);
+            var bookingTrendData = await GetTrendDataAsync(ownerId, from, to, venueId, periodDays);
+            var eventTrendData = await GetEventTrendDataAsync(ownerId, from, to, venueId, periodDays);
+            var trendData = MergeTrendData(bookingTrendData, eventTrendData);
+
+            var bookingDistributionRows = await GetDistributionRowsAsync(ownerId, from, to);
+            var eventDistributionRows = await GetEventDistributionRowsAsync(ownerId, from, to);
+            var distributionRows = MergeDistributionRows(bookingDistributionRows, eventDistributionRows);
+
+            var response = OwnerDashboardHelper.BuildOwnerDashboardResponse(from, to, venueId, metrics, peakSlot, trendData, distributionRows);
+
+            // Include completed joined event participants in overall bookings/revenue KPIs and change percentages.
+            response.TotalBookings += currentEventSummary.BookingCount;
+            response.TotalRevenue += currentEventSummary.Revenue;
+
+            var currentTotalBookings = metrics.CurrentBookings + currentEventSummary.BookingCount;
+            var previousTotalBookings = metrics.PreviousBookings + previousEventSummary.BookingCount;
+            var currentTotalRevenue = metrics.CurrentRevenue + currentEventSummary.Revenue;
+            var previousTotalRevenue = metrics.PreviousRevenue + previousEventSummary.Revenue;
+
+            response.BookingChangePercent = CalculateChangePercent(currentTotalBookings, previousTotalBookings);
+            response.RevenueChangePercent = CalculateChangePercent(currentTotalRevenue, previousTotalRevenue);
+
+            return response;
+        }
+
+        private IQueryable<OwnerDashboardEventParticipantRow> GetEventParticipantDashboardQuery(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId)
+        {
+            var fromDateTime = from.ToDateTime(TimeOnly.MinValue);
+            var toDateTime = to.ToDateTime(TimeOnly.MaxValue);
+
+            var query = _unitOfWork.TicketParticipants
+                .GetQueryable()
+                .AsNoTracking()
+                .Where(tp => tp.Event.OwnerId == ownerId
+                    && tp.Event.Status == TicketEventStatus.Completed
+                    && tp.Status == TicketParticipantStatus.Joined
+                    && tp.JoinedAt >= fromDateTime
+                    && tp.JoinedAt <= toDateTime);
+
+            if (venueId.HasValue)
+            {
+                var selectedVenueId = venueId.Value;
+                query = query.Where(tp => tp.Event.Details.Any(d => d.Field.VenueId == selectedVenueId));
+            }
+
+            return query.Select(tp => new OwnerDashboardEventParticipantRow
+            {
+                EventId = tp.EventId,
+                JoinedAt = tp.JoinedAt,
+                TotalPrice = tp.TotalPrice,
+                VenueName = tp.Event.Details
+                    .OrderBy(d => d.Id)
+                    .Select(d => d.Field.Venue != null ? d.Field.Venue.Name : null)
+                    .FirstOrDefault()
+            });
+        }
+
+        private async Task<OwnerDashboardEventSummary> GetEventSummaryAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId)
+        {
+            var query = GetEventParticipantDashboardQuery(ownerId, from, to, venueId);
+
+            return new OwnerDashboardEventSummary
+            {
+                BookingCount = await query.CountAsync(),
+                Revenue = await query.SumAsync(x => (decimal?)x.TotalPrice) ?? 0m
+            };
+        }
+
+        private async Task<OwnerDashboardTrendData> GetEventTrendDataAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId,
+            int periodDays)
+        {
+            if (periodDays <= 30)
+            {
+                return await GetEventDailyTrendDataAsync(ownerId, from, to, venueId);
+            }
+
+            if (periodDays <= 90)
+            {
+                return await GetEventWeeklyTrendDataAsync(ownerId, from, to, venueId, periodDays);
+            }
+
+            return await GetEventMonthlyTrendDataAsync(ownerId, from, to, venueId);
+        }
+
+        private async Task<OwnerDashboardTrendData> GetEventDailyTrendDataAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId)
+        {
+            var aggregates = await GetEventParticipantDashboardQuery(ownerId, from, to, venueId)
+                .GroupBy(x => x.JoinedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    BookingCount = g.Count(),
+                    Revenue = g.Sum(x => x.TotalPrice)
+                })
+                .ToListAsync();
+
+            var byDate = aggregates
+                .GroupBy(x => DateOnly.FromDateTime(x.Date))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new OwnerDashboardTrendPoint
+                    {
+                        BookingCount = g.Sum(x => x.BookingCount),
+                        Revenue = g.Sum(x => x.Revenue)
+                    });
+
+            var result = new OwnerDashboardTrendData();
+            for (var date = from; date <= to; date = date.AddDays(1))
+            {
+                result.Labels.Add(date.ToString("yyyy-MM-dd"));
+                if (byDate.TryGetValue(date, out var value))
+                {
+                    result.RevenueData.Add(value.Revenue);
+                    result.BookingData.Add(value.BookingCount);
+                }
+                else
+                {
+                    result.RevenueData.Add(0m);
+                    result.BookingData.Add(0m);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<OwnerDashboardTrendData> GetEventWeeklyTrendDataAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId,
+            int periodDays)
+        {
+            var aggregates = await GetEventParticipantDashboardQuery(ownerId, from, to, venueId)
+                .GroupBy(x => new
+                {
+                    Year = x.JoinedAt.Year,
+                    Week = ((x.JoinedAt.DayOfYear - 1) / 7) + 1
+                })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Week,
+                    BookingCount = g.Count(),
+                    Revenue = g.Sum(x => x.TotalPrice)
+                })
+                .ToListAsync();
+
+            var byWeekKey = aggregates
+                .GroupBy(x => (x.Year, x.Week))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new OwnerDashboardTrendPoint
+                    {
+                        BookingCount = g.Sum(x => x.BookingCount),
+                        Revenue = g.Sum(x => x.Revenue)
+                    });
+
+            var weekTimeline = Enumerable.Range(0, periodDays)
+                .Select(offset => from.AddDays(offset))
+                .Select(d => new
+                {
+                    Year = d.Year,
+                    Week = ((d.DayOfYear - 1) / 7) + 1
+                })
+                .Distinct()
+                .ToList();
+
+            var result = new OwnerDashboardTrendData();
+            foreach (var item in weekTimeline)
+            {
+                result.Labels.Add($"{item.Year}-W{item.Week}");
+                if (byWeekKey.TryGetValue((item.Year, item.Week), out var value))
+                {
+                    result.RevenueData.Add(value.Revenue);
+                    result.BookingData.Add(value.BookingCount);
+                }
+                else
+                {
+                    result.RevenueData.Add(0m);
+                    result.BookingData.Add(0m);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<OwnerDashboardTrendData> GetEventMonthlyTrendDataAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to,
+            int? venueId)
+        {
+            var aggregates = await GetEventParticipantDashboardQuery(ownerId, from, to, venueId)
+                .GroupBy(x => new
+                {
+                    Year = x.JoinedAt.Year,
+                    Month = x.JoinedAt.Month
+                })
+                .Select(g => new
+                {
+                    g.Key.Year,
+                    g.Key.Month,
+                    BookingCount = g.Count(),
+                    Revenue = g.Sum(x => x.TotalPrice)
+                })
+                .ToListAsync();
+
+            var byMonthKey = aggregates
+                .GroupBy(x => (x.Year, x.Month))
+                .ToDictionary(
+                    g => g.Key,
+                    g => new OwnerDashboardTrendPoint
+                    {
+                        BookingCount = g.Sum(x => x.BookingCount),
+                        Revenue = g.Sum(x => x.Revenue)
+                    });
+
+            var monthAnchor = new DateOnly(from.Year, from.Month, 1);
+            var monthCount = ((to.Year - monthAnchor.Year) * 12 + (to.Month - monthAnchor.Month)) + 1;
+
+            var result = new OwnerDashboardTrendData();
+            for (var index = 0; index < monthCount; index++)
+            {
+                var monthDate = monthAnchor.AddMonths(index);
+                result.Labels.Add(monthDate.ToString("yyyy-MM"));
+                if (byMonthKey.TryGetValue((monthDate.Year, monthDate.Month), out var value))
+                {
+                    result.RevenueData.Add(value.Revenue);
+                    result.BookingData.Add(value.BookingCount);
+                }
+                else
+                {
+                    result.RevenueData.Add(0m);
+                    result.BookingData.Add(0m);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<List<OwnerDashboardDistributionRow>> GetEventDistributionRowsAsync(
+            string ownerId,
+            DateOnly from,
+            DateOnly to)
+        {
+            return await GetEventParticipantDashboardQuery(ownerId, from, to, null)
+                .GroupBy(x => x.VenueName)
+                .Select(g => new OwnerDashboardDistributionRow
+                {
+                    VenueName = g.Key ?? "Không xác định",
+                    BookingCount = g.Count(),
+                    Revenue = g.Sum(x => x.TotalPrice)
+                })
+                .ToListAsync();
+        }
+
+        private static OwnerDashboardTrendData MergeTrendData(
+            OwnerDashboardTrendData bookingTrend,
+            OwnerDashboardTrendData eventTrend)
+        {
+            var eventByLabel = eventTrend.Labels
+                .Select((label, index) => new
+                {
+                    label,
+                    Revenue = index < eventTrend.RevenueData.Count ? eventTrend.RevenueData[index] : 0m,
+                    Booking = index < eventTrend.BookingData.Count ? eventTrend.BookingData[index] : 0m
+                })
+                .ToDictionary(x => x.label, x => (x.Revenue, x.Booking));
+
+            var merged = new OwnerDashboardTrendData();
+            for (var index = 0; index < bookingTrend.Labels.Count; index++)
+            {
+                var label = bookingTrend.Labels[index];
+                var bookingRevenue = index < bookingTrend.RevenueData.Count ? bookingTrend.RevenueData[index] : 0m;
+                var bookingCount = index < bookingTrend.BookingData.Count ? bookingTrend.BookingData[index] : 0m;
+                var eventPoint = eventByLabel.TryGetValue(label, out var value) ? value : (0m, 0m);
+
+                merged.Labels.Add(label);
+                merged.RevenueData.Add(bookingRevenue + eventPoint.Item1);
+                merged.BookingData.Add(bookingCount + eventPoint.Item2);
+            }
+
+            return merged;
+        }
+
+        private static List<OwnerDashboardDistributionRow> MergeDistributionRows(
+            List<OwnerDashboardDistributionRow> bookingRows,
+            List<OwnerDashboardDistributionRow> eventRows)
+        {
+            return bookingRows
+                .Concat(eventRows)
+                .GroupBy(x => x.VenueName)
+                .Select(g => new OwnerDashboardDistributionRow
+                {
+                    VenueName = g.Key,
+                    BookingCount = g.Sum(x => x.BookingCount),
+                    Revenue = g.Sum(x => x.Revenue)
+                })
+                .OrderByDescending(x => x.BookingCount)
+                .ToList();
+        }
+
+        private static double CalculateChangePercent(decimal current, decimal previous)
+        {
+            if (previous == 0)
+            {
+                return current == 0 ? 0 : 100;
+            }
+
+            return Math.Round((double)((current - previous) / previous * 100m), 2);
         }
 
         private async Task<List<OwnerDashboardBookingRow>> GetCurrentBookingRowsAsync(

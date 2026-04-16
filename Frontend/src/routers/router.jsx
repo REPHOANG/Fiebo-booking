@@ -13,6 +13,7 @@ import BookingPayment, {
   BookingPaymentSuccess,
 } from "../pages/Customer/Booking/BookingPayment";
 import WalletTopUp from "../pages/Customer/WalletTopUp";
+import WalletTopUpDetail from "../pages/Customer/WalletTopUpDetail";
 import BookingList from "../pages/Customer/BookingList";
 import Wallet from "../pages/Customer/Wallet/Wallet";
 import GiveRating from "../pages/Customer/GiveRating/GiveRating";
@@ -24,13 +25,14 @@ import EventList from "../pages/Event/EventList";
 import Events from "../pages/Event/Events";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
-import ForgotPassword from "../pages/auth/ForgotPassword";
 import VerifyOTP from "../pages/auth/VerifyOTP";
+import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
 import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
 import OwnerProfile from "../pages/Owner/Account/OwnerProfile";
-import OwnerSubscription from "../pages/Owner/Account/OwnerSubscription";
+import OwnerSubscriptionOverview from "../pages/Owner/Account/OwnerSubscriptionOverview";
+import OwnerSubscriptionPlans from "../pages/Owner/Account/OwnerSubscriptionPlans";
 import OwnerVenues from "../pages/Owner/Venue/OwnerVenues";
 import CreateVenue from "../pages/Owner/Venue/CreateVenue";
 import OwnerOfflineBooking from "../pages/Owner/Booking/OwnerOfflineBooking";
@@ -53,8 +55,6 @@ import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
 import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
 import AdminVenueRegistrations from "../pages/Admin/VenueRegistration/AdminVenueRegistrations";
-import AdminFinanceAdmins from "../pages/Admin/FinanceAdminManagement/AdminFinanceAdmins";
-import AdminSportCatalog from "../pages/Admin/SportCatalog/AdminSportCatalog";
 import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
 import FinanceAdminOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminOwnerPayouts";
@@ -67,6 +67,9 @@ import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
+import FinanceAdminManagement from "../pages/Admin/FinanceAdminManagement/FinanceAdminManagement";
+import SportCatalog from "../pages/Admin/SportCatalog/SportCatalog";
+import NotFoundPage from "../components/ui/Error/NotFoundPage";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -77,7 +80,10 @@ const routes = [
   { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
-  { path: "/forgot-password", element: <ForgotPassword /> },
+  {
+    path: "/forgot-password",
+    element: <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }} />,
+  },
   { path: "/rating", element: <GiveRating /> },
   { path: "/profile", element: <ProtectedRoute element={<Profile />} /> },
   { path: "/venue/:id", element: <VenueDetail /> },
@@ -100,26 +106,31 @@ const routes = [
   },
   { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
   {
+    path: "wallet/top-up",
+    element: <ProtectedRoute element={<WalletTopUp />} />,
+  },
+  {
+    path: "wallet/top-up/:id",
+    element: <ProtectedRoute element={<WalletTopUpDetail />} />,
+  },
+
+  {
     path: "/",
     element: <Layout />,
     children: [
       { index: true, path: "", element: <CustomerHome /> },
-      { path: "venue/:id/booking", element: <BookingSchedule /> },
+      { path: "venue/:id/booking/schedule", element: <BookingSchedule /> },
       {
         path: "venue/:id/social-session",
         element: <ProtectedRoute element={<EventList />} />,
       },
-      { path: "venue/:id/booking/confirm", element: <BookingConfirmation /> },
-      { path: "venue/:id/booking/payment", element: <BookingPayment /> },
+      { path: "venue/:id/booking", element: <BookingConfirmation /> },
+      { path: "booking/:bookingId/payment", element: <BookingPayment /> },
       {
-        path: "venue/:id/booking/payment/success",
+        path: "booking/:bookingId/payment/success",
         element: <BookingPaymentSuccess />,
       },
       { path: "events", element: <Events /> },
-      {
-        path: "wallet/top-up",
-        element: <ProtectedRoute element={<WalletTopUp />} />,
-      },
       {
         path: "bookings",
         element: <ProtectedRoute element={<BookingList />} />,
@@ -139,7 +150,14 @@ const routes = [
     children: [
       { index: true, element: <OwnerDashboard /> },
       { path: "profile", element: <OwnerProfile /> },
-      { path: "subscription", element: <OwnerSubscription /> },
+      {
+        path: "subscription/overview",
+        element: <OwnerSubscriptionOverview />,
+      },
+      {
+        path: "subscription/plans",
+        element: <OwnerSubscriptionPlans />,
+      },
       { path: "payout", element: <PayoutList /> },
       { path: "payout/:id/details", element: <PayoutDetails /> },
       { path: "venues", element: <OwnerVenues /> },
@@ -188,8 +206,8 @@ const routes = [
       { path: "venues", element: <AdminVenueModeration /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "venue-registrations", element: <AdminVenueRegistrations /> },
-      { path: "finance-admins", element: <AdminFinanceAdmins /> },
-      { path: "sports", element: <AdminSportCatalog /> },
+      { path: "finance-admins", element: <FinanceAdminManagement /> },
+      { path: "sports", element: <SportCatalog /> },
       { path: "policies", element: <AdminPolicies /> },
       { path: "users", element: <AdminCustomers /> },
     ],
@@ -229,7 +247,7 @@ const routes = [
       { path: "profile", element: <Profile /> },
     ],
   },
-  { path: "*", element: <Navigate to="/" replace /> },
+  { path: "*", element: <NotFoundPage /> },
 ];
 
 const AppRoutes = () => useRoutes(routes);

@@ -193,7 +193,9 @@ const VerifyOTP = () => {
           )}
 
           <div className="otp-footer">
-            <p className="otp-timer">
+            <p className="otp-timer" style={{
+              marginTop: "15px"
+            }}>
               {timeLeft > 0 ? (
                 <>
                   Mã hết hạn sau: <span className="timer">{formatTime(timeLeft)}</span>

@@ -53,13 +53,30 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> TopUpUserWallet(Application.DTOs.Wallet.TopUpRequest request)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Ok(new ApiResponse<QrPaymentResponseDto>
+            return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tạo yêu cầu nạp tiền thành công.",
-                Data = await _walletService.GenerateTopUpQrAsync(request.Amount, userId ?? "")
+                Data = new
+                {
+                    TopUpId = await _walletService.GenerateTopUpQrAsync(request.Amount, userId)
+                }
             });
 
+        }
+
+        [Authorize]
+        [HttpGet("top-up/{id}")]
+        public async Task<IActionResult> GetTopUpRequest([FromRoute]int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _walletService.GetTopUpRequest(id, userId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin yêu cầu nạp tiền thành công.",
+                Data = result
+            });
         }
 
         /// <summary>

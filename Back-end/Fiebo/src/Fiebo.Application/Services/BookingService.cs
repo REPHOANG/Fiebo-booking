@@ -1,6 +1,7 @@
 using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
@@ -8,6 +9,7 @@ using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System.Security.Principal;
+using Fiebo.Application.Validators;
 
 namespace Fiebo.Application.Services
 {
@@ -206,28 +208,37 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
+            var now = DateTime.Now;
+            var maxBookingDate = BookingDateValidator.GetMaxDate(now);
+
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
             if (venue == null || venue.Status != VenueStatus.Active)
-            {
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
-            }
 
-            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
-            foreach (var fieldId in uniqueFieldIds)
-            {
-                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
-                if (field == null || field.Status != FieldStatus.Active)
-                {
-                    throw new BadRequestException("Sân hiện tại không hoạt động.");
-                }
-            }
+            if (request.BookingDate < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày đặt không hợp lệ.");
 
-            // 1. Build lock keys for each slot
+            if (request.BookingDate > maxBookingDate)
+                throw new BadRequestException($"Chỉ có thể đặt lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
+
+            var fieldIds = request.Details.Select(x => x.FieldId).Distinct().ToList();
+            var slotIds = request.Details.Select(x => x.SlotId).Distinct().ToList();
+
+            // Lock keys
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
                 .ToList();
 
-            // 2. Acquire locks for all slots
             var acquiredLocks = new List<(string Key, string Value)>();
 
             try
@@ -238,48 +249,51 @@ namespace Fiebo.Application.Services
 
                     if (lockValue is null)
                     {
-                        _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
+                        _logger.LogWarning("Failed to acquire lock: {LockKey}", lockKey);
                         throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
                     }
 
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability (booking + drop-in event)
+                var fields = await _unitOfWork.Fields.GetByIdsAsync(fieldIds);
+                var slots = await _unitOfWork.TimeSlots.GetByIdsAsync(slotIds);
+
+                var fieldDict = fields.ToDictionary(x => x.Id);
+                var slotDict = slots.ToDictionary(x => x.Id);
+
                 foreach (var item in request.Details)
                 {
-                    var field = await _unitOfWork.Fields.GetByIdAsync(item.FieldId);
-                    if (field == null || field.Status != FieldStatus.Active)
-                    {
-                        _logger.LogWarning("Field does not exist or is deleted");
-                        throw new BadRequestException("Sân hiện tại không tồn tại hoặc đã bị vô hiệu hóa.");
-                    }
-                    var theSlot = await _unitOfWork.TimeSlots.GetByIdAsync(item.SlotId) ?? throw new NotFoundException("Không tìm thấy slot");
-                    if (theSlot is null || theSlot.IsDeleted == true)
-                    {
-                        _logger.LogWarning("Slot does not exist or is deleted");
-                        throw new BadRequestException("Slot hiện tại không tồn tại hoặc đã bị xóa.");
-                    }
-                    var isAvailable = await _unitOfWork.BookingDetails
-                        .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
-                    if (!isAvailable)
-                    {
-                        _logger.LogWarning("Slot is already booked");
-                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
-                    }
+                    if (!fieldDict.TryGetValue(item.FieldId, out var field) || field.Status != FieldStatus.Active)
+                        throw new BadRequestException("Sân không tồn tại hoặc đã bị vô hiệu hóa.");
 
-                    var isUsedByEvent = await _unitOfWork.TicketEvents
-                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+                    if (field.VenueId != request.VenueId)
+                        throw new BadRequestException("Sân không thuộc cơ sở này.");
 
-                    if (isUsedByEvent)
-                    {
-                        _logger.LogWarning("Slot is already used by event");
-                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
-                    }
+                    if (!slotDict.TryGetValue(item.SlotId, out var slot) || slot.IsDeleted)
+                        throw new BadRequestException("Slot không tồn tại hoặc đã bị xóa.");
+
+                    if (slot.VenueId != request.VenueId)
+                        throw new BadRequestException("Slot không thuộc cơ sở này.");
+
+                    var slotDateTime = request.BookingDate.ToDateTime(slot.StartTime);
+                    if (slotDateTime < now)
+                        throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
 
-                // 4. Create booking with hold
-                var expiredAt = DateTime.Now.AddMinutes(5);
+                var unavailableSlots = await _unitOfWork.BookingDetails
+                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+
+                if (unavailableSlots.Any())
+                    throw new ResourceConflictException("Một số slot đã được đặt.");
+
+                var eventUsedSlots = await _unitOfWork.TicketEvents
+                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+
+                if (eventUsedSlots.Any())
+                    throw new ResourceConflictException("Một số slot đã được sử dụng cho sự kiện.");
+
+                var expiredAt = now.AddMinutes(5);
 
                 var booking = new Booking
                 {
@@ -301,18 +315,16 @@ namespace Fiebo.Application.Services
 
                 foreach (var item in request.Details)
                 {
-                    var slot = await _unitOfWork.TimeSlots
-                        .GetByIdAsync(item.SlotId);
+                    var slot = slotDict[item.SlotId];
 
-                    var price = slot!.Price;
-                    totalPrice += price;
+                    totalPrice += slot.Price;
 
                     details.Add(new BookingDetail
                     {
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        Price = price
+                        Price = slot.Price
                     });
                 }
 
@@ -331,7 +343,7 @@ namespace Fiebo.Application.Services
             }
             finally
             {
-                // 5. Always release all acquired locks
+                // Release locks
                 foreach (var (key, value) in acquiredLocks)
                 {
                     await _cacheService.ReleaseLockAsync(key, value);
@@ -389,7 +401,7 @@ namespace Fiebo.Application.Services
             {
                 BookingId = b.Id,
                 Status = b.Status.ToString(),
-                BookingDate = b.CreatedAt,
+                BookingDate = b.BookingDate,
                 VenueName = bd.Field?.Venue?.Name ?? "N/A",
                 Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
                 Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
@@ -411,30 +423,52 @@ namespace Fiebo.Application.Services
 
 
 
-        public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string userId)
+        public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string? userId, string? userRole)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
+            if(userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            if (userRole == null)
+            {
+                throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
+            }
+           
+            var now = DateTime.Now;
+            var maxBookingDate = BookingDateValidator.GetMaxDate(now);
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
             if (venue == null || venue.Status != VenueStatus.Active)
-            {
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
-            }
-
-            var uniqueFieldIds = request.Details.Select(d => d.FieldId).Distinct();
-            foreach (var fieldId in uniqueFieldIds)
+            if (userRole == AppRoles.FieldOwner && venue.OwnerId != userId)
             {
-                var field = await _unitOfWork.Fields.GetByIdAsync(fieldId);
-                if (field == null || field.Status != FieldStatus.Active)
-                {
-                    throw new BadRequestException("Sân hiện tại không hoạt động.");
-                }
+                throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
             }
+            if(userRole == AppRoles.FieldStaff)
+            {
+                var staff = await _unitOfWork.VenueStaffs.GetSingleAsync(s => s.StaffId == userId && s.VenueId == request.VenueId);
+                if (staff == null)
+                    throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
+            }
+            if (request.BookingDate < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày đặt không hợp lệ.");
 
-            // 1. Build lock keys for each slot
+            if (request.BookingDate > maxBookingDate)
+                throw new BadRequestException($"Chỉ có thể đặt lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
+
+            var fieldIds = request.Details.Select(x => x.FieldId).Distinct().ToList();
+            var slotIds = request.Details.Select(x => x.SlotId).Distinct().ToList();
+
             var lockKeys = request.Details
                 .Select(d => $"booking:lock:{d.FieldId}:{d.SlotId}:{request.BookingDate}")
                 .ToList();
 
-            // 2. Acquire locks for all slots
             var acquiredLocks = new List<(string Key, string Value)>();
 
             try
@@ -445,43 +479,49 @@ namespace Fiebo.Application.Services
 
                     if (lockValue is null)
                     {
-                        _logger.LogWarning("Failed to acquire lock: {LockKey} — slot is being booked by another user", lockKey);
+                        _logger.LogWarning("Failed to acquire lock: {LockKey}", lockKey);
                         throw new ResourceConflictException("Slot hiện tại đã bị khóa. Vui lòng chọn slot khác.");
                     }
 
                     acquiredLocks.Add((lockKey, lockValue));
                 }
 
-                // 3. Check slot availability (booking + drop-in event)
+                var fields = await _unitOfWork.Fields.GetByIdsAsync(fieldIds);
+                var slots = await _unitOfWork.TimeSlots.GetByIdsAsync(slotIds);
+
+                var fieldDict = fields.ToDictionary(x => x.Id);
+                var slotDict = slots.ToDictionary(x => x.Id);
+
                 foreach (var item in request.Details)
                 {
-                    var field = await _unitOfWork.Fields.GetByIdAsync(item.FieldId);
-                    if(field == null || field.Status != FieldStatus.Active)
-                    {
-                        _logger.LogWarning("Field does not exist or is deleted");
-                        throw new BadRequestException("Sân hiện tại không tồn tại hoặc đã bị vô hiệu hóa.");
-                    }
-                    var theSlot = await _unitOfWork.TimeSlots.GetByIdAsync(item.SlotId) ?? throw new NotFoundException("Không tìm thấy slot");
-                    if (theSlot is null || theSlot.IsDeleted == true)
-                    {
-                        _logger.LogWarning("Slot does not exist or is deleted");
-                        throw new BadRequestException("Slot hiện tại không tồn tại hoặc đã bị xóa.");
-                    }
-                    var isAvailable = await _unitOfWork.BookingDetails
-                        .IsSlotAvailable(item.SlotId, item.FieldId, request.BookingDate);
-                    if (!isAvailable)
-                    {
-                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
-                    }
+                    if (!fieldDict.TryGetValue(item.FieldId, out var field) || field.Status != FieldStatus.Active)
+                        throw new BadRequestException("Sân không tồn tại hoặc đã bị vô hiệu hóa.");
 
-                    var isUsedByEvent = await _unitOfWork.TicketEvents
-                        .IsSlotUsedByEventAsync(item.FieldId, item.SlotId, request.BookingDate);
+                    if (field.VenueId != request.VenueId)
+                        throw new BadRequestException("Sân không thuộc cơ sở này.");
 
-                    if (isUsedByEvent)
-                    {
-                        throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
-                    }
+                    if (!slotDict.TryGetValue(item.SlotId, out var slot) || slot.IsDeleted)
+                        throw new BadRequestException("Slot không tồn tại hoặc đã bị xóa.");
+
+                    if (slot.VenueId != request.VenueId)
+                        throw new BadRequestException("Slot không thuộc cơ sở này.");
+
+                    var slotDateTime = request.BookingDate.ToDateTime(slot.StartTime);
+                    if (slotDateTime < now)
+                        throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
+
+                var unavailableSlots = await _unitOfWork.BookingDetails
+                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+
+                if (unavailableSlots.Any())
+                    throw new ResourceConflictException("Một số slot đã được đặt.");
+
+                var eventUsedSlots = await _unitOfWork.TicketEvents
+                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+
+                if (eventUsedSlots.Any())
+                    throw new ResourceConflictException("Một số slot đã được sử dụng cho sự kiện.");
 
                 var booking = new Booking
                 {
@@ -502,18 +542,16 @@ namespace Fiebo.Application.Services
 
                 foreach (var item in request.Details)
                 {
-                    var slot = await _unitOfWork.TimeSlots
-                        .GetByIdAsync(item.SlotId);
+                    var slot = slotDict[item.SlotId];
 
-                    var price = slot!.Price;
-                    totalPrice += price;
+                    totalPrice += slot.Price;
 
                     details.Add(new BookingDetail
                     {
                         Booking = booking,
                         FieldId = item.FieldId,
                         SlotId = item.SlotId,
-                        Price = price
+                        Price = slot.Price
                     });
                 }
 
@@ -526,7 +564,6 @@ namespace Fiebo.Application.Services
             }
             finally
             {
-                // 5. Always release all acquired locks
                 foreach (var (key, value) in acquiredLocks)
                 {
                     await _cacheService.ReleaseLockAsync(key, value);
@@ -560,7 +597,13 @@ namespace Fiebo.Application.Services
             var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
 
-            return $"Refund {refundPercentage}% — {refundAmount:N0} VND will be returned to your wallet.";
+            return refundPercentage switch
+            {
+                100 => $"Quý khách hủy lịch trước 24 giờ so với giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                70 => $"Quý khách hủy lịch trong khoảng 12–24 giờ trước giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                50 => $"Quý khách hủy lịch trong khoảng 6–12 giờ trước giờ bắt đầu, vì vậy sẽ được hoàn {refundPercentage}% tương ứng ({refundAmount:N0} VND) vào ví.",
+                _ => $"Quý khách hủy lịch trong vòng dưới 6 giờ trước giờ bắt đầu, vì vậy sẽ không được hoàn tiền."
+            };
         }
 
         public async Task<bool> CancelBookingAsync(int bookingId, string userId)

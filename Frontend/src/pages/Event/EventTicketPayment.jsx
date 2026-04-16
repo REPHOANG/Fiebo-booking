@@ -7,7 +7,6 @@ import { getWalletBalance } from "../../services/walletService";
 import "../Customer/Booking/BookingPayment.css";
 
 const formatPrice = (price) => (Number(price) > 0 ? `${Number(price).toLocaleString("vi-VN")} đ` : "0 đ");
-const EVENT_TICKET_GRACE_KEY = (ticketId) => `fiebo_event_ticket_grace_${ticketId}`;
 
 /** Thời gian còn lại (giây) đến khi hết hạn thanh toán. Null = không có thông tin. */
 const secondsLeftFromExpiredAt = (expiredAt) => {
@@ -53,7 +52,6 @@ const EventTicketPayment = () => {
 
   const expiredAt = useMemo(() => ticket?.expiredAt ?? ticket?.ExpiredAt, [ticket]);
   const [timeLeft, setTimeLeft] = useState(null);
-  const [graceExpiresAt, setGraceExpiresAt] = useState(null);
   const expired = timeLeft != null && timeLeft <= 0;
 
   useEffect(() => {
@@ -99,39 +97,23 @@ const EventTicketPayment = () => {
     };
   }, []);
 
-  // Nếu backend trả expiredAt đã qua (thường do lệch giờ), dùng grace local để tránh luôn hiện 00:00.
-  const DEFAULT_PAYMENT_SECONDS = 5 * 60;
+  // Đếm ngược trực tiếp theo expiredAt từ API.
   useEffect(() => {
     const initial = secondsLeftFromExpiredAt(expiredAt);
-    if (initial == null || initial <= 0) {
-      const key = EVENT_TICKET_GRACE_KEY(ticketId);
-      const now = Date.now();
-      const stored = sessionStorage.getItem(key);
-      const storedTs = stored ? Number(stored) : NaN;
-      const validStoredTs = Number.isFinite(storedTs) && storedTs > now ? storedTs : null;
-      const nextGraceExpiresAt = validStoredTs ?? (now + DEFAULT_PAYMENT_SECONDS * 1000);
-      if (!validStoredTs) {
-        sessionStorage.setItem(key, String(nextGraceExpiresAt));
-      }
-      setGraceExpiresAt(nextGraceExpiresAt);
-      setTimeLeft(Math.max(0, Math.floor((nextGraceExpiresAt - now) / 1000)));
+    if (initial == null) {
+      setTimeLeft(null);
       return;
     }
-    setGraceExpiresAt(null);
     setTimeLeft(Math.max(0, initial));
-  }, [expiredAt, ticketId]);
+  }, [expiredAt]);
 
   useEffect(() => {
     if (timeLeft == null) return;
     const t = setInterval(() => {
-      if (graceExpiresAt != null) {
-        setTimeLeft(Math.max(0, Math.floor((graceExpiresAt - Date.now()) / 1000)));
-        return;
-      }
       setTimeLeft((prev) => (prev == null ? prev : Math.max(0, prev - 1)));
     }, 1000);
     return () => clearInterval(t);
-  }, [graceExpiresAt, timeLeft]);
+  }, [timeLeft]);
 
   // Khi vé đã hết hạn: tắt toast cũ "Đã giữ chỗ" để tránh mâu thuẫn với banner "Vé đã hết hạn"
   useEffect(() => {

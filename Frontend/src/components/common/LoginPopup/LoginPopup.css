@@ -194,6 +194,17 @@
   font-weight: 600;
 }
 
+.login-popup-content button.forgot-link.auth-inline-link {
+  display: inline;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .login-popup-content .forgot-link:hover {
   color: #334155;
   text-decoration: underline;

@@ -33,6 +33,12 @@ export const updateEventOwner = async (eventId, payload) => {
   return unwrap(response);
 };
 
+/** POST /api/owner/event/{id}/cancel - Hủy sự kiện (Owner) */
+export const cancelEventOwner = async (eventId, payload) => {
+  const response = await api.post(`/api/owner/event/${eventId}/cancel`, payload);
+  return unwrap(response);
+};
+
 export const joinEvent = async (eventId, payload = {}) => {
   // Backend: POST /api/Event/{id}/join
   const response = await api.post(`/api/Event/${eventId}/join`, payload);
@@ -51,6 +57,15 @@ export const getEventTicketById = async (ticketId) => {
 
 export const payEventTicket = async (ticketId, payload = {}) => {
   const response = await api.post(`/api/Event/ticket/${ticketId}/payment`, payload);
+  return unwrap(response);
+};
+
+/** POST /api/Event/ticket/{id}/cancel - Hủy vé sự kiện (Customer) */
+export const cancelEventTicket = async (ticketParticipantId, payload = {}) => {
+  const response = await api.patch(
+    `/api/Event/ticket/${ticketParticipantId}/cancel`,
+    payload,
+  );
   return unwrap(response);
 };
 

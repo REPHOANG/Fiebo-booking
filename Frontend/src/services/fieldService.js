@@ -225,6 +225,17 @@ export const updateOwnerField = async (fieldId, payload, venueId) => {
   throw lastError;
 };
 
+/**
+ * Owner: Toggle field status Active/Inactive
+ * PATCH `/api/owner/venue/{venueId}/fields/{fieldId}`
+ * @param {number|string} venueId
+ * @param {number|string} fieldId
+ */
+export const toggleOwnerFieldStatus = async (venueId, fieldId) => {
+  const response = await api.patch(`/api/owner/venue/${venueId}/fields/${fieldId}`);
+  return response.data?.data ?? response.data;
+};
+
 /** Owner: thêm ảnh cho sân đã tồn tại (POST `/api/Media/field/{id}/upload`) */
 export const uploadOwnerFieldImages = async (fieldId, files) => {
   const arr = Array.isArray(files) ? files.filter(Boolean) : [];
@@ -276,15 +287,19 @@ export const searchVenues = async ({
   radiusKm,
   userLat,
   userLng,
+  provinceId,
+  wardId,
 } = {}) => {
   const params = { page, pageSize };
-  if (location) params.location = location;
+  if (location) params.name = location;
   if (date) params.date = date;
   if (time) params.time = time;
   if (sportTypeId != null && sportTypeId !== '') params.sportTypeId = sportTypeId;
   if (radiusKm != null) params.radiusKm = radiusKm;
   if (userLat != null) params.userLat = userLat;
   if (userLng != null) params.userLng = userLng;
+  if (provinceId != null && provinceId !== '') params.provinceId = provinceId;
+  if (wardId != null && wardId !== '') params.wardId = wardId;
   const response = await api.get('/api/Venue/search', { params });
   const raw = response.data?.data ?? response.data ?? {};
   const items = raw.items ?? raw.Items ?? [];

@@ -3,44 +3,48 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
+import { getVenueSchedule } from "../../../services/fieldService";
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
+import { Maximize } from "@mui/icons-material";
 
 const createEventFormSchema = yup.object({
   venueId: yup.string().required("Vui lòng chọn cơ sở."),
   eventDate: yup.string().required("Vui lòng chọn ngày."),
+  eventName: yup
+    .string()
+    .trim()
+    .required("Vui lòng nhập tên sự kiện")
+    .min(3, "Tên sự kiện tối thiểu 3 ký tự")
+    .max(100, "Tên sự kiện tối đa 100 ký tự"),
   pricePerPerson: yup
     .number()
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập phí hợp lệ")
     .required("Nhập phí tham gia")
-    .positive("Phí tham gia phải lớn hơn 0"),
+    .min(10000, "Phí tham gia tối thiểu là 10.000 VNĐ")
+    .max(500000, "Phí tham gia tối đa là 500.000 VNĐ"),
   minPlayer: yup
     .number()
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối thiểu phải lớn hơn 0")
-    .required(),
+    .required("Nhập số người tối thiểu"),
   maxPlayer: yup
     .number()
+    .max(50, "Số người tối đa không được vượt quá 50")
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối đa không hợp lệ")
-    .required()
+    .required("Nhập số người tối đa")
     .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
       const min = this.parent.minPlayer;
       if (min == null || max == null) return true;
       return max >= min;
     }),
-  description: yup.string().optional(),
+  description: yup.string().max(200, "Mô tả không được vượt quá 200 ký tự").optional(),
 });
-
-const formatPrice = (n) => {
-  if (n == null || Number.isNaN(n)) return "0 ₫";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n);
-};
 
 /** Chuẩn hóa thời gian từ API (e.g. "18:00:00" hoặc "18:00") thành "HH:mm" */
 const normalizeTime = (t) => {
@@ -150,10 +154,12 @@ const CreateEvent = () => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(createEventFormSchema),
-    mode: "onSubmit",
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       venueId: "",
       eventDate: "",
+      eventName: "",
       pricePerPerson: "",
       minPlayer: "4",
       maxPlayer: "10",
@@ -166,34 +172,40 @@ const CreateEvent = () => {
 
   const [venues, setVenues] = useState([]);
   const [loadingVenues, setLoadingVenues] = useState(false);
-  const [venue, setVenue] = useState(null);
   const [schedule, setSchedule] = useState(null);
   const [eventListForDate, setEventListForDate] = useState([]);
-  const [loadingVenue, setLoadingVenue] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [selectedDetails, setSelectedDetails] = useState([]); // [{ fieldId, slotId }]
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
   const [slotSelectionError, setSlotSelectionError] = useState(false);
-  const [expandedFieldId, setExpandedFieldId] = useState(null);
+  const [expandedFieldIds, setExpandedFieldIds] = useState([]);
   /** "" = tất cả loại sân; khác thì lọc theo sportTypeName */
   const [sportTypeFilter, setSportTypeFilter] = useState("");
   /** Làm mới trạng thái "đã qua" khi đang xem ngày hôm nay (mỗi 30s) */
   const [pastSlotsTick, setPastSlotsTick] = useState(0);
 
-  const venueDisplayName =
-    venue?.name ?? venue?.venueName ?? venue?.Name ?? venue?.VenueName;
+  const selectedVenueName = useMemo(() => {
+    const id = Number(venueId);
+    if (!id) return "";
+    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
+    return pick(match, "name", "Name", "venueName", "VenueName") ?? "";
+  }, [venueId, venues]);
 
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
     () =>
-      getEventOccupiedKeys(eventListForDate, venueDisplayName, eventDate),
-    [eventListForDate, venueDisplayName, eventDate],
+      getEventOccupiedKeys(eventListForDate, selectedVenueName, eventDate),
+    [eventListForDate, selectedVenueName, eventDate],
   );
 
   /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
   const slotsByFieldWithStatus = useMemo(
-    () => getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate),
+    () => {
+      // Force recalculation every tick so "past" status updates in realtime.
+      void pastSlotsTick;
+      return getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate);
+    },
     [schedule, eventOccupiedKeys, eventDate, pastSlotsTick],
   );
 
@@ -255,45 +267,8 @@ const CreateEvent = () => {
     setSchedule(null);
     setEventListForDate([]);
     setSelectedDetails([]);
-    setExpandedFieldId(null);
+    setExpandedFieldIds([]);
     setSportTypeFilter("");
-    const id = Number(nextVenueId);
-    if (!id) {
-      setVenue(null);
-      return;
-    }
-    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
-    if (!match) {
-      setVenue(null);
-      return;
-    }
-    const normalizedName =
-      pick(match, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${id}`;
-    setVenue({ ...match, name: normalizedName });
-  };
-
-  const loadVenue = async () => {
-    const id = Number(venueId);
-    if (!id) {
-      setError("Vui lòng chọn cơ sở.");
-      return;
-    }
-    setError("");
-    setLoadingVenue(true);
-    setVenue(null);
-    setSchedule(null);
-    setSelectedDetails([]);
-    setExpandedFieldId(null);
-    setSportTypeFilter("");
-    try {
-      const v = await getVenueDetail(id);
-      setVenue(v ?? null);
-      if (!v) setError("Không tìm thấy cơ sở.");
-    } catch (e) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được thông tin cơ sở.");
-    } finally {
-      setLoadingVenue(false);
-    }
   };
 
   const loadSchedule = async () => {
@@ -307,13 +282,13 @@ const CreateEvent = () => {
     setSchedule(null);
     setEventListForDate([]);
     setSelectedDetails([]);
-    setExpandedFieldId(null);
+    setExpandedFieldIds([]);
     setSportTypeFilter("");
     try {
       const dateStr = eventDate.slice(0, 10);
       const s = await getVenueSchedule(id, dateStr);
       setSchedule(s ?? null);
-      if (!s?.sportTypes?.length) setError("Không có khung giờ cho ngày này.");
+      if (!s?.sportTypes?.length) setError("Cơ sở này chưa có sân nào.");
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || "Không tải được lịch.");
     } finally {
@@ -323,7 +298,7 @@ const CreateEvent = () => {
 
   /** Khi đã có schedule + venue + ngày → lấy danh sách sự kiện để đánh dấu slot "sự kiện" */
   useEffect(() => {
-    if (!schedule?.sportTypes?.length || !venue || !eventDate) {
+    if (!schedule?.sportTypes?.length || !selectedVenueName || !eventDate) {
       setEventListForDate([]);
       return;
     }
@@ -336,7 +311,7 @@ const CreateEvent = () => {
         if (mounted) setEventListForDate([]);
       });
     return () => { mounted = false; };
-  }, [schedule, venue, eventDate]);
+  }, [schedule, selectedVenueName, eventDate]);
 
   /** Cập nhật khóa slot "đã qua" theo thời gian thực khi chọn đúng ngày hôm nay */
   useEffect(() => {
@@ -362,10 +337,13 @@ const CreateEvent = () => {
 
   /** Sân đang mở "Phóng to" không còn trong danh sách sau khi lọc → thu gọn */
   useEffect(() => {
-    if (expandedFieldId == null) return;
-    const visible = filteredSlotsByField.some((g) => g.fieldId === expandedFieldId);
-    if (!visible) setExpandedFieldId(null);
-  }, [expandedFieldId, filteredSlotsByField]);
+    if (!expandedFieldIds.length) return;
+    const visibleIds = new Set(filteredSlotsByField.map((g) => g.fieldId));
+    setExpandedFieldIds((prev) => {
+      const next = prev.filter((fieldId) => visibleIds.has(fieldId));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [expandedFieldIds.length, filteredSlotsByField]);
 
   const toggleSlot = (item) => {
     if (item.status !== "available") return;
@@ -373,9 +351,7 @@ const CreateEvent = () => {
     setSelectedDetails((prev) => {
       const has = prev.some((d) => `${d.fieldId}-${d.slotId}` === key);
       if (has) return prev.filter((d) => `${d.fieldId}-${d.slotId}` !== key);
-      const mixed = prev.some((d) => d.fieldId !== item.fieldId);
-      const base = mixed ? prev.filter((d) => d.fieldId === item.fieldId) : prev;
-      return [...base, { fieldId: item.fieldId, slotId: item.slotId }];
+      return [...prev, { fieldId: item.fieldId, slotId: item.slotId }];
     });
     setSlotSelectionError(false);
   };
@@ -399,8 +375,10 @@ const CreateEvent = () => {
     setSlotSelectionError(false);
     setSubmitLoading(true);
     try {
+      const eventName = values.eventName?.trim() || "";
       const payload = {
         eventDate: values.eventDate.slice(0, 10),
+        name: eventName,
         details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),
         pricePerPerson: values.pricePerPerson,
         minPlayer: values.minPlayer,
@@ -427,9 +405,6 @@ const CreateEvent = () => {
     <div className="owner-home create-event-page">
       <div className="owner-home-header">
         <h1>Tạo sự kiện</h1>
-        <Link to="/owner/events" className="oh-create-btn">
-          Danh sách
-        </Link>
       </div>
 
       <div className="owner-home-content">
@@ -444,7 +419,7 @@ const CreateEvent = () => {
             <h3>Cơ sở &amp; ngày</h3>
             <div className="ce-row">
               <label>
-                Cơ sở (Venue)
+                Cơ sở 
                 <Controller
                   name="venueId"
                   control={control}
@@ -474,20 +449,7 @@ const CreateEvent = () => {
                 />
                 {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
               </label>
-              <button
-                type="button"
-                className="ce-btn secondary"
-                onClick={loadVenue}
-                disabled={loadingVenue || !venueId}
-              >
-                {loadingVenue ? "Đang tải…" : "Tải thông tin"}
-              </button>
             </div>
-            {venue && (
-              <p className="ce-venue-name">
-                Cơ sở: <strong>{venueDisplayName}</strong>
-              </p>
-            )}
             <div className="ce-row">
               <label>
                 Ngày sự kiện
@@ -512,10 +474,7 @@ const CreateEvent = () => {
 
           {slotsByFieldWithStatus.length > 0 && (
             <div className="ce-section">
-              <h3>Chọn khung giờ (ít nhất 1)</h3>
-              <p className="ce-single-field-hint">
-                Một sự kiện chỉ dùng slot trên một sân. Phóng to sân khác sẽ bỏ chọn slot ở sân trước.
-              </p>
+              <h3>Chọn khung giờ</h3>
               {sportTypeOptions.length > 0 && (
                 <div className="ce-row ce-sport-filter-row">
                   <label>
@@ -559,23 +518,20 @@ const CreateEvent = () => {
                           type="button"
                           className="ce-field-toggle"
                           onClick={() => {
-                            const prev = expandedFieldId;
                             const fid = group.fieldId;
-                            const next = prev === fid ? null : fid;
-                            setExpandedFieldId(next);
-                            if (next !== null && next !== prev) {
-                              setSelectedDetails((details) =>
-                                details.filter((d) => d.fieldId === next),
-                              );
-                            }
+                            setExpandedFieldIds((prev) =>
+                              prev.includes(fid)
+                                ? prev.filter((fieldId) => fieldId !== fid)
+                                : [...prev, fid],
+                            );
                           }}
                         >
-                          {expandedFieldId === group.fieldId ? "Thu nhỏ" : "Phóng to"}
+                          {expandedFieldIds.includes(group.fieldId) ? "Thu nhỏ" : "Phóng to"}
                         </button>
                       </div>
                     </div>
 
-                    {expandedFieldId === group.fieldId ? (
+                    {expandedFieldIds.includes(group.fieldId) ? (
                       <div className="ce-compact-grid">
                         {group.slots.map((item) => {
                           const disabled = item.status !== "available";
@@ -621,10 +577,26 @@ const CreateEvent = () => {
             <h3>Thông tin sự kiện</h3>
             <div className="ce-row">
               <label>
+                Tên sự kiện
+                <input
+                  type="text"
+                  maxLength={100}
+                  placeholder="Ví dụ: Giao lưu bóng đá cuối tuần"
+                  className={errors.eventName ? "ce-input-error" : ""}
+                  {...register("eventName")}
+                />
+                {errors.eventName && (
+                  <span className="ce-field-error">{errors.eventName.message}</span>
+                )}
+              </label>
+            </div>
+            <div className="ce-row">
+              <label>
                 Phí tham gia (VNĐ/người)
                 <input
                   type="number"
-                  min={1}
+                  min={10000}
+                  max={500000}
                   placeholder="50000"
                   className={errors.pricePerPerson ? "ce-input-error" : ""}
                   {...register("pricePerPerson")}
@@ -640,6 +612,7 @@ const CreateEvent = () => {
                 <input
                   type="number"
                   min={1}
+                  max={50}
                   className={errors.minPlayer ? "ce-input-error" : ""}
                   {...register("minPlayer")}
                 />
@@ -649,7 +622,8 @@ const CreateEvent = () => {
                 Số người tối đa
                 <input
                   type="number"
-                  min={1}
+                  min={Number(watch("minPlayer")) || 1}
+                  max={50}
                   className={errors.maxPlayer ? "ce-input-error" : ""}
                   {...register("maxPlayer")}
                 />
@@ -657,13 +631,15 @@ const CreateEvent = () => {
               </label>
             </div>
             <label className="ce-full">
-              Mô tả (tuỳ chọn)
+              Mô tả (tối đa 200 ký tự)
               <textarea
                 className={errors.description ? "ce-input-error" : ""}
                 {...register("description")}
                 placeholder="VD: Bóng đá 5 người, giao lưu cuối tuần"
                 rows={3}
+                maxLength={200}
               />
+              {errors.description && <span className="ce-field-error">{errors.description.message}</span>}
             </label>
           </div>
 
