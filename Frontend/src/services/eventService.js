@@ -60,6 +60,15 @@ export const payEventTicket = async (ticketId, payload = {}) => {
   return unwrap(response);
 };
 
+/** POST /api/Event/ticket/{id}/cancel - Hủy vé sự kiện (Customer) */
+export const cancelEventTicket = async (ticketParticipantId, payload = {}) => {
+  const response = await api.patch(
+    `/api/Event/ticket/${ticketParticipantId}/cancel`,
+    payload,
+  );
+  return unwrap(response);
+};
+
 /**
  * Lịch sử vé / tham gia sự kiện của khách (GET /api/Event/history).
  * Query: pageIndex, pageSize (backend EventHistoryFilter).

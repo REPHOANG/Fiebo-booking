@@ -28,17 +28,20 @@ export const subscribeOwnerToPlan = async (planId) => {
   };
 };
 
-const mapOwnerPlan = (p) => ({
-  ownerPlanId: Number(p?.ownerPlanId ?? p?.OwnerPlanId ?? 0),
+const mapCurrentPlan = (p) => ({
   planId: Number(p?.planId ?? p?.PlanId ?? 0),
   planName: p?.planName ?? p?.PlanName ?? "",
-  durationDays: Number(p?.durationDays ?? p?.DurationDays ?? 0),
-  amountPaid: Number(p?.amountPaid ?? p?.AmountPaid ?? 0),
-  startDate: p?.startDate ?? p?.StartDate ?? null,
   endDate: p?.endDate ?? p?.EndDate ?? null,
   remainingDays: Number(p?.remainingDays ?? p?.RemainingDays ?? 0),
-  isExpired: Boolean(p?.isExpired ?? p?.IsExpired ?? false),
-  paidAt: p?.paidAt ?? p?.PaidAt ?? null,
+  status: Number(p?.status ?? p?.Status ?? 0),
+  createdAt: p?.createdAt ?? p?.CreatedAt ?? null,
+});
+
+const mapPurchaseHistory = (p) => ({
+  planId: Number(p?.planId ?? p?.PlanId ?? 0),
+  planName: p?.planName ?? p?.PlanName ?? "",
+  price: Number(p?.price ?? p?.Price ?? 0),
+  createdAt: p?.createdAt ?? p?.CreatedAt ?? null,
 });
 
 /**
@@ -53,9 +56,9 @@ export const getOwnerSubscriptionOverview = async () => {
     raw?.purchaseHistory ?? raw?.PurchaseHistory ?? raw?.history ?? raw?.History ?? [];
 
   return {
-    currentPlan: rawCurrentPlan ? mapOwnerPlan(rawCurrentPlan) : null,
+    currentPlan: rawCurrentPlan ? mapCurrentPlan(rawCurrentPlan) : null,
     purchaseHistory: Array.isArray(rawPurchaseHistory)
-      ? rawPurchaseHistory.map(mapOwnerPlan)
+      ? rawPurchaseHistory.map(mapPurchaseHistory)
       : [],
   };
 };

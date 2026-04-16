@@ -295,11 +295,12 @@ namespace Fiebo.API.Controllers
             if (string.IsNullOrWhiteSpace(userId))
                 throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
 
-            //var refundedCount = await _eventService.CustomerCancelDropInEventAsync(id, userId);
+            await _eventService.CustomerCancelDropInEventAsync(id, userId);
 
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
+                Message = "Hủy sự kiện thành công. Tiền mua vé đã được hoàn về ví của bạn"
             });
         }
     }

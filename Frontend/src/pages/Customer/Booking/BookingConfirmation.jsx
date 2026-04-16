@@ -56,6 +56,21 @@ const getPhoneValidationError = (value) => {
   }
 };
 
+const getApiErrorMessage = (error, fallback) => {
+  const data = error?.response?.data ?? error?.data;
+  const message =
+    data?.message ??
+    data?.Message ??
+    (Array.isArray(data?.errors) ? data.errors[0] : undefined) ??
+    error?.message;
+
+  if (typeof message === "string" && message.trim()) {
+    return message.trim();
+  }
+
+  return fallback;
+};
+
 
 
 const buildBookingNoteWithServices = (baseNote, serviceRows) => {
@@ -122,10 +137,8 @@ const BookingConfirmation = () => {
   const formatPrice = (price) => (price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ");
   const [phoneError, setPhoneError] = useState("");
   const [nameError, setNameError] = useState("");
-  const [confirmError, setConfirmError] = useState("");
   const [localSchedule, setLocalSchedule] = useState(null);
   const [bookingNote, setBookingNote] = useState("");
-  const [isRetrying, setIsRetrying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serviceQty, setServiceQty] = useState({});
   const [showServicePopup, setShowServicePopup] = useState(false);
@@ -178,7 +191,7 @@ const BookingConfirmation = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isWalkInBooking]);
 
   const displayName = guestName;
   const displayPhone = guestPhone;
@@ -219,10 +232,10 @@ const BookingConfirmation = () => {
         setVenueServiceCatalog(items);
         setServiceQty({});
         setServiceDraftQty({});
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setVenueServiceCatalog([]);
-          toast.error("Không tải được danh sách dịch vụ.");
+          toast.error(getApiErrorMessage(err, "Không tải được danh sách dịch vụ."));
         }
       } finally {
         if (!cancelled) setServicesLoading(false);
@@ -332,7 +345,6 @@ const BookingConfirmation = () => {
   );
 
   const handleConfirmBooking = () => {
-    setConfirmError("");
     (async () => {
       if (!bookingState || venue?.id == null) return;
       // Client-side validation: require name and phone before attempting
@@ -422,12 +434,7 @@ const BookingConfirmation = () => {
           toast.success("Đã tạo lịch đặt offline thành công.");
           navigate("/owner/bookings", { replace: true });
         } catch (err) {
-          const msg =
-            err?.response?.data?.message ||
-            err?.data?.message ||
-            err?.message ||
-            "Không thể tạo đặt chỗ offline.";
-          toast.error(msg);
+          toast.error(getApiErrorMessage(err, "Không thể tạo đặt chỗ offline."));
         } finally {
           setIsSubmitting(false);
         }
@@ -551,106 +558,29 @@ const BookingConfirmation = () => {
           },
         });
       } catch (err) {
-        if (err && err.status === 401) {
+        const status = err?.response?.status ?? err?.status;
+
+        if (status === 401) {
           toast.error('Bạn cần đăng nhập trước khi xác nhận đặt sân.');
           return;
         }
-        if (err && err.status === 400) {
-          const msg = err?.data?.message || err?.message || 'Một hoặc nhiều khung giờ đã được đặt hoặc không hợp lệ. Vui lòng quay lại trang đặt lịch và chọn lại.';
+        if (status === 400) {
+          const msg = getApiErrorMessage(err, 'Một hoặc nhiều khung giờ đã được đặt hoặc không hợp lệ. Vui lòng quay lại trang đặt lịch và chọn lại.');
           toast.error(msg);
           return;
         }
-        if (err && err.status === 409) {
-          const msg = err?.data?.message || err?.message || 'Slot đã được đặt hoặc đang được người khác đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.';
+        if (status === 409) {
+          const msg = getApiErrorMessage(err, 'Slot đã được đặt hoặc đang được người khác đặt. Vui lòng quay lại trang đặt lịch và chọn slot khác.');
           toast.error(msg);
           return;
         }
 
-        toast.error(
-          err?.data?.message ??
-            err?.message ??
-            "Không thể hoàn tất đặt sân. Vui lòng thử lại hoặc quay lại chọn khung giờ.",
-        );
+        toast.error(getApiErrorMessage(err, "Không thể hoàn tất đặt sân. Vui lòng thử lại hoặc quay lại chọn khung giờ."));
       }
       } finally {
         setIsSubmitting(false);
       }
     })();
-  };
-
-  // Attempt to refresh schedule and remap selected slots to server slotIds
-  const attemptRemap = async () => {
-    if (!venue?.id || !selectedDate) return;
-    setIsRetrying(true);
-    try {
-      const res = await getVenueSchedule(venue.id, selectedDate);
-      setLocalSchedule(res);
-
-      const details = buildDetailsFromSchedule(res, fields, slots, selectedSlots);
-
-      if (details.length === 0) {
-        setConfirmError("Không thể ánh xạ khung giờ. Vui lòng quay lại trang đặt lịch và thử lại.");
-      } else {
-        setConfirmError("");
-        const seen = new Set();
-        const uniqueDetails = details.filter((d) => {
-          const key = `${d.fieldId}-${d.slotId}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        try {
-          const payload = {
-            venueId: Number(venue?.id),
-            bookingDate: selectedDate,
-            fullname: (displayName || guestName || "").trim(),
-            phoneNumber: normalizePhoneNumber(displayPhone || guestPhone || ""),
-            bookingNote: buildBookingNoteWithServices(bookingNote, selectedServiceRows),
-            details: uniqueDetails.map((d) => ({ fieldId: Number(d.fieldId), slotId: Number(d.slotId) })),
-          };
-          const res = await createBooking(payload);
-          const bookingId = res?.bookingId || res?.id || res?.data?.bookingId || null;
-          const expireAt = res?.expiredAt ?? res?.expireAt ?? null;
-          const ttlSeconds = expireAt
-            ? Math.max(0, Math.floor((new Date(expireAt) - Date.now()) / 1000))
-            : Number(res?.expiresInSeconds ?? res?.ttlSeconds ?? 300);
-          try {
-            dispatch(
-              addBookedSlots({
-                venueId: String(venue?.id),
-                date: selectedDate,
-                slots: selectedSlots,
-                ttlSeconds: ttlSeconds > 0 ? ttlSeconds : 300,
-              }),
-            );
-          } catch (e) {}
-
-          if (!bookingId) {
-            toast.error("Không nhận được mã đặt chỗ từ máy chủ. Vui lòng thử lại.");
-            return;
-          }
-          try {
-            dispatch(clearDraft(String(venue?.id)));
-          } catch (e) {}
-          navigate(
-            `/booking/${bookingId}/payment`,
-            {
-              state: {
-                venue,
-                selectedDate,
-                selectedSlots,
-              },
-            },
-          );
-        } catch (err) {
-          toast.error(err?.message || 'Không thể tạo đặt chỗ.');
-        }
-      }
-      } catch (e) {
-      toast.error('Không thể lấy lịch từ server. Vui lòng thử lại.');
-    } finally {
-      setIsRetrying(false);
-    }
   };
 
   if (!bookingState) {

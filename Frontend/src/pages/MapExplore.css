@@ -1,5 +1,5 @@
 .mapx-page {
-  height: calc(100vh - 86px);
+  height: 100vh;
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 0;

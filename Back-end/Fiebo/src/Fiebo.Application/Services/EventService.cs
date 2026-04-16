@@ -7,6 +7,7 @@ using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
+using Fiebo.Application.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +56,15 @@ namespace Fiebo.Application.Services
 
             if (request.MaxPlayer < request.MinPlayer)
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
+
+            var now = DateTime.Now;
+            var maxEventDate = BookingDateValidator.GetMaxDate(now);
+
+            if (request.EventDate < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày tổ chức không hợp lệ.");
+
+            if (request.EventDate > maxEventDate)
+                throw new BadRequestException($"Chỉ có thể tạo sự kiện đến hết ngày {maxEventDate:dd/MM/yyyy}.");
 
             // Verify all fields exist and belong to a venue owned by this user
             int? venueId = null;
@@ -674,14 +684,23 @@ namespace Fiebo.Application.Services
 
             var ticket = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId) ?? throw new NotFoundException("Không tìm thấy vé tham gia sự kiện.");
             if (ticket.Status != TicketParticipantStatus.Joined)
-                throw new BadRequestException("Chỉ có vé đang chờ mới có thể hủy.");
+                throw new BadRequestException("Chỉ có vé đã thanh toán có thể hủy.");
             await _unitOfWork.BeginTransactionAsync();
             try
             {
                 ticket.Status = TicketParticipantStatus.Cancelled;
                 _unitOfWork.TicketParticipants.Update(ticket);
                 var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
-                var hoursBeforeEvent = (ticket.Event.EventDate.ToDateTime(ticket.Event.Details.OrderBy(d => d.Slot.StartTime).First().Slot.StartTime) - DateTime.Now).TotalHours;
+                var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(ticket.EventId)
+                    ?? throw new NotFoundException("Không tìm thấy slot của sự kiện.");
+
+                if (earliestSlot.Slot == null)
+                    throw new BadRequestException("Slot không hợp lệ.");
+                var thisEvent = await _unitOfWork.TicketEvents.GetByIdAsync(ticket.EventId) ?? throw new NotFoundException("Không tìm thấy sự kiện.");
+                var eventDateTime = thisEvent.EventDate
+                    .ToDateTime(earliestSlot.Slot.StartTime);
+
+                var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
                 if (hoursBeforeEvent > 6)
                 {
                     throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
@@ -703,9 +722,9 @@ namespace Fiebo.Application.Services
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
-                throw new BadRequestException("Không thể hủy vé. Vui lòng thử lại.");
-
+                throw;
             }
         }
+
     }
 }
