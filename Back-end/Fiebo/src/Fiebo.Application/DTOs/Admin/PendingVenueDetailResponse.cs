@@ -1,0 +1,29 @@
+using System;
+using System.Collections.Generic;
+
+namespace Fiebo.Application.DTOs.Admin
+{
+    public class PendingVenueDetailResponse
+    {
+        // Venue Info
+        public int VenueId { get; set; }
+        public string VenueName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public TimeOnly OpenTime { get; set; }
+        public TimeOnly CloseTime { get; set; }
+
+        // Owner Info
+        public string OwnerName { get; set; } = string.Empty;
+        public string OwnerEmail { get; set; } = string.Empty;
+        public string OwnerPhone { get; set; } = string.Empty;
+        
+        // Owner Bank Info
+        public string OwnerBankName { get; set; } = string.Empty;
+        public string OwnerBankAccountNumber { get; set; } = string.Empty;
+        public string OwnerAccountHolderName { get; set; } = string.Empty;
+
+        // Documents
+        public List<string> DocumentUrls { get; set; } = new();
+    }
+}

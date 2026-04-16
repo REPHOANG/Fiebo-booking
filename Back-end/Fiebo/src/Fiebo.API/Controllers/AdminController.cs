@@ -70,7 +70,6 @@ namespace Fiebo.API.Controllers
         {
             var result = await _adminDashboardService.GetDashboardAsync(request);
             
-            // BR-A2: Empty State Check (If there's no data for the queried period, return specific message, but still DTO to avoid breaking charts UI structure)
             if (result.TotalRevenue.Value == 0 && result.TotalBookings.Value == 0)
             {
                 return Ok(new ApiResponse<AdminDashboardResponse>
