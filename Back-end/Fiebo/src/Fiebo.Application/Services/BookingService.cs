@@ -207,6 +207,16 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
             var now = DateTime.Now;
 
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
@@ -409,6 +419,16 @@ namespace Fiebo.Application.Services
 
         public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string? userId, string? userRole)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
             if(userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
             if (userRole == null)
             {

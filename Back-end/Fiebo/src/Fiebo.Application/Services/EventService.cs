@@ -42,6 +42,13 @@ namespace Fiebo.Application.Services
             if (request.Details.Count == 0)
                 throw new BadRequestException("Phải chọn ít nhất một sân và khung giờ.");
 
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách sân và khung giờ bị trùng lặp.");
+
             // BR-33: MinPlayer > 0, MaxPlayer >= MinPlayer
             if (request.MinPlayer <= 0)
                 throw new BadRequestException("Số người tối thiểu phải lớn hơn 0.");
