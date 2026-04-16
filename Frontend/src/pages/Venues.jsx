@@ -24,6 +24,21 @@ const FALLBACK_SPORT_CATALOG = Object.freeze([
 
 const PAGE_SIZE = 8;
 
+const StarRating = ({ rating, max = 5, size = 14 }) => {
+  const pct = Math.min(Math.max(0, (Number(rating) / max) * 100), 100);
+  const stars = Array.from({ length: max }, (_, i) => i);
+  return (
+    <span className="star-rating" aria-label={`${Number(rating).toFixed(1)} trên ${max} sao`}>
+      <span className="star-rating-empty" aria-hidden>
+        {stars.map((i) => <Star key={i} size={size} />)}
+      </span>
+      <span className="star-rating-filled" aria-hidden style={{ width: `${pct}%` }}>
+        {stars.map((i) => <Star key={i} size={size} />)}
+      </span>
+    </span>
+  );
+};
+
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "";
   const parts = String(timeSpan).split(":");
@@ -874,13 +889,13 @@ const Venues = () => {
                   {openTime && closeTime && (
                     <p className="venue-hours">
                       <Clock size={15} />
-                      <span>Mở cửa {formatTime(openTime)} - Đóng cửa {formatTime(closeTime)}</span>
+                      <span>{formatTime(openTime)} - {formatTime(closeTime)}</span>
                     </p>
                   )}
                   <div className="rating-row">
                     <div className="rating">
-                      <Star size={15} className="star" />
-                      <span>{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
+                      <StarRating rating={Number(venue.rating ?? venue.Rating ?? 0)} />
+                      <span className="rating-value">{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
                     </div>
                     <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
                   </div>

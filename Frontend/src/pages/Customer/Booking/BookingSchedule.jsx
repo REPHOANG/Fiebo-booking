@@ -499,15 +499,14 @@ const BookingSchedule = () => {
     [configuredSlotStartsBySport],
   );
 
-  // Khóa slot đã qua (ngày hôm nay): dựa trên thời điểm *kết thúc* khung chứ không phải chỉ giờ bắt đầu
-  // (tránh coi slot 13:00–14:00 là “đã qua” ngay từ 13:01).
+  // Khóa slot đã qua (ngày hôm nay): khóa ngay khi chạm thời điểm bắt đầu của slot.
   const lockedBefore = useMemo(() => {
     if (selectedDate !== todayStr()) return -1;
     if (!slots.length) return -1;
     const now = new Date(timeTick);
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const slotEndMin = (s) => s.h * 60 + s.m + (s.stepMinutes ?? 60);
-    const idx = slots.findIndex((s) => slotEndMin(s) > nowMin);
+    const slotStartMin = (s) => s.h * 60 + s.m;
+    const idx = slots.findIndex((s) => slotStartMin(s) > nowMin);
     if (idx < 0) return slots.length - 1;
     return idx - 1;
   }, [selectedDate, slots, timeTick]);

@@ -76,6 +76,7 @@ const schema = yup.object({
 const Register = ({
   onSwitchToLogin,
   onClose,
+  onOpenVerifyOTP,
   accountRole = 'Customer',
   variant = 'default',
   onSwitchToOwnerRegister,
@@ -116,8 +117,12 @@ const Register = ({
       });
 
       dispatch(setRegistrationPending({ email: data.email, phone: data.phone || '' }));
-      onClose?.();
-      navigate('/verify-otp');
+      if (typeof onOpenVerifyOTP === 'function') {
+        onOpenVerifyOTP();
+      } else {
+        onClose?.();
+        navigate('/verify-otp');
+      }
     } catch (error) {
       const errorMsg = error.message || error.details || 'Đăng ký thất bại';
       if (errorMsg.toLowerCase().includes('already exist')) {

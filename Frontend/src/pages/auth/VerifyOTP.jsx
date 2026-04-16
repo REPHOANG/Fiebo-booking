@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { setCredentials, clearRegistrationPending } from "../../store/authSlice";
+import { clearRegistrationPending } from "../../store/authSlice";
 import { verifyOTP } from "../../services/authService";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
@@ -18,7 +18,10 @@ const otpSchema = yup.object({
     .matches(/^\d{6}$/, "Nhập đủ 6 chữ số"),
 });
 
-const VerifyOTP = () => {
+const OTP_EXPIRY_SECONDS = 5 * 60;
+const RESEND_COOLDOWN_SECONDS = 60;
+
+const VerifyOTP = ({ isPopup = false, onClose, onOpenLogin, onOpenRegister }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -28,7 +31,8 @@ const VerifyOTP = () => {
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [expiryTimeLeft, setExpiryTimeLeft] = useState(OTP_EXPIRY_SECONDS);
+  const [resendTimeLeft, setResendTimeLeft] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const otpRefs = useRef([]);
 
@@ -48,23 +52,41 @@ const VerifyOTP = () => {
 
   useEffect(() => {
     if (!registrationPending || !registrationEmail) {
-      navigate("/", { replace: true, state: { [OPEN_AUTH_STATE_KEY]: "register" } });
+      if (isPopup) {
+        if (typeof onOpenRegister === "function") onOpenRegister();
+        else if (typeof onClose === "function") onClose();
+      } else {
+        navigate("/", { replace: true, state: { [OPEN_AUTH_STATE_KEY]: "register" } });
+      }
     }
-  }, [registrationPending, registrationEmail, navigate]);
+  }, [registrationPending, registrationEmail, navigate, isPopup, onClose, onOpenRegister]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+    const expiryTimer = setInterval(() => {
+      setExpiryTimeLeft((prev) => {
         if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
+          clearInterval(expiryTimer);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    const resendTimer = setInterval(() => {
+      setResendTimeLeft((prev) => {
+        if (prev <= 1) {
+          setCanResend(true);
+          clearInterval(resendTimer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(expiryTimer);
+      clearInterval(resendTimer);
+    };
   }, []);
 
   const formatTime = (seconds) => {
@@ -111,7 +133,7 @@ const VerifyOTP = () => {
     try {
       await verifyOTP(registrationEmail, otpCode);
 
-      toast.success("Account verified successfully!");
+      toast.success("Xác minh tài khoản thành công");
 
       dispatch(clearRegistrationPending());
 
@@ -119,13 +141,18 @@ const VerifyOTP = () => {
         try {
           sessionStorage.setItem("postVerifyLoginEmail", registrationEmail);
         } catch (_) {}
-        navigate("/", {
-          replace: true,
-          state: { [OPEN_AUTH_STATE_KEY]: "login" },
-        });
+        if (isPopup) {
+          if (typeof onOpenLogin === "function") onOpenLogin();
+          else if (typeof onClose === "function") onClose();
+        } else {
+          navigate("/", {
+            replace: true,
+            state: { [OPEN_AUTH_STATE_KEY]: "login" },
+          });
+        }
       }, 1500);
     } catch (error) {
-      toast.error(error.message || "Invalid OTP. Please try again.");
+      toast.error(error.message || "Mã OTP không hợp lệ. Vui lòng thử lại.");
       setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
     } finally {
@@ -138,35 +165,39 @@ const VerifyOTP = () => {
 
     setIsLoading(true);
     try {
-      toast.info("OTP resent to your email. Please check your inbox.");
-      setTimeLeft(300);
+      toast.info("Đã gửi lại mã OTP tới email của bạn");
+      setExpiryTimeLeft(OTP_EXPIRY_SECONDS);
+      setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
       setCanResend(false);
       setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
     } catch (error) {
-      toast.error("Failed to resend OTP");
+      toast.error("Không thể gửi lại OTP");
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="verify-otp-page">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="verify-otp-card"
-      >
+  const card = (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`verify-otp-card${isPopup ? " verify-otp-card--popup" : ""}`}
+    >
         <div className="verify-otp-header">
-          <h2 className="verify-otp-title">MÃ XÁC MINH</h2>
+          <h2 className="verify-otp-title">Xác minh email</h2>
           <p className="verify-otp-subtitle">
-            Nhập mã từ email của bạn<br />
-            <strong>{registrationEmail}</strong>
+            Nhập mã gồm 6 chữ số đã được gửi tới
           </p>
+          <p className="verify-otp-email">{registrationEmail}</p>
         </div>
 
         <form className="verify-otp-form" onSubmit={handleSubmit(onVerify)} noValidate>
+          <div className="verify-otp-panel">
+            <div className="verify-otp-panel-head">
+              <span className="verify-otp-panel-label">Mã OTP</span>
+            </div>
           <div className="otp-input-group" onPaste={handleOtpPaste}>
             {otp.map((digit, index) => (
               <input
@@ -186,17 +217,19 @@ const VerifyOTP = () => {
               />
             ))}
           </div>
+          <p className="verify-otp-helper">Bạn có thể dán toàn bộ 6 chữ số vào bất kỳ ô nào.</p>
           {errors.otpCode && (
             <p className="verify-otp-field-error" role="alert">
               {errors.otpCode.message}
             </p>
           )}
+          </div>
 
           <div className="otp-footer">
             <p className="otp-timer">
-              {timeLeft > 0 ? (
+              {expiryTimeLeft > 0 ? (
                 <>
-                  Mã hết hạn sau: <span className="timer">{formatTime(timeLeft)}</span>
+                  Mã có hiệu lực trong <span className="timer">{formatTime(expiryTimeLeft)}</span>
                 </>
               ) : (
                 <>
@@ -219,24 +252,27 @@ const VerifyOTP = () => {
             className="verify-button"
             disabled={isLoading || otp.some((digit) => !digit)}
           >
-            {isLoading ? "Verifying..." : "Verify OTP"}
+            {isLoading ? "Đang xác minh..." : "Xác minh tài khoản"}
           </button>
         </form>
 
         <div className="verify-otp-help">
-          <p>Không nhận được mã?</p>
+          <p>Không nhận được mã hoặc mã đã hết hạn?</p>
           <button
             type="button"
             onClick={handleResendOTP}
-            disabled={timeLeft > 0 || isLoading}
+            disabled={resendTimeLeft > 0 || isLoading}
             className="resend-pill"
           >
-            {timeLeft > 0 ? `Gửi lại sau ${timeLeft}s` : "Gửi lại"}
+            {resendTimeLeft > 0 ? `Gửi lại sau ${resendTimeLeft}s` : "Gửi lại"}
           </button>
         </div>
       </motion.div>
-    </div>
   );
+
+  if (isPopup) return card;
+
+  return <div className="verify-otp-page">{card}</div>;
 };
 
 export default VerifyOTP;

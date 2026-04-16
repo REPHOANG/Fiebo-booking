@@ -33,6 +33,8 @@ const DOTNET_DAY_NAMES = [
   "Saturday",
 ];
 
+const WEEK_DAY_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "—";
   const parts = String(timeSpan).split(":");
@@ -74,7 +76,7 @@ const minutesToHHMM = (minutes) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 const MANUAL_INSERT_STEP_MINUTES = 30;
-const INSERT_DURATION_OPTIONS = [30, 60, 90];
+const INSERT_DURATION_OPTIONS = [30, 60, 90, 120];
 const PRICE_MIN = 10000;
 const PRICE_MAX = 500000;
 
@@ -298,7 +300,7 @@ const OwnerTimeSlot = () => {
     });
   }, []);
 
-  const weekDayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+  const weekDayLabels = WEEK_DAY_LABELS;
   const activeDayKey = useMemo(() => toIsoDate(weekDates[activeDayIndex]), [weekDates, activeDayIndex]);
   const otherDayKeys = useMemo(
     () => weekDates.map((d) => toIsoDate(d)).filter((k) => k !== activeDayKey),
@@ -359,7 +361,7 @@ const OwnerTimeSlot = () => {
     [slotRows, activeDayKey],
   );
 
-  const activeDayValidationByRow = useMemo(() => {
+  const buildValidationByDayKey = useCallback((dayKey) => {
     const next = {};
     const addError = (rowIdx, type, message) => {
       if (!next[rowIdx]) {
@@ -375,10 +377,16 @@ const OwnerTimeSlot = () => {
     const closeMin = timeToMinutes(venueCloseTime ? formatTime(venueCloseTime) : null);
     const validRanges = [];
 
-    rowsForActiveDay.forEach(({ row, idx: originalIdx }) => {
+    const rowsForDay = slotRows
+      .map((row, idx) => ({ row, idx }))
+      .filter(
+        ({ row }) => row.slotIds?.[dayKey] != null || row.prices?.[dayKey] !== undefined,
+      );
+
+    rowsForDay.forEach(({ row, idx: originalIdx }) => {
       const startMin = timeToMinutes(row.start);
       const endMin = timeToMinutes(row.end);
-      const rawPrice = row.prices?.[activeDayKey];
+      const rawPrice = row.prices?.[dayKey];
       const normalizedPrice =
         rawPrice === "" || rawPrice === undefined || rawPrice === null ? null : Number(rawPrice);
 
@@ -387,7 +395,7 @@ const OwnerTimeSlot = () => {
       } else {
         const duration = endMin - startMin;
         if (!INSERT_DURATION_OPTIONS.includes(duration)) {
-          addError(originalIdx, "time", "Chỉ được chọn khung 30 phút, 1 giờ hoặc 1 giờ 30 phút.");
+          addError(originalIdx, "time", "Chỉ được chọn khung 30 phút, 1 giờ, 1 giờ 30 phút hoặc 2 giờ.");
         }
         if (openMin != null && startMin < openMin) {
           addError(originalIdx, "time", `Giờ bắt đầu không được sớm hơn ${formatTime(venueOpenTime)}.`);
@@ -416,16 +424,26 @@ const OwnerTimeSlot = () => {
     }
 
     return next;
-  }, [rowsForActiveDay, activeDayKey, venueOpenTime, venueCloseTime]);
+  }, [slotRows, venueOpenTime, venueCloseTime]);
+
+  const activeDayValidationByRow = useMemo(
+    () => buildValidationByDayKey(activeDayKey),
+    [buildValidationByDayKey, activeDayKey],
+  );
 
   const hasActiveDayValidationErrors = useMemo(
     () => Object.keys(activeDayValidationByRow).length > 0,
     [activeDayValidationByRow],
   );
 
+  const hasWeekValidationErrors = useMemo(
+    () => weekDates.some((d) => Object.keys(buildValidationByDayKey(toIsoDate(d))).length > 0),
+    [weekDates, buildValidationByDayKey],
+  );
+
   const canUseDurationTemplate =
     !saving && !loadingSlots && !!sportTypeId && !activeDayHasPersistedSlot;
-  const allowedDurations = useMemo(() => new Set([30, 60, 90]), []);
+  const allowedDurations = useMemo(() => new Set([30, 60, 90, 120]), []);
   const parsedDuration = Number(slotDuration);
   const normalizedDuration = allowedDurations.has(parsedDuration) ? parsedDuration : 60;
 
@@ -911,6 +929,113 @@ const OwnerTimeSlot = () => {
     return { dk, dow, desiredSlots };
   }, [activeDayIndex, slotRows, weekDates]);
 
+  const buildDesiredSlotsForDayIndex = useCallback((dayIndex) => {
+    const d = weekDates[dayIndex];
+    const dk = toIsoDate(d);
+    const dow = DOTNET_DAY_NAMES[d.getDay()];
+    const validationByRow = buildValidationByDayKey(dk);
+    if (Object.keys(validationByRow).length > 0) {
+      const firstError = Object.values(validationByRow).find((entry) => entry?.messages?.length)?.messages?.[0];
+      throw new Error(firstError || `Dữ liệu ${weekDayLabels[dayIndex]} chưa hợp lệ.`);
+    }
+
+    const desiredSlots = [];
+    for (const row of slotRows) {
+      const rawPrice = row.prices?.[dk];
+      const price =
+        rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
+      const startM = timeToMinutes(row.start);
+      const endM = timeToMinutes(row.end);
+      if (startM == null || endM == null || endM <= startM) {
+        throw new Error(`Khung giờ ${weekDayLabels[dayIndex]} không hợp lệ.`);
+      }
+      if (price > 0) {
+        desiredSlots.push({
+          start: row.start,
+          end: row.end,
+          startTime: toTimeOnly(row.start),
+          endTime: toTimeOnly(row.end),
+          price,
+        });
+      }
+    }
+
+    return { dk, dow, desiredSlots };
+  }, [weekDates, buildValidationByDayKey, slotRows, weekDayLabels]);
+
+  const persistSlotsForDayIndex = useCallback(async (dayIndex, sid) => {
+    const { dk, dow } = buildDesiredSlotsForDayIndex(dayIndex);
+    const createBatchPayload = [];
+
+    for (const row of slotRows) {
+      const rawPrice = row.prices?.[dk];
+      const price =
+        rawPrice === "" || rawPrice === undefined || rawPrice === null ? 0 : Number(rawPrice);
+      const existingId = row.slotIds?.[dk];
+      const startT = toTimeOnly(row.start);
+      const endT = toTimeOnly(row.end);
+
+      if (existingId) {
+        if (price <= 0) {
+          await deleteOwnerVenueTimeSlot(existingId);
+        } else {
+          const oldMeta = serverSlotMetaRef.current.get(String(existingId));
+          const changed =
+            !oldMeta ||
+            oldMeta.start !== row.start ||
+            oldMeta.end !== row.end ||
+            Number(oldMeta.price) !== Number(price);
+          if (changed) {
+            await updateOwnerVenueTimeSlot(existingId, {
+              startTime: startT,
+              endTime: endT,
+              price,
+            });
+          }
+        }
+      } else if (price > 0) {
+        createBatchPayload.push({
+          sportTypeId: sid,
+          startTime: startT,
+          endTime: endT,
+          dayOfWeek: dow,
+          price,
+        });
+      }
+    }
+
+    if (createBatchPayload.length > 0) {
+      await createOwnerVenueTimeSlot(id, createBatchPayload);
+    }
+  }, [buildDesiredSlotsForDayIndex, id, slotRows]);
+
+  const saveWeekSlots = async () => {
+    const sid = Number(sportTypeId);
+    if (!sid) {
+      toast.error("Vui lòng chọn loại sân / môn thể thao.");
+      return;
+    }
+    if (hasWeekValidationErrors) {
+      toast.error("Vui lòng sửa các lỗi thời gian hoặc giá trước khi lưu cả tuần.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      for (let dayIndex = 0; dayIndex < weekDates.length; dayIndex += 1) {
+        await persistSlotsForDayIndex(dayIndex, sid);
+      }
+      editSnapshotRef.current = null;
+      setEditingRowIdx(null);
+      toast.success("Đã lưu khung giờ cho toàn bộ tuần.");
+      await reloadSlots();
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Không lưu được khung giờ cho toàn bộ tuần."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const saveSingleRow = async (originalIdx) => {
     const sid = Number(sportTypeId);
     if (!sid) {
@@ -1181,6 +1306,7 @@ const OwnerTimeSlot = () => {
   const applyPriceDisabled =
     saving || !sportTypeId || loadingSlots || !slotRows.length || !otherDayKeys.length || hasActiveDayValidationErrors;
   const saveDisabled = saving || !sportTypeId || loadingSlots || hasActiveDayValidationErrors;
+  const saveWeekDisabled = saving || !sportTypeId || loadingSlots || hasWeekValidationErrors;
   const applyVenuesDisabled = saveDisabled || selectedApplyVenueIds.length === 0;
 
   return (
@@ -1225,10 +1351,10 @@ const OwnerTimeSlot = () => {
           <button
             type="button"
             className="ots-btn-save"
-            disabled={saveDisabled}
-            onClick={() => saveSlots({ applyToSelectedVenues: false })}
+            disabled={saveWeekDisabled}
+            onClick={saveWeekSlots}
           >
-            {saving ? "Đang lưu…" : `LƯU ${weekDayLabels[activeDayIndex].toUpperCase()}`}
+            {saving ? "Đang lưu…" : "LƯU CẢ TUẦN"}
           </button>
         </div>
       </header>
@@ -1417,6 +1543,7 @@ const OwnerTimeSlot = () => {
                 <option value={30}>30 phút</option>
                 <option value={60}>1 giờ</option>
                 <option value={90}>1 giờ 30 phút</option>
+                <option value={120}>2 giờ</option>
               </select>
             </label>
             <button

@@ -88,7 +88,6 @@ const EventDetail = () => {
   const [phoneNumberError, setPhoneNumberError] = useState("");
   const didEditNameRef = useRef(false);
   const didEditPhoneRef = useRef(false);
-  const didPromptLoginRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,16 +116,6 @@ const EventDetail = () => {
     if (nextPhone && !didEditPhoneRef.current && !phoneNumber) setPhoneNumber(nextPhone);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      didPromptLoginRef.current = false;
-      return;
-    }
-    if (didPromptLoginRef.current) return;
-    didPromptLoginRef.current = true;
-    openLogin();
-  }, [isAuthenticated, openLogin]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

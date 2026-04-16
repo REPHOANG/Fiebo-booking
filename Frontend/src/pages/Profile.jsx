@@ -56,7 +56,7 @@ const customerPasswordSchema = yup.object({
   newPassword: yup
     .string()
     .required("Vui lòng nhập mật khẩu mới")
-    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
     .matches(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ hoa")
     .matches(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường")
     .matches(/[0-9]/, "Mật khẩu phải có ít nhất 1 chữ số")
