@@ -36,9 +36,18 @@ import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 import "./Profile.css";
 import { useQuery } from "@tanstack/react-query";
 
+const VN_PHONE_REGEX = /^0\d{9,10}$/;
+
 const customerProfileSchema = yup.object({
   fullName: yup.string().trim().required("Vui lòng nhập họ và tên"),
-  phoneNumber: yup.string().trim().optional(),
+  phoneNumber: yup
+    .string()
+    .transform((value) => String(value ?? "").replace(/\s/g, "").trim())
+    .test("valid-phone-number", "Số điện thoại không hợp lệ", (value) => {
+      if (!value) return true;
+      return VN_PHONE_REGEX.test(value);
+    })
+    .optional(),
   dateOfBirth: yup.string().optional(),
 });
 
@@ -70,7 +79,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
     staleTime: 0,
@@ -116,17 +125,29 @@ const Profile = () => {
     });
   }, [profile, resetProfileForm]);
 
+  const syncProfileForm = (nextProfile) => {
+    if (!nextProfile) return;
+    resetProfileForm({
+      fullName: nextProfile.fullName || "",
+      phoneNumber: nextProfile.phoneNumber || "",
+      dateOfBirth: nextProfile.dateOfBirth ? nextProfile.dateOfBirth.slice(0, 10) : "",
+    });
+  };
+
   const onUpdateProfile = async (values) => {
     const payload = {
       fullName: values.fullName.trim(),
       email: profile?.email || "",
-      phoneNumber: values.phoneNumber?.trim() || "",
+      phoneNumber: String(values.phoneNumber ?? "").replace(/\s/g, "").trim(),
       dateOfBirth: values.dateOfBirth || "",
     };
     setIsLoading(true);
     try {
       await updateProfileAPI(payload);
-      dispatch(updateProfile(payload));
+      const refreshed = await refetchProfile();
+      const latestProfile = refreshed?.data || { ...profile, ...payload };
+      dispatch(updateProfile(latestProfile));
+      syncProfileForm(latestProfile);
       toast.success("Cập nhật hồ sơ thành công!");
       setIsEditingProfile(false);
     } catch (error) {

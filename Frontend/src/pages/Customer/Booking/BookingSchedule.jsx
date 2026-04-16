@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import Swal from "sweetalert2";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
@@ -977,6 +978,23 @@ const BookingSchedule = () => {
     setIsDragging(false);
   };
 
+  const promptLoginBeforeBooking = useCallback(() => {
+    Swal.fire({
+      title: "Yêu cầu đăng nhập",
+      text: "Bạn cần đăng nhập để tiếp tục đặt sân.",
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Đăng nhập",
+      cancelButtonText: "Để sau",
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#94a3b8",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        openLogin();
+      }
+    });
+  }, [openLogin]);
+
   /* ── Loading ── */
   if (loading) {
     return (
@@ -1372,7 +1390,7 @@ const BookingSchedule = () => {
           disabled={selectedSlots.length === 0}
           onClick={() => {
             if (!isOwnerOffline && !isAuthenticated) {
-              openLogin();
+              promptLoginBeforeBooking();
               return;
             }
             if (isOwnerOffline) {

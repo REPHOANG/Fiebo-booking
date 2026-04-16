@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { ArrowLeft, Calendar, Clock, MapPin, Ticket, Users } from "lucide-react";
+import { useAuthModal } from "../../context/AuthModalContext";
 import { getEventById, joinEvent } from "../../services/eventService";
 import { getProfile } from "../../services/authService";
 import "./EventDetail.css";
@@ -39,6 +41,21 @@ const formatTime = (t) => {
 const normalizePhoneNumber = (value) =>
   String(value ?? "").replace(/\s/g, "").trim();
 
+const getFullNameError = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "Vui lòng nhập họ và tên.";
+  return "";
+};
+
+const getPhoneNumberError = (value) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!normalized) return "Vui lòng nhập số điện thoại.";
+  if (!/^0\d{9,10}$/.test(normalized)) {
+    return "Số điện thoại không hợp lệ.";
+  }
+  return "";
+};
+
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -62,12 +79,16 @@ const EventDetail = () => {
   const [event, setEvent] = useState(null);
   const [error, setError] = useState(null);
   const { user, isAuthenticated } = useSelector((s) => s.auth || {});
+  const { openLogin } = useAuthModal();
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [note, setNote] = useState("");
+  const [fullNameError, setFullNameError] = useState("");
+  const [phoneNumberError, setPhoneNumberError] = useState("");
   const didEditNameRef = useRef(false);
   const didEditPhoneRef = useRef(false);
+  const didPromptLoginRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +117,16 @@ const EventDetail = () => {
     if (nextPhone && !didEditPhoneRef.current && !phoneNumber) setPhoneNumber(nextPhone);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      didPromptLoginRef.current = false;
+      return;
+    }
+    if (didPromptLoginRef.current) return;
+    didPromptLoginRef.current = true;
+    openLogin();
+  }, [isAuthenticated, openLogin]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -167,13 +198,40 @@ const EventDetail = () => {
   const dec = () => setTicketQuantity((q) => Math.max(1, Number(q) - 1));
   const inc = () => setTicketQuantity((q) => Math.min(maxSelectable, Number(q) + 1));
 
+  const promptLoginForJoin = () => {
+    Swal.fire({
+      title: "Yêu cầu đăng nhập",
+      text: "Bạn cần đăng nhập trước khi đăng ký tham gia sự kiện.",
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Đăng nhập",
+      cancelButtonText: "Để sau",
+      confirmButtonColor: "#16a34a",
+      cancelButtonColor: "#94a3b8",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        openLogin();
+      }
+    });
+  };
+
   const handleJoin = async () => {
     if (!eventId) return;
+    if (!isAuthenticated) {
+      promptLoginForJoin();
+      return;
+    }
 
     const qty = Number(ticketQuantity) || 0;
+    const nextFullNameError = getFullNameError(fullName);
+    const nextPhoneError = getPhoneNumberError(phoneNumber);
+
+    setFullNameError(nextFullNameError);
+    setPhoneNumberError(nextPhoneError);
+
     const payload = {
       fullName: String(fullName || "").trim(),
-      phoneNumber: String(phoneNumber || "").trim(),
+      phoneNumber: normalizePhoneNumber(phoneNumber),
       ticketQuantity: qty,
     };
 
@@ -185,12 +243,7 @@ const EventDetail = () => {
       toast.warning("Số lượng vượt quá chỗ còn lại");
       return;
     }
-    if (!payload.fullName) {
-      toast.warning("Vui lòng nhập họ tên");
-      return;
-    }
-    if (!payload.phoneNumber) {
-      toast.warning("Vui lòng nhập số điện thoại");
+    if (nextFullNameError || nextPhoneError) {
       return;
     }
 
@@ -398,29 +451,45 @@ const EventDetail = () => {
               <label className="ed-field">
                 <span>Họ và tên</span>
                 <input
+                  className={fullNameError ? "ed-input-error" : ""}
                   value={fullName}
                   onChange={(e) => {
                     didEditNameRef.current = true;
-                    setFullName(e.target.value);
+                    const nextValue = e.target.value;
+                    setFullName(nextValue);
+                    if (fullNameError) {
+                      setFullNameError(getFullNameError(nextValue));
+                    }
                   }}
+                  onBlur={() => setFullNameError(getFullNameError(fullName))}
                   placeholder="Nguyễn Văn A"
                   autoComplete="name"
+                  aria-invalid={fullNameError ? "true" : "false"}
                   disabled={submitting || soldOut}
                 />
+                {fullNameError ? <small className="ed-field-error">{fullNameError}</small> : null}
               </label>
               <label className="ed-field">
                 <span>Số điện thoại</span>
                 <input
+                  className={phoneNumberError ? "ed-input-error" : ""}
                   value={phoneNumber}
                   onChange={(e) => {
                     didEditPhoneRef.current = true;
-                    setPhoneNumber(e.target.value);
+                    const nextValue = e.target.value;
+                    setPhoneNumber(nextValue);
+                    if (phoneNumberError) {
+                      setPhoneNumberError(getPhoneNumberError(nextValue));
+                    }
                   }}
+                  onBlur={() => setPhoneNumberError(getPhoneNumberError(phoneNumber))}
                   placeholder="09xxxxxxxx"
                   inputMode="tel"
                   autoComplete="tel"
+                  aria-invalid={phoneNumberError ? "true" : "false"}
                   disabled={submitting || soldOut}
                 />
+                {phoneNumberError ? <small className="ed-field-error">{phoneNumberError}</small> : null}
               </label>
               <label className="ed-field">
                 <span>Ghi chú (tuỳ chọn)</span>

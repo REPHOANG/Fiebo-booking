@@ -395,6 +395,25 @@
   cursor: not-allowed;
 }
 
+.ed-field input.ed-input-error {
+  border-color: #ef4444;
+  background: #fff5f5;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.ed-field input.ed-input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
+}
+
+.ed-field-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .ed-btn {
   display: inline-flex;
   align-items: center;

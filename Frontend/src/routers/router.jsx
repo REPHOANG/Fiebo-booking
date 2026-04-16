@@ -87,10 +87,7 @@ const routes = [
   { path: "/profile", element: <ProtectedRoute element={<Profile />} /> },
   { path: "/venue/:id", element: <VenueDetail /> },
   { path: "/map", element: <MapExplore /> },
-  {
-    path: "/event/:id",
-    element: <ProtectedRoute element={<EventDetail />} />,
-  },
+  { path: "/event/:id", element: <EventDetail /> },
   {
     path: "/event/:id/register",
     element: <ProtectedRoute element={<EventRegister />} />,
@@ -119,10 +116,7 @@ const routes = [
     children: [
       { index: true, path: "", element: <CustomerHome /> },
       { path: "venue/:id/booking/schedule", element: <BookingSchedule /> },
-      {
-        path: "venue/:id/social-session",
-        element: <ProtectedRoute element={<EventList />} />,
-      },
+      { path: "venue/:id/social-session", element: <EventList /> },
       { path: "venue/:id/booking", element: <BookingConfirmation /> },
       { path: "booking/:bookingId/payment", element: <BookingPayment /> },
       {
