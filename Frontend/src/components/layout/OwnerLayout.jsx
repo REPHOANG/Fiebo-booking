@@ -64,7 +64,8 @@ const OwnerLayout = () => {
     if (activePath.startsWith("/owner/venues")) return ["Cơ sở", "Cơ sở của tôi"];
     if (activePath.startsWith("/owner/create-venue")) return ["Cơ sở", "Tạo cơ sở"];
     if (activePath.startsWith("/owner/profile")) return ["Hồ sơ cá nhân"];
-    if (activePath.startsWith("/owner/subscription")) return ["Hồ sơ & gói", "Gói"];
+    if (activePath.startsWith("/owner/subscription/plans")) return ["Hồ sơ & gói", "Mua gói"];
+    if (activePath.startsWith("/owner/subscription")) return ["Hồ sơ & gói", "Thông tin gói"];
     if (activePath.startsWith("/owner/payout")) return ["Hồ sơ & gói", "Payout"];
     if (activePath.startsWith("/owner/bookings")) return ["Đơn đặt sân"];
     if (activePath.startsWith("/owner/staff")) return ["Cơ sở", "Nhân viên"];
@@ -178,12 +179,20 @@ const OwnerLayout = () => {
                 <span className="owner-sidebar-text">Hồ sơ</span>
               </NavLink>
               <NavLink
-                to="/owner/subscription"
+                to="/owner/subscription/overview"
                 onClick={handleSidebarNavigate}
                 className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
               >
                 <ListChecks size={15} />
-                <span className="owner-sidebar-text">Gói</span>
+                <span className="owner-sidebar-text">Thông tin gói</span>
+              </NavLink>
+              <NavLink
+                to="/owner/subscription/plans"
+                onClick={handleSidebarNavigate}
+                className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
+              >
+                <ListChecks size={15} />
+                <span className="owner-sidebar-text">Mua gói</span>
               </NavLink>
             </div>
           </div>

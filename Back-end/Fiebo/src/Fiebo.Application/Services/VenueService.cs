@@ -508,6 +508,9 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để tải lên giấy tờ");
             }
+            DocumentValidator.ValidateDocument(request.BusinessDocument, DateTime.Now, "Giấy phép kinh doanh");
+            DocumentValidator.ValidateDocument(request.LandUseDocument, DateTime.Now, "Giấy tờ sử dụng đất");
+
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if (venue == null)
             {

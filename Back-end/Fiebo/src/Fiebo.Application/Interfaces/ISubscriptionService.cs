@@ -11,7 +11,7 @@ namespace Fiebo.Application.Interfaces
     {
         Task<List<SubscriptionPlanResponse>> GetAvailablePlansAsync();
         Task<OwnerPlanResponse> SubscribeToPlanAsync(int planId, string ownerId);
-        Task<OwnerPlanHistoryResponse?> GetCurrentPlanAsync(string ownerId);
-        Task<List<OwnerPlanHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId);
+        Task<CurrentOwnerPlanResponse?> GetCurrentPlanAsync(string ownerId);
+        Task<List<PlanPurchaseHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId);
     }
 }

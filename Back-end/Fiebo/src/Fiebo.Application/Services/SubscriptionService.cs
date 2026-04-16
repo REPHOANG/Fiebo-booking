@@ -182,7 +182,7 @@ namespace Fiebo.Application.Services
             }
         }
 
-        public async Task<OwnerPlanHistoryResponse?> GetCurrentPlanAsync(string ownerId)
+        public async Task<CurrentOwnerPlanResponse?> GetCurrentPlanAsync(string ownerId)
         {
             var currentPlan = await _unitOfWork.OwnerPlans.GetCurrentActiveByOwnerIdAsync(ownerId);
             if (currentPlan == null)
@@ -190,46 +190,28 @@ namespace Fiebo.Application.Services
                 return null;
             }
 
-            var lastTransaction = await _unitOfWork.SubscriptionTransactions.GetByOwnerIdAsync(ownerId);
-            var latest = lastTransaction.FirstOrDefault();
-
-            return new OwnerPlanHistoryResponse
+            return new CurrentOwnerPlanResponse
             {
-                OwnerPlanId = currentPlan.Id,
                 PlanId = currentPlan.PlanId,
                 PlanName = currentPlan.Plan.Name,
-                DurationDays = currentPlan.Plan.DurationDays,
-                AmountPaid = latest?.Amount ?? 0,
-                StartDate = currentPlan.StartDate,
                 EndDate = currentPlan.EndDate,
                 RemainingDays = CalculateRemainingDays(currentPlan.EndDate),
-                IsExpired = currentPlan.EndDate < DateTime.Now,
-                PaidAt = latest?.PaidAt ?? DateTime.MinValue
+                Status = currentPlan.Status,
+                CreatedAt = currentPlan.CreatedAt
             };
         }
 
-        public async Task<List<OwnerPlanHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId)
+        public async Task<List<PlanPurchaseHistoryResponse>> GetPlanPurchaseHistoryAsync(string ownerId)
         {
             var transactions = await _unitOfWork.SubscriptionTransactions.GetByOwnerIdAsync(ownerId);
 
-            return transactions.Select(MapSubscriptionTransaction).ToList();
-        }
-
-        private static OwnerPlanHistoryResponse MapSubscriptionTransaction(SubscriptionTransaction transaction)
-        {
-            return new OwnerPlanHistoryResponse
+            return transactions.Select(transaction => new PlanPurchaseHistoryResponse
             {
-                OwnerPlanId = transaction.OwnerPlanId,
                 PlanId = transaction.PlanId,
                 PlanName = transaction.Plan.Name,
-                DurationDays = transaction.Plan.DurationDays,
-                AmountPaid = transaction.Amount,
-                StartDate = transaction.OwnerPlan.StartDate,
-                EndDate = transaction.OwnerPlan.EndDate,
-                RemainingDays = CalculateRemainingDays(transaction.OwnerPlan.EndDate),
-                IsExpired = transaction.OwnerPlan.EndDate < DateTime.Now,
-                PaidAt = transaction.PaidAt
-            };
+                Price = transaction.Amount,
+                CreatedAt = transaction.CreatedAt
+            }).ToList();
         }
 
         private static int CalculateRemainingDays(DateTime endDate)
