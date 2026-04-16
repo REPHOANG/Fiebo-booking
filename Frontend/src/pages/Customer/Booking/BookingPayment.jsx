@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   useLocation,
   useNavigate,
@@ -29,37 +29,7 @@ import { useAuthModal } from "../../../context/AuthModalContext";
 const formatPrice = (price) =>
   price > 0 ? `${price.toLocaleString("vi-VN")} đ` : "0 đ";
 
-const HOLD_SECONDS = 5 * 60; // 5 minutes
-
-/** Giữ mốc hết hạn đếm 5p theo bookingId — F5 / quay lại từ Sân đã đặt không reset (theo phiên tab). */
-const paymentHoldUntilKey = (bookingId) =>
-  `fiebo_payment_hold_until_${bookingId}`;
-
-function readPaymentHoldUntilMs(bookingId) {
-  if (bookingId == null) return null;
-  try {
-    const raw = sessionStorage.getItem(paymentHoldUntilKey(bookingId));
-    if (!raw) return null;
-    const ms = Number(raw);
-    return Number.isFinite(ms) ? ms : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function writePaymentHoldUntilMs(bookingId, untilMs) {
-  if (bookingId == null) return;
-  try {
-    sessionStorage.setItem(paymentHoldUntilKey(bookingId), String(untilMs));
-  } catch (_) {}
-}
-
-function clearPaymentHoldDeadline(bookingId) {
-  if (bookingId == null) return;
-  try {
-    sessionStorage.removeItem(paymentHoldUntilKey(bookingId));
-  } catch (_) {}
-}
+const HOLD_SECONDS = 5 * 60; // fallback for local slot cache only
 
 const PAID_STATUSES = new Set(["Booked", "Completed"]);
 const TERMINAL_UNPAID_STATUSES = new Set([
@@ -284,14 +254,12 @@ const BookingPayment = () => {
         return;
       }
       if (PAID_STATUSES.has(b.status)) {
-        clearPaymentHoldDeadline(resolvedBookingId);
         navigate(`/booking/${resolvedBookingId}/payment/success`, {
           replace: true,
         });
         return;
       }
       if (TERMINAL_UNPAID_STATUSES.has(b.status)) {
-        clearPaymentHoldDeadline(resolvedBookingId);
         setBookingLoadError(
           "Đơn không còn ở trạng thái chờ thanh toán (hết hạn hoặc đã hủy).",
         );
@@ -389,53 +357,31 @@ const BookingPayment = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(HOLD_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [expired, setExpired] = useState(false);
 
-  /**
-   * Đếm ngược 5 phút theo bookingId: lần đầu tạo mốc, lưu sessionStorage để F5 / vào lại từ Sân đã đặt
-   * không reset. Hết giờ → màn hết hạn (không dùng ExpiredAt server).
-   */
-  const holdUntilMsRef = useRef(null);
-  const lastBookingIdRef = useRef(null);
-  useEffect(() => {
-    const bid = bookingDetail?.bookingId;
-    if (bid == null) return;
-    if (lastBookingIdRef.current !== bid) {
-      lastBookingIdRef.current = bid;
-      holdUntilMsRef.current = null;
-    }
-  }, [bookingDetail]);
-
+  /** Đếm ngược theo expiredAt từ API detail booking. */
   useEffect(() => {
     if (!bookingDetail) return;
-    setExpired(false);
-  }, [bookingDetail]);
 
-  useEffect(() => {
-    if (!bookingDetail || expired) return;
-
-    const bid = bookingDetail.bookingId;
-    if (holdUntilMsRef.current == null) {
-      let until = readPaymentHoldUntilMs(bid);
-      if (until == null) {
-        until = Date.now() + HOLD_SECONDS * 1000;
-        writePaymentHoldUntilMs(bid, until);
-      }
-      holdUntilMsRef.current = until;
+    const deadlineMs = new Date(bookingDetail.expiredAt).getTime();
+    if (!Number.isFinite(deadlineMs)) {
+      setTimeLeft(0);
+      setExpired(true);
+      return;
     }
 
     const tick = () => {
-      const deadline = holdUntilMsRef.current;
-      const secs = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+      const secs = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
       setTimeLeft(secs);
       if (secs <= 0) setExpired(true);
+      else setExpired(false);
     };
 
     tick();
     const idTimer = setInterval(tick, 1000);
     return () => clearInterval(idTimer);
-  }, [bookingDetail, bookingDetail?.bookingId, expired]);
+  }, [bookingDetail]);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -550,7 +496,6 @@ const BookingPayment = () => {
         // non-fatal: continue
       }
       dispatch(clearPaymentDraft());
-      clearPaymentHoldDeadline(bookingId);
       navigate(`/booking/${bookingId}/payment/success`, {
         replace: true,
       });
@@ -589,8 +534,8 @@ const BookingPayment = () => {
             </div>
             <h2>Hết thời gian thanh toán trên trang này</h2>
             <p>
-              Đã hết thời gian 5 phút thanh toán cho đơn này (cùng mốc kể cả khi tải lại trang hoặc
-              tiếp tục từ Sân đã đặt trong phiên tab). Vui lòng đặt lại hoặc kiểm tra đơn tại
+              Đơn đã hết hạn thanh toán theo thời gian giữ chỗ từ hệ thống. Vui lòng đặt lại hoặc
+              kiểm tra đơn tại
               &quot;Sân đã đặt&quot;.
             </p>
             <div className="bp-expired-actions">

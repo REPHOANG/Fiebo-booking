@@ -139,6 +139,23 @@ const todayStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+const endOfNextMonthStr = () => {
+  const now = new Date();
+  const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+  return `${endOfNextMonth.getFullYear()}-${String(endOfNextMonth.getMonth() + 1).padStart(2, "0")}-${String(endOfNextMonth.getDate()).padStart(2, "0")}`;
+};
+
+const clampBookingDate = (dateStr) => {
+  const min = todayStr();
+  const max = endOfNextMonthStr();
+  const value = String(dateStr || "");
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+};
+
 const formatDateVN = (dateStr) => {
   const [y, mo, d] = dateStr.split("-");
   const date = new Date(y, mo - 1, d);
@@ -188,6 +205,7 @@ const BookingSchedule = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(todayStr());
+  const maxSelectableDate = useMemo(() => endOfNextMonthStr(), []);
   const [selectedSlots, setSelectedSlots] = useState([]); // [{fieldIdx, slotIdx}]
   const initialMount = useRef(true);
   const didHydrateDraftRef = useRef(false);
@@ -242,7 +260,7 @@ const BookingSchedule = () => {
 
   // If page was opened with date/time params, prefill selectedDate and scroll to time
   useEffect(() => {
-    if (prefillDate) setSelectedDate(prefillDate);
+    if (prefillDate) setSelectedDate(clampBookingDate(prefillDate));
   }, [prefillDate]);
 
   // Reset selection on date change
@@ -261,7 +279,7 @@ const BookingSchedule = () => {
     didHydrateDraftRef.current = true;
 
     if (draft.selectedDate && draft.selectedDate !== selectedDate) {
-      setSelectedDate(draft.selectedDate);
+      setSelectedDate(clampBookingDate(draft.selectedDate));
     }
     if (Array.isArray(draft.selectedSlots) && draft.selectedSlots.length) {
       setSelectedSlots(draft.selectedSlots);
@@ -1064,11 +1082,13 @@ const BookingSchedule = () => {
               const todayY = today.getFullYear();
               const todayM = today.getMonth();
               const todayD = today.getDate();
+              const [maxY, maxM, maxD] = maxSelectableDate.split("-").map(Number);
               const days = getCalendarDays(calYear, calMonth);
               const monthLabel = new Date(calYear, calMonth).toLocaleDateString("vi-VN", { month: "long", year: "numeric" });
               const [selY, selM, selD] = (tempDate || selectedDate).split("-").map(Number);
 
               const canPrevMonth = calYear > todayY || (calYear === todayY && calMonth > todayM);
+              const canNextMonth = calYear < maxY || (calYear === maxY && calMonth < (maxM - 1));
 
               return (
                 <div className="bs-calendar-popup">
@@ -1088,9 +1108,11 @@ const BookingSchedule = () => {
                     <button
                       className="bs-cal-nav"
                       onClick={() => {
+                        if (!canNextMonth) return;
                         if (calMonth === 11) { setCalYear(calYear + 1); setCalMonth(0); }
                         else setCalMonth(calMonth + 1);
                       }}
+                      disabled={!canNextMonth}
                     >
                       <ChevronRight size={20} />
                     </button>
@@ -1104,12 +1126,13 @@ const BookingSchedule = () => {
                       const isToday = isSameDay(calYear, calMonth, d, todayY, todayM, todayD);
                       const isSelected = isSameDay(calYear, calMonth + 1, d, selY, selM, selD);
                       const isPast = new Date(calYear, calMonth, d) < new Date(todayY, todayM, todayD);
+                      const isAfterMax = new Date(calYear, calMonth, d) > new Date(maxY, maxM - 1, maxD);
                       return (
                         <div
                           key={d}
-                          className={`bs-cal-day${isToday ? " today" : ""}${isSelected ? " selected" : ""}${isPast ? " past" : ""}`}
+                          className={`bs-cal-day${isToday ? " today" : ""}${isSelected ? " selected" : ""}${isPast || isAfterMax ? " past" : ""}`}
                           onClick={() => {
-                            if (isPast) return;
+                            if (isPast || isAfterMax) return;
                             const ds = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                             setTempDate(ds);
                           }}
@@ -1124,7 +1147,7 @@ const BookingSchedule = () => {
                     <button
                       className="bs-cal-confirm"
                       onClick={() => {
-                        if (tempDate) setSelectedDate(tempDate);
+                        if (tempDate) setSelectedDate(clampBookingDate(tempDate));
                         setShowCalendar(false);
                       }}
                     >
@@ -1312,7 +1335,7 @@ const BookingSchedule = () => {
                               title="Sân này chưa có time slot"
                               style={{ gridColumn: `span ${gSlots.length}` }}
                             >
-                              Chưa có time slot
+                              Chưa có khung giờ nào được thiết lập
                             </div>
                           ) : (
                             gSlots.map((gs, si) => {

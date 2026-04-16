@@ -31,7 +31,8 @@ import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
 import OwnerProfile from "../pages/Owner/Account/OwnerProfile";
-import OwnerSubscription from "../pages/Owner/Account/OwnerSubscription";
+import OwnerSubscriptionOverview from "../pages/Owner/Account/OwnerSubscriptionOverview";
+import OwnerSubscriptionPlans from "../pages/Owner/Account/OwnerSubscriptionPlans";
 import OwnerVenues from "../pages/Owner/Venue/OwnerVenues";
 import CreateVenue from "../pages/Owner/Venue/CreateVenue";
 import OwnerOfflineBooking from "../pages/Owner/Booking/OwnerOfflineBooking";
@@ -147,7 +148,14 @@ const routes = [
     children: [
       { index: true, element: <OwnerDashboard /> },
       { path: "profile", element: <OwnerProfile /> },
-      { path: "subscription", element: <OwnerSubscription /> },
+      {
+        path: "subscription/overview",
+        element: <OwnerSubscriptionOverview />,
+      },
+      {
+        path: "subscription/plans",
+        element: <OwnerSubscriptionPlans />,
+      },
       { path: "payout", element: <PayoutList /> },
       { path: "payout/:id/details", element: <PayoutDetails /> },
       { path: "venues", element: <OwnerVenues /> },

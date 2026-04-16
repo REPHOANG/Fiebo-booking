@@ -2,10 +2,9 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { Wallet, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
+import { CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { getWalletBalance } from "../../../services/walletService";
 import {
-  getOwnerSubscriptionOverview,
   getOwnerSubscriptionPlans,
   subscribeOwnerToPlan,
 } from "../../../services/subscriptionService";
@@ -16,26 +15,6 @@ const formatMoney = (n) =>
     Number(n) || 0,
   );
 
-const formatDate = (v) => {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString("vi-VN");
-};
-
-const formatDateTime = (v) => {
-  if (!v) return "-";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
 const errMessage = (e) =>
   e?.response?.data?.message ??
   e?.response?.data?.Message ??
@@ -44,11 +23,7 @@ const errMessage = (e) =>
 
 const MSG_SUCCESS = "Đăng ký gói thành công. Gói của bạn đã được kích hoạt.";
 
-const OwnerSubscription = ({
-  embedded = false,
-  showWalletCard = true,
-  showPageHeader = !embedded,
-}) => {
+const OwnerSubscriptionPlans = () => {
   const queryClient = useQueryClient();
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [subscribing, setSubscribing] = useState(false);
@@ -62,23 +37,6 @@ const OwnerSubscription = ({
     queryKey: ["owner-subscription-plans"],
     queryFn: getOwnerSubscriptionPlans,
   });
-
-  const { data: overview, isLoading: overviewLoading } = useQuery({
-    queryKey: ["owner-subscription-overview"],
-    queryFn: getOwnerSubscriptionOverview,
-  });
-
-  const currentPlan = overview?.currentPlan ?? null;
-  const purchaseHistory = useMemo(
-    () =>
-      Array.isArray(overview?.purchaseHistory) ? overview.purchaseHistory : [],
-    [overview?.purchaseHistory],
-  );
-  const historyCount = purchaseHistory.length;
-  const historyPreview = useMemo(
-    () => purchaseHistory.slice(0, 4),
-    [purchaseHistory],
-  );
 
   const balance = Number(walletInfo?.balance ?? 0);
   const selectedPlan = useMemo(
@@ -96,10 +54,11 @@ const OwnerSubscription = ({
     if (
       name.includes("chuy") ||
       name.includes("pro") ||
-      name.includes("chuyên")
+      name.includes("chuyên") ||
+      name.includes("chuyen")
     )
       return "pro";
-    if (name.includes("basic") || name.includes("cơ bản")) return "basic";
+    if (name.includes("basic") || name.includes("cơ bản") || name.includes("co ban")) return "basic";
     if (idx === 0) return "basic";
     if (idx === 1) return "pro";
     return "vip";
@@ -128,110 +87,10 @@ const OwnerSubscription = ({
   };
 
   return (
-    <div
-      className={`op-subscription ${embedded ? "op-subscription--embedded" : ""}`}
-    >
-      {showPageHeader ? (
-        <header className="op-header">
-          <div>
-            <h1>Gói dịch vụ</h1>
-            <div className="op-sub-header-overview">
-              {overviewLoading ? (
-                <p className="op-sub">Đang tải thông tin gói hiện tại...</p>
-              ) : (
-                <>
-                  <div className="op-sub-header-metrics">
-                    <div className="op-sub-header-metric">
-                      <span>Gói hiện tại</span>
-                      <strong>{currentPlan?.planName || "Chưa có"}</strong>
-                    </div>
-                    <div className="op-sub-header-metric">
-                      <span>Còn lại</span>
-                      <strong>
-                        {currentPlan
-                          ? `${Math.max(0, Number(currentPlan.remainingDays) || 0)} ngày`
-                          : "-"}
-                      </strong>
-                    </div>
-                    <div className="op-sub-header-metric">
-                      <span>Hết hạn</span>
-                      <strong>{formatDate(currentPlan?.endDate)}</strong>
-                    </div>
-                    <div className="op-sub-header-metric">
-                      <span>Lịch sử mua</span>
-                      <strong>{historyCount} lần</strong>
-                    </div>
-                  </div>
-
-                  {historyPreview.length > 0 ? (
-                    <ul className="op-sub-history-preview">
-                      {historyPreview.map((item) => (
-                        <li key={item.ownerPlanId} className="op-sub-history-item">
-                          <div className="op-sub-history-main">
-                            <p className="op-sub-history-name">{item.planName}</p>
-                            <p className="op-sub-history-meta">
-                              Mua lúc: {formatDateTime(item.paidAt)}
-                            </p>
-                          </div>
-                          <div className="op-sub-history-right">
-                            <strong>{formatMoney(item.amountPaid)}</strong>
-                            <span
-                              className={`op-sub-history-badge ${
-                                item.isExpired
-                                  ? "op-sub-history-badge--expired"
-                                  : "op-sub-history-badge--active"
-                              }`}
-                            >
-                              {item.isExpired
-                                ? "Đã hết hạn"
-                                : `Còn ${Math.max(0, Number(item.remainingDays) || 0)} ngày`}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="op-sub">Chưa có lịch sử mua gói.</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-          <Link to="/owner/profile" className="op-btn op-btn--ghost">
-            Hồ sơ chủ sân
-          </Link>
-        </header>
-      ) : null}
-
-      {!embedded ? (
-        <header className="op-subscription-intro">
-          <h2 className="op-subscription-title">Đăng ký gói dịch vụ</h2>
-        </header>
-      ) : null}
-
-      {showWalletCard && embedded ? (
-        <section className="op-card op-sub-wallet-card">
-          <div className="op-card-title" style={{ marginBottom: 10 }}>
-            <Wallet size={18} aria-hidden />
-            Số dư ví
-          </div>
-          {walletLoading && walletInfo == null ? (
-            <p className="op-muted">Đang tải số dư…</p>
-          ) : (
-            <div className="op-sub-wallet-inner">
-              <div className="op-sub-wallet-balance">
-                {formatMoney(balance)}
-              </div>
-              <Link
-                to="/wallet/top-up"
-                className="op-btn op-btn--secondary op-btn--sm"
-              >
-                Nạp tiền
-              </Link>
-            </div>
-          )}
-        </section>
-      ) : null}
+    <div className="op-subscription">
+      <header className="op-subscription-intro">
+        <h2 className="op-subscription-title">Đăng ký gói dịch vụ chủ sân</h2>
+      </header>
 
       <div className="op-subscription-grid">
         <section className="op-card op-sub-plans">
@@ -239,11 +98,8 @@ const OwnerSubscription = ({
             <CreditCard size={17} aria-hidden />
             Gói có sẵn
           </h3>
-          <p className="op-muted op-subsection-hint">
-            Chọn một gói để xem tóm tắt và thanh toán.
-          </p>
           {plansLoading ? (
-            <p className="op-muted">Đang tải danh sách gói…</p>
+            <p className="op-muted">Đang tải danh sách gói...</p>
           ) : plans.length === 0 ? (
             <p className="op-muted">Chưa có gói đăng ký nào được cấu hình.</p>
           ) : (
@@ -279,7 +135,7 @@ const OwnerSubscription = ({
                         <div className="op-sub-plan-meta">
                           Thời hạn:{" "}
                           <strong>
-                            {p.durationDays ? `${p.durationDays} ngày` : "—"}
+                            {p.durationDays ? `${p.durationDays} ngày` : "-"}
                           </strong>
                         </div>
                         <div className="op-sub-plan-price">
@@ -315,7 +171,7 @@ const OwnerSubscription = ({
                   <span>Số dư ví</span>
                   <strong>
                     {walletLoading && walletInfo == null
-                      ? "Đang tải…"
+                      ? "Đang tải..."
                       : formatMoney(balance)}
                   </strong>
                 </div>
@@ -338,7 +194,7 @@ const OwnerSubscription = ({
                   <strong>
                     {selectedPlan.durationDays
                       ? `${selectedPlan.durationDays} ngày`
-                      : "—"}
+                      : "-"}
                   </strong>
                 </div>
               </div>
@@ -389,7 +245,7 @@ const OwnerSubscription = ({
                 disabled={subscribing || !sufficient}
                 onClick={handleSubscribe}
               >
-                {subscribing ? "Đang xử lý…" : "Đăng ký & Thanh toán"}
+                {subscribing ? "Đang xử lý..." : "Đăng ký & Thanh toán"}
               </button>
               <p className="op-muted op-sub-footnote">
                 Sau khi bấm Đăng ký, hệ thống kiểm tra số dư, trừ ví, ghi nhận
@@ -403,4 +259,4 @@ const OwnerSubscription = ({
   );
 };
 
-export default OwnerSubscription;
+export default OwnerSubscriptionPlans;

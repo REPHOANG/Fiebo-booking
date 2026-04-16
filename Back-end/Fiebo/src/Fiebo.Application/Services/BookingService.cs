@@ -9,6 +9,7 @@ using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using System.Security.Principal;
+using Fiebo.Application.Validators;
 
 namespace Fiebo.Application.Services
 {
@@ -207,7 +208,18 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
             var now = DateTime.Now;
+            var maxBookingDate = BookingDateValidator.GetMaxDate(now);
 
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
             if (venue == null || venue.Status != VenueStatus.Active)
@@ -215,6 +227,9 @@ namespace Fiebo.Application.Services
 
             if (request.BookingDate < DateOnly.FromDateTime(now))
                 throw new BadRequestException("Ngày đặt không hợp lệ.");
+
+            if (request.BookingDate > maxBookingDate)
+                throw new BadRequestException($"Chỉ có thể đặt lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
 
             var fieldIds = request.Details.Select(x => x.FieldId).Distinct().ToList();
             var slotIds = request.Details.Select(x => x.SlotId).Distinct().ToList();
@@ -385,7 +400,7 @@ namespace Fiebo.Application.Services
             {
                 BookingId = b.Id,
                 Status = b.Status.ToString(),
-                BookingDate = b.CreatedAt,
+                BookingDate = b.BookingDate,
                 VenueName = bd.Field?.Venue?.Name ?? "N/A",
                 Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
                 Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
@@ -409,6 +424,16 @@ namespace Fiebo.Application.Services
 
         public async Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string? userId, string? userRole)
         {
+            if (request.Details == null || !request.Details.Any())
+                throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
+
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
+
             if(userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
             if (userRole == null)
             {
@@ -416,6 +441,7 @@ namespace Fiebo.Application.Services
             }
            
             var now = DateTime.Now;
+            var maxBookingDate = BookingDateValidator.GetMaxDate(now);
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
             if (venue == null || venue.Status != VenueStatus.Active)
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
@@ -431,6 +457,9 @@ namespace Fiebo.Application.Services
             }
             if (request.BookingDate < DateOnly.FromDateTime(now))
                 throw new BadRequestException("Ngày đặt không hợp lệ.");
+
+            if (request.BookingDate > maxBookingDate)
+                throw new BadRequestException($"Chỉ có thể đặt lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
 
             var fieldIds = request.Details.Select(x => x.FieldId).Distinct().ToList();
             var slotIds = request.Details.Select(x => x.SlotId).Distinct().ToList();

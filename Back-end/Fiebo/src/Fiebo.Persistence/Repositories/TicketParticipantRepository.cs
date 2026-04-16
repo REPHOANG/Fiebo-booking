@@ -21,7 +21,8 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.TicketParticipants
                 .AsNoTracking()
-                .Where(tp => tp.EventId == eventId)
+                .Where(tp => tp.EventId == eventId && 
+                (tp.Status == TicketParticipantStatus.Joined || tp.Status == TicketParticipantStatus.Pending))
                 .SumAsync(tp => (int?)tp.TicketQuantity) ?? 0;
         }
 

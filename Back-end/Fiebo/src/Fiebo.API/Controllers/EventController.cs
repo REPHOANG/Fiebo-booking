@@ -146,7 +146,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-62: Create a new drop-in event for a specific field.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPost("/api/owner/event")]
         public async Task<IActionResult> CreateDropInEvent([FromBody] CreateDropInEventRequest request)
         {
@@ -284,6 +284,23 @@ namespace Fiebo.API.Controllers
                     ? $"Đã hủy sự kiện thành công. Hệ thống đang tiến hành hoàn tiền cho {refundedCount} người chơi đã đăng ký."
                     : "Đã hủy sự kiện thành công. Không có người chơi nào cần hoàn tiền.",
                 Data = new { RefundedPlayerCount = refundedCount }
+            });
+        }
+
+        [Authorize(Roles = AppRoles.Customer)]
+        [HttpPatch("ticket/{id}/cancel")]
+        public async Task<IActionResult> CancelEventByCustomer([FromRoute] int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
+
+            await _eventService.CustomerCancelDropInEventAsync(id, userId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Hủy sự kiện thành công. Tiền mua vé đã được hoàn về ví của bạn"
             });
         }
     }

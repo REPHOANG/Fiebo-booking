@@ -32,7 +32,7 @@ namespace Fiebo.Persistence.Repositories
 
             return await _context.OwnerPlans
                 .Include(x => x.Plan)
-                .Where(x => x.OwnerId == ownerId && x.Status == OwnerPlanStatus.Active && x.EndDate >= now)
+                .Where(x => x.OwnerId == ownerId)
                 .OrderByDescending(x => x.EndDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();

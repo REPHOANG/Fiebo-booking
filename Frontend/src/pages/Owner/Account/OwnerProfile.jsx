@@ -147,7 +147,7 @@ const OwnerProfile = () => {
             <p className="op-hero-role">Chủ sân</p>
           </div>
         </div>
-        <Link to="/owner/subscription" className="op-btn op-hero-plan-btn">
+        <Link to="/owner/subscription/overview" className="op-btn op-hero-plan-btn">
           Membership
         </Link>
       </section>

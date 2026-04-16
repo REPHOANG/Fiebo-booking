@@ -10,8 +10,8 @@ namespace Fiebo.Application.DTOs.Booking
     {
         public int BookingId { get; set; }
         public string Status { get; set; }
-        public DateTime BookingDate { get; set; }
-        public string VenueName { get; set; }
+        public DateOnly BookingDate { get; set; }
+        public string VenueName { get; set; }   
         public string Address { get; set; }
         public string Province { get; set; }
         public int VenueId { get; set; }

@@ -7,6 +7,7 @@ using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
+using Fiebo.Application.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,12 +43,28 @@ namespace Fiebo.Application.Services
             if (request.Details.Count == 0)
                 throw new BadRequestException("Phải chọn ít nhất một sân và khung giờ.");
 
+            var duplicates = request.Details
+                .GroupBy(x => new { x.FieldId, x.SlotId })
+                .Where(g => g.Count() > 1);
+
+            if (duplicates.Any())
+                throw new BadRequestException("Danh sách sân và khung giờ bị trùng lặp.");
+
             // BR-33: MinPlayer > 0, MaxPlayer >= MinPlayer
             if (request.MinPlayer <= 0)
                 throw new BadRequestException("Số người tối thiểu phải lớn hơn 0.");
 
             if (request.MaxPlayer < request.MinPlayer)
                 throw new BadRequestException("Số người tối đa phải lớn hơn hoặc bằng số người tối thiểu.");
+
+            var now = DateTime.Now;
+            var maxEventDate = BookingDateValidator.GetMaxDate(now);
+
+            if (request.EventDate < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày tổ chức không hợp lệ.");
+
+            if (request.EventDate > maxEventDate)
+                throw new BadRequestException($"Chỉ có thể tạo sự kiện đến hết ngày {maxEventDate:dd/MM/yyyy}.");
 
             // Verify all fields exist and belong to a venue owned by this user
             int? venueId = null;
@@ -659,5 +676,55 @@ namespace Fiebo.Application.Services
 
             return refundedCount;
         }
+
+        public async Task CustomerCancelDropInEventAsync(int ticketId, string? userId)
+        {
+            if (userId == null)
+                throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
+
+            var ticket = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId) ?? throw new NotFoundException("Không tìm thấy vé tham gia sự kiện.");
+            if (ticket.Status != TicketParticipantStatus.Joined)
+                throw new BadRequestException("Chỉ có vé đã thanh toán có thể hủy.");
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                ticket.Status = TicketParticipantStatus.Cancelled;
+                _unitOfWork.TicketParticipants.Update(ticket);
+                var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
+                var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(ticket.EventId)
+                    ?? throw new NotFoundException("Không tìm thấy slot của sự kiện.");
+
+                if (earliestSlot.Slot == null)
+                    throw new BadRequestException("Slot không hợp lệ.");
+                var thisEvent = await _unitOfWork.TicketEvents.GetByIdAsync(ticket.EventId) ?? throw new NotFoundException("Không tìm thấy sự kiện.");
+                var eventDateTime = thisEvent.EventDate
+                    .ToDateTime(earliestSlot.Slot.StartTime);
+
+                var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
+                if (hoursBeforeEvent > 6)
+                {
+                    throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
+                }
+                wallet.Balance += ticket.TotalPrice;
+                _unitOfWork.Wallets.Update(wallet);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.Refund,
+                    Direction = TransactionDirection.Credit,
+                    Amount = ticket.TotalPrice,
+                    ReferenceId = ticket.EventId
+                });
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
+                throw;
+            }
+        }
+
     }
 }
