@@ -145,6 +145,8 @@ const BookingConfirmation = () => {
   const slotSummary = bookingState?.slotSummary;
   const venueSchedule = bookingState?.venueSchedule;
   const isWalkInBooking = bookingState?.walkIn;
+  const isStaffBooking = bookingState?.isStaff;
+  const walkInBasePath = isStaffBooking ? "/staff" : "/owner";
 
   // Prefill from Redux user when available (e.g. email/phone login có thể có trong JWT).
   React.useEffect(() => {
@@ -419,7 +421,7 @@ const BookingConfirmation = () => {
             dispatch(clearDraft(String(venue?.id)));
           } catch (e) {}
           toast.success("Đã tạo lịch đặt offline thành công.");
-          navigate("/owner/bookings", { replace: true });
+          navigate(`${walkInBasePath}/bookings`, { replace: true });
         } catch (err) {
           const msg =
             err?.response?.data?.message ||
@@ -607,7 +609,7 @@ const BookingConfirmation = () => {
           className="bc-back-btn"
           onClick={() =>
             isWalkInBooking && venue?.id
-              ? navigate(`/owner/venues/${venue.id}/offline-booking`)
+              ? navigate(`${walkInBasePath}/venues/${venue.id}/offline-booking`)
               : navigate(`/venue/${venue?.id ?? id}/booking/schedule`)
           }
           disabled={isSubmitting}

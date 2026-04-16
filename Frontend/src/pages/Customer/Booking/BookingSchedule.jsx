@@ -167,10 +167,16 @@ const BookingSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isOwnerOffline =
-    location.pathname.includes("/owner/venues/") &&
+  const isStaffOffline =
+    location.pathname.includes("/staff/venues/") &&
     location.pathname.includes("/offline-booking") &&
     !location.pathname.includes("/offline-booking/confirm");
+  const isOwnerOffline =
+    isStaffOffline ||
+    (location.pathname.includes("/owner/venues/") &&
+      location.pathname.includes("/offline-booking") &&
+      !location.pathname.includes("/offline-booking/confirm"));
+  const offlineBasePrefix = isStaffOffline ? "/staff" : "/owner";
   const gridRef = useRef(null);
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
@@ -1011,7 +1017,7 @@ const BookingSchedule = () => {
         <h2>Không thể tải lịch sân</h2>
         <p>{error || "Sân không tồn tại."}</p>
         <button
-          onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+          onClick={() => (isOwnerOffline ? navigate(`${offlineBasePrefix}/offline-booking`) : navigate(-1))}
           className="bs-back-link"
         >
           ← Quay lại
@@ -1032,7 +1038,7 @@ const BookingSchedule = () => {
         <div className="bs-topbar">
           <button
             className="bs-back"
-            onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+            onClick={() => (isOwnerOffline ? navigate(`${offlineBasePrefix}/offline-booking`) : navigate(-1))}
           >
             <ArrowLeft size={20} />
           </button>
@@ -1393,7 +1399,7 @@ const BookingSchedule = () => {
               return;
             }
             if (isOwnerOffline) {
-              navigate(`/owner/venues/${id}/offline-booking/confirm`, {
+              navigate(`${offlineBasePrefix}/venues/${id}/offline-booking/confirm`, {
                 state: {
                   venue,
                   fields,
@@ -1403,6 +1409,7 @@ const BookingSchedule = () => {
                   slotSummary,
                   venueSchedule,
                   walkIn: true,
+                  isStaff: isStaffOffline,
                 },
               });
               return;

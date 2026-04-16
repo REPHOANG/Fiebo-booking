@@ -63,6 +63,10 @@ import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdmi
 import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
 import FinanceAdminProcessWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminProcessWithdrawalRequests";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
+import StaffOfflineBooking from "../pages/Staff/Booking/StaffOfflineBooking";
+import StaffBookings from "../pages/Staff/Booking/StaffBookings";
+import StaffBookingDetail from "../pages/Staff/Booking/StaffBookingDetail";
+import StaffEvents from "../pages/Staff/Event/StaffEvents";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -231,6 +235,12 @@ const routes = [
     children: [
       { index: true, element: <StaffHome /> },
       { path: "profile", element: <Profile /> },
+      { path: "offline-booking", element: <StaffOfflineBooking /> },
+      { path: "venues/:id/offline-booking", element: <BookingSchedule /> },
+      { path: "venues/:id/offline-booking/confirm", element: <BookingConfirmation /> },
+      { path: "bookings", element: <StaffBookings /> },
+      { path: "bookings/:id", element: <StaffBookingDetail /> },
+      { path: "events", element: <StaffEvents /> },
     ],
   },
   { path: "*", element: <NotFoundPage /> },

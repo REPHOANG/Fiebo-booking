@@ -33,7 +33,7 @@ const translateStatus = (status) => {
   return status || "—";
 };
 
-const OwnerEvents = () => {
+const OwnerEvents = ({ showCreate = true, eventDetailBasePath = "/owner/events" }) => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -78,9 +78,11 @@ const OwnerEvents = () => {
         ) : list.length === 0 ? (
           <div className="oe-empty">
             <p>Hiện chưa có sự kiện nào. Bạn có thể tạo sự kiện mới.</p>
-            <Link to="/owner/events/create" className="oe-create-link">
-              Tạo sự kiện
-            </Link>
+            {showCreate && (
+              <Link to="/owner/events/create" className="oe-create-link">
+                Tạo sự kiện
+              </Link>
+            )}
           </div>
         ) : (
           <div className="oe-table-wrap">
@@ -119,9 +121,11 @@ const OwnerEvents = () => {
                       {Number(ev.totalTicketQuantity ?? 0)}
                     </td>
                     <td>
-                      <Link to={`/owner/events/${ev.eventId}`} className="oe-link">
-                        Chi tiết
-                      </Link>
+                      {eventDetailBasePath ? (
+                        <Link to={`${eventDetailBasePath}/${ev.eventId}`} className="oe-link">
+                          Chi tiết
+                        </Link>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
