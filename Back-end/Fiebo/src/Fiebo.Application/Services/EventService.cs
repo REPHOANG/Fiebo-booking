@@ -659,5 +659,46 @@ namespace Fiebo.Application.Services
 
             return refundedCount;
         }
+
+        public async Task CustomerCancelDropInEventAsync(int ticketId, string? userId)
+        {
+            if (userId == null)
+                throw new UnauthorizedAccessException("Không thể xác định danh tính người dùng.");
+
+            var ticket = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId) ?? throw new NotFoundException("Không tìm thấy vé tham gia sự kiện.");
+            if (ticket.Status != TicketParticipantStatus.Joined)
+                throw new BadRequestException("Chỉ có vé đang chờ mới có thể hủy.");
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                ticket.Status = TicketParticipantStatus.Cancelled;
+                _unitOfWork.TicketParticipants.Update(ticket);
+                var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
+                var hoursBeforeEvent = (ticket.Event.EventDate.ToDateTime(ticket.Event.Details.OrderBy(d => d.Slot.StartTime).First().Slot.StartTime) - DateTime.Now).TotalHours;
+                if (hoursBeforeEvent > 6)
+                {
+                    throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
+                }
+                wallet.Balance += ticket.TotalPrice;
+                _unitOfWork.Wallets.Update(wallet);
+                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.Id,
+                    TransactionType = TransactionType.Refund,
+                    Direction = TransactionDirection.Credit,
+                    Amount = ticket.TotalPrice,
+                    ReferenceId = ticket.EventId
+                });
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
+                throw new BadRequestException("Không thể hủy vé. Vui lòng thử lại.");
+
+            }
+        }
     }
 }
