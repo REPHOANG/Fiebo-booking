@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   MapPin, Star, Search, Frown, X, Clock,
-  Calendar, ChevronRight, SlidersHorizontal, Navigation, Dumbbell,
+  Calendar, ChevronRight, SlidersHorizontal, Navigation, Navigation2, Dumbbell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -24,25 +24,25 @@ const FALLBACK_SPORT_CATALOG = Object.freeze([
 
 const PAGE_SIZE = 8;
 
-const StarRating = ({ rating, max = 5, size = 14 }) => {
-  const pct = Math.min(Math.max(0, (Number(rating) / max) * 100), 100);
-  const stars = Array.from({ length: max }, (_, i) => i);
-  return (
-    <span className="star-rating" aria-label={`${Number(rating).toFixed(1)} trên ${max} sao`}>
-      <span className="star-rating-empty" aria-hidden>
-        {stars.map((i) => <Star key={i} size={size} />)}
-      </span>
-      <span className="star-rating-filled" aria-hidden style={{ width: `${pct}%` }}>
-        {stars.map((i) => <Star key={i} size={size} />)}
-      </span>
-    </span>
-  );
-};
-
 const formatTime = (timeSpan) => {
   if (!timeSpan) return "";
   const parts = String(timeSpan).split(":");
   return `${parts[0]}:${parts[1]}`;
+};
+
+const StarRating = ({ rating, max = 5 }) => {
+  const pct = Math.min(100, Math.max(0, (rating / max) * 100));
+  const stars = Array.from({ length: max });
+  return (
+    <span className="star-rating" aria-label={`${rating} / ${max} sao`}>
+      <span className="star-rating-empty">
+        {stars.map((_, i) => <Star key={i} size={13} />)}
+      </span>
+      <span className="star-rating-filled" style={{ width: `${pct}%` }}>
+        {stars.map((_, i) => <Star key={i} size={13} />)}
+      </span>
+    </span>
+  );
 };
 
 /** Query `time` cho API search venue (TimeOnly). */
@@ -882,27 +882,28 @@ const Venues = () => {
                   </span>
                 </div>
                 <div className="venue-info">
-                  <h3>{venueName}</h3>
+                  <h3 title={venueName}>{venueName}</h3>
                   <p className="location">
-                    <MapPin size={15} /> {getLocation(venue)}
+                    <MapPin size={15} />
+                    <span title={getLocation(venue)}>{getLocation(venue)}</span>
                   </p>
-                  {openTime && closeTime && (
-                    <p className="venue-hours">
-                      <Clock size={15} />
-                      <span>{formatTime(openTime)} - {formatTime(closeTime)}</span>
-                    </p>
-                  )}
-                  <div className="rating-row">
-                    <div className="rating">
-                      <span className="rating-value">{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
-                      <StarRating rating={Number(venue.rating ?? venue.Rating ?? 0)} />
-                      
-                    </div>
-                    <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
+                  <div className="venue-meta-row">
+                    {openTime && closeTime && (
+                      <span className="venue-hours">
+                        <Clock size={13} />
+                        {formatTime(openTime)} – {formatTime(closeTime)}
+                      </span>
+                    )}
+                    <span className="venue-rating">
+                      <Star size={13} className="venue-rating-star" />
+                      <span className="rating-value">
+                        {Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}
+                      </span>
+                    </span>
                   </div>
                   {(venue.distanceKm ?? venue.DistanceKm) != null && (
                     <p className="venue-distance">
-                      <MapPin size={13} />{" "}
+                      <Navigation2 size={13} />{" "}
                       {Number(venue.distanceKm ?? venue.DistanceKm).toFixed(1)} km
                     </p>
                   )}

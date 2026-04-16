@@ -77,8 +77,8 @@ const minutesToHHMM = (minutes) => {
 };
 const MANUAL_INSERT_STEP_MINUTES = 30;
 const INSERT_DURATION_OPTIONS = [30, 60, 90, 120];
-const PRICE_MIN = 10000;
-const PRICE_MAX = 500000;
+const PRICE_MIN = 1;
+const PRICE_MAX = 10000000;
 
 const getAllowedEndOptions = (startHHMM, closeTime) => {
   const startMin = timeToMinutes(startHHMM);
