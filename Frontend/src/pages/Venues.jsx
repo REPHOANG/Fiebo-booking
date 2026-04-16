@@ -894,8 +894,9 @@ const Venues = () => {
                   )}
                   <div className="rating-row">
                     <div className="rating">
-                      <StarRating rating={Number(venue.rating ?? venue.Rating ?? 0)} />
                       <span className="rating-value">{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
+                      <StarRating rating={Number(venue.rating ?? venue.Rating ?? 0)} />
+                      
                     </div>
                     <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
                   </div>
