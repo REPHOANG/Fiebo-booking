@@ -3,7 +3,6 @@ import {
   useLocation,
   useNavigate,
   useParams,
-  useSearchParams,
 } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
@@ -131,11 +130,9 @@ function normalizeBookingDetail(raw) {
  * Trang thành công — URL riêng + replace sau thanh toán để nút Back không quay lại form payment.
  */
 export function BookingPaymentSuccess() {
-  const { id } = useParams();
+  const { bookingId: bookingIdParam } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const bookingIdRaw = searchParams.get("bookingId");
-  const bookingId = bookingIdRaw ? Number(bookingIdRaw) : NaN;
+  const bookingId = bookingIdParam ? Number(bookingIdParam) : NaN;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -234,9 +231,7 @@ export function BookingPaymentSuccess() {
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
               <button
                 type="button"
-                onClick={() =>
-                  navigate(`/venue/${id}/booking/payment?bookingId=${bookingId}`)
-                }
+                onClick={() => navigate(`/booking/${bookingId}/payment`)}
                 className="bp-back-link"
               >
                 Đi tới thanh toán
@@ -257,21 +252,19 @@ export function BookingPaymentSuccess() {
 }
 
 const BookingPayment = () => {
-  const { id } = useParams();
+  const { bookingId: bookingIdParam } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
   const { openLogin } = useAuthModal();
 
   const token = localStorage.getItem("accessToken");
   const paymentState = location.state;
-  const bookingIdFromQuery = searchParams.get("bookingId");
-  const parsedQuery = bookingIdFromQuery ? Number(bookingIdFromQuery) : NaN;
+  const routeBookingId = bookingIdParam ? Number(bookingIdParam) : NaN;
   const fromState = paymentState?.reservationId ?? paymentState?.bookingId;
   const resolvedBookingId =
-    Number.isFinite(parsedQuery) && parsedQuery > 0
-      ? parsedQuery
+    Number.isFinite(routeBookingId) && routeBookingId > 0
+      ? routeBookingId
       : fromState != null && Number(fromState) > 0
         ? Number(fromState)
         : null;
@@ -290,16 +283,9 @@ const BookingPayment = () => {
         }
         return;
       }
-      if (String(b.venueId) !== String(id)) {
-        if (!silent) {
-          setBookingLoadError("Đơn này không thuộc cơ sở đang mở.");
-          setBookingDetail(null);
-        }
-        return;
-      }
       if (PAID_STATUSES.has(b.status)) {
         clearPaymentHoldDeadline(resolvedBookingId);
-        navigate(`/venue/${id}/booking/payment/success?bookingId=${resolvedBookingId}`, {
+        navigate(`/booking/${resolvedBookingId}/payment/success`, {
           replace: true,
         });
         return;
@@ -315,16 +301,8 @@ const BookingPayment = () => {
       setBookingDetail(b);
       setBookingLoadError(null);
     },
-    [id, navigate, resolvedBookingId],
+    [navigate, resolvedBookingId],
   );
-
-  useEffect(() => {
-    if (!resolvedBookingId) return;
-    const q = bookingIdFromQuery ? Number(bookingIdFromQuery) : NaN;
-    if (!Number.isFinite(q) || q !== resolvedBookingId) {
-      setSearchParams({ bookingId: String(resolvedBookingId) }, { replace: true });
-    }
-  }, [resolvedBookingId, bookingIdFromQuery, setSearchParams]);
 
   useEffect(() => {
     if (!resolvedBookingId) {
@@ -573,7 +551,7 @@ const BookingPayment = () => {
       }
       dispatch(clearPaymentDraft());
       clearPaymentHoldDeadline(bookingId);
-      navigate(`/venue/${id}/booking/payment/success?bookingId=${bookingId}`, {
+      navigate(`/booking/${bookingId}/payment/success`, {
         replace: true,
       });
     } catch (payErr) {
@@ -601,6 +579,7 @@ const BookingPayment = () => {
   };
 
   if (expired) {
+    const venueId = bookingDetail?.venueId ?? paymentState?.venue?.id;
     return (
       <motion.div {...pageTransition}>
         <div className="bp-main">
@@ -625,7 +604,7 @@ const BookingPayment = () => {
               <button
                 type="button"
                 className="bp-back-link secondary"
-                onClick={() => navigate(`/venue/${id}?book=1`)}
+                onClick={() => navigate(venueId ? `/venue/${venueId}?book=1` : "/bookings")}
               >
                 Đặt sân mới
               </button>

@@ -7,13 +7,12 @@ import './LoginPopup.css';
  * Popup đăng nhập riêng — overlay + modal, bên trong dùng trang Login.
  * Khi đăng nhập thành công gọi onClose. Chủ sân (Field Owner) được chuyển sang /owner.
  */
-const LoginPopup = ({ open, onClose, onOpenRegister, redirectAfterLogin }) => {
+const LoginPopup = ({ open, onClose, onOpenRegister, onOpenForgotPassword, redirectAfterLogin }) => {
   if (!open) return null;
 
   const modal = (
     <div
       className="login-popup-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Đăng nhập"
@@ -31,6 +30,7 @@ const LoginPopup = ({ open, onClose, onOpenRegister, redirectAfterLogin }) => {
           <Login
             onLoginSuccess={onClose}
             onOpenRegister={onOpenRegister}
+            onOpenForgotPassword={onOpenForgotPassword}
             redirectAfterLogin={redirectAfterLogin}
           />
         </div>

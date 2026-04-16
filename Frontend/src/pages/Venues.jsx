@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import {
   MapPin, Star, Search, Frown, X, Clock,
   Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
-  MessageSquare, User, Loader2, SlidersHorizontal, Heart, Navigation, Dumbbell,
+  MessageSquare, User, Loader2, SlidersHorizontal, Navigation, Dumbbell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -44,22 +44,6 @@ const formatTimeForApi = (t) => {
 };
 
 /* ── Helpers ──────────────────────────────────────────────────── */
-const readStoredUserGeo = () => {
-  try {
-    const raw = localStorage.getItem("userLocation");
-    if (!raw) return { userLat: null, userLng: null };
-    const j = JSON.parse(raw);
-    if (j?.lat != null && j?.lng != null) {
-      const userLat = Number(j.lat);
-      const userLng = Number(j.lng);
-      if (Number.isFinite(userLat) && Number.isFinite(userLng)) {
-        return { userLat, userLng };
-      }
-    }
-  } catch (_) {}
-  return { userLat: null, userLng: null };
-};
-
 const formatRelativeTime = (dateStr) => {
   if (!dateStr) return "";
   const now = new Date();
@@ -182,7 +166,7 @@ const VenuePopup = ({ venueId, onClose }) => {
       >
         {/* Sticky top bar */}
         <div className="vp-top-bar">
-          <button className="vp-book-btn" onClick={() => { onClose(); try { dispatch(clearDraft(String(venueId))); } catch(e){}; navigate(`/venue/${venueId}/booking`); }}>
+          <button className="vp-book-btn" onClick={() => { onClose(); try { dispatch(clearDraft(String(venueId))); } catch(e){}; navigate(`/venue/${venueId}/booking/schedule`); }}>
             <Calendar size={16} /> Đặt sân
           </button>
           <button className="vp-close" onClick={onClose}><X size={22} /></button>
@@ -355,7 +339,7 @@ const Venues = () => {
   const [inputValue, setInputValue] = useState(initialSearch);
   const [totalItems, setTotalItems] = useState(0);
   /** Đọc vị trí đã lưu ngay khi khởi tạo để tránh hai lần đổi `filtersKey` → hai request chồng chéo, response cũ ghi đè danh sách. */
-  const [userGeo, setUserGeo] = useState(() => readStoredUserGeo());
+  const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
 
   // Add filter panel state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -380,6 +364,8 @@ const Venues = () => {
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
   const [appliedBookingDate, setAppliedBookingDate] = useState("");
   const [appliedBookingTime, setAppliedBookingTime] = useState("");
+  const [appliedProvinceId, setAppliedProvinceId] = useState("");
+  const [appliedWardId, setAppliedWardId] = useState("");
   const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
 
   const sportDraftMismatch =
@@ -505,6 +491,8 @@ const Venues = () => {
         appliedBookingDate,
         appliedBookingTime,
         appliedRadiusKm ?? "",
+        appliedProvinceId,
+        appliedWardId,
       ].join("|"),
     [
       searchTerm,
@@ -514,6 +502,8 @@ const Venues = () => {
       appliedBookingDate,
       appliedBookingTime,
       appliedRadiusKm,
+      appliedProvinceId,
+      appliedWardId,
     ],
   );
 
@@ -549,6 +539,8 @@ const Venues = () => {
           appliedRadiusKm > 0
             ? { radiusKm: appliedRadiusKm }
             : {}),
+          ...(appliedProvinceId ? { provinceId: appliedProvinceId } : {}),
+          ...(appliedWardId ? { wardId: appliedWardId } : {}),
         });
 
         if (seq !== fetchSeqRef.current) return;
@@ -584,6 +576,8 @@ const Venues = () => {
       appliedBookingDate,
       appliedBookingTime,
       appliedRadiusKm,
+      appliedProvinceId,
+      appliedWardId,
     ],
   );
 
@@ -674,21 +668,25 @@ const Venues = () => {
 
   const getPendingSearchText = () => {
     if (pendingKeyword) return pendingKeyword;
+    // Khi đã chọn tỉnh/quận bằng ID, không gửi tên làm search text
+    if (selectedProvinceId) return "";
     return [province, district].filter(Boolean).join(" ").trim();
   };
 
   const applyPendingSearchText = () => {
     const text = getPendingSearchText();
-    if (text) {
-      setSearchTerm(text);
-      setInputValue(text);
-    }
+    setSearchTerm(text || "");
+    // Hiển thị tên tỉnh/quận trên ô tìm kiếm dù không gửi làm search text
+    const display = pendingKeyword || [province, district].filter(Boolean).join(" ").trim();
+    if (display) setInputValue(display);
   };
 
   const applyAreaFilter = () => {
     setAppliedRadiusKm(null);
     setAppliedBookingDate(pendingBookingDate);
     setAppliedBookingTime(pendingBookingTime);
+    setAppliedProvinceId(selectedProvinceId);
+    setAppliedWardId(selectedDistrictId);
     commitSportToUrl();
     applyPendingSearchText();
     setShowFilterPanel(false);
@@ -710,9 +708,6 @@ const Venues = () => {
 
     const finish = (lat, lng) => {
       setUserGeo({ userLat: lat, userLng: lng });
-      try {
-        localStorage.setItem("userLocation", JSON.stringify({ lat, lng }));
-      } catch (_) {}
       setAppliedRadiusKm(r);
       commitSportToUrl();
       applyPendingSearchText();
@@ -770,6 +765,8 @@ const Venues = () => {
     setAppliedRadiusKm(null);
     setAppliedBookingDate("");
     setAppliedBookingTime("");
+    setAppliedProvinceId("");
+    setAppliedWardId("");
     setSearchTerm("");
     setInputValue("");
     setSearchParams(
@@ -796,22 +793,7 @@ const Venues = () => {
         </motion.p>
       </div>
 
-      {/* Quick stats */}
-      <div className="venues-stats">
-        <div className="stat-item">
-          <span className="stat-value">{totalItems}</span>
-          <span className="stat-label">Sân khả dụng</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value">{sportFilterOptions.length}</span>
-          <span className="stat-label">Môn thể thao</span>
-        </div>  
-        <div className="stat-item">
-          <span className="stat-value">10+</span>
-          <span className="stat-label">Thành phố</span>
-        </div>
-      </div>
-
+    
       {/* Search + advanced filters */}
       <div className={`venues-search-block ${showFilterPanel ? "venues-search-block--open" : ""}`}>
         <div className="venues-search-bar">
@@ -1023,12 +1005,6 @@ const Venues = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="filter-save-row">
-                      <button className="venues-save-location" type="button">
-                        <Heart size={17} strokeWidth={2} />
-                        Lưu địa điểm
-                      </button>
-                    </div>
                   </div>
                 )}
 
@@ -1127,6 +1103,9 @@ const Venues = () => {
           {venues.map((venue, idx) => {
             const isLast = venues.length === idx + 1;
             const venueId = venue.venueId ?? venue.VenueId;
+            const venueName = venue.name ?? venue.Name ?? venue.venueName ?? venue.VenueName ?? "";
+            const openTime = venue.openTime ?? venue.OpenTime;
+            const closeTime = venue.closeTime ?? venue.CloseTime;
             return (
               <motion.div
                 ref={isLast ? lastVenueRef : null}
@@ -1145,7 +1124,7 @@ const Venues = () => {
                 <div className="venue-image">
                   <img
                     src={venue.thumbnailUrl || venue.ThumbnailUrl || "/placeholder-venue.jpg"}
-                    alt={venue.venueName ?? venue.VenueName ?? ""}
+                    alt={venueName}
                     loading="lazy"
                   />
                   <span className="sport-badge">
@@ -1153,21 +1132,22 @@ const Venues = () => {
                   </span>
                 </div>
                 <div className="venue-info">
-                  <h3>{venue.venueName ?? venue.VenueName}</h3>
+                  <h3>{venueName}</h3>
                   <p className="location">
                     <MapPin size={15} /> {getLocation(venue)}
                   </p>
+                  {openTime && closeTime && (
+                    <p className="venue-hours">
+                      <Clock size={15} />
+                      <span>Mở cửa {formatTime(openTime)} - Đóng cửa {formatTime(closeTime)}</span>
+                    </p>
+                  )}
                   <div className="rating-row">
                     <div className="rating">
                       <Star size={15} className="star" />
                       <span>{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
                     </div>
-                    {(venue.openTime || venue.OpenTime) && (venue.closeTime || venue.CloseTime) && (
-                      <span className="price">
-                        {formatTime(venue.openTime || venue.OpenTime)} -{" "}
-                        {formatTime(venue.closeTime || venue.CloseTime)}
-                      </span>
-                    )}
+                    <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
                   </div>
                   {(venue.distanceKm ?? venue.DistanceKm) != null && (
                     <p className="venue-distance">

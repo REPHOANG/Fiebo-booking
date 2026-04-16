@@ -382,22 +382,7 @@ const OwnerAddField = () => {
             <Calendar size={18} /> {isEdit ? "Sửa sân" : "Thêm sân mới"}
           </h3>
         </div>
-        <p className="ovd-muted">
-          Giờ hoạt động của cơ sở:{" "}
-          <strong>
-            {formatTime(venueOpenTime)} - {formatTime(venueCloseTime)}
-          </strong>
-          .{" "}
-          {isEdit ? (
-            <>
-              Khi <strong>sửa sân</strong>, loại sân/môn được giữ nguyên (không đổi trên form này).
-            </>
-          ) : (
-            <>
-              Chọn <strong>bất kỳ môn nào</strong> trong hệ thống (giống trang quản lý time slot).
-            </>
-          )}
-        </p>
+       
 
         <form onSubmit={handleSubmit(onValidSubmit)} noValidate>
           <div className="ovd-create-grid">
@@ -451,16 +436,11 @@ const OwnerAddField = () => {
             <div className="ovd-label ovd-full">
               <span className="cv-doc-gallery-label">
                 Ảnh sân
-                <span className="cv-doc-gallery-sublabel">
-                  Tối đa {MAX_FIELD_IMAGES} ảnh · bấm ô &quot;Thêm ảnh&quot; để chọn · bấm X để bỏ khỏi danh sách
-                  ảnh mới (chỉ gửi lên khi bấm {isEdit ? "Lưu thay đổi" : "Tạo sân"})
-                </span>
+               
               </span>
               {isEdit && existingImageUrls.length > 0 ? (
                 <>
-                  <p className="cv-doc-gallery-hint" style={{ marginBottom: 8 }}>
-                    Ảnh hiện có của sân:
-                  </p>
+                  
                   <div style={{ marginBottom: 8 }}>
                     <button
                       type="button"
@@ -493,9 +473,7 @@ const OwnerAddField = () => {
                       </li>
                     ))}
                   </ul>
-                  <p className="cv-doc-gallery-hint" style={{ marginTop: 8 }}>
-                    Bạn có thể thêm ảnh mới bên dưới (ảnh cũ vẫn giữ nguyên).
-                  </p>
+                 
                 </>
               ) : null}
               <ul className="cv-doc-gallery" aria-label="Ảnh sân" aria-live="polite">
@@ -541,13 +519,7 @@ const OwnerAddField = () => {
                   {errors.images.message}
                 </p>
               )}
-              {images.length === 0 && existingImageUrls.length === 0 ? (
-                <p className="ovd-image-preview-empty cv-doc-gallery-hint">
-                  {isEdit
-                    ? "Chưa chọn ảnh mới — có thể bổ sung sau khi lưu."
-                    : "Chưa có ảnh — bấm ô Thêm ảnh để chọn file."}
-                </p>
-              ) : null}
+              
             </div>
           </div>
 
