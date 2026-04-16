@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Review;
 using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.DTOs.Venue;
@@ -11,6 +11,8 @@ using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+
+using Fiebo.Application.Validators;
 
 namespace Fiebo.Application.Services
 {
@@ -221,6 +223,18 @@ namespace Fiebo.Application.Services
         public async Task<PagedResult<VenueInfoResponse>> SearchVenuesByFieldAsync(
             SearchFieldsRequest request)
         {
+            if (request.Date.HasValue)
+            {
+                var now = DateTime.Now;
+                var maxBookingDate = BookingDateValidator.GetMaxDate(now);
+
+                if (request.Date.Value < DateOnly.FromDateTime(now))
+                    throw new BadRequestException("Ngày tìm kiếm không hợp lệ.");
+
+                if (request.Date.Value > maxBookingDate)
+                    throw new BadRequestException($"Chỉ có thể tìm kiếm lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
+            }
+
             var page = request.Page <= 0 ? 1 : request.Page;
             var pageSize = request.PageSize <= 0 ? 10 : request.PageSize;
 
@@ -296,6 +310,15 @@ namespace Fiebo.Application.Services
 
         public async Task<VenueSlotsResponse> GetVenueSchedule(int venueId, DateOnly date)
         {
+            var now = DateTime.Now;
+            var maxBookingDate = BookingDateValidator.GetMaxDate(now);
+
+            if (date < DateOnly.FromDateTime(now))
+                throw new BadRequestException("Ngày xem lịch không hợp lệ.");
+
+            if (date > maxBookingDate)
+                throw new BadRequestException($"Chỉ có thể xem lịch đến ngày {maxBookingDate:dd/MM/yyyy}.");
+
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if (venue == null)
             {
