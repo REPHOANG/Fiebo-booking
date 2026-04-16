@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Fiebo.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,6 +28,7 @@ namespace Fiebo.Application.DTOs.Booking
         public DateOnly Date { get; set; }
 
         public decimal TotalPrice { get; set; }
+        public string? CancelReason { get; set; }
 
         public List<BookingSlotResponse> Details { get; set; } = [];
     }

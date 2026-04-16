@@ -240,7 +240,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
 
         // 2. Gọi class DbInitializer của bạn và truyền 'services' vào
-        await DbInitializer.SeedRolesAsync(services);
+        //await DbInitializer.SeedRolesAsync(services);
     }
     catch (Exception ex)
     {

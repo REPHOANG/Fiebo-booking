@@ -72,6 +72,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Bookings
                 .AsNoTracking()
+                .Include(b => b.CancelBooking)
                 .Include(b => b.Venue)
                 .Include(b => b.BookingDetails)
                 .ThenInclude(d => d.Field)

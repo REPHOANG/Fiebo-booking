@@ -362,6 +362,7 @@ namespace Fiebo.Application.Services
                 VenueName = booking.Venue.Name,
                 Date = booking.BookingDate,
                 TotalPrice = booking.TotalPrice,
+                CancelReason = booking.CancelBooking?.CancelReason,
                 Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
                 {
                     FieldName = d.Field.Name,
