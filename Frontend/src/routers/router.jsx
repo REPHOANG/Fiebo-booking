@@ -205,6 +205,7 @@ const routes = [
       { path: "customers", element: <AdminCustomers /> },
       { path: "venues", element: <AdminVenueModeration /> },
       { path: "venue/:id", element: <VenueDetailPage /> },
+      { path: "venue-registrations/:id", element: <VenueDetailPage /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "venue-registrations", element: <AdminVenueRegistrations /> },
       { path: "finance-admins", element: <FinanceAdminManagement /> },

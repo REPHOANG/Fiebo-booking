@@ -1,4 +1,3 @@
-'use client';
 import {
   Table,
   TableBody,
@@ -12,23 +11,34 @@ import {
   Typography,
   Container,
   Chip,
+  Pagination,
+  Stack,
 } from '@mui/material';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from './../../../utils/helperFunction';
-import { getPendingVenues } from '../../../services/adminService';
+import { ADMIN_PENDING_VENUES_QUERY_KEY, getPendingVenues } from '../../../services/adminService';
 import { useQuery } from '@tanstack/react-query';
 import LoadingPage from '../../../components/ui/Loading/LoadingPage';
-import { Link } from 'react-router-dom';
 
 export const AdminVenueRegistrations = () => {
-  const {data = [], isLoading} = useQuery({
-    queryKey: ['pendingVenues'],
-    queryFn: getPendingVenues,
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: [...ADMIN_PENDING_VENUES_QUERY_KEY, page, pageSize],
+    queryFn: () => getPendingVenues({ page, pageSize }),
   });
+
   const navigate = useNavigate();
-  if(isLoading){
-    return <LoadingPage/>
+
+  if (isLoading) {
+    return <LoadingPage />;
   }
+
+  const items = data?.items ?? [];
+  const totalItems = Number(data?.totalItems ?? 0);
+  const totalPages = Math.max(Number(data?.totalPages ?? 0), 1);
+
   return (
     <Container
       maxWidth="lg"
@@ -54,6 +64,25 @@ export const AdminVenueRegistrations = () => {
         >
           Danh sách cơ sở thể thao chờ phê duyệt
         </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+          <Chip
+            label={`${totalItems} hồ sơ đang chờ duyệt`}
+            color="warning"
+            variant="outlined"
+            style={{ fontFamily: "'Be Vietnam Pro', sans-serif" }}
+          />
+          <Button
+            variant="outlined"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            style={{
+              fontFamily: "'Be Vietnam Pro', sans-serif",
+              textTransform: 'none',
+            }}
+          >
+            {isFetching ? 'Đang tải...' : 'Làm mới'}
+          </Button>
+        </Stack>
       </Box>
 
       {/* Table */}
@@ -148,7 +177,7 @@ export const AdminVenueRegistrations = () => {
 
           {/* Body */}
           <TableBody>
-            {data.items.map((venue, index) => (
+            {items.map((venue, index) => (
               <TableRow
                 key={venue.venueId}
                 style={{
@@ -166,7 +195,7 @@ export const AdminVenueRegistrations = () => {
                     padding: '16px',
                   }}
                 >
-                  {index + 1}
+                  {(page - 1) * pageSize + index + 1}
                 </TableCell>
                 <TableCell
                   style={{
@@ -223,12 +252,10 @@ export const AdminVenueRegistrations = () => {
                   }}
                 >
                     <Button
-                    // as={Link}
-                    // to={"/admin/venue/" + venue.venueId}
                       variant="contained"
                       color="success"
                       size="small"
-                      onClick={() => navigate(`/admin/venue/${venue.venueId}`)}
+                      onClick={() => navigate(`/admin/venue-registrations/${venue.venueId}`)}
                       style={{
                         fontFamily: "'Be Vietnam Pro', sans-serif",
                         textTransform: 'none',
@@ -241,12 +268,35 @@ export const AdminVenueRegistrations = () => {
                 </TableCell>
               </TableRow>
             ))}
+            {!items.length && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#666',
+                    padding: '32px 16px',
+                  }}
+                >
+                  Không có hồ sơ đăng ký sân nào đang chờ duyệt.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Empty State */}
-      
+      {totalItems > 0 && (
+        <Box mt={3} display="flex" justifyContent="center">
+          <Pagination
+            color="primary"
+            page={page}
+            count={totalPages}
+            onChange={(_, value) => setPage(value)}
+          />
+        </Box>
+      )}
     </Container>
   );
 };
