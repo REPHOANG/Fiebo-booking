@@ -28,8 +28,15 @@ const Events = () => {
 
     for (const e of events || []) {
       const venueName = e?.venueName || "Sân";
+      const eventName = e?.name || e?.Name || e?.title || e?.Title || `Sự kiện #${e?.eventId ?? ""}`;
       const venueId = e?.venueId ?? e?.VenueId ?? null;
-      if (keyword && !venueName.toLowerCase().includes(keyword)) continue;
+      if (
+        keyword
+        && !venueName.toLowerCase().includes(keyword)
+        && !String(eventName).toLowerCase().includes(keyword)
+      ) {
+        continue;
+      }
 
       const slots = Array.isArray(e?.slots) ? e.slots : [];
       const first = slots[0];
@@ -41,6 +48,7 @@ const Events = () => {
 
       const session = {
         id: e?.eventId,
+        title: eventName,
         time:
           first && last
             ? `${formatTime(first?.startTime)} - ${formatTime(last?.endTime)}`
@@ -87,7 +95,7 @@ const Events = () => {
 
   const openVenueEvents = async (venueId, venueName) => {
     if (venueId) {
-      navigate(`/venue/${venueId}/social-session`);
+      navigate(`/venue/${venueId}/events`);
       return;
     }
 
@@ -106,7 +114,7 @@ const Events = () => {
       );
       const resolvedVenueId = match?.id ?? match?.venueId ?? match?.VenueId;
       if (resolvedVenueId) {
-        navigate(`/venue/${resolvedVenueId}/social-session`);
+        navigate(`/venue/${resolvedVenueId}/events`);
         return;
       }
       window.alert("Không tìm thấy mã sân để mở danh sách sự kiện.");
@@ -194,6 +202,7 @@ const Events = () => {
                       onClick={() => openVenueEvents(v.venueId, v.name)}
                     >
                       <div className="ev-session-left">
+                        <div className="ev-session-title">{s.title}</div>
                         <div className="ev-session-time">{s.time}</div>
                         <div className="ev-session-level">{s.level}</div>
                       </div>

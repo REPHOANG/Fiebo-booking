@@ -56,7 +56,7 @@ const getEventStatus = ({ eventDate, firstStartTime, remaining }) => {
 
 const EventList = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // venue id when route is /venue/:id/social-session
+  const { id } = useParams(); // venue id when route is /venue/:id/events
   const venueId = useMemo(() => id ?? null, [id]);
 
   const [rangeLabel, setRangeLabel] = useState("18/03 - 24/03");
@@ -93,14 +93,14 @@ const EventList = () => {
           const slots = Array.isArray(e?.slots) ? e.slots : [];
           const first = slots[0];
           const last = slots[slots.length - 1];
+          const eventName =
+            pick(e, "name", "Name", "title", "Title") ??
+            `[Xé vé] - Sự kiện #${e?.eventId ?? ""}`;
           const capacity = Number(e?.ticketQuantity ?? e?.TicketQuantity ?? 16) || 16;
           const remaining = Number(
             e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity ?? capacity
           );
-          const sport =
-            pick(e, "sportTypeName", "SportTypeName") ??
-            pick(first, "sportTypeName", "SportTypeName", "sportType", "SportType", "sportName") ??
-            "—";
+         
 
           const status = getEventStatus({
             eventDate: e?.eventDate ?? e?.EventDate,
@@ -117,14 +117,13 @@ const EventList = () => {
 
           return {
             id: e.eventId,
-            title: "[Xé vé] - Xé vé",
+            title: eventName,
             date: formatDate(e.eventDate),
             time:
               first && last
                 ? `${formatTime(first.startTime)} - ${formatTime(last.endTime)}`
                 : "",
             fields: slots.map((s) => s.fieldName).join(" - "),
-            sport,
             status,
             statusClass,
             joined: getJoined(capacity, remaining),

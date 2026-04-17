@@ -122,7 +122,7 @@ const routes = [
     children: [
       { index: true, path: "", element: <CustomerHome /> },
       { path: "venue/:id/booking/schedule", element: <BookingSchedule /> },
-      { path: "venue/:id/social-session", element: <EventList /> },
+      { path: "venue/:id/events", element: <EventList /> },
       { path: "venue/:id/booking", element: <BookingConfirmation /> },
       { path: "booking/:bookingId/payment", element: <BookingPayment /> },
       {
