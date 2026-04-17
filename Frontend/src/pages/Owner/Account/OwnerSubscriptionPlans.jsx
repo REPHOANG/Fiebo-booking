@@ -1,9 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import { getWalletBalance } from "../../../services/walletService";
+import { getHasSubscription, isFieldOwnerUser } from "../../../utils/ownerSubscription";
+import { getProfile } from "../../../services/authService";
+import { setCredentials } from "../../../store/authSlice";
 import {
   getOwnerSubscriptionPlans,
   subscribeOwnerToPlan,
@@ -24,9 +28,14 @@ const errMessage = (e) =>
 const MSG_SUCCESS = "Đăng ký gói thành công. Gói của bạn đã được kích hoạt.";
 
 const OwnerSubscriptionPlans = () => {
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
+  const user = useSelector((state) => state.auth?.user);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [subscribing, setSubscribing] = useState(false);
+
+  const hasSubscription = getHasSubscription(user);
+  const shouldShowSubscriptionMessage = isFieldOwnerUser(user) && hasSubscription === false;
 
   const { data: walletInfo, isLoading: walletLoading } = useQuery({
     queryKey: ["wallet-balance"],
@@ -75,6 +84,22 @@ const OwnerSubscriptionPlans = () => {
     setSubscribing(true);
     try {
       const { message } = await subscribeOwnerToPlan(selectedPlan.id);
+
+      // Unlock owner area immediately to avoid waiting for eventual profile consistency.
+      dispatch(
+        setCredentials({
+          user: {
+            ...(user || {}),
+            hasSubscription: true,
+          },
+        }),
+      );
+
+      const profile = await getProfile();
+      if (profile) {
+        dispatch(setCredentials({ user: profile }));
+      }
+
       toast.success(message?.trim() ? message : MSG_SUCCESS);
       queryClient.invalidateQueries({ queryKey: ["wallet-balance"] });
       queryClient.invalidateQueries({ queryKey: ["owner-subscription-overview"] });
@@ -90,6 +115,12 @@ const OwnerSubscriptionPlans = () => {
     <div className="op-subscription">
       <header className="op-subscription-intro">
         <h2 className="op-subscription-title">Đăng ký gói dịch vụ chủ sân</h2>
+        {shouldShowSubscriptionMessage ? (
+          <div className="op-subscription-alert" role="status" aria-live="polite">
+            <AlertCircle size={16} aria-hidden />
+            <span>Vui lòng đăng ký gói dịch vụ chủ sân để mở khóa và quản lý sân của bạn.</span>
+          </div>
+        ) : null}
       </header>
 
       <div className="op-subscription-grid">
@@ -161,9 +192,6 @@ const OwnerSubscriptionPlans = () => {
           {!selectedPlan ? (
             <div className="op-sub-empty-state">
               <div className="op-sub-empty-title">
-                Bạn chưa chọn gói dịch vụ nào
-              </div>
-              <div className="op-sub-empty-desc">
                 Hãy chọn một gói dịch vụ để đăng ký.
               </div>
               <div className="op-sub-empty-wallet">
@@ -225,7 +253,7 @@ const OwnerSubscriptionPlans = () => {
                   </div>
                 ) : (
                   <div className="op-sub-summary-row op-sub-summary-row--ok">
-                    <span>Sau khi trừ (dự kiến)</span>
+                    <span>Số dư còn lại</span>
                     <strong>{formatMoney(balance - planPrice)}</strong>
                   </div>
                 )}
@@ -234,7 +262,7 @@ const OwnerSubscriptionPlans = () => {
               {shortfall > 0 ? (
                 <p className="op-sub-warn-text">
                   Số dư không đủ. Vui lòng{" "}
-                  <Link to="/wallet/top-up">nạp thêm ví</Link> trước khi đăng
+                  <Link to="/wallet/top-up">nạp thêm tiền</Link> để đăng
                   ký.
                 </p>
               ) : null}
@@ -247,10 +275,6 @@ const OwnerSubscriptionPlans = () => {
               >
                 {subscribing ? "Đang xử lý..." : "Đăng ký & Thanh toán"}
               </button>
-              <p className="op-muted op-sub-footnote">
-                Sau khi bấm Đăng ký, hệ thống kiểm tra số dư, trừ ví, ghi nhận
-                giao dịch và kích hoạt gói (OwnerPlan).
-              </p>
             </>
           )}
         </section>

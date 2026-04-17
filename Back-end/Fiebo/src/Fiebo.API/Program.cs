@@ -1,9 +1,11 @@
 using DotNetEnv;
+using Fiebo.API.Authorization;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Repositories;
 using Fiebo.Infrastructure.ExternalServices;
 using Fiebo.Infrastructure.Services;
@@ -12,6 +14,8 @@ using Fiebo.Persistence.Data;
 using Fiebo.Persistence.Identity;
 using Fiebo.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +80,26 @@ builder.Services.AddAuthentication(opts =>
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
         };
     });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ActiveOwnerPlan", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole(AppRoles.FieldOwner);
+        policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: false));
+    });
+
+    options.AddPolicy("ActiveOwnerOrStaffPlan", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole(AppRoles.FieldOwner, AppRoles.FieldStaff);
+        policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: true));
+    });
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, ActiveOwnerPlanHandler>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, OwnerPlanAuthorizationResultHandler>();
 
 // Repository layer
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Copy } from "lucide-react";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
@@ -22,6 +23,7 @@ const copyToClipboard = (text, label) => {
 
 const WalletTopUpDetail = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const { id } = useParams();
   const returnPath = location.state?.returnPath ?? location.state?.returnTo;
@@ -63,14 +65,16 @@ const WalletTopUpDetail = () => {
       icon: "success",
       title: "Nạp tiền thành công",
       confirmButtonText: "OK",
-    }).then(() => {
+    }).then(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["wallet-balance"] });
+
       if (returnPath) {
         navigate(returnPath, { state: returnState, replace: true });
       } else {
         navigate("/wallet/top-up", { replace: true });
       }
     });
-  }, [navigate, returnPath, returnState]);
+  }, [navigate, queryClient, returnPath, returnState]);
 
   useWalletStream(user?.id, handleTopup);
 

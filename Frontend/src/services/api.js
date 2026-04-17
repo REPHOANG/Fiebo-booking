@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import store from "../store";
-import { logout, AUTH_STORAGE_KEY, isTokenExpired } from "../store/authSlice";
+import { logout, AUTH_STORAGE_KEY } from "../store/authSlice";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
-const getTokenFromRedux = () => store.getState()?.auth?.token ?? null;
+
+const getTokenFromStorage = () => localStorage.getItem(AUTH_STORAGE_KEY);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -14,7 +15,7 @@ const api = axios.create({
 });
 api.interceptors.request.use(
   (config) => {
-    const token = getTokenFromRedux();
+    const token = getTokenFromStorage();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,15 +26,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const currentToken = getTokenFromRedux();
+    const currentToken = getTokenFromStorage();
     if (
       error.response?.status === 401 &&
       !error.config?.url?.includes("/auth/login") &&
       !error.config?.url?.includes("/auth/refresh-token")
     ) {
-      // Chỉ auto-logout khi token hiện tại đã hết hạn.
-      // Tránh trường hợp 401 do phân quyền/endpoint đặc thù làm user bị đá ra sai.
-      if (currentToken && isTokenExpired(currentToken)) {
+      // Auto-logout khi token hợp lệ trong store nhận 401 từ API.
+      // Chỉ logout nếu vẫn còn token trong localStorage (tránh race khi vừa logout thủ công)
+      const tokenInStorage = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (currentToken && tokenInStorage) {
         store.dispatch(logout());
         localStorage.removeItem(AUTH_STORAGE_KEY);
         if (typeof window !== "undefined") {

@@ -9,6 +9,7 @@ namespace Fiebo.Application.DTOs.Event
         public int EventId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string VenueName { get; set; } = string.Empty;
+        public string? ThumbnailUrl { get; set; }
         public DateOnly EventDate { get; set; }
         public int TicketQuantity { get; set; }
         public decimal TotalAmount { get; set; }

@@ -196,7 +196,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/venues")]
         public async Task<IActionResult> GetOwnerVenues()
@@ -215,7 +215,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPatch]
         [Route("/api/owner/venues/{id}")]
         public async Task<IActionResult> DeactivateVenue([FromRoute] int id)
@@ -233,7 +233,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/venue/{id}/schedule")]
         public async Task<IActionResult> GetOwnerVenueSchedule([FromRoute] int id, [FromQuery] DateOnly date)
@@ -255,7 +255,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-41: Get all fields under a specific venue for the Field Owner.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/venue/{venueId}/fields")]
         public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
@@ -290,7 +290,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-44: Change the status of a specific field (Active/Inactive).
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPatch]
         [Route("/api/owner/venue/{venueId}/fields/{fieldId}")]
         public async Task<IActionResult> ChangeFieldStatus(
@@ -313,7 +313,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC: Create a new field for a venue.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/venues/{venueId}/fields")]
         public async Task<IActionResult> CreateField([FromRoute] int venueId, [FromForm] CreateFieldRequest request)
         {
@@ -339,7 +339,7 @@ namespace Fiebo.API.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/venue/draft")]
         public async Task<IActionResult> CreateVenue([FromForm] CreateVenueRequest request)
         {
@@ -353,7 +353,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        //[Authorize(Roles = AppRoles.FieldOwner)]
+        //[Authorize(Policy = "ActiveOwnerPlan")]
         //[HttpPatch("/api/owner/venue/{id}/draft")]
         //public async Task<IActionResult> CreateVenue([FromRoute] int id, [FromForm] CreateVenueRequest request)
         //{
@@ -374,7 +374,7 @@ namespace Fiebo.API.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/venues/{venueId}/documents")]
         public async Task<IActionResult> UploadVenueDocument([FromRoute] int venueId, [FromForm] CreateVenueDocumentRequest request)
         {
@@ -392,7 +392,7 @@ namespace Fiebo.API.Controllers
         /// </summary>
         /// <param name="venueId"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet("/api/owner/venues/{venueId}/detail")]
         public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
         {
@@ -411,7 +411,7 @@ namespace Fiebo.API.Controllers
         /// </summary>
         /// <param name="venueId"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/venues/{venueId}/submit")]
         public async Task<IActionResult> SubmitVenueDraft([FromRoute] int venueId)
         {
@@ -431,7 +431,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/field/{id}")]
         public async Task<IActionResult> UpdateField(
             [FromRoute] int id,
@@ -450,7 +450,7 @@ namespace Fiebo.API.Controllers
         /// Edit Venue Details: allows the Owner to update venue information.
         /// Status transitions are handled automatically via State Machine (BR-01, BR-02).
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/venues/{venueId}")]
         public async Task<IActionResult> UpdateVenue(
             [FromRoute] int venueId,
@@ -474,7 +474,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Field Owner adds a new service to a venue.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/venue/{venueId}/service")]
         public async Task<IActionResult> AddVenueService(
             [FromRoute] int venueId,
@@ -499,7 +499,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Field Owner edits an existing venue service.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/service/{serviceId}")]
         public async Task<IActionResult> UpdateVenueService(
             [FromRoute] int serviceId,
@@ -521,7 +521,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Field Owner deletes an existing venue service.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpDelete("/api/owner/service/{serviceId}")]
         public async Task<IActionResult> DeleteVenueService(
             [FromRoute] int serviceId,
@@ -564,7 +564,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="sportTypeId"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> GetOwnerVenueSchedule(
             [FromRoute] int id, [FromQuery] int sportTypeId)
@@ -585,7 +585,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> CreateVenueTimeSlot(
             [FromRoute] int id,
@@ -607,7 +607,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/time-slots/{id}")]
         public async Task<IActionResult> UpdateVenueTimeSlot(
             [FromRoute] int id,
@@ -628,7 +628,7 @@ namespace Fiebo.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpDelete("/api/owner/time-slots/{id}")]
         public async Task<IActionResult> DeleteVenueTimeSlot(
             [FromRoute] int id)
@@ -642,7 +642,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet("/api/owner/field/{id}")]
         public async Task<IActionResult> GetOwnerFieldDetail([FromRoute] int id)
         {
@@ -656,7 +656,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet("/api/owner/venue/select-option")]
         public async Task<IActionResult> GetOwnerVenueSelectOption()
         {

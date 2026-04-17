@@ -211,7 +211,7 @@ namespace Fiebo.Application.Services
             return _identityService.ChangePasswordAsync(userId, request);
         }
 
-        public async Task<UserProfileResponse> GetUserProfileAsync(string userId)
+        public async Task<UserProfileServiceResponse> GetUserProfileAsync(string userId)
         {
             var result = await _identityService.GetUserProfileAsync(userId);
             if (result == null)
@@ -219,7 +219,30 @@ namespace Fiebo.Application.Services
                 _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
                 throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
-            return result;
+            bool? hasSubscription = null;
+            bool? hasBankAccount = null;
+            if (result.Roles == AppRoles.FieldOwner || result.Roles == AppRoles.FieldStaff)
+            {
+                hasSubscription = await _unitOfWork.OwnerPlans
+                    .HasActivePlanAsync(userId, result.Roles);
+            }
+            if(result.Roles == AppRoles.FieldOwner)
+            {
+                hasBankAccount = await _unitOfWork.UserBankAccounts
+                    .GetSingleAsync(b => b.UserId == userId) != null;
+            }
+            return new UserProfileServiceResponse
+            {
+                Id = result.Id,
+                Email = result.Email,
+                FullName = result.FullName,
+                PhoneNumber = result.PhoneNumber,
+                DateOfBirth = result.DateOfBirth,
+                Roles = result.Roles,
+                Status = result.Status,
+                HasSubscription = hasSubscription,
+                HasBankAccount = hasBankAccount
+            };
         }
 
         public async Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request)
