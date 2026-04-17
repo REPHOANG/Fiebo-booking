@@ -23,7 +23,6 @@ import { clearPaymentDraft } from "../../../store/paymentDraftSlice";
 import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
-import { callPaymentWebhook } from "../../../services/bookingService";
 import { useAuthModal } from "../../../context/AuthModalContext";
 
 const formatPrice = (price) =>
