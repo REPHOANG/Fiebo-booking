@@ -1,125 +1,252 @@
-// pages/admin/AdminVenueRegistrations.jsx
-
+'use client';
 import {
-  Box,
-  Typography,
-  Paper,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  TableCell,
-  TableBody,
+  Paper,
+  Button,
+  Box,
+  Typography,
+  Container,
   Chip,
-  CircularProgress,
-  Pagination,
-} from "@mui/material";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import dayjs from "dayjs";
-import { useQuery } from "@tanstack/react-query";
-import { getPendingVenues } from "../../../services/adminService";
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { formatDate } from './../../../utils/helperFunction';
+import { getPendingVenues } from '../../../services/adminService';
+import { useQuery } from '@tanstack/react-query';
+import LoadingPage from '../../../components/ui/Loading/LoadingPage';
+import { Link } from 'react-router-dom';
 
 export const AdminVenueRegistrations = () => {
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const navigate = useNavigate();
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["pending-venues", page, pageSize],
-    queryFn: () => getPendingVenues({ page, pageSize }),
+  const {data = [], isLoading} = useQuery({
+    queryKey: ['pendingVenues'],
+    queryFn: getPendingVenues,
   });
-
+  const navigate = useNavigate();
+  if(isLoading){
+    return <LoadingPage/>
+  }
   return (
-    <Box sx={{ p: 4, minHeight: "100vh", background: "#f5f7fb" }}>
-      <Typography sx={{ fontSize: 26, fontWeight: 700, mb: 3 }}>
-        Cơ sở chờ duyệt
-      </Typography>
-
-      <Paper
-        sx={{
-          borderRadius: 4,
-          overflow: "hidden",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+    <Container
+      maxWidth="lg"
+      style={{
+        padding: '24px 0',
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+      }}
+    >
+      {/* Header */}
+      <Box
+        style={{
+          marginBottom: '24px',
         }}
       >
-        {isLoading ? (
-          <Box display="flex" justifyContent="center" py={6}>
-            <CircularProgress />
-          </Box>
-        ) : data?.items?.length === 0 ? (
-          <Box py={6} textAlign="center">
-            <Typography color="text.secondary">
-              Không có dữ liệu
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ background: "#fafafa" }}>
-                  <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Tên cơ sở</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Chủ sở hữu</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Ngày gửi</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-                </TableRow>
-              </TableHead>
+        <Typography
+          variant="h4"
+          style={{
+            fontFamily: "'Be Vietnam Pro', sans-serif",
+            fontWeight: 600,
+            color: '#1a1a1a',
+            marginBottom: '8px',
+          }}
+        >
+          Danh sách cơ sở thể thao chờ phê duyệt
+        </Typography>
+      </Box>
 
-              <TableBody>
-                {data.items.map((venue) => (
-                  <TableRow
-                    key={venue.venueId}
-                    hover
-                    onClick={() =>
-                      navigate(`/admin/venue/${venue.venueId}`)
-                    }
-                    sx={{
-                      cursor: "pointer",
-                      transition: "0.2s",
-                      "&:hover": {
-                        backgroundColor: "#f6faff",
-                      },
+      {/* Table */}
+      <TableContainer
+        component={Paper}
+        style={{
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          borderRadius: '8px',
+        }}
+      >
+        <Table
+          style={{
+            fontFamily: "'Be Vietnam Pro', sans-serif",
+          }}
+        >
+          {/* Header */}
+          <TableHead>
+            <TableRow
+              style={{
+                backgroundColor: '#f5f5f5',
+              }}
+            >
+              <TableCell
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                STT
+              </TableCell>
+              <TableCell
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                Tên cơ sở
+              </TableCell>
+              <TableCell
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                Chủ sở hữu
+              </TableCell>
+              <TableCell
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                Ngày gửi
+              </TableCell>
+              <TableCell
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                Trạng thái
+              </TableCell>
+              <TableCell
+                align="center"
+                style={{
+                  fontFamily: "'Be Vietnam Pro', sans-serif",
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  fontSize: '14px',
+                  padding: '16px',
+                }}
+              >
+                Hành động
+              </TableCell>
+            </TableRow>
+          </TableHead>
+
+          {/* Body */}
+          <TableBody>
+            {data.items.map((venue, index) => (
+              <TableRow
+                key={venue.venueId}
+                style={{
+                  borderBottom: '1px solid #e0e0e0',
+                  '&:hover': {
+                    backgroundColor: '#fafafa',
+                  },
+                }}
+              >
+                <TableCell
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#666',
+                    fontSize: '14px',
+                    padding: '16px',
+                  }}
+                >
+                  {index + 1}
+                </TableCell>
+                <TableCell
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#1a1a1a',
+                    fontSize: '14px',
+                    padding: '16px',
+                    fontWeight: 500,
+                  }}
+                >
+                  {venue.venueName}
+                </TableCell>
+                <TableCell
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#666',
+                    fontSize: '14px',
+                    padding: '16px',
+                  }}
+                >
+                  {venue.ownerName}
+                </TableCell>
+                <TableCell
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#666',
+                    fontSize: '14px',
+                    padding: '16px',
+                  }}
+                >
+                  <Chip
+                    label={formatDate(venue.submittedDate)}
+                    size="small"
+                    variant="outlined"
+                    style={{
+                      fontFamily: "'Be Vietnam Pro', sans-serif",
                     }}
-                  >
-                    <TableCell>{venue.venueId}</TableCell>
+                  />
+                </TableCell>
+                <TableCell
+                  style={{
+                    fontFamily: "'Be Vietnam Pro', sans-serif",
+                    color: '#666',
+                    fontSize: '14px',
+                    padding: '16px',
+                  }}
+                >
+                  {venue.status}
+                </TableCell>
+                <TableCell
+                  align="center"
+                  style={{
+                    padding: '16px',
+                  }}
+                >
+                    <Button
+                    // as={Link}
+                    // to={"/admin/venue/" + venue.venueId}
+                      variant="contained"
+                      color="success"
+                      size="small"
+                      onClick={() => navigate(`/admin/venue/${venue.venueId}`)}
+                      style={{
+                        fontFamily: "'Be Vietnam Pro', sans-serif",
+                        textTransform: 'none',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Xem chi tiết
+                    </Button>
+                    
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      {venue.venueName}
-                    </TableCell>
-
-                    <TableCell>{venue.ownerName}</TableCell>
-
-                    <TableCell>
-                      {dayjs(venue.submittedDate).format(
-                        "DD/MM/YYYY HH:mm"
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <Chip
-                        label="Chờ duyệt"
-                        sx={{
-                          backgroundColor: "#fff7e6",
-                          color: "#d48806",
-                          fontWeight: 500,
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            <Box display="flex" justifyContent="flex-end" p={2}>
-              <Pagination
-                count={data.totalPages || 1}
-                page={page}
-                onChange={(_, v) => setPage(v)}
-              />
-            </Box>
-          </>
-        )}
-      </Paper>
-    </Box>
+      {/* Empty State */}
+      
+    </Container>
   );
 };

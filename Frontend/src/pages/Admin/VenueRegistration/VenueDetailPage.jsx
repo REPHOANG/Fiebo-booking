@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { approveVenue, getVenueDetail, rejectVenue } from "../../../services/adminService";
 import { toast } from "react-toastify";
+import LoadingPage from "../../../components/ui/Loading/LoadingPage";
 
 // ================= UI =================
 const Section = ({ title, children }) => (
@@ -32,22 +33,11 @@ const Section = ({ title, children }) => (
 export const VenueDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const [openReject, setOpenReject] = useState(false);
-  const [reason, setReason] = useState("");
-
-  // ===== Query =====
-  const { data, isLoading } = useQuery({
-    queryKey: ["venue-detail", id],
-    queryFn: () => getVenueDetail(id),
-  });
-
-  // ===== Mutations =====
-  const approveMutation = useMutation({
+   const approveMutation = useMutation({
     mutationFn: () => approveVenue(id),
     onSuccess: () => {
       toast.success("Duyệt cơ sở thành công");
-      navigate("/admin/venues");
+      navigate("/admin/venue-registrations");
     },
     onError: () => {
       toast.error("Duyệt cơ sở thất bại");
@@ -58,19 +48,25 @@ export const VenueDetailPage = () => {
     mutationFn: () => rejectVenue({ id, reason }),
     onSuccess: () => {
       toast.success("Từ chối cơ sở thành công");
-      navigate("/admin/venues");
+      navigate("/admin/venue-registrations");
     },
     onError: () => {
       toast.error("Từ chối cơ sở thất bại");
     }
   });
 
-  if (isLoading)
-    return (
-      <Box p={4}>
-        <CircularProgress />
-      </Box>
-    );
+  const [openReject, setOpenReject] = useState(false);
+  const [reason, setReason] = useState("");
+
+  // ===== Query =====
+  const { data, isLoading } = useQuery({
+    queryKey: ["venue-detail", id],
+    queryFn: () => getVenueDetail(id),
+  });
+  if(isLoading){
+    return <LoadingPage/>
+  }
+
 
   return (
     <Box sx={{ p: 4, background: "#f5f7fb", minHeight: "100vh" }}>

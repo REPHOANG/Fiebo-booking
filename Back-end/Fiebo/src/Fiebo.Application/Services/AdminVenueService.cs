@@ -48,7 +48,8 @@ namespace Fiebo.Application.Services
                 VenueId = v.Id,
                 VenueName = v.Name,
                 OwnerName = ownerNames.GetValueOrDefault(v.OwnerId, "Unknown Owner"),
-                SubmittedDate = v.CreatedAt
+                SubmittedDate = v.CreatedAt,
+                Status = v.Status.ToString()
             }).ToList();
 
             return new PagedResult<PendingVenueListItemResponse>

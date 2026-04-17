@@ -7,15 +7,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 
-const getTokenFromStorage = () => localStorage.getItem(AUTH_STORAGE_KEY);
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
 });
 api.interceptors.request.use(
   (config) => {
-    const token = getTokenFromStorage();
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,16 +24,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const currentToken = getTokenFromStorage();
+    const currentToken = localStorage.getItem(AUTH_STORAGE_KEY);
     if (
       error.response?.status === 401 &&
       !error.config?.url?.includes("/auth/login") &&
       !error.config?.url?.includes("/auth/refresh-token")
     ) {
-      // Auto-logout khi token hợp lệ trong store nhận 401 từ API.
-      // Chỉ logout nếu vẫn còn token trong localStorage (tránh race khi vừa logout thủ công)
-      const tokenInStorage = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (currentToken && tokenInStorage) {
         store.dispatch(logout());
         localStorage.removeItem(AUTH_STORAGE_KEY);
         if (typeof window !== "undefined") {
@@ -43,7 +37,7 @@ api.interceptors.response.use(
           if (path !== "/") {
             window.location.replace("/");
           }
-        }
+        
       }
     }
     return Promise.reject(error);
