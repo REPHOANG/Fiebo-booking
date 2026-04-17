@@ -1,3 +1,4 @@
+using Fiebo.Application.DTOs.Venue;
 using System;
 using System.Collections.Generic;
 
@@ -24,6 +25,7 @@ namespace Fiebo.Application.DTOs.Admin
         public string OwnerAccountHolderName { get; set; } = string.Empty;
 
         // Documents
-        public List<string> DocumentUrls { get; set; } = new();
+        public VenueDocumentResponse? BusinessLicense { get; set; } = new();
+        public VenueDocumentResponse? LandUseDocument { get; set; } = new();
     }
 }

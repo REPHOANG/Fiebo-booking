@@ -1,5 +1,7 @@
 using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
@@ -79,9 +81,6 @@ namespace Fiebo.Application.Services
 
             var bankAccounts = await _unitOfWork.UserBankAccounts.FindAsync(b => b.UserId == venue.OwnerId);
             var bankAccount = bankAccounts.FirstOrDefault(); 
-
-            var documentUrls = venue.Documents.SelectMany(d => d.Images.Select(i => i.ImageUrl)).ToList();
-            
             string address = $"{venue.AddressDetail}, {venue.Ward?.Name}, {venue.Province?.Name}";
 
             return new PendingVenueDetailResponse
@@ -98,7 +97,22 @@ namespace Fiebo.Application.Services
                 OwnerBankName = bankAccount?.BankName ?? string.Empty,
                 OwnerBankAccountNumber = bankAccount?.AccountNumber ?? string.Empty,
                 OwnerAccountHolderName = bankAccount?.AccountHolderName ?? string.Empty,
-                DocumentUrls = documentUrls
+                BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = bizDoc.IssueDate,
+                        ExpiryDate = bizDoc.ExpiryDate,
+                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null,
+                LandUseDocument = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse) is VenueDocument landDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = landDoc.IssueDate,
+                        ExpiryDate = landDoc.ExpiryDate,
+                        Images = [.. landDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null
             };
         }
 
