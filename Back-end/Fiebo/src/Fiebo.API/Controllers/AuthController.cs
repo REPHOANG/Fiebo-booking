@@ -118,7 +118,7 @@ namespace Fiebo.API.Controllers
                     Message = "Không tìm thấy thông tin người dùng"
                 });
             }
-            return Ok(new ApiResponse<UserProfileResponse>
+            return Ok(new ApiResponse<UserProfileServiceResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy thông tin người dùng thành công",

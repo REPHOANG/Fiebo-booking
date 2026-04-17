@@ -44,8 +44,13 @@ export default function GiveRating({ open, handleClose, bookingId  }) {
       toast.success("Gửi đánh giá thành công!");
       setRating(0);
       setImages([]);
-      setComment(null);
+      setComment("");
       handleClose();
+    },
+    onError: (err) => {
+      toast.error(
+        err?.response?.data?.message || "Gửi đánh giá thất bại. Vui lòng thử lại."
+      );
     },
   });
   const handleSubmit = () => {

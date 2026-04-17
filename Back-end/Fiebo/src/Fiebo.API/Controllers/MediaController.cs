@@ -19,7 +19,7 @@ namespace Fiebo.API.Controllers
             _fieldService = fieldService;
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("field/{id}/upload")]
         public async Task<IActionResult> UploadFieldImage([FromRoute] int id, [FromForm] List<IFormFile> files)
         {
@@ -32,7 +32,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("field/delete/{*publicId}")]
         public async Task<IActionResult> DeleteFieldImage([FromRoute] string publicId)
         {

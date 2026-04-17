@@ -1,3 +1,4 @@
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
@@ -36,6 +37,40 @@ namespace Fiebo.Persistence.Repositories
                 .OrderByDescending(x => x.EndDate)
                 .ThenByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> HasActivePlanAsync(string userId, string role)
+        {
+            var now = DateTime.Now;
+
+            if (role == AppRoles.FieldOwner)
+            {
+                return await _context.OwnerPlans
+                    .AnyAsync(op =>
+                        op.OwnerId == userId &&
+                        op.Status == OwnerPlanStatus.Active &&
+                        op.EndDate > now);
+            }
+
+            if (role == AppRoles.FieldStaff)
+            {
+                var ownerId = await (
+                    from vs in _context.VenueStaff
+                    join v in _context.Venues on vs.VenueId equals v.Id
+                    where vs.StaffId == userId
+                    select v.OwnerId
+                ).FirstOrDefaultAsync();
+
+                if (ownerId == null) return false;
+
+                return await _context.OwnerPlans
+                    .AnyAsync(op =>
+                        op.OwnerId == ownerId &&
+                        op.Status == OwnerPlanStatus.Active &&
+                        op.EndDate > now);
+            }
+
+            return false;
         }
     }
 }

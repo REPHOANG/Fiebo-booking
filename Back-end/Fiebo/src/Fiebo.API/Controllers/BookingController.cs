@@ -179,7 +179,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-59: Field Owner cancels a customer's booking with 100% refund.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("{id}/owner-cancel")]
         public async Task<IActionResult> OwnerCancelBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
         {
@@ -198,7 +198,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldStaff + "," + AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerOrStaffPlan")]
         [HttpPost("walk-in")]
         public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)
         {
@@ -219,7 +219,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/booking/{id:int}")]
         public async Task<IActionResult> GetBookingDetail([FromRoute] int id)
@@ -256,7 +256,7 @@ namespace Fiebo.API.Controllers
         /// <param name="filter"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/bookings")]
         public async Task<IActionResult> GetBookingList([FromQuery] OwnerBookingFilter filter)
@@ -277,7 +277,7 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/analytics")]
         public async Task<IActionResult> GetBookingAnalytics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
@@ -298,7 +298,7 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/financial-summary")]
         public async Task<IActionResult> GetFinancialSummary([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)

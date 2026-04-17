@@ -29,7 +29,6 @@ import {
   cancelEventTicket,
   getCustomerEventHistory,
 } from "../../services/eventService";
-import { searchVenues } from "../../services/fieldService";
 import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
 import Swal from "sweetalert2";
@@ -97,20 +96,13 @@ function normHistoryItem(it) {
     status: it?.status ?? it?.Status,
     bookingDate: it?.bookingDate ?? it?.BookingDate,
     venueName: it?.venueName ?? it?.VenueName,
+    thumbnailUrl: it?.thumbnailUrl ?? it?.ThumbnailUrl,
     address: it?.address ?? it?.Address,
     province: it?.province ?? it?.Province,
     ward: it?.ward ?? it?.Ward,
     venueId: it?.venueId ?? it?.VenueId,
     totalPrice: it?.totalPrice ?? it?.TotalPrice,
   };
-}
-
-/** Lọc theo tháng dương lịch (khớp tiêu đề “Thống kê tháng …”). */
-function isSameCalendarMonth(dateVal, year, month1to12) {
-  if (dateVal == null || dateVal === "") return false;
-  const d = new Date(dateVal);
-  if (Number.isNaN(d.getTime())) return false;
-  return d.getFullYear() === year && d.getMonth() + 1 === month1to12;
 }
 
 /** Các năm cho bộ lọc (khớp min/max trước đây của ô nhập). */
@@ -174,19 +166,6 @@ function translateStatus(status) {
   return status || "—";
 }
 
-function getBookingTypeMeta(item) {
-  const rawType = String(
-    item?.bookingType ?? item?.type ?? item?.category ?? "",
-  ).toLowerCase();
-  const isEvent =
-    rawType.includes("event") ||
-    rawType.includes("sự kiện") ||
-    rawType.includes("su kien");
-  return isEvent
-    ? { label: "Sự kiện", className: "bl-type-tag bl-type-tag--event" }
-    : { label: "Đơn ngày", className: "bl-type-tag bl-type-tag--daily" };
-}
-
 const FALLBACK_VENUE_IMAGE =
   "https://c.pxhere.com/photos/c0/3e/football_pitch_football_rush_american_football-976043.jpg!s2";
 const handleImgError = (e) => {
@@ -215,6 +194,7 @@ function normEventHistoryItem(raw) {
     ticketParticipantId,
     eventId: raw?.eventId ?? raw?.EventId,
     venueName: raw?.venueName ?? raw?.VenueName ?? "",
+    thumbnailUrl: raw?.thumbnailUrl ?? raw?.ThumbnailUrl,
     eventDate: raw?.eventDate ?? raw?.EventDate,
     ticketQuantity:
       Number(raw?.ticketQuantity ?? raw?.TicketQuantity ?? 0) || 0,
@@ -421,7 +401,6 @@ const BookingList = () => {
   const {
     data: bookingHistoryData,
     isLoading: loadingList,
-    error: listError,
   } = useQuery({
     queryKey: [
       "bookingHistory",
@@ -449,12 +428,6 @@ const BookingList = () => {
     keepPreviousData: true,
     staleTime: 0,
     enabled: Boolean(isAuthenticated),
-  });
-
-  const { data: venueCatalogData } = useQuery({
-    queryKey: ["venueCatalogForBookingList"],
-    queryFn: () => searchVenues({ page: 1, pageSize: 100 }),
-    staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {
@@ -516,33 +489,6 @@ const BookingList = () => {
         new Date(String(b.sortDate || 0)) - new Date(String(a.sortDate || 0)),
     );
   }, [list, eventItems, activeTab, activeTypeFilter]);
-
-  const venueCatalog = useMemo(() => {
-    if (Array.isArray(venueCatalogData)) return venueCatalogData;
-    return venueCatalogData?.items || venueCatalogData?.Items || [];
-  }, [venueCatalogData]);
-
-  const venueThumbById = useMemo(() => {
-    const map = new Map();
-    for (const v of venueCatalog) {
-      const id = v?.venueId ?? v?.VenueId;
-      const thumb = v?.thumbnailUrl ?? v?.ThumbnailUrl;
-      if (id != null && thumb) map.set(Number(id), thumb);
-    }
-    return map;
-  }, [venueCatalog]);
-
-  const venueThumbByName = useMemo(() => {
-    const map = new Map();
-    for (const v of venueCatalog) {
-      const name = String(v?.venueName ?? v?.VenueName ?? "")
-        .trim()
-        .toLowerCase();
-      const thumb = v?.thumbnailUrl ?? v?.ThumbnailUrl;
-      if (name && thumb && !map.has(name)) map.set(name, thumb);
-    }
-    return map;
-  }, [venueCatalog]);
 
   const closeDetailPopup = () => {
     setDetailPopupId(null);
@@ -996,12 +942,7 @@ const BookingList = () => {
                         `${formatTime(s.startTime)}–${formatTime(s.endTime)}`,
                     )
                     .join(", ");
-                  const thumb =
-                    venueThumbByName.get(
-                      String(ev.venueName || "")
-                        .trim()
-                        .toLowerCase(),
-                    ) || FALLBACK_VENUE_IMAGE;
+                  const thumb = ev.thumbnailUrl || FALLBACK_VENUE_IMAGE;
                   return (
                     <motion.div
                       key={row.id}
@@ -1068,7 +1009,8 @@ const BookingList = () => {
                             Thanh toán
                           </button>
                         )}
-                        {(stLower === "pending" || stLower === "booked") && (
+                        {String(ev.participantStatus || "").toLowerCase() ===
+                          "joined" && (
                           <button
                             type="button"
                             className="bl-btn danger bl-btn-sm"
@@ -1111,14 +1053,7 @@ const BookingList = () => {
                   );
                 }
                 const b = row.data;
-                const thumb =
-                  venueThumbById.get(Number(b.venueId)) ||
-                  venueThumbByName.get(
-                    String(b.venueName || "")
-                      .trim()
-                      .toLowerCase(),
-                  ) ||
-                  FALLBACK_VENUE_IMAGE;
+                const thumb = b.thumbnailUrl || FALLBACK_VENUE_IMAGE;
                 return (
                   <motion.div
                     key={row.id}

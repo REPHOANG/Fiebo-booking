@@ -211,7 +211,6 @@ const EventDetail = () => {
         result?.data?.TicketParticipantId;
 
       if (ticketId) {
-        toast.success("Đã giữ chỗ. Vui lòng thanh toán trong thời gian quy định.");
         navigate(`/event/ticket/${ticketId}/payment`, { replace: true });
       } else {
         toast.success("Tham gia sự kiện thành công!");
