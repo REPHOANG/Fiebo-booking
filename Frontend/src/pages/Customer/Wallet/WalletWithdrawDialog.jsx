@@ -18,6 +18,8 @@ import {
 import { Wallet } from "lucide-react";
 import { formatVND } from "../../../utils/helperFunction";
 
+const dialogFontFamily = '"Be Vietnam Pro", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
 const maskAccountNumber = (value) => {
   const digits = String(value || "").replace(/\s/g, "");
   if (digits.length <= 4) return digits;
@@ -71,9 +73,23 @@ const WalletWithdrawDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={submitting ? undefined : onClose} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Rút tiền về ngân hàng</DialogTitle>
-      <DialogContent sx={{ pt: 1 }}>
+    <Dialog
+      open={open}
+      onClose={submitting ? undefined : onClose}
+      fullWidth
+      maxWidth="sm"
+      sx={{
+        "& .MuiDialog-paper": {
+          fontFamily: dialogFontFamily,
+          borderRadius: 3,
+        },
+        "& .MuiTypography-root, & .MuiButton-root, & .MuiInputBase-root, & .MuiFormLabel-root, & .MuiFormHelperText-root": {
+          fontFamily: dialogFontFamily,
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 800, pb: 1, fontFamily: dialogFontFamily }}>Rút tiền về ngân hàng</DialogTitle>
+      <DialogContent sx={{ pt: 1, fontFamily: dialogFontFamily }}>
         <Stack spacing={2.5}>
           <Box
             sx={{
@@ -121,6 +137,11 @@ const WalletWithdrawDialog = ({
             error={Boolean(errors.amount)}
             helperText={errors.amount || helperMessage}
             fullWidth
+            sx={{
+              "& .MuiInputBase-root": { fontFamily: dialogFontFamily },
+              "& .MuiInputLabel-root": { fontFamily: dialogFontFamily },
+              "& .MuiFormHelperText-root": { fontFamily: dialogFontFamily },
+            }}
           />
 
           <Divider />
@@ -189,7 +210,7 @@ const WalletWithdrawDialog = ({
           {errors.bankAccountId ? <Alert severity="error">{errors.bankAccountId}</Alert> : null}
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <DialogActions sx={{ px: 3, pb: 3, fontFamily: dialogFontFamily }}>
         <Button onClick={onClose} disabled={submitting} sx={{ textTransform: "none" }}>
           Đóng
         </Button>
