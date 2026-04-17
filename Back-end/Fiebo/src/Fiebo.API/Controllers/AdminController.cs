@@ -2,7 +2,9 @@ using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.AdminDashboard;
 using Fiebo.Application.Interfaces;
+using Fiebo.Application.Services;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +18,13 @@ namespace Fiebo.API.Controllers
     {
         private readonly IFinanceAdminService _financeAdminService;
         private readonly IAdminDashboardService _adminDashboardService;
+        private readonly IAdminService _adminService;
 
-        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService)
+        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService, IAdminService adminService)
         {
             _financeAdminService = financeAdminService;
             _adminDashboardService = adminDashboardService;
+            _adminService = adminService;
         }
 
         /// <summary>
@@ -88,5 +92,49 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Lấy danh sách khách hàng (Customer) với bộ lọc và phân trang
+        /// </summary>
+        [HttpGet("customers")]
+        public async Task<IActionResult> GetCustomers([FromQuery] CustomerFilter filter)
+        {
+            var result = await _adminService.GetCustomerListAsync(filter);
+
+            return Ok(new ApiResponse<PagedResult<CustomerResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách khách hàng thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Reset mật khẩu cho Finance Admin
+        /// </summary>
+        [HttpPut("finance-admins/{id}/reset-password")]
+        public async Task<IActionResult> ResetPassword(string id)
+        {
+            try
+            {
+                var newPassword = await _adminService.ResetFinanceAdminPasswordAsync(id);
+
+                return Ok(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Reset mật khẩu thành công. Mật khẩu mới đã được tạo.",
+                    Data = new { TempPassword = newPassword } 
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Message = ex.Message
+                });
+            }
+        }
+
     }
 }

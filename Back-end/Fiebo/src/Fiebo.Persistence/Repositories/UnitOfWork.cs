@@ -46,6 +46,7 @@ namespace Fiebo.Persistence.Repositories
         public ICancelBookingRepository CancelBooking { get; }
         public IUserBankAccountRepository UserBankAccounts { get; }
         public IPayoutRepository Payouts { get; }
+        public IAdminRepository Admins { get; }
 
         public UnitOfWork(FieboDbContext context,
             IAdminDashboardRepository adminDashboardRepository,
@@ -74,7 +75,8 @@ namespace Fiebo.Persistence.Repositories
             ISubscriptionTransactionRepository subscriptionTransactionRepository,
             ICancelBookingRepository cancelBookingRepository,
             IUserBankAccountRepository userBankAccountRepository,
-            IPayoutRepository payoutRepository
+            IPayoutRepository payoutRepository,
+            IAdminRepository adminRepository
             //IReportRepository reportRepository
             )
         {
@@ -107,6 +109,7 @@ namespace Fiebo.Persistence.Repositories
             CancelBooking = cancelBookingRepository;
             UserBankAccounts = userBankAccountRepository;
             Payouts = payoutRepository;
+            Admins = adminRepository;
         }
 
 

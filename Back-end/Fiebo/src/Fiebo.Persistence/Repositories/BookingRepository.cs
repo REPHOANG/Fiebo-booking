@@ -210,5 +210,13 @@ namespace Fiebo.Persistence.Repositories
 
             return query;
         }
+
+        public async Task<List<int>> GetRatedBookingIdsAsync(List<int> bookingIds)
+        {
+            return await _context.Reviews
+                .Where(r => bookingIds.Contains(r.BookingId))
+                .Select(r => r.BookingId)
+                .ToListAsync();
+        }
     }
 }
