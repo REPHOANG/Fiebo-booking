@@ -120,5 +120,81 @@ namespace Fiebo.API.Services
                 Console.WriteLine($"Failed to send event cancellation email to user {userId}: {ex.Message}");
             }
         }
+        
+        public async Task NotifyVenueApprovedAsync(string ownerId, int venueId, string venueName)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "venue_approved",
+                venueId,
+                venueName
+            });
+
+            await _sseService.SendToUserAsync(ownerId, payload);
+
+            try
+            {
+                var user = await _identityService.GetUserProfileAsync(ownerId);
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    string subject = "Fiebo - Thông báo duyệt cơ sở";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                            <h2 style='color: #28a745; text-align: center;'>Cơ sở đã được duyệt</h2>
+                            <p>Xin chào <strong>{user.FullName ?? "Chủ sân"}</strong>,</p>
+                            <p>Chúc mừng! Cơ sở <strong>{venueName}</strong> của bạn đã được quản trị viên duyệt và hiện đã hoạt động trên hệ thống.</p>
+                            <p>Hãy bắt đầu tạo sân và khung giờ để đón khách nhé.</p>
+                            <hr style='margin: 30px 0;' />
+                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                        </div>";
+
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send venue approval email to user {ownerId}: {ex.Message}");
+            }
+        }
+
+        public async Task NotifyVenueRejectedAsync(string ownerId, int venueId, string venueName, string reason)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "venue_rejected",
+                venueId,
+                venueName,
+                reason
+            });
+
+            await _sseService.SendToUserAsync(ownerId, payload);
+
+            try
+            {
+                var user = await _identityService.GetUserProfileAsync(ownerId);
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    string subject = "Fiebo - Thông báo từ chối cơ sở";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                            <h2 style='color: #d9534f; text-align: center;'>Đăng ký cơ sở bị từ chối</h2>
+                            <p>Xin chào <strong>{user.FullName ?? "Chủ sân"}</strong>,</p>
+                            <p>Rất tiếc, cơ sở <strong>{venueName}</strong> của bạn đã bị từ chối do chưa đáp ứng đủ yêu cầu.</p>
+                            <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;'>
+                                <p><strong>Lý do:</strong> {reason}</p>
+                            </div>
+                            <p>Vui lòng cập nhật lại thông tin và gửi lại yêu cầu duyệt.</p>
+                            <hr style='margin: 30px 0;' />
+                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                        </div>";
+
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send venue rejection email to user {ownerId}: {ex.Message}");
+            }
+        }
     }
 }

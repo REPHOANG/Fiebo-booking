@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Booking;
+using Fiebo.Application.DTOs.Owner;
 
 namespace Fiebo.Application.Interfaces
 {
@@ -9,5 +10,7 @@ namespace Fiebo.Application.Interfaces
             DateOnly? fromDate,
             DateOnly? toDate,
             int? venueId);
+
+        Task<OwnerStatusResponse> GetOwnerStatusAsync(string ownerId);
     }
 }
