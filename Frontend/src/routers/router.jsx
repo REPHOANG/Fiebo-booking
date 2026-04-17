@@ -54,7 +54,6 @@ import AdminReports from "../pages/Admin/Reports/AdminReports";
 import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
 import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
-import AdminVenueRegistrations from "../pages/Admin/VenueRegistration/AdminVenueRegistrations";
 import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
 import FinanceAdminOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminOwnerPayouts";
@@ -74,6 +73,8 @@ import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
 import FinanceAdminManagement from "../pages/Admin/FinanceAdminManagement/FinanceAdminManagement";
 import SportCatalog from "../pages/Admin/SportCatalog/SportCatalog";
 import NotFoundPage from "../components/ui/Error/NotFoundPage";
+import { AdminVenueRegistrations } from "../pages/Admin/VenueRegistration/AdminVenueRegistrations";
+import { VenueDetailPage } from "../pages/Admin/VenueRegistration/VenueDetailPage";
 
 const OwnerVenueTimeSlotLegacyRedirect = () => {
   const { id } = useParams();
@@ -202,6 +203,7 @@ const routes = [
       { path: "reports", element: <AdminReports /> },
       { path: "customers", element: <AdminCustomers /> },
       { path: "venues", element: <AdminVenueModeration /> },
+      { path: "venue/:id", element: <VenueDetailPage /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "venue-registrations", element: <AdminVenueRegistrations /> },
       { path: "finance-admins", element: <FinanceAdminManagement /> },

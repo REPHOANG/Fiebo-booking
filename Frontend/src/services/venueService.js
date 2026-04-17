@@ -17,6 +17,19 @@ export const ownerVenueScheduleUrl = (venueId) =>
  * @returns {Promise<{venueId:number,status:string}|any>}
  */
 export const createVenue = async (formData) => {
+  // Nếu có Latitude/Longitude, chuyển dấu chấm thành dấu phẩy (giống giveRatingApi)
+  if (formData.has("Latitude")) {
+    const lat = formData.get("Latitude");
+    if (typeof lat === "string") {
+      formData.set("Latitude", lat.replace(".", ","));
+    }
+  }
+  if (formData.has("Longitude")) {
+    const lng = formData.get("Longitude");
+    if (typeof lng === "string") {
+      formData.set("Longitude", lng.replace(".", ","));
+    }
+  }
   const response = await api.post('/api/owner/venue/draft', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000,
@@ -106,8 +119,11 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
   form.append('AddressDetail', String(payload?.addressDetail ?? '').trim());
   form.append('ProvinceId', String(Number(payload?.provinceId)));
   form.append('WardId', String(Number(payload?.wardId)));
-  form.append('Latitude', String(Number(payload?.latitude ?? 0)));
-  form.append('Longitude', String(Number(payload?.longitude ?? 0)));
+  // Đảm bảo gửi đúng format cho backend (dấu phẩy nếu cần)
+  const safeLat = String(Number(payload?.latitude ?? 0)).replace(".", ",");
+  const safeLng = String(Number(payload?.longitude ?? 0)).replace(".", ",");
+  form.append('Latitude', safeLat);
+  form.append('Longitude', safeLng);
   form.append('OpenTime', payload?.openTime ?? '');
   form.append('CloseTime', payload?.closeTime ?? '');
   if (payload?.thumbnailFile) {

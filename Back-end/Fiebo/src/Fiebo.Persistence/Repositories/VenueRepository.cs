@@ -350,5 +350,28 @@ namespace Fiebo.Persistence.Repositories
                             && v.Name == name
                             && v.Id != excludeVenueId);
         }
+        public async Task<PagedResult<Venue>> GetPendingVenuesAsync(int page, int pageSize)
+        {
+            var query = _context.Venues
+                .AsNoTracking()
+                .Where(v => v.Status == VenueStatus.Pending)
+                .Include(v => v.Province)
+                .Include(v => v.Ward);
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(v => v.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Venue>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
+        }
     }
 }

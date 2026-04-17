@@ -34,9 +34,7 @@ import {
 } from "../services/authService";
 import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 import "./Profile.css";
-import { useQuery } from "@tanstack/react-query";
-
-const VN_PHONE_REGEX = /^0\d{9,10}$/;
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const customerProfileSchema = yup.object({
   fullName: yup.string().trim().required("Vui lòng nhập họ và tên"),
@@ -70,6 +68,7 @@ const customerPasswordSchema = yup.object({
 const Profile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
@@ -78,12 +77,17 @@ const Profile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasToken = Boolean(localStorage.getItem(AUTH_STORAGE_KEY));
 
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
-    staleTime: 0,
-    gcTime: 0,
+    enabled: hasToken,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const {
@@ -144,10 +148,8 @@ const Profile = () => {
     setIsLoading(true);
     try {
       await updateProfileAPI(payload);
-      const refreshed = await refetchProfile();
-      const latestProfile = refreshed?.data || { ...profile, ...payload };
-      dispatch(updateProfile(latestProfile));
-      syncProfileForm(latestProfile);
+      dispatch(updateProfile(payload));
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Cập nhật hồ sơ thành công!");
       setIsEditingProfile(false);
     } catch (error) {

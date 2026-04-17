@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
 {
-    [Authorize(Roles = AppRoles.FieldOwner)]
+    [Authorize(Policy = "ActiveOwnerPlan")]
     [Route("api/[controller]")]
     [ApiController]
     public class OwnerController : ControllerBase

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter as Router } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -11,7 +11,7 @@ import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
 import "./components/common/LocationPrompt/LocationPrompt.css";
 import AppRoutes from "./routers/router";
 import { AuthModalProvider, AuthModalRouteSync } from "./context/AuthModalContext";
-import { setCredentials, logout, isTokenExpired, AUTH_STORAGE_KEY } from "./store/authSlice";
+import { logout, setCredentials, setProfileLoading } from "./store/authSlice";
 
 
 const queryClient = new QueryClient({
@@ -28,68 +28,73 @@ const queryClient = new QueryClient({
     },
   },
 });
-const App = () => {
+const AppContent = () => {
   const dispatch = useDispatch();
-  const token = useSelector((state) => state.auth?.token ?? null);
+  const isAuthenticated = useSelector((state) => state.auth?.isAuthenticated ?? false);
 
-  // Khi accessToken hết hạn thì tự đăng xuất và xóa storage
-  useEffect(() => {
-    if (!token) return;
-    if (isTokenExpired(token)) {
-      dispatch(logout());
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      if (typeof window !== "undefined") {
-        const path = window.location.pathname;
-        if (path !== "/") {
-          window.location.replace("/");
-        }
-      }
-    }
-  }, [token, dispatch]);
-
+  const [tokenChecked, setTokenChecked] = useState(false);
+  const [tokenReady, setTokenReady] = useState(false);
 
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const initRanRef = useRef(false);
 
 
-  // Tránh gọi getProfile 2 lần khi React Strict Mode double-invoke effect (development)
+  // Check token in localStorage and only call profile API when token exists.
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const ready = Boolean(token);
+    setTokenReady(ready);
+    setTokenChecked(true);
+    if (!ready) {
+      dispatch(setProfileLoading(false));
+    }
+  }, [isAuthenticated, dispatch]);
+
+  const { data, isSuccess, isError, isLoading, isFetching } = useQuery({
+    queryFn: getProfile,
+    queryKey: ["profile"],
+    enabled: tokenReady,
+    retry: 0,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  useEffect(() => {
+    if (!tokenChecked) {
+      return;
+    }
+
+    if (!tokenReady) {
+      dispatch(setProfileLoading(false));
+      return;
+    }
+    dispatch(setProfileLoading(isLoading || isFetching));
+  }, [dispatch, tokenChecked, tokenReady, isLoading, isFetching]);
+
+  useEffect(() => {
+    if (isSuccess && data) {
+      dispatch(
+        setCredentials({
+          user: data,
+        })
+      );
+    }
+
+    if (tokenChecked && tokenReady && isError) {
+      dispatch(logout());
+      dispatch(setProfileLoading(false));
+    }
+  }, [data, isSuccess, isError, dispatch, tokenChecked, tokenReady]);
+
+
+  // Tránh gọi logic init 2 lần khi React Strict Mode double-invoke effect (development)
   useEffect(() => {
     if (initRanRef.current) return;
     initRanRef.current = true;
 
-    let cancelled = false;
-    const init = async () => {
-      console.log("🚀 App initializing...");
-
-
-      const apiReady = getProfile()
-        .then((profile) => {
-          if (!cancelled && profile) {
-            dispatch(
-              setCredentials({
-                user: profile,
-              })
-            );
-          }
-        })
-      .catch(() => {});
-
-      await Promise.all([apiReady]);
-
-      if (!cancelled) {
-
-        if (!localStorage.getItem("locationPromptAsked")) {
-          setShowLocationPrompt(true);
-        }
-      }
-    };
-
-    init();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dispatch]);
+    if (!localStorage.getItem("locationPromptAsked")) {
+      setShowLocationPrompt(true);
+    }
+  }, []);
 
   const handleLocationConfirm = (coords) => {
     setShowLocationPrompt(false);
@@ -100,34 +105,42 @@ const App = () => {
   };
 
   return (
+    <>
+      {showLocationPrompt && (
+        <LocationPrompt onConfirm={handleLocationConfirm} />
+      )}
+      <Router>
+        <AuthModalProvider>
+          <AuthModalRouteSync />
+          <AppRoutes />
+        </AuthModalProvider>
+      </Router>
+      <ToastContainer
+        position="top-right"
+        autoClose={1000}
+        limit={1}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick={true}
+        rtl={false}
+        pauseOnFocusLoss={true}
+        draggable={true}
+        pauseOnHover={true}
+        theme="light"
+      />
+    </>
+  );
+};
+
+const App = () => {
+  return (
     <GoogleOAuthProvider
       clientId={
         import.meta.env.VITE_GOOGLE_CLIENT_ID || "your-google-client-id"
       }
     >
       <QueryClientProvider client={queryClient}>
-        {showLocationPrompt && (
-          <LocationPrompt onConfirm={handleLocationConfirm} />
-        )}
-        <Router>
-          <AuthModalProvider>
-            <AuthModalRouteSync />
-            <AppRoutes />
-          </AuthModalProvider>
-        </Router>
-        <ToastContainer
-          position="top-right"
-          autoClose={1000}
-          limit={1}
-          hideProgressBar={false}
-          newestOnTop={true}
-          closeOnClick={true}
-          rtl={false}
-          pauseOnFocusLoss={true}
-          draggable={true}
-          pauseOnHover={true}
-          theme="light"
-        />
+        <AppContent />
       </QueryClientProvider>
     </GoogleOAuthProvider>
   );

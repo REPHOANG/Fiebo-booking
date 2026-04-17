@@ -42,6 +42,24 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
+        /// Get list of available drop-in events for a specific venue.
+        /// </summary>
+        [HttpGet("venue/{venueId}")]
+        public async Task<IActionResult> GetEventsByVenueId([FromRoute] int venueId)
+        {
+            var events = await _eventService.GetEventsByVenueIdAsync(venueId);
+            return Ok(new ApiResponse<List<DropInEventListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = events.Count > 0
+                    ? "Lấy danh sách sự kiện theo cơ sở thành công."
+                    : "Cơ sở này hiện chưa có sự kiện.",
+                Data = events
+            });
+        }
+
+
+        /// <summary>
         /// Join drop in event
         /// </summary>
         /// <param name="id"></param>
@@ -121,7 +139,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Get drop-in event list for the current owner.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet]
         [Route("/api/owner/events")]
         public async Task<IActionResult> GetOwnerEventList()
@@ -146,7 +164,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-62: Create a new drop-in event for a specific field.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/event")]
         public async Task<IActionResult> CreateDropInEvent([FromBody] CreateDropInEventRequest request)
         {
@@ -169,7 +187,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Get detailed info of a drop-in event for the Owner (including player list).
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpGet("/api/owner/event/{id:int}")]
         public async Task<IActionResult> GetOwnerEventDetail([FromRoute] int id)
         {
@@ -226,7 +244,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPut("/api/owner/event/{id}")]
         public async Task<IActionResult> UpdateEvent([FromRoute] int id, [FromBody] UpdateEventRequest request)
         {
@@ -267,7 +285,7 @@ namespace Fiebo.API.Controllers
         /// BR-144 / BR-145: Owner cancels a Drop-in Event (self-service, blocked within 2h of start).
         /// Triggers 100% refund for all paid participants.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Policy = "ActiveOwnerPlan")]
         [HttpPost("/api/owner/event/{id}/cancel")]
         public async Task<IActionResult> CancelDropInEvent([FromRoute] int id, [FromBody] CancelEventRequest request)
         {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -14,6 +15,7 @@ import VenuesMegaMenu from "../common/VenuesMegaMenu/VenuesMegaMenu";
 
 const Header = () => {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const [venuesMegaActive, setVenuesMegaActive] = useState(false);
 
   // Get user from Redux
@@ -46,6 +48,7 @@ const Header = () => {
     localStorage.removeItem('token');
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem('token');
+    queryClient.clear();
     setUserMenuOpen(false);
   };
 
