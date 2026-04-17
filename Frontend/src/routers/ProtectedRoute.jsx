@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Navigate, useLocation } from "react-router-dom";
 import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
+import { AUTH_STORAGE_KEY } from "../store/authSlice";
 import { hasRole } from "../utils/roleUtils";
 
 const ProtectedRoute = ({ element, requiredRole }) => {
@@ -31,6 +32,12 @@ const ProtectedRoute = ({ element, requiredRole }) => {
     return element;
   }
 
+  // Nếu không có token trong localStorage hoặc chưa đăng nhập, chỉ Navigate về '/' (không mở popup login)
+  const hasToken = typeof window !== "undefined" && localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!hasToken || !isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  // Nếu có token mà vẫn mất quyền, mở popup login
   return (
     <Navigate
       to="/"

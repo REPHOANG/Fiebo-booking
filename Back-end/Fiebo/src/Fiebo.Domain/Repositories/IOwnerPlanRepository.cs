@@ -12,5 +12,7 @@ namespace Fiebo.Domain.Repositories
     {
         Task<OwnerPlan?> GetByOwnerIdAsync(string ownerId);
         Task<OwnerPlan?> GetCurrentActiveByOwnerIdAsync(string ownerId);
+        Task<bool> HasActivePlanAsync(string userId, string role);
+
     }
 }

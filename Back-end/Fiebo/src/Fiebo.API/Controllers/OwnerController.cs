@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Application.DTOs.Owner;
@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
 {
-    [Authorize(Roles = AppRoles.FieldOwner)]
+    [Authorize(Policy = "ActiveOwnerPlan")]
     [Route("api/[controller]")]
     [ApiController]
     public class OwnerController : ControllerBase
@@ -82,6 +82,26 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Tải dữ liệu dashboard thành công.",
+                Data = result
+            });
+        }
+
+        [HttpGet("status")]
+        public async Task<IActionResult> GetOwnerStatus()
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(ownerId))
+            {
+                throw new UnauthorizedAccessException("Không thể xác định danh tính chủ sân.");
+            }
+
+            var result = await _ownerService.GetOwnerStatusAsync(ownerId);
+
+            return Ok(new ApiResponse<OwnerStatusResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tải trạng thái chủ sân thành công.",
                 Data = result
             });
         }

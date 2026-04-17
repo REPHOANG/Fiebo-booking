@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Booking;
+using Fiebo.Application.DTOs.Owner;
 using Fiebo.Application.Helper;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Enums;
@@ -10,10 +11,12 @@ namespace Fiebo.Application.Services
     public class OwnerService : IOwnerService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IIdentityService _identityService;
 
-        public OwnerService(IUnitOfWork unitOfWork)
+        public OwnerService(IUnitOfWork unitOfWork, IIdentityService identityService)
         {
             _unitOfWork = unitOfWork;
+            _identityService = identityService;
         }
 
         public async Task<OwnerDashboardResponse> GetOwnerDashboardAsync(
@@ -645,6 +648,42 @@ namespace Fiebo.Application.Services
                 })
                 .OrderByDescending(x => x.BookingCount)
                 .ToListAsync();
+        }
+
+        public async Task<OwnerStatusResponse> GetOwnerStatusAsync(string ownerId)
+        {
+            var response = new OwnerStatusResponse();
+
+            // 1. Check Profile Completeness
+            var user = await _identityService.GetUserProfileAsync(ownerId);
+            if (user != null)
+            {
+                if (string.IsNullOrWhiteSpace(user.FullName)) response.MissingFields.Add("FullName");
+                if (string.IsNullOrWhiteSpace(user.PhoneNumber)) response.MissingFields.Add("PhoneNumber");
+                if (string.IsNullOrWhiteSpace(user.Email)) response.MissingFields.Add("Email");
+                if (!user.DateOfBirth.HasValue) response.MissingFields.Add("DateOfBirth");
+
+                response.IsProfileComplete = response.MissingFields.Count == 0;
+            }
+
+            // 2. Check Membership Status
+            var currentPlan = await _unitOfWork.OwnerPlans.GetCurrentActiveByOwnerIdAsync(ownerId);
+            if (currentPlan != null)
+            {
+                response.IsMembershipActive = currentPlan.Status == OwnerPlanStatus.Active && currentPlan.EndDate >= DateTime.Now;
+                response.CurrentPlanName = currentPlan.Plan?.Name;
+                response.PlanExpiryDate = currentPlan.EndDate;
+            }
+
+            // 3. Check for Venues
+            var venues = await _unitOfWork.Venues.FindAsync(v => v.OwnerId == ownerId);
+            response.HasVenue = venues.Any();
+
+            // 4. Check for Bank Account
+            var bankAccounts = await _unitOfWork.UserBankAccounts.FindAsync(b => b.UserId == ownerId);
+            response.HasBankAccount = bankAccounts.Any();
+
+            return response;
         }
     }
 }

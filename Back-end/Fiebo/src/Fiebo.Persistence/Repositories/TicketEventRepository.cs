@@ -84,6 +84,23 @@ namespace Fiebo.Persistence.Repositories
                 .OrderByDescending(te => te.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<List<TicketEvent>> GetEventsByVenueIdAsync(int venueId)
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(te => te.Status == TicketEventStatus.Pending &&
+                             te.Details.Any(d => d.Field.VenueId == venueId))
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Field)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(te => te.Participants)
+                .OrderBy(te => te.EventDate)
+                .ToListAsync();
+        }
+
         public async Task<List<(int SlotId, int FieldId)>> GetUsedSlots(
             List<int> slotIds,
             List<int> fieldIds,

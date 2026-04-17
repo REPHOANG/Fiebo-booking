@@ -28,6 +28,7 @@ namespace Fiebo.Persistence.BackgroundJobs
             {
                 try
                 {
+                    _logger.LogInformation("");
                     await Run(stoppingToken);
                 }
                 catch (Exception ex)

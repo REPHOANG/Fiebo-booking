@@ -145,7 +145,7 @@ namespace Fiebo.Application.Services
             }
             if (wallet.UserId != userId)
             {
-                throw new UnauthorizedAccessException("You are not authorized to access this wallet");
+                throw new ForbiddenException("You are not authorized to access this wallet");
             }
             var walletTransactions = await _unitOfWork.WalletTransactions
                 .GetTransactionsByWalletIdAsync(wallet.Id, pageNumber, pageSize, fromDate, toDate);
@@ -401,7 +401,7 @@ namespace Fiebo.Application.Services
             var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
             if(wallet.UserId != userId)
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền truy cập yêu cầu nạp tiền này.");
+                throw new ForbiddenException("Bạn không có quyền truy cập yêu cầu nạp tiền này.");
             }
             return _qrPaymentService.GenerateQrPayment(topUpRequest.Amount, topUpRequest.Id);
         }

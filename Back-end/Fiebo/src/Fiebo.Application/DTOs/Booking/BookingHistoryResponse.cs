@@ -12,6 +12,7 @@ namespace Fiebo.Application.DTOs.Booking
         public string Status { get; set; }
         public DateOnly BookingDate { get; set; }
         public string VenueName { get; set; }   
+        public string? ThumbnailUrl { get; set; }
         public string Address { get; set; }
         public string Province { get; set; }
         public int VenueId { get; set; }

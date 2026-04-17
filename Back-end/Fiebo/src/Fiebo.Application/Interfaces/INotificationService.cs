@@ -11,5 +11,7 @@ namespace Fiebo.Application.Interfaces
         Task NotifyWalletTopupAsync(string userId, decimal amount);
         Task NotifyBookingCancelledByOwnerAsync(string userId, int bookingId, string reason, decimal refundAmount);
         Task NotifyEventCancelledByOwnerAsync(string userId, int eventId, string eventName, string? cancelNote, decimal refundAmount);
+        Task NotifyVenueApprovedAsync(string ownerId, int venueId, string venueName);
+        Task NotifyVenueRejectedAsync(string ownerId, int venueId, string venueName, string reason);
     }
 }

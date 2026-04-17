@@ -360,7 +360,7 @@ namespace Fiebo.Application.Services
             }
             if (booking.UserId != userId)
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
             }
             return new BookingDetailResponse
             {
@@ -405,6 +405,7 @@ namespace Fiebo.Application.Services
                 Status = b.Status.ToString(),
                 BookingDate = b.BookingDate,
                 VenueName = bd.Field?.Venue?.Name ?? "N/A",
+                ThumbnailUrl = bd.Field?.Venue?.ThumbnailUrl,
                 Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
                 Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
                 Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
@@ -441,7 +442,7 @@ namespace Fiebo.Application.Services
             if(userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
             if (userRole == null)
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
+                throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
            
             var now = DateTime.Now;
@@ -451,13 +452,13 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
             if (userRole == AppRoles.FieldOwner && venue.OwnerId != userId)
             {
-                throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
+                throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
             if(userRole == AppRoles.FieldStaff)
             {
                 var staff = await _unitOfWork.VenueStaffs.GetSingleAsync(s => s.StaffId == userId && s.VenueId == request.VenueId);
                 if (staff == null)
-                    throw new UnauthorizedAccessException("Bạn không có quyền để thực hiện hành động này.");
+                    throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
             if (request.BookingDate < DateOnly.FromDateTime(now))
                 throw new BadRequestException("Ngày đặt không hợp lệ.");
@@ -586,7 +587,7 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy lịch đặt");
 
             if (booking.UserId != userId)
-                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
 
             if (booking.Status != BookingStatus.Booked)
                 throw new BadRequestException("Lịch không thể hủy");
@@ -621,7 +622,7 @@ namespace Fiebo.Application.Services
 
             // BR-25: Only owner can cancel
             if (booking.UserId != userId)
-                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
 
             // Only Booked status can be cancelled
             if (booking.Status != BookingStatus.Booked)
@@ -736,7 +737,7 @@ namespace Fiebo.Application.Services
 
             // BR-43: Only the owner of the venue can cancel
             if (booking.Venue.OwnerId != ownerId)
-                throw new UnauthorizedAccessException("Bạn không có quyền để xem lịch đặt này");
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
 
             // E1: Booking must be in Booked status
             if (booking.Status != BookingStatus.Booked)

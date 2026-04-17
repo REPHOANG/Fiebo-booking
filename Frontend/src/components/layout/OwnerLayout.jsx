@@ -22,22 +22,32 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
+import { resolveOwnerSubscriptionState } from "../../utils/ownerSubscription";
 import "./OwnerLayout.css";
 
 const OwnerLayout = () => {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.auth?.user);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(true);
-  const [venuesOpen, setVenuesOpen] = useState(true);
-  const [eventsOpen, setEventsOpen] = useState(true);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [venuesOpen, setVenuesOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const userMenuRef = useRef(null);
 
   const activePath = location?.pathname || "";
+  const ownerPlanState = useMemo(() => resolveOwnerSubscriptionState(user), [user]);
+  const isOwnerPlanInactive = ownerPlanState.checked && !ownerPlanState.active;
+  const shouldLockSidebar = isOwnerPlanInactive;
+  const isOnSubscriptionPlans = activePath.startsWith("/owner/subscription/plans");
+  const isOnSubscriptionOverview = activePath.startsWith("/owner/subscription/overview");
+  const isOnOwnerProfile = activePath.startsWith("/owner/profile");
+
   const isAccountSectionActive = useMemo(() => {
     return (
       activePath.startsWith("/owner/profile") ||
@@ -79,10 +89,11 @@ const OwnerLayout = () => {
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       sessionStorage.removeItem("token");
+      queryClient.clear();
     } catch (e) {
       // ignore
     }
-    navigate("/", { replace: true });
+    navigate("/", { replace: true }); // Không truyền state để không tự động mở login popup
     setMenuOpen(false);
   };
 
@@ -125,9 +136,23 @@ const OwnerLayout = () => {
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    if (!isOwnerPlanInactive || isOnSubscriptionPlans || isOnSubscriptionOverview || isOnOwnerProfile) return;
+
+    navigate("/owner/subscription/plans", { replace: true });
+    setMenuOpen(false);
+  }, [
+    isOnSubscriptionOverview,
+    isOwnerPlanInactive,
+    isOnSubscriptionPlans,
+    isOnOwnerProfile,
+    navigate,
+  ]);
+
   return (
     <div className={`owner-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-      <aside className={`owner-sidebar ${menuOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""}`}>
+      <aside className={`owner-sidebar ${menuOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""} ${shouldLockSidebar ? "locked" : ""}`}>
+
         <div className="owner-sidebar-top">
           <div className="owner-sidebar-brand">
             <span className="owner-logo">{sidebarCollapsed ? "FO" : "Fiebo Owner"}</span>
@@ -143,7 +168,7 @@ const OwnerLayout = () => {
           </div>
         </div>
 
-        <nav className="owner-sidebar-nav">
+        <nav className={`owner-sidebar-nav ${shouldLockSidebar ? "disabled" : ""}`} data-disabled={shouldLockSidebar}>
           <NavLink
             to="/owner"
             end
@@ -162,6 +187,7 @@ const OwnerLayout = () => {
               onClick={() => setAccountOpen((v) => !v)}
               aria-expanded={accountOpen}
               title="Hồ sơ và gói"
+              disabled={shouldLockSidebar}
             >
               <span className="owner-nav-group-label">
                 <UserCircle size={16} />
@@ -204,6 +230,7 @@ const OwnerLayout = () => {
               onClick={() => setVenuesOpen((v) => !v)}
               aria-expanded={venuesOpen}
               title="Cơ sở"
+              disabled={shouldLockSidebar}
             >
               <span className="owner-nav-group-label">
                 <Building2 size={16} />
@@ -297,6 +324,7 @@ const OwnerLayout = () => {
               onClick={() => setEventsOpen((v) => !v)}
               aria-expanded={eventsOpen}
               title="Sự kiện"
+              disabled={shouldLockSidebar}
             >
               <span className="owner-nav-group-label">
                 <CalendarDays size={16} />

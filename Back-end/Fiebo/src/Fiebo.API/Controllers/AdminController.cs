@@ -8,7 +8,6 @@ using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-
 namespace Fiebo.API.Controllers
 {
     [Route("api/[controller]")]
@@ -19,14 +18,14 @@ namespace Fiebo.API.Controllers
         private readonly IFinanceAdminService _financeAdminService;
         private readonly IAdminDashboardService _adminDashboardService;
         private readonly IAdminService _adminService;
-
-        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService, IAdminService adminService)
+        private readonly IAdminVenueService _adminVenueService;
+        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService, IAdminService adminService, IAdminVenueService adminVenueService)
         {
             _financeAdminService = financeAdminService;
             _adminDashboardService = adminDashboardService;
             _adminService = adminService;
+            _adminVenueService = adminVenueService;
         }
-
         /// <summary>
         /// Lấy danh sách tài khoản Finance Admin
         /// </summary>
@@ -41,7 +40,6 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
-
         /// <summary>
         /// UC-66: Tạo tài khoản Finance Admin mới
         /// </summary>
@@ -56,16 +54,13 @@ namespace Fiebo.API.Controllers
                     Message = "Username và Password không được để trống."
                 });
             }
-
             await _financeAdminService.CreateFinanceAdminAsync(request);
-
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Thêm nhân viên thành công."
             });
         }
-
         /// <summary>
         /// Xem bảng điều khiển phân tích Admin
         /// </summary>
@@ -84,7 +79,6 @@ namespace Fiebo.API.Controllers
                     Data = result
                 });
             }
-
             return Ok(new ApiResponse<AdminDashboardResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
@@ -136,5 +130,59 @@ namespace Fiebo.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Get a paginated list of pending venue registrations.
+        /// </summary>
+        [HttpGet("venues/pending")]
+        public async Task<IActionResult> GetPendingVenues([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            var result = await _adminVenueService.GetPendingVenuesAsync(page, pageSize);
+            return Ok(new ApiResponse<Fiebo.Domain.Shared.PagedResult<PendingVenueListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách yêu cầu đăng ký cơ sở chờ duyệt thành công.",
+                Data = result
+            });
+        }
+        /// <summary>
+        /// Get detailed information of a pending venue registration.
+        /// </summary>
+        [HttpGet("venues/pending/{id}")]
+        public async Task<IActionResult> GetPendingVenueDetail([FromRoute] int id)
+        {
+            var result = await _adminVenueService.GetPendingVenueDetailAsync(id);
+            return Ok(new ApiResponse<PendingVenueDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy chi tiết yêu cầu chờ duyệt thành công.",
+                Data = result
+            });
+        }
+        /// <summary>
+        /// Approve a venue registration request.
+        /// </summary>
+        [HttpPost("venues/{id}/approve")]
+        public async Task<IActionResult> ApproveVenue([FromRoute] int id)
+        {
+            await _adminVenueService.ApproveVenueAsync(id);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Phê duyệt cơ sở thành công."
+            });
+        }
+        /// <summary>
+        /// Reject a venue registration request.
+        /// </summary>
+        [HttpPost("venues/{id}/reject")]
+        public async Task<IActionResult> RejectVenue([FromRoute] int id, [FromBody] RejectVenueRequest request)
+        {
+            await _adminVenueService.RejectVenueAsync(id, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã từ chối đăng ký cơ sở."
+            });
+        }
     }
 }

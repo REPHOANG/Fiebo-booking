@@ -78,7 +78,7 @@ namespace Fiebo.Application.Services
 
                 var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
                 if (venue == null || venue.OwnerId != userId)
-                    throw new UnauthorizedAccessException("Bạn không có quyền tạo sự kiện cho sân này.");
+                    throw new ForbiddenException("Bạn không có quyền tạo sự kiện cho sân này.");
                 if (venue.Status != VenueStatus.Active)
                     throw new BadRequestException("Cơ sở này hiện không hoạt động.");
 
@@ -164,6 +164,34 @@ namespace Fiebo.Application.Services
                     EventId = e.Id,
                     Name = e.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
+        }
+        public async Task<List<DropInEventListItemResponse>> GetEventsByVenueIdAsync(int venueId)
+        {
+            var events = await _unitOfWork.TicketEvents.GetEventsByVenueIdAsync(venueId);
+
+            return events.Select(e =>
+            {
+                var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
+
+                return new DropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    Name = e.Name,
+                    VenueName = e.Details.FirstOrDefault()?.Field.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
@@ -536,6 +564,7 @@ namespace Fiebo.Application.Services
                     EventId = tp.EventId,
                     Name = tp.Event.Name,
                     VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    ThumbnailUrl = firstDetail?.Field.Venue?.ThumbnailUrl,
                     EventDate = tp.Event.EventDate,
                     TicketQuantity = tp.TicketQuantity,
                     TotalAmount = tp.TotalPrice,
@@ -575,7 +604,7 @@ namespace Fiebo.Application.Services
 
             // 2. Authorize: only the owner of the event may cancel it
             if (ticketEvent.OwnerId != ownerId)
-                throw new UnauthorizedAccessException("Bạn không có quyền hủy sự kiện này.");
+                throw new ForbiddenException("Bạn không có quyền hủy sự kiện này.");
 
             // 3. Guard: can only cancel if still Pending
             if (ticketEvent.Status != TicketEventStatus.Pending)

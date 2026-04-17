@@ -14,7 +14,7 @@ namespace Fiebo.Application.Interfaces
         Task<string> VerifyEmailAsync(VerifyOtpRequest request);
         Task<string> GoogleLoginAsync(GoogleLoginRequest request);
         Task<ServiceResponse> ChangePasswordAsync(string email, ChangePasswordRequest request);
-        Task<UserProfileResponse> GetUserProfileAsync(string userId);
+        Task<UserProfileServiceResponse> GetUserProfileAsync(string userId);
         Task<ServiceResponse> UpdateUserProfileAsync(string userId, UserProfileRequest request);
         Task<ServiceResponse> SendForgotPasswordAsync(string account);
         Task<ServiceResponse> ResetPasswordAsync(ResetPasswordRequest request);
