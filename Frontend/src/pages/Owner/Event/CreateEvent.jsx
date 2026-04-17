@@ -7,7 +7,6 @@ import { getVenueSchedule } from "../../../services/fieldService";
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import { createEvent, getEventList } from "../../../services/eventService";
 import "./CreateEvent.css";
-import { Maximize } from "@mui/icons-material";
 
 const createEventFormSchema = yup.object({
   venueId: yup.string().required("Vui lòng chọn cơ sở."),

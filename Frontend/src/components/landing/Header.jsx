@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  SearchIcon,
-  ShoppingCartIcon,
-  MenuIcon,
-  XIcon,
   BellIcon,
-  UserIcon,
-  LogOutIcon,
   ChevronDownIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,22 +25,23 @@ const Header = () => {
     (user?.role || user?.roles || "")
       .toString()
       .toLowerCase() === "fieldowner";
-  
+
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const { openLogin } = useAuthModal();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+    if (!userMenuOpen) return;
+    const onPointerDown = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
     };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [userMenuOpen]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -57,9 +52,15 @@ const Header = () => {
     setUserMenuOpen(false);
   };
 
+  const handleMegaMenuBlur = (event) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setVenuesMegaActive(false);
+  };
+
   return (
-    <header className={`header ${scrolled ? "scrolled" : ""}`}>
-      <div className="header-container">
+    <>
+      <header className="header">
+        <div className="header-container">
         {/* LEFT */}
         <div className="header-left">
           <Link to="/" className="logo">
@@ -73,7 +74,9 @@ const Header = () => {
             <div
               className="mega-wrapper"
               onMouseEnter={() => setVenuesMegaActive(true)}
+              onMouseLeave={() => setVenuesMegaActive(false)}
               onFocusCapture={() => setVenuesMegaActive(true)}
+              onBlurCapture={handleMegaMenuBlur}
             >
               <NavLink to="/venues" className="mega-link">
                 Sân
@@ -101,7 +104,7 @@ const Header = () => {
           </Link> */}
 
           {isLoggedIn ? (
-            <div className="user-area">
+            <div className="user-area" ref={userMenuRef}>
               {/* Greeting */}
               <div
                 className="greeting-wrapper"
@@ -200,8 +203,10 @@ const Header = () => {
 
         {/* Mobile Toggle */}
        
-      </div>
-    </header>
+        </div>
+      </header>
+      <div className="header-spacer" aria-hidden="true" />
+    </>
   );
 };
 

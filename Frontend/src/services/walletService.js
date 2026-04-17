@@ -1,6 +1,8 @@
 // Wallet Service — GET balance, POST top-up
 import api from './api';
 
+export const BANK_ACCOUNTS_QUERY_KEY = ['bank-accounts'];
+
 /**
  * Lấy số dư ví (GET /api/Wallet/balance).
  * @returns {Promise<{ balance: number }>} — balance có thể từ response.data hoặc response
@@ -55,4 +57,54 @@ export const walletHistoryApi = async (page, size, from, to) => {
   const params = { page, size, from, to };
   const response = await api.get('/api/Wallet/transactions', { params });;
   return response.data.data;
+};
+
+const normalizeBankAccount = (account) => ({
+  id: Number(account?.id ?? account?.Id ?? 0),
+  bankName: account?.bankName ?? account?.BankName ?? '',
+  accountNumber: account?.accountNumber ?? account?.AccountNumber ?? '',
+  accountHolderName: account?.accountHolderName ?? account?.AccountHolderName ?? '',
+});
+
+export const getBankAccounts = async () => {
+  const response = await api.get('/api/Wallet/bank-accounts');
+  const data = response.data?.data ?? response.data ?? [];
+  const items = Array.isArray(data) ? data : [];
+  return items.map(normalizeBankAccount);
+};
+
+export const createBankAccount = async (payload) => {
+  const response = await api.post('/api/Wallet/bank-accounts', {
+    bankName: payload.bankName,
+    accountNumber: payload.accountNumber,
+    accountHolderName: payload.accountHolderName,
+  });
+  return normalizeBankAccount(response.data?.data ?? response.data ?? {});
+};
+
+export const updateBankAccount = async (id, payload) => {
+  await api.put(`/api/Wallet/bank-accounts/${id}`, {
+    bankName: payload.bankName,
+    accountNumber: payload.accountNumber,
+    accountHolderName: payload.accountHolderName,
+  });
+};
+
+export const deleteBankAccount = async (id) => {
+  await api.delete(`/api/Wallet/bank-accounts/${id}`);
+};
+
+export const withdrawWallet = async (payload) => {
+  const response = await api.post('/api/Wallet/withdraw', {
+    amount: Number(payload.amount),
+    bankAccountId: Number(payload.bankAccountId),
+  });
+  const data = response.data?.data ?? response.data ?? {};
+  return {
+    transactionId: data?.transactionId ?? data?.TransactionId ?? null,
+    amount: Number(data?.amount ?? data?.Amount ?? 0),
+    remainingBalance: Number(data?.remainingBalance ?? data?.RemainingBalance ?? 0),
+    status: data?.status ?? data?.Status ?? '',
+    message: data?.message ?? data?.Message ?? 'Rút tiền thành công.',
+  };
 };

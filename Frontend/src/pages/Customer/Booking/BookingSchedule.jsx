@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from "react-rout
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, Loader2, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import Swal from "sweetalert2";
 import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService";
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
@@ -84,23 +85,6 @@ const addMinutesToLabel = (label, plusMinutes) => {
 /** Tên đầy đủ hiển thị / tooltip */
 const getFieldDisplayName = (field) =>
   String(field?.name ?? field?.fieldName ?? field?.Name ?? field?.FieldName ?? "Sân").trim() || "Sân";
-
-/** Danh sách URL ảnh sân từ nhiều dạng DTO */
-const getFieldImageList = (field) => {
-  if (!field) return [];
-  const raw =
-    field.images ??
-    field.Images ??
-    field.imageUrls ??
-    field.ImageUrls ??
-    field.photos ??
-    field.thumbnailUrl ??
-    field.ThumbnailUrl ??
-    null;
-  if (Array.isArray(raw)) return raw.map((x) => (x == null ? "" : String(x))).filter(Boolean);
-  if (typeof raw === "string" && raw.trim()) return [raw.trim()];
-  return [];
-};
 
 const tooltipPositionFromEvent = (e) => {
   const margin = 12;
@@ -200,10 +184,16 @@ const BookingSchedule = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isOwnerOffline =
-    location.pathname.includes("/owner/venues/") &&
+  const isStaffOffline =
+    location.pathname.includes("/staff/venues/") &&
     location.pathname.includes("/offline-booking") &&
     !location.pathname.includes("/offline-booking/confirm");
+  const isOwnerOffline =
+    isStaffOffline ||
+    (location.pathname.includes("/owner/venues/") &&
+      location.pathname.includes("/offline-booking") &&
+      !location.pathname.includes("/offline-booking/confirm"));
+  const offlineBasePrefix = isStaffOffline ? "/staff" : "/owner";
   const gridRef = useRef(null);
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
@@ -533,15 +523,14 @@ const BookingSchedule = () => {
     [configuredSlotStartsBySport],
   );
 
-  // Khóa slot đã qua (ngày hôm nay): dựa trên thời điểm *kết thúc* khung chứ không phải chỉ giờ bắt đầu
-  // (tránh coi slot 13:00–14:00 là “đã qua” ngay từ 13:01).
+  // Khóa slot đã qua (ngày hôm nay): khóa ngay khi chạm thời điểm bắt đầu của slot.
   const lockedBefore = useMemo(() => {
     if (selectedDate !== todayStr()) return -1;
     if (!slots.length) return -1;
-    const now = new Date();
+    const now = new Date(timeTick);
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    const slotEndMin = (s) => s.h * 60 + s.m + (s.stepMinutes ?? 60);
-    const idx = slots.findIndex((s) => slotEndMin(s) > nowMin);
+    const slotStartMin = (s) => s.h * 60 + s.m;
+    const idx = slots.findIndex((s) => slotStartMin(s) > nowMin);
     if (idx < 0) return slots.length - 1;
     return idx - 1;
   }, [selectedDate, slots, timeTick]);
@@ -601,9 +590,6 @@ const BookingSchedule = () => {
     [eventIdByCell]
   );
 
-  /** Không còn gọi GET Event list → không có số vé còn lại; ô sự kiện từ lịch luôn kiểu "còn chỗ" (vàng) trừ khi sau này API lịch trả thêm. */
-  const remainingByEventId = useMemo(() => new Map(), []);
-
   const isBooked = useCallback(
     (fieldIdx, slotIdx) => bookedForDate.some((b) => Number(b.fieldIdx) === Number(fieldIdx) && Number(b.slotIdx) === Number(slotIdx)),
     [bookedForDate]
@@ -631,21 +617,21 @@ const BookingSchedule = () => {
 
   // If a slot becomes booked (e.g., after confirm/payment), remove it from current selection
   useEffect(() => {
-    if (!selectedSlots || !selectedSlots.length) return;
-    const remaining = selectedSlots.filter((s) => !isBooked(s.fieldIdx, s.slotIdx));
-    if (remaining.length !== selectedSlots.length) {
-      setSelectedSlots(remaining);
-    }
-  }, [bookedForDate]);
+    setSelectedSlots((prev) => {
+      if (!prev.length) return prev;
+      const remaining = prev.filter((s) => !isBooked(s.fieldIdx, s.slotIdx));
+      return remaining.length === prev.length ? prev : remaining;
+    });
+  }, [isBooked]);
 
   // If a slot becomes event, remove it from current selection
   useEffect(() => {
-    if (!selectedSlots || !selectedSlots.length) return;
-    const remaining = selectedSlots.filter((s) => !isEventBlock(s.fieldIdx, s.slotIdx));
-    if (remaining.length !== selectedSlots.length) {
-      setSelectedSlots(remaining);
-    }
-  }, [eventBlocks]);
+    setSelectedSlots((prev) => {
+      if (!prev.length) return prev;
+      const remaining = prev.filter((s) => !isEventBlock(s.fieldIdx, s.slotIdx));
+      return remaining.length === prev.length ? prev : remaining;
+    });
+  }, [isEventBlock]);
 
   const isSelected = useCallback(
     (fieldIdx, slotIdx) =>
@@ -995,7 +981,7 @@ const BookingSchedule = () => {
     const totalMinutes = groups.reduce((sum, g) => sum + (g.totalMinutes || 0), 0);
     const totalPrice = groups.reduce((sum, g) => sum + g.slotCount * g.pricePerSlot, 0);
     return { groups, totalMinutes, totalPrice };
-  }, [selectedSlots, slots, fields, venue, venueSchedule]);
+  }, [selectedSlots, slots, fields, venueSchedule]);
 
   const handleMouseDown = (e) => {
     if (!gridRef.current) return;
@@ -1015,6 +1001,23 @@ const BookingSchedule = () => {
     setIsDragging(false);
   };
 
+  const promptLoginBeforeBooking = useCallback(() => {
+    Swal.fire({
+      title: "Yêu cầu đăng nhập",
+      text: "Bạn cần đăng nhập để tiếp tục đặt sân.",
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Đăng nhập",
+      cancelButtonText: "Để sau",
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#94a3b8",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        openLogin();
+      }
+    });
+  }, [openLogin]);
+
   /* ── Loading ── */
   if (loading) {
     return (
@@ -1032,7 +1035,7 @@ const BookingSchedule = () => {
         <h2>Không thể tải lịch sân</h2>
         <p>{error || "Sân không tồn tại."}</p>
         <button
-          onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+          onClick={() => (isOwnerOffline ? navigate(`${offlineBasePrefix}/offline-booking`) : navigate(-1))}
           className="bs-back-link"
         >
           ← Quay lại
@@ -1053,7 +1056,7 @@ const BookingSchedule = () => {
         <div className="bs-topbar">
           <button
             className="bs-back"
-            onClick={() => (isOwnerOffline ? navigate("/owner/venues") : navigate(-1))}
+            onClick={() => (isOwnerOffline ? navigate(`${offlineBasePrefix}/offline-booking`) : navigate(-1))}
           >
             <ArrowLeft size={20} />
           </button>
@@ -1415,11 +1418,11 @@ const BookingSchedule = () => {
           disabled={selectedSlots.length === 0}
           onClick={() => {
             if (!isOwnerOffline && !isAuthenticated) {
-              openLogin();
+              promptLoginBeforeBooking();
               return;
             }
             if (isOwnerOffline) {
-              navigate(`/owner/venues/${id}/offline-booking/confirm`, {
+              navigate(`${offlineBasePrefix}/venues/${id}/offline-booking/confirm`, {
                 state: {
                   venue,
                   fields,
@@ -1429,6 +1432,7 @@ const BookingSchedule = () => {
                   slotSummary,
                   venueSchedule,
                   walkIn: true,
+                  isStaff: isStaffOffline,
                 },
               });
               return;

@@ -81,7 +81,7 @@ const getVenueOptionId = (venue) => venue?.venueId ?? venue?.VenueId ?? venue?.i
 
 const getVenueOptionName = (venue) => venue?.name ?? venue?.Name ?? "";
 
-const OwnerBookings = () => {
+const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
   const [venuesLoading, setVenuesLoading] = useState(true);
@@ -477,7 +477,7 @@ const OwnerBookings = () => {
                     <button
                       type="button"
                       className="ob-detail-btn"
-                      onClick={() => navigate(`/owner/bookings/${bid}`)}
+                      onClick={() => navigate(`${bookingDetailBasePath}/${bid}`)}
                     >
                       Xem chi tiết
                     </button>

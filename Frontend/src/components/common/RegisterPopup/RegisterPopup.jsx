@@ -7,6 +7,7 @@ const RegisterPopup = ({
   open,
   onClose,
   onOpenLogin,
+  onOpenVerifyOTP,
   accountRole = "Customer",
   onOpenOwnerRegister,
   onOpenCustomerRegister,
@@ -33,6 +34,7 @@ const RegisterPopup = ({
           <Register
             onSwitchToLogin={onOpenLogin}
             onClose={onClose}
+            onOpenVerifyOTP={onOpenVerifyOTP}
             accountRole={accountRole}
             variant={accountRole === "FieldOwner" ? "owner" : "default"}
             onSwitchToOwnerRegister={onOpenOwnerRegister}

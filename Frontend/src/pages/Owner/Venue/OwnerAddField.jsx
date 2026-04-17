@@ -39,12 +39,6 @@ const fieldFormSchema = (isEdit) =>
       .max(MAX_FIELD_IMAGES, `Tối đa ${MAX_FIELD_IMAGES} ảnh`),
   });
 
-const formatTime = (timeSpan) => {
-  if (!timeSpan) return "—";
-  const parts = String(timeSpan).split(":");
-  return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : String(timeSpan);
-};
-
 const extractFieldImageUrls = (raw) => {
   if (!raw) return [];
   const candidates = [
@@ -187,7 +181,7 @@ const OwnerAddField = () => {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, venueOpenTime, venueCloseTime]);
 
   useEffect(() => {
     if (!isEdit) {

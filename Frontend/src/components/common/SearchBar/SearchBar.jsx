@@ -7,7 +7,7 @@ import { useAuthModal } from '../../../context/AuthModalContext';
 import VenuesMegaMenu from '../VenuesMegaMenu/VenuesMegaMenu';
 
 
-const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenticated, variant = 'icon' }) => {
+const SearchBar = ({ searchQuery, setSearchQuery, onSearch, isAuthenticated, variant = 'icon' }) => {
   const navigate = useNavigate();
   const { openLogin } = useAuthModal();
   const [venuesMegaActive, setVenuesMegaActive] = React.useState(false);
@@ -38,55 +38,66 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, scrolled, isAuthenti
   };
 
   return (
-    <div className={`ch-search-section ${scrolled ? 'ch-search-scrolled' : ''}`}>
-      <div className="ch-search-bar d-flex align-items-center">
-        <div className="me-2">{renderSearchButton()}</div>
-        <FormControl
-          type="text"
-          className="ch-search-input"
-          placeholder="Tìm kiếm"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-        />
-        <div
-          className="ch-mega-wrapper"
-          onMouseEnter={() => setVenuesMegaActive(true)}
-          onFocusCapture={() => setVenuesMegaActive(true)}
-        >
-          <button type="button" className="ch-mega-trigger" aria-haspopup="true" aria-expanded="false">
-            Sân
-            <ChevronDown size={16} className="ch-mega-chevron" aria-hidden />
-          </button>
-          <VenuesMegaMenu align="end" active={venuesMegaActive} />
+    <>
+      <div className="ch-search-section">
+        <div className="ch-search-inner">
+          <div className="ch-search-bar d-flex align-items-center">
+            <div className="me-2">{renderSearchButton()}</div>
+            <FormControl
+              type="text"
+              className="ch-search-input"
+              placeholder="Tìm kiếm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+            />
+            <div
+              className="ch-mega-wrapper"
+              onMouseEnter={() => setVenuesMegaActive(true)}
+              onMouseLeave={() => setVenuesMegaActive(false)}
+              onFocusCapture={() => setVenuesMegaActive(true)}
+              onBlurCapture={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setVenuesMegaActive(false);
+              }}
+            >
+              <button type="button" className="ch-mega-trigger" aria-haspopup="true" aria-expanded={venuesMegaActive}>
+                Sân
+                <ChevronDown size={16} className="ch-mega-chevron" aria-hidden />
+              </button>
+              <VenuesMegaMenu align="end" active={venuesMegaActive} />
+            </div>
+            <Button
+              variant="light"
+              className="ms-2 ch-filter-btn"
+              type="button"
+              aria-label="Mở trang tìm sân"
+              onClick={() => navigate("/venues")}
+            >
+              <SlidersHorizontal size={18} />
+            </Button>
+          </div>
+
+          <div className="ch-nav-tabs d-flex gap-2 mt-2">
+            <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/map')}>
+              <Map size={16} /> <span className="ms-1">Bản đồ</span>
+            </Button>
+            <Button
+              variant="link"
+              className="ch-nav-tab p-0"
+              onClick={() => (isAuthenticated ? navigate('/bookings') : openLogin())}
+            >
+              <CheckSquare size={16} /> <span className="ms-1">Sân đã đặt</span>
+            </Button>
+            <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && openLogin()}>
+              <Heart size={16} fill="#22c55e" /> <span className="ms-1">Yêu thích</span>
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="light"
-          className="ms-2 ch-filter-btn"
-          type="button"
-          aria-label="Mở trang tìm sân"
-          onClick={() => navigate("/venues")}
-        >
-          <SlidersHorizontal size={18} />
-        </Button>
       </div>
 
-      <div className="ch-nav-tabs d-flex gap-2 mt-2">
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => navigate('/map')}>
-          <Map size={16} /> <span className="ms-1">Bản đồ</span>
-        </Button>
-        <Button
-          variant="link"
-          className="ch-nav-tab p-0"
-          onClick={() => (isAuthenticated ? navigate('/bookings') : openLogin())}
-        >
-          <CheckSquare size={16} /> <span className="ms-1">Sân đã đặt</span>
-        </Button>
-        <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && openLogin()}>
-          <Heart size={16} fill="#22c55e" /> <span className="ms-1">Yêu thích</span>
-        </Button>
-      </div>
-    </div>
+      <div className="ch-search-spacer" aria-hidden="true" />
+    </>
   );
 };
 

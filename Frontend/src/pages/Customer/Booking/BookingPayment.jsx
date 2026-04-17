@@ -23,7 +23,6 @@ import { clearPaymentDraft } from "../../../store/paymentDraftSlice";
 import { payBooking, getBookingById } from "../../../services/bookingService";
 import { getWalletBalance } from "../../../services/walletService";
 import { addBookedSlots } from "../../../store/bookedSlotsSlice";
-import { callPaymentWebhook } from "../../../services/bookingService";
 import { useAuthModal } from "../../../context/AuthModalContext";
 
 const formatPrice = (price) =>
@@ -490,11 +489,6 @@ const BookingPayment = () => {
         return;
       }
       await payBooking(bookingId, { paymentMethod: "wallet" });
-      // try {
-      //   await callPaymentWebhook(bookingId, { paymentMethod: "wallet" });
-      // } catch (webErr) {
-      //   // non-fatal: continue
-      // }
       dispatch(clearPaymentDraft());
       navigate(`/booking/${bookingId}/payment/success`, {
         replace: true,

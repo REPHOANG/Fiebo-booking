@@ -31,7 +31,11 @@ const translateVenueStatus = (status) => {
   return status || "—";
 };
 
-const OwnerOfflineBooking = () => {
+const OwnerOfflineBooking = ({
+  venueOfflineBasePath = "/owner/venues",
+  createVenuePath = "/owner/create-venue",
+  noVenueBackPath = "/owner/venues",
+}) => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,9 +80,11 @@ const OwnerOfflineBooking = () => {
       ) : venues.length === 0 ? (
         <div className="oob-empty">
           <p>Bạn chưa có cơ sở nào.</p>
-          <Link to="/owner/create-venue" className="oob-primary-btn">
-            + Tạo cơ sở mới
-          </Link>
+          {createVenuePath ? (
+            <Link to={createVenuePath} className="oob-primary-btn">
+              + Tạo cơ sở mới
+            </Link>
+          ) : null}
         </div>
       ) : activeVenues.length === 0 ? (
         <div className="oob-empty">
@@ -86,7 +92,7 @@ const OwnerOfflineBooking = () => {
             Hiện không có cơ sở nào đang hoạt động để đặt offline. Chỉ cơ sở{" "}
             <strong>Active</strong> mới xuất hiện tại đây.
           </p>
-          <Link to="/owner/venues" className="oob-primary-btn">
+          <Link to={noVenueBackPath} className="oob-primary-btn">
             Xem tất cả cơ sở
           </Link>
         </div>
@@ -108,7 +114,7 @@ const OwnerOfflineBooking = () => {
                 type="button"
                 className="oob-card"
                 onClick={() => {
-                  navigate(`/owner/venues/${id}/offline-booking`);
+                  navigate(`${venueOfflineBasePath}/${id}/offline-booking`);
                 }}
               >
                 <div className="oob-thumb-wrap">

@@ -2,8 +2,6 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useSelector } from "react-redux";
-import { useAuthModal } from "../../context/AuthModalContext";
 import { getEventList } from "../../services/eventService";
 import { searchVenues } from "../../services/fieldService";
 import "./Events.css";
@@ -13,9 +11,7 @@ import { formatDate, formatPrice, formatTime } from "../../utils/helperFunction"
 
 const Events = () => {
   const navigate = useNavigate();
-  const { openLogin } = useAuthModal();
   const [query, setQuery] = useState("");
-  const isAuthenticated = useSelector((s) => s.auth?.isAuthenticated);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["dropin-events"],
@@ -32,8 +28,15 @@ const Events = () => {
 
     for (const e of events || []) {
       const venueName = e?.venueName || "Sân";
+      const eventName = e?.name || e?.Name || e?.title || e?.Title || `Sự kiện #${e?.eventId ?? ""}`;
       const venueId = e?.venueId ?? e?.VenueId ?? null;
-      if (keyword && !venueName.toLowerCase().includes(keyword)) continue;
+      if (
+        keyword
+        && !venueName.toLowerCase().includes(keyword)
+        && !String(eventName).toLowerCase().includes(keyword)
+      ) {
+        continue;
+      }
 
       const slots = Array.isArray(e?.slots) ? e.slots : [];
       const first = slots[0];
@@ -45,6 +48,7 @@ const Events = () => {
 
       const session = {
         id: e?.eventId,
+        title: eventName,
         time:
           first && last
             ? `${formatTime(first?.startTime)} - ${formatTime(last?.endTime)}`
@@ -89,17 +93,9 @@ const Events = () => {
     };
   }, [query]);
 
-  const openEventRegister = (eventId) => {
-    if (!isAuthenticated) {
-      openLogin();
-      return;
-    }
-    navigate(`/event/${eventId}`);
-  };
-
   const openVenueEvents = async (venueId, venueName) => {
     if (venueId) {
-      navigate(`/venue/${venueId}/social-session`);
+      navigate(`/venue/${venueId}/events`);
       return;
     }
 
@@ -118,7 +114,7 @@ const Events = () => {
       );
       const resolvedVenueId = match?.id ?? match?.venueId ?? match?.VenueId;
       if (resolvedVenueId) {
-        navigate(`/venue/${resolvedVenueId}/social-session`);
+        navigate(`/venue/${resolvedVenueId}/events`);
         return;
       }
       window.alert("Không tìm thấy mã sân để mở danh sách sự kiện.");
@@ -203,9 +199,10 @@ const Events = () => {
                       key={s.id}
                       type="button"
                       className="ev-session"
-                      onClick={() => openEventRegister(s.id)}
+                      onClick={() => openVenueEvents(v.venueId, v.name)}
                     >
                       <div className="ev-session-left">
+                        <div className="ev-session-title">{s.title}</div>
                         <div className="ev-session-time">{s.time}</div>
                         <div className="ev-session-level">{s.level}</div>
                       </div>

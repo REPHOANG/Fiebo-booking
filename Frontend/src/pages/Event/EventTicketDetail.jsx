@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { toast } from "react-toastify";
 import { Calendar, Clock, User, Receipt, Phone } from "lucide-react";
 import { getEventTicketById } from "../../services/eventService";
 import "./EventTicketDetail.css";
@@ -18,6 +17,18 @@ const formatDate = (d) => {
 const formatTime = (t) => {
   const s = String(t ?? "").trim();
   return s.length >= 5 ? s.slice(0, 5) : s;
+};
+
+const translateTicketStatus = (status) => {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  if (normalized === "joined") return "Đã tham gia";
+  if (normalized === "pending") return "Chờ thanh toán";
+  if (normalized === "paid") return "Đã thanh toán";
+  if (normalized === "booked") return "Đã đặt";
+  if (normalized === "completed") return "Hoàn thành";
+  if (normalized === "cancelled" || normalized === "canceled") return "Đã hủy";
+  if (normalized === "expired") return "Hết hạn";
+  return status || "—";
 };
 
 const EventTicketDetail = () => {
@@ -49,19 +60,11 @@ const EventTicketDetail = () => {
     };
   }, [ticketId]);
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(String(ticketId));
-      toast.success("Đã copy mã vé");
-    } catch {
-      toast.info(String(ticketId));
-    }
-  };
-
   if (loading) return <div className="ticket-page">Đang tải...</div>;
   if (error) return <div className="ticket-page">Lỗi: {error}</div>;
 
-  const status = ticket?.status ?? ticket?.Status ?? "—";
+  const rawStatus = ticket?.status ?? ticket?.Status ?? "—";
+  const status = translateTicketStatus(rawStatus);
   const fullname = ticket?.fullname ?? ticket?.fullName ?? ticket?.Fullname ?? "—";
   const phoneNumber = ticket?.phoneNumber ?? ticket?.phone ?? ticket?.PhoneNumber ?? "—";
   const eventDate = ticket?.eventDate ?? ticket?.EventDate;
@@ -78,14 +81,14 @@ const EventTicketDetail = () => {
           <div className="ticket-header">
             <div className="ticket-header-left">
               <h1 className="ticket-title">Vé sự kiện</h1>
-              <span className={`ticket-badge ticket-badge--${String(status).toLowerCase()}`}>
+              <span className={`ticket-badge ticket-badge--${String(rawStatus).toLowerCase()}`}>
                 {String(status)}
               </span>
             </div>
             <div className="ticket-actions">
-              <button className="ticket-btn-secondary" onClick={handleCopy} type="button">
-                Copy mã vé
-              </button>
+              <Link className="ticket-btn-secondary" to="/bookings">
+                Vé của tôi
+              </Link>
               <Link className="ticket-btn-secondary" to="/">
                 Về trang chủ
               </Link>
