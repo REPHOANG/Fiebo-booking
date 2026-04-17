@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
@@ -27,7 +27,19 @@ const Header = () => {
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const { openLogin } = useAuthModal();
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onPointerDown = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [userMenuOpen]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -89,7 +101,7 @@ const Header = () => {
           </Link> */}
 
           {isLoggedIn ? (
-            <div className="user-area">
+            <div className="user-area" ref={userMenuRef}>
               {/* Greeting */}
               <div
                 className="greeting-wrapper"
