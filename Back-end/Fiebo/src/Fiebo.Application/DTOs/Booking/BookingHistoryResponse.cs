@@ -17,5 +17,6 @@ namespace Fiebo.Application.DTOs.Booking
         public string Province { get; set; }
         public int VenueId { get; set; }
         public string Ward { get; set; }
+        public bool CanReview { get; set; }
     }
 }

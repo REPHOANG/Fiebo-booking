@@ -18,5 +18,6 @@ namespace Fiebo.Domain.Repositories
         Task<List<Booking>> GetBookingAnalyticsAsync(string ownerId, DateTime? fromDate, DateTime? toDate);
         Task<List<Booking>> GetFinancialSummaryDataAsync(string ownerId, DateTime fromDate, DateTime toDate);
         IQueryable<Booking> GetOwnerDashboardQuery(string ownerId, DateOnly fromDate, DateOnly toDate, int? venueId);
+        Task<List<int>> GetRatedBookingIdsAsync(List<int> bookingIds);
     }
 }
