@@ -157,6 +157,7 @@ const routes = [
         path: "subscription/plans",
         element: <OwnerSubscriptionPlans />,
       },
+      { path: "wallet", element: <Wallet /> },
       { path: "payout", element: <PayoutList /> },
       { path: "payout/:id/details", element: <PayoutDetails /> },
       { path: "venues", element: <OwnerVenues /> },

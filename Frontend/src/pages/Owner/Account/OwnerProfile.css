@@ -759,6 +759,251 @@
   color: #6d28d9;
 }
 
+.owner-profile {
+  padding: 24px;
+  background:
+    radial-gradient(900px 360px at top right, rgba(59, 130, 246, 0.09), transparent 60%),
+    linear-gradient(180deg, #eef4ff 0%, #f8fbff 35%, #f4f7fb 100%);
+}
+
+.owner-profile .op-hero {
+  margin-bottom: 18px;
+  padding: 24px 26px;
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(37, 99, 235, 0.18);
+}
+
+.owner-profile .op-hero-name {
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.op-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.op-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.owner-profile .op-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.op-card-subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.owner-profile .op-info-head {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.op-info-head--compact {
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 12px;
+}
+
+.op-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.op-field--full {
+  grid-column: 1 / -1;
+}
+
+.op-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.op-bank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.op-bank-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.op-bank-item.is-editing {
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.08);
+}
+
+.op-bank-badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: #0f172a;
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+}
+
+.op-bank-copy {
+  min-width: 0;
+}
+
+.op-bank-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.op-bank-name,
+.op-bank-meta,
+.op-bank-owner {
+  margin: 0;
+}
+
+.op-bank-name {
+  font-size: 15px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.op-bank-meta {
+  margin-top: 4px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-bank-owner {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.op-bank-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.op-bank-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.op-empty-bank {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.op-empty-bank-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.op-empty-bank-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.op-empty-bank-text {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.op-bank-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.op-btn--danger {
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.85);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.owner-profile .op-field input {
+  min-height: 44px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.owner-profile .op-field input:focus {
+  outline: none;
+  border-color: rgba(34, 197, 94, 0.45);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+}
+
+@media (max-width: 1100px) {
+  .op-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .owner-profile {
+    padding: 16px;
+  }
+
+  .op-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .op-bank-item {
+    grid-template-columns: 1fr;
+  }
+
+  .op-bank-actions {
+    justify-content: flex-start;
+  }
+}
+
 .op-sub-plan-card--vip .op-sub-plan-pill {
   background: rgba(217, 119, 6, 0.14);
   border-color: rgba(217, 119, 6, 0.18);

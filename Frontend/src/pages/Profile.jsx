@@ -41,10 +41,7 @@ const customerProfileSchema = yup.object({
   phoneNumber: yup
     .string()
     .transform((value) => String(value ?? "").replace(/\s/g, "").trim())
-    .test("valid-phone-number", "Số điện thoại không hợp lệ", (value) => {
-      if (!value) return true;
-      return VN_PHONE_REGEX.test(value);
-    })
+    .matches(/^\d{10,15}$/, "Số điện thoại không hợp lệ")
     .optional(),
   dateOfBirth: yup.string().optional(),
 });
