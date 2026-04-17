@@ -12,6 +12,7 @@ namespace Fiebo.Application.Interfaces
     public interface IEventService
     {
         Task<List<DropInEventListItemResponse>> GetDropInEventListAsync();
+        Task<List<DropInEventListItemResponse>> GetEventsByVenueIdAsync(int venueId);
         Task<int> CreateDropInEventAsync(CreateDropInEventRequest request, string userId);
         Task<int> JoinDropInEventAsync(JoinEventRequest request, int eventId, string userId);
         Task<TicketEventDetailResponse> GetDropInEventDetailAsync(int eventId);

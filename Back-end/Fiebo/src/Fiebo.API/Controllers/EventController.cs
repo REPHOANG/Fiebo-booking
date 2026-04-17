@@ -42,6 +42,24 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
+        /// Get list of available drop-in events for a specific venue.
+        /// </summary>
+        [HttpGet("venue/{venueId}")]
+        public async Task<IActionResult> GetEventsByVenueId([FromRoute] int venueId)
+        {
+            var events = await _eventService.GetEventsByVenueIdAsync(venueId);
+            return Ok(new ApiResponse<List<DropInEventListItemResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = events.Count > 0
+                    ? "Lấy danh sách sự kiện theo cơ sở thành công."
+                    : "Cơ sở này hiện chưa có sự kiện.",
+                Data = events
+            });
+        }
+
+
+        /// <summary>
         /// Join drop in event
         /// </summary>
         /// <param name="id"></param>
