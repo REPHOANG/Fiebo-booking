@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -47,12 +47,19 @@ const PAGE_SIZE = 10;
 
 const AdminCustomers = () => {
   const [search, setSearch] = useState("");
-  const deferredSearch = useDeferredValue(search);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const queryParams = {
-    searchTerm: deferredSearch.trim() || undefined,
+    searchTerm: debouncedSearch.trim() || undefined,
     status: statusFilter !== "" ? Number(statusFilter) : undefined,
     pageNumber: page,
     pageSize: PAGE_SIZE,

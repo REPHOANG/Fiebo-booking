@@ -68,6 +68,27 @@ export const getCustomers = async (params) => {
   };
 };
 
+export const getAdminSubscriptionPlans = async () => {
+  const response = await api.get("/api/Admin/subscription-plans");
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
+};
+
+export const createAdminSubscriptionPlan = async (payload) => {
+  const response = await api.post("/api/Admin/subscription-plans", payload);
+  return response.data?.data ?? response.data;
+};
+
+export const updateAdminSubscriptionPlan = async ({ id, ...payload }) => {
+  const response = await api.put(`/api/Admin/subscription-plans/${id}`, payload);
+  return response.data?.data ?? response.data;
+};
+
+export const deleteAdminSubscriptionPlan = async (id) => {
+  const response = await api.delete(`/api/Admin/subscription-plans/${id}`);
+  return response.data;
+};
+
 export const getSportTypesAdmin = async () => {
   const response = await api.get("/api/sport-types");
   const data = response.data?.data ?? response.data;
