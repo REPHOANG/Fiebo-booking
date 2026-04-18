@@ -68,6 +68,41 @@ export const getCustomers = async (params) => {
   };
 };
 
+export const getOwners = async (params) => {
+  const response = await api.get("/api/Admin/owners", { params });
+  const data = response.data?.data ?? response.data ?? {};
+  if (Array.isArray(data)) {
+    return { page: 1, pageSize: data.length, totalItems: data.length, totalPages: 1, items: data };
+  }
+  return {
+    page: Number(data.page ?? 1),
+    pageSize: Number(data.pageSize ?? 10),
+    totalItems: Number(data.totalItems ?? 0),
+    totalPages: Number(data.totalPages ?? 0),
+    items: Array.isArray(data.items) ? data.items : [],
+  };
+};
+
+export const getOwnerDetail = async (id) => {
+  const response = await api.get(`/api/Admin/owners/${id}`);
+  return response.data?.data ?? response.data;
+};
+
+export const getAdminVenueDetail = async (id) => {
+  const response = await api.get(`/api/Admin/venues/${id}`);
+  return response.data?.data ?? response.data;
+};
+
+export const lockVenue = async (id) => {
+  const response = await api.post(`/api/Admin/venues/${id}/lock`);
+  return response.data?.data ?? response.data;
+};
+
+export const unlockVenue = async (id) => {
+  const response = await api.post(`/api/Admin/venues/${id}/unlock`);
+  return response.data?.data ?? response.data;
+};
+
 export const getAdminSubscriptionPlans = async () => {
   const response = await api.get("/api/Admin/subscription-plans");
   const data = response.data?.data ?? response.data;

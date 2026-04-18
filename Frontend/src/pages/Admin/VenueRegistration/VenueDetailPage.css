@@ -420,6 +420,20 @@
   border: 1px solid #fecdd3;
 }
 
+.avr-lock-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff7f7;
+  border: 1px solid #fecdd3;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #7f1d1d;
+  flex: 1;
+}
+
 @media (max-width: 900px) {
   .avr-card {
     padding: 20px;
