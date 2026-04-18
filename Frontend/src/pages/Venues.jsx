@@ -1,16 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   MapPin, Star, Search, Frown, X, Clock,
-  Calendar, MapPinned, ChevronLeft, ChevronRight, ImageIcon,
-  MessageSquare, User, Loader2, SlidersHorizontal, Navigation, Dumbbell,
+  Calendar, ChevronRight, SlidersHorizontal, Navigation, Navigation2, Dumbbell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useDispatch } from 'react-redux';
-import { clearDraft } from '../store/bookingDraftSlice';
-import { searchVenues, getVenueDetail, getVenueFields, getVenueReviews } from "../services/fieldService";
+import { searchVenues } from "../services/fieldService";
 import { getDistrictsByProvince, getProvinces } from "../services/addressService";
-import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 import {
   getSportTypes,
   normalizeSportTypeList,
@@ -34,6 +30,21 @@ const formatTime = (timeSpan) => {
   return `${parts[0]}:${parts[1]}`;
 };
 
+const StarRating = ({ rating, max = 5 }) => {
+  const pct = Math.min(100, Math.max(0, (rating / max) * 100));
+  const stars = Array.from({ length: max });
+  return (
+    <span className="star-rating" aria-label={`${rating} / ${max} sao`}>
+      <span className="star-rating-empty">
+        {stars.map((_, i) => <Star key={i} size={13} />)}
+      </span>
+      <span className="star-rating-filled" style={{ width: `${pct}%` }}>
+        {stars.map((_, i) => <Star key={i} size={13} />)}
+      </span>
+    </span>
+  );
+};
+
 /** Query `time` cho API search venue (TimeOnly). */
 const formatTimeForApi = (t) => {
   if (!t || !String(t).trim()) return undefined;
@@ -43,260 +54,6 @@ const formatTimeForApi = (t) => {
   return undefined;
 };
 
-/* ── Helpers ──────────────────────────────────────────────────── */
-const formatRelativeTime = (dateStr) => {
-  if (!dateStr) return "";
-  const now = new Date();
-  const date = new Date(dateStr);
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 60) return `${diffMins} phút trước`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} ngày trước`;
-  const diffWeeks = Math.floor(diffDays / 7);
-  if (diffWeeks < 4) return `${diffWeeks} tuần trước`;
-  return date.toLocaleDateString("vi-VN");
-};
-
-const renderStars = (rating) => {
-  const stars = [];
-  const full = Math.floor(rating || 0);
-  const hasHalf = (rating || 0) - full >= 0.5;
-  for (let i = 0; i < 5; i++) {
-    if (i < full) {
-      stars.push(<Star key={i} size={14} fill="#f59e0b" stroke="#f59e0b" />);
-    } else if (i === full && hasHalf) {
-      stars.push(
-        <span key={i} style={{ position: "relative", display: "inline-flex" }}>
-          <Star size={14} fill="#f59e0b" stroke="#f59e0b" style={{ clipPath: "inset(0 50% 0 0)" }} />
-          <Star size={14} fill="none" stroke="#e2e8f0" style={{ position: "absolute", left: 0 }} />
-        </span>
-      );
-    } else {
-      stars.push(<Star key={i} size={14} fill="none" stroke="#e2e8f0" />);
-    }
-  }
-  return stars;
-};
-
-/* ── Venue Detail Popup ──────────────────────────────────────── */
-const VenuePopup = ({ venueId, onClose }) => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [venue, setVenue] = useState(null);
-  const [fields, setFields] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [reviewPage, setReviewPage] = useState(1);
-  const [reviewTotalPages, setReviewTotalPages] = useState(0);
-  const [reviewTotal, setReviewTotal] = useState(0);
-  const [popupLoading, setPopupLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [galleryIndex, setGalleryIndex] = useState({});
-
-  // Lock body scroll
-  useEffect(() => {
-    lockBodyScroll({ reserveScrollbarGap: true });
-
-    return () => {
-      unlockBodyScroll();
-    };
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      setPopupLoading(true);
-      try {
-        const [v, f, r] = await Promise.all([
-          getVenueDetail(venueId),
-          getVenueFields(venueId),
-          getVenueReviews(venueId, { page: 1, pageSize: 5 }),
-        ]);
-        setVenue(v);
-        setFields(f?.items || []);
-        setReviews(r?.items || []);
-        setReviewTotal(r?.totalItems || 0);
-        setReviewTotalPages(r?.totalPages || 0);
-      } catch (err) {
-        setError(err.message || "Không thể tải thông tin sân");
-      } finally {
-        setPopupLoading(false);
-      }
-    };
-    fetchData();
-  }, [venueId]);
-
-  const loadMoreReviews = async () => {
-    const next = reviewPage + 1;
-    try {
-      const data = await getVenueReviews(venueId, { page: next, pageSize: 5 });
-      setReviews((prev) => [...prev, ...(data?.items || [])]);
-      setReviewPage(next);
-    } catch (err) {
-      console.error("Failed to load reviews:", err);
-    }
-  };
-
-  const getFieldGalleryIdx = (fieldIdx) => galleryIndex[fieldIdx] || 0;
-  const setFieldGalleryIdx = (fieldIdx, imgIdx) => setGalleryIndex((prev) => ({ ...prev, [fieldIdx]: imgIdx }));
-
-  const address = venue ? [venue.addressDetail, venue.ward, venue.province].filter(Boolean).join(", ") : "";
-  const mapUrl = venue?.latitude && venue?.longitude
-    ? `https://www.google.com/maps?q=${venue.latitude},${venue.longitude}`
-    : null;
-
-  return (
-    <div className="vp-overlay" onClick={onClose}>
-      <motion.div
-        className="vp-container"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.92, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 30 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-      >
-        {/* Sticky top bar */}
-        <div className="vp-top-bar">
-          <button className="vp-book-btn" onClick={() => { onClose(); try { dispatch(clearDraft(String(venueId))); } catch(e){}; navigate(`/venue/${venueId}/booking/schedule`); }}>
-            <Calendar size={16} /> Đặt sân
-          </button>
-          <button className="vp-close" onClick={onClose}><X size={22} /></button>
-        </div>
-
-        {popupLoading ? (
-          <div className="vp-loading">
-            <Loader2 size={28} className="vp-spinner" />
-            <p>Đang tải thông tin sân...</p>
-          </div>
-        ) : error || !venue ? (
-          <div className="vp-error">
-            <p>{error || "Không tìm thấy thông tin sân"}</p>
-          </div>
-        ) : (
-          <div className="vp-content">
-            {/* Header */}
-            <div className="vp-header">
-              <h2>{venue.name}</h2>
-              <div className="vp-meta">
-                <span className="vp-rating">
-                  <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
-                  {venue.averageRating?.toFixed(1) || "0.0"}
-                  <span className="vp-rating-count">({venue.ratingCount || 0})</span>
-                </span>
-                <span className="vp-badge">{venue.bookingCount || 0} lượt đặt</span>
-              </div>
-            </div>
-
-            {/* Quick info */}
-            <div className="vp-info-grid">
-              {address && (
-                <div className="vp-info-item">
-                  <MapPin size={15} />
-                  <span>{address}</span>
-                </div>
-              )}
-              {venue.openTime && venue.closeTime && (
-                <div className="vp-info-item">
-                  <Clock size={15} />
-                  <span>{formatTime(venue.openTime)} – {formatTime(venue.closeTime)}</span>
-                </div>
-              )}
-              {mapUrl && (
-                <div className="vp-info-item">
-                  <MapPinned size={15} />
-                  <a href={mapUrl} target="_blank" rel="noopener noreferrer">Mở Google Maps</a>
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {venue.description && (
-              <div className="vp-description">
-                <p>{venue.description}</p>
-              </div>
-            )}
-
-            {/* Fields */}
-            {fields.length > 0 && (
-              <div className="vp-section">
-                <h3><Calendar size={16} /> Sân ({fields.length})</h3>
-                <div className="vp-fields">
-                  {fields.map((field, fi) => {
-                    const imgIdx = getFieldGalleryIdx(fi);
-                    const imgs = field.images || [];
-                    return (
-                      <div key={fi} className="vp-field-card">
-                        {imgs.length > 0 ? (
-                          <div className="vp-field-gallery">
-                            <img src={imgs[imgIdx]} alt={field.name} />
-                            {imgs.length > 1 && (
-                              <>
-                                <button className="vp-fg-nav prev" onClick={() => setFieldGalleryIdx(fi, (imgIdx - 1 + imgs.length) % imgs.length)}>
-                                  <ChevronLeft size={16} />
-                                </button>
-                                <button className="vp-fg-nav next" onClick={() => setFieldGalleryIdx(fi, (imgIdx + 1) % imgs.length)}>
-                                  <ChevronRight size={16} />
-                                </button>
-                                <span className="vp-fg-counter">{imgIdx + 1}/{imgs.length}</span>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="vp-field-placeholder"><ImageIcon size={24} /></div>
-                        )}
-                        <div className="vp-field-info">
-                          <h4>{field.name}</h4>
-                          {field.sportType && <span className="vp-sport-tag">{field.sportType}</span>}
-                          {field.description && <p>{field.description}</p>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Reviews */}
-            {reviews.length > 0 && (
-              <div className="vp-section">
-                <h3><MessageSquare size={16} /> Đánh giá ({reviewTotal})</h3>
-                <div className="vp-reviews">
-                  {reviews.map((r, i) => (
-                    <div key={i} className="vp-review">
-                      <div className="vp-review-top">
-                        <div className="vp-review-avatar"><User size={14} /></div>
-                        <span className="vp-review-name">{r.name || "Ẩn danh"}</span>
-                        <span className="vp-review-time">{formatRelativeTime(r.createdAt)}</span>
-                        <div className="vp-review-stars">{renderStars(r.rating)}</div>
-                      </div>
-                      {r.comment && <p className="vp-review-text">{r.comment}</p>}
-                    </div>
-                  ))}
-                </div>
-                {reviewPage < reviewTotalPages && (
-                  <button className="vp-load-more" onClick={loadMoreReviews}>
-                    Xem thêm đánh giá
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </motion.div>
-    </div>
-  );
-};
-
-/* ── Main Component ──────────────────────────────────────────── */
 const Venues = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -337,7 +94,7 @@ const Venues = () => {
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [inputValue, setInputValue] = useState(initialSearch);
-  const [totalItems, setTotalItems] = useState(0);
+  const [, setTotalItems] = useState(0);
   /** Đọc vị trí đã lưu ngay khi khởi tạo để tránh hai lần đổi `filtersKey` → hai request chồng chéo, response cũ ghi đè danh sách. */
   const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
 
@@ -359,15 +116,13 @@ const Venues = () => {
   const [pendingBookingTime, setPendingBookingTime] = useState("");
   /** `""` = tất cả môn; id string khi chọn trong bộ lọc (đồng bộ URL `sport` khi Áp dụng). */
   const [pendingSportTypeId, setPendingSportTypeId] = useState("");
-  const [pendingKeyword, setPendingKeyword] = useState("");
+  const pendingKeyword = "";
   /** Bán kính đã áp dụng → gửi `radiusKm` + tọa độ (giống Swagger). */
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
   const [appliedBookingDate, setAppliedBookingDate] = useState("");
   const [appliedBookingTime, setAppliedBookingTime] = useState("");
   const [appliedProvinceId, setAppliedProvinceId] = useState("");
   const [appliedWardId, setAppliedWardId] = useState("");
-  const filterKeywords = ["Cầu lông gần tôi", "Pickleball gần tôi", "Xé vé gần tôi"];
-
   const sportDraftMismatch =
     String(pendingSportTypeId || "") !==
     (sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "");
@@ -659,11 +414,6 @@ const Venues = () => {
     const parts = [ward, province].filter(Boolean);
     const detail = venue.addressDetail ?? venue.AddressDetail;
     return parts.length > 0 ? parts.join(", ") : detail || "Không rõ vị trí";
-  };
-
-  const getAreaFilterText = () => {
-    const parts = [province, district].filter(Boolean);
-    return parts.join(" ");
   };
 
   const getPendingSearchText = () => {
@@ -1132,26 +882,28 @@ const Venues = () => {
                   </span>
                 </div>
                 <div className="venue-info">
-                  <h3>{venueName}</h3>
+                  <h3 title={venueName}>{venueName}</h3>
                   <p className="location">
-                    <MapPin size={15} /> {getLocation(venue)}
+                    <MapPin size={15} />
+                    <span title={getLocation(venue)}>{getLocation(venue)}</span>
                   </p>
-                  {openTime && closeTime && (
-                    <p className="venue-hours">
-                      <Clock size={15} />
-                      <span>Mở cửa {formatTime(openTime)} - Đóng cửa {formatTime(closeTime)}</span>
-                    </p>
-                  )}
-                  <div className="rating-row">
-                    <div className="rating">
-                      <Star size={15} className="star" />
-                      <span>{Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}</span>
-                    </div>
-                    <span className="price">{venue.bookingCount ?? venue.BookingCount ?? 0} lượt đặt</span>
+                  <div className="venue-meta-row">
+                    {openTime && closeTime && (
+                      <span className="venue-hours">
+                        <Clock size={13} />
+                        {formatTime(openTime)} – {formatTime(closeTime)}
+                      </span>
+                    )}
+                    <span className="venue-rating">
+                      <Star size={13} className="venue-rating-star" />
+                      <span className="rating-value">
+                        {Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}
+                      </span>
+                    </span>
                   </div>
                   {(venue.distanceKm ?? venue.DistanceKm) != null && (
                     <p className="venue-distance">
-                      <MapPin size={13} />{" "}
+                      <Navigation2 size={13} />{" "}
                       {Number(venue.distanceKm ?? venue.DistanceKm).toFixed(1)} km
                     </p>
                   )}

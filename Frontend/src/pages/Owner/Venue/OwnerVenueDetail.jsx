@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { getOwnerVenueFields, getVenueDetail, toggleOwnerFieldStatus } from "../../../services/fieldService";
-import { deactivateOwnerVenue, getVenueDraft, getVenueServices } from "../../../services/venueService";
+import { deactivateOwnerVenue, getVenueDraft } from "../../../services/venueService";
 import "./OwnerVenueDetail.css";
 
 const formatTime = (timeSpan) => {
@@ -208,8 +208,6 @@ const OwnerVenueDetail = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sportFilter, setSportFilter] = useState("all");
-  const [venueServices, setVenueServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
   const [fieldStatusLoading, setFieldStatusLoading] = useState({});
 
   useEffect(() => {

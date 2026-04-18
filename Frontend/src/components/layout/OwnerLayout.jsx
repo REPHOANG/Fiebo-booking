@@ -20,10 +20,12 @@ import {
   UserCircle,
   LogOut,
   CircleDollarSign,
+  Wallet,
 } from "lucide-react";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
-import { useQueryClient } from "@tanstack/react-query";
-import { resolveOwnerSubscriptionState } from "../../utils/ownerSubscription";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getOwnerSubscriptionOverview } from "../../services/subscriptionService";
+import { isFieldOwnerUser, resolveOwnerSubscriptionState } from "../../utils/ownerSubscription";
 import "./OwnerLayout.css";
 
 const OwnerLayout = () => {
@@ -41,17 +43,51 @@ const OwnerLayout = () => {
   const userMenuRef = useRef(null);
 
   const activePath = location?.pathname || "";
-  const ownerPlanState = useMemo(() => resolveOwnerSubscriptionState(user), [user]);
+  const isOwnerUser = isFieldOwnerUser(user);
+  const { data: subscriptionOverview, isSuccess: subscriptionLoaded } = useQuery({
+    queryKey: ["owner-layout-subscription-overview"],
+    queryFn: getOwnerSubscriptionOverview,
+    enabled: isOwnerUser,
+    staleTime: 5 * 60 * 1000,
+    retry: 0,
+  });
+
+  const ownerPlanState = useMemo(() => {
+    if (subscriptionLoaded) {
+      const currentPlan = subscriptionOverview?.currentPlan ?? null;
+      const planEnd = currentPlan?.endDate ? new Date(currentPlan.endDate) : null;
+      const hasActivePlan = Boolean(
+        currentPlan
+        && Number(currentPlan.status) === 1
+        && planEnd
+        && !Number.isNaN(planEnd.getTime())
+        && planEnd.getTime() > Date.now(),
+      );
+
+      return {
+        checked: true,
+        active: hasActivePlan,
+        reason: hasActivePlan
+          ? ""
+          : "Bạn chưa đăng ký gói hoặc gói hiện tại đã hết hạn. Vui lòng mua gói để mở khóa các tính năng chủ sân.",
+      };
+    }
+
+    return resolveOwnerSubscriptionState(user);
+  }, [subscriptionLoaded, subscriptionOverview, user]);
+
   const isOwnerPlanInactive = ownerPlanState.checked && !ownerPlanState.active;
   const shouldLockSidebar = isOwnerPlanInactive;
   const isOnSubscriptionPlans = activePath.startsWith("/owner/subscription/plans");
   const isOnSubscriptionOverview = activePath.startsWith("/owner/subscription/overview");
   const isOnOwnerProfile = activePath.startsWith("/owner/profile");
+  const isOnOwnerWallet = activePath.startsWith("/owner/wallet");
 
   const isAccountSectionActive = useMemo(() => {
     return (
       activePath.startsWith("/owner/profile") ||
-      activePath.startsWith("/owner/subscription")
+      activePath.startsWith("/owner/subscription") ||
+      activePath.startsWith("/owner/wallet")
     );
   }, [activePath]);
 
@@ -76,6 +112,7 @@ const OwnerLayout = () => {
     if (activePath.startsWith("/owner/profile")) return ["Hồ sơ cá nhân"];
     if (activePath.startsWith("/owner/subscription/plans")) return ["Hồ sơ & gói", "Mua gói"];
     if (activePath.startsWith("/owner/subscription")) return ["Hồ sơ & gói", "Thông tin gói"];
+    if (activePath.startsWith("/owner/wallet")) return ["Hồ sơ & gói", "Ví"];
     if (activePath.startsWith("/owner/payout")) return ["Hồ sơ & gói", "Payout"];
     if (activePath.startsWith("/owner/bookings")) return ["Đơn đặt sân"];
     if (activePath.startsWith("/owner/staff")) return ["Cơ sở", "Nhân viên"];
@@ -104,6 +141,7 @@ const OwnerLayout = () => {
     if (label === "Cơ sở của tôi" || label === "Tạo cơ sở") return <Building2 size={12} />;
     if (label === "Hồ sơ cá nhân") return <UserCircle size={12} />;
     if (label === "Hồ sơ & gói" || label === "Gói") return <UserCircle size={12} />;
+    if (label === "Ví") return <Wallet size={12} />;
     if (label === "Payout") return <ReceiptText size={12} />;
     if (label === "Đơn đặt sân") return <ReceiptText size={12} />;
     if (label === "Nhân viên") return <UserCircle size={12} />;
@@ -137,7 +175,7 @@ const OwnerLayout = () => {
   }, [userMenuOpen]);
 
   useEffect(() => {
-    if (!isOwnerPlanInactive || isOnSubscriptionPlans || isOnSubscriptionOverview || isOnOwnerProfile) return;
+    if (!isOwnerPlanInactive || isOnSubscriptionPlans || isOnSubscriptionOverview || isOnOwnerProfile || isOnOwnerWallet) return;
 
     navigate("/owner/subscription/plans", { replace: true });
     setMenuOpen(false);
@@ -146,6 +184,7 @@ const OwnerLayout = () => {
     isOwnerPlanInactive,
     isOnSubscriptionPlans,
     isOnOwnerProfile,
+    isOnOwnerWallet,
     navigate,
   ]);
 
@@ -166,6 +205,11 @@ const OwnerLayout = () => {
               {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
           </div>
+          {shouldLockSidebar && !sidebarCollapsed ? (
+            <div className="owner-sidebar-lock-note">
+              <span>{ownerPlanState.reason}</span>
+            </div>
+          ) : null}
         </div>
 
         <nav className={`owner-sidebar-nav ${shouldLockSidebar ? "disabled" : ""}`} data-disabled={shouldLockSidebar}>
@@ -219,6 +263,14 @@ const OwnerLayout = () => {
               >
                 <ListChecks size={15} />
                 <span className="owner-sidebar-text">Mua gói</span>
+              </NavLink>
+              <NavLink
+                to="/owner/wallet"
+                onClick={handleSidebarNavigate}
+                className={({ isActive }) => `owner-sidebar-sublink ${isActive ? "active" : ""}`}
+              >
+                <Wallet size={15} />
+                <span className="owner-sidebar-text">Ví</span>
               </NavLink>
             </div>
           </div>
@@ -430,7 +482,7 @@ const OwnerLayout = () => {
                     Hồ sơ
                   </Link>
                   <Link
-                    to="/wallet"
+                    to="/owner/wallet"
                     className="owner-user-menu-item"
                     role="menuitem"
                     onClick={() => setUserMenuOpen(false)}

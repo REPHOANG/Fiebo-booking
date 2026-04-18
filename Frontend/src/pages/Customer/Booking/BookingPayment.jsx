@@ -489,11 +489,6 @@ const BookingPayment = () => {
         return;
       }
       await payBooking(bookingId, { paymentMethod: "wallet" });
-      // try {
-      //   await callPaymentWebhook(bookingId, { paymentMethod: "wallet" });
-      // } catch (webErr) {
-      //   // non-fatal: continue
-      // }
       dispatch(clearPaymentDraft());
       navigate(`/booking/${bookingId}/payment/success`, {
         replace: true,

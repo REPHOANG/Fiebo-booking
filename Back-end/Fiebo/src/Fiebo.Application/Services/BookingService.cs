@@ -374,6 +374,7 @@ namespace Fiebo.Application.Services
                 VenueName = booking.Venue.Name,
                 Date = booking.BookingDate,
                 TotalPrice = booking.TotalPrice,
+                CancelReason = booking.CancelBooking?.CancelReason,
                 Details = [.. booking.BookingDetails.Select(d => new BookingSlotResponse
                 {
                     FieldName = d.Field.Name,
@@ -394,6 +395,8 @@ namespace Fiebo.Application.Services
             };
 
             var result = await _unitOfWork.Bookings.GetBookingHistoryByUserIdAsync(userId, parameters);
+            var bookingIds = result.Items.Select(b => b.Id).ToList();
+            var ratedBookingIds = await _unitOfWork.Bookings.GetRatedBookingIdsAsync(bookingIds);
 
 
             var items = result.Items.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
@@ -406,7 +409,8 @@ namespace Fiebo.Application.Services
                 Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
                 Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
                 Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
-                VenueId = bd.Field?.VenueId ?? 0
+                VenueId = bd.Field?.VenueId ?? 0,
+                CanReview = b.Status == BookingStatus.Completed && !ratedBookingIds.Contains(b.Id)
             })).ToList();
 
             return new PagedResult<BookingHistoryResponse>

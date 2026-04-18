@@ -47,7 +47,7 @@ const OWNER_CANCEL_REASONS = [
   "Khác",
 ];
 
-const OwnerBookingDetail = () => {
+const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +93,7 @@ const OwnerBookingDetail = () => {
     return (
       <div className="owner-home obd-page">
         <div className="owner-home-header">
-          <Link to="/owner/bookings" className="obd-back">← Đơn đặt sân</Link>
+          <Link to={bookingsListPath} className="obd-back">← Đơn đặt sân</Link>
         </div>
         <div className="owner-home-content">
           <div className="obd-error">{error}</div>
@@ -161,7 +161,7 @@ const OwnerBookingDetail = () => {
     <div className="owner-home obd-page">
       <div className="owner-home-header">
         <h1>Đơn đặt sân #{d.bookingId ?? id}</h1>
-        <Link to="/owner/bookings" className="oh-create-btn">Danh sách đơn</Link>
+        <Link to={bookingsListPath} className="oh-create-btn">Danh sách đơn</Link>
       </div>
 
       <div className="owner-home-content">

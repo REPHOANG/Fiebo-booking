@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import LoginPopup from "../components/common/LoginPopup/LoginPopup";
 import RegisterPopup from "../components/common/RegisterPopup/RegisterPopup";
 import ForgotPasswordPopup from "../components/common/ForgotPasswordPopup/ForgotPasswordPopup";
+import VerifyOTPPopup from "../components/common/VerifyOTPPopup/VerifyOTPPopup";
 import { lockBodyScroll, unlockBodyScroll } from "../utils/bodyScrollLock";
 
 const AuthModalContext = createContext(null);
@@ -18,7 +19,7 @@ const AuthModalContext = createContext(null);
 export const OPEN_AUTH_STATE_KEY = "openAuth";
 
 export function AuthModalProvider({ children }) {
-  const [active, setActive] = useState(null); // 'login' | 'register' | 'forgot-password' | null
+  const [active, setActive] = useState(null); // 'login' | 'register' | 'forgot-password' | 'verify-otp' | null
   const [registerRole, setRegisterRole] = useState("Customer"); // 'Customer' | 'FieldOwner'
   const [redirectAfterLogin, setRedirectAfterLogin] = useState("");
   const location = useLocation();
@@ -42,6 +43,9 @@ export function AuthModalProvider({ children }) {
   const openForgotPassword = useCallback(() => {
     setActive("forgot-password");
   }, []);
+  const openVerifyOTP = useCallback(() => {
+    setActive("verify-otp");
+  }, []);
   const closeAuthModal = useCallback(() => {
     setActive(null);
     setRegisterRole("Customer");
@@ -57,8 +61,8 @@ export function AuthModalProvider({ children }) {
   }, [active]);
 
   const value = useMemo(
-    () => ({ openLogin, openRegister, openForgotPassword, closeAuthModal, active }),
-    [openLogin, openRegister, openForgotPassword, closeAuthModal, active],
+    () => ({ openLogin, openRegister, openForgotPassword, openVerifyOTP, closeAuthModal, active }),
+    [openLogin, openRegister, openForgotPassword, openVerifyOTP, closeAuthModal, active],
   );
 
   return (
@@ -75,6 +79,7 @@ export function AuthModalProvider({ children }) {
         open={active === "register"}
         onClose={closeAuthModal}
         onOpenLogin={() => setActive("login")}
+        onOpenVerifyOTP={() => setActive("verify-otp")}
         accountRole={registerRole}
         onOpenOwnerRegister={() => openRegister({ accountRole: "FieldOwner" })}
         onOpenCustomerRegister={() => openRegister({ accountRole: "Customer" })}
@@ -83,6 +88,12 @@ export function AuthModalProvider({ children }) {
         open={active === "forgot-password"}
         onClose={closeAuthModal}
         onOpenLogin={() => setActive("login")}
+      />
+      <VerifyOTPPopup
+        open={active === "verify-otp"}
+        onClose={closeAuthModal}
+        onOpenLogin={() => setActive("login")}
+        onOpenRegister={() => setActive("register")}
       />
     </AuthModalContext.Provider>
   );
@@ -102,7 +113,7 @@ export function useAuthModal() {
 export function AuthModalRouteSync() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { openLogin, openRegister, openForgotPassword } = useAuthModal();
+  const { openLogin, openRegister, openForgotPassword, openVerifyOTP } = useAuthModal();
   const openAuth = location.state?.[OPEN_AUTH_STATE_KEY];
   const redirectTo = location.state?.redirectTo;
 
@@ -111,12 +122,14 @@ export function AuthModalRouteSync() {
       openAuth !== "login" &&
       openAuth !== "register" &&
       openAuth !== "register-owner" &&
-      openAuth !== "forgot-password"
+      openAuth !== "forgot-password" &&
+      openAuth !== "verify-otp"
     ) {
       return;
     }
 
     if (openAuth === "login") openLogin({ redirectTo });
+    else if (openAuth === "verify-otp") openVerifyOTP();
     else if (openAuth === "forgot-password") openForgotPassword();
     else if (openAuth === "register-owner") openRegister({ accountRole: "FieldOwner" });
     else openRegister();
@@ -136,6 +149,7 @@ export function AuthModalRouteSync() {
     openLogin,
     openRegister,
     openForgotPassword,
+    openVerifyOTP,
   ]);
 
   return null;

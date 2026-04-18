@@ -25,16 +25,9 @@ const CustomerHome = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [scrolled, setScrolled] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationName, setLocationName] = useState("");
   const [locationLoading, setLocationLoading] = useState(true);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Lấy vị trí người dùng, fallback về Hà Nội
   useEffect(() => {
@@ -125,7 +118,6 @@ const CustomerHome = () => {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onSearch={handleSearch}
-        scrolled={scrolled}
         isAuthenticated={isAuthenticated}
       />
 

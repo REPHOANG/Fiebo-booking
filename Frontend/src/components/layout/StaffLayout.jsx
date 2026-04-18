@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
 import {
   Bell,
+  CalendarDays,
   ChevronRight,
   LayoutDashboard,
   LogOut,
@@ -12,6 +13,7 @@ import {
   ReceiptText,
   Settings,
   UserCircle,
+  Volleyball,
   X,
 } from "lucide-react";
 import "./OwnerLayout.css";
@@ -29,6 +31,9 @@ const StaffLayout = () => {
   const breadcrumbItems = useMemo(() => {
     if (activePath === "/staff") return ["Tổng quan"];
     if (activePath.startsWith("/staff/profile")) return ["Hồ sơ cá nhân"];
+    if (activePath.startsWith("/staff/offline-booking") || activePath.includes("/offline-booking")) return ["Đặt sân offline"];
+    if (activePath.startsWith("/staff/bookings")) return ["Đơn đặt sân"];
+    if (activePath.startsWith("/staff/events")) return ["Sự kiện"];
     return ["Staff"];
   }, [activePath]);
 
@@ -79,20 +84,38 @@ const StaffLayout = () => {
             Tổng quan
           </NavLink>
           <NavLink
+            to="/staff/offline-booking"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              `owner-sidebar-link ${isActive || activePath.includes("/staff/venues/") ? "active" : ""}`
+            }
+          >
+            <Volleyball size={16} />
+            Đặt sân offline
+          </NavLink>
+          <NavLink
+            to="/staff/bookings"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) => `owner-sidebar-link ${isActive ? "active" : ""}`}
+          >
+            <ReceiptText size={16} />
+            Đơn đặt sân
+          </NavLink>
+          <NavLink
+            to="/staff/events"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) => `owner-sidebar-link ${isActive ? "active" : ""}`}
+          >
+            <CalendarDays size={16} />
+            Sự kiện
+          </NavLink>
+          <NavLink
             to="/staff/profile"
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) => `owner-sidebar-link ${isActive ? "active" : ""}`}
           >
             <UserCircle size={16} />
             Hồ sơ
-          </NavLink>
-          <NavLink
-            to="/owner/bookings"
-            onClick={() => setMenuOpen(false)}
-            className={({ isActive }) => `owner-sidebar-link ${isActive ? "active" : ""}`}
-          >
-            <ReceiptText size={16} />
-            Đơn đặt sân
           </NavLink>
         </nav>
 

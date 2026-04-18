@@ -104,6 +104,10 @@ const OwnerSubscriptionPlans = () => {
       queryClient.invalidateQueries({ queryKey: ["wallet-balance"] });
       queryClient.invalidateQueries({ queryKey: ["owner-subscription-overview"] });
       setSelectedPlanId(null);
+
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     } catch (error) {
       toast.error(errMessage(error));
     } finally {

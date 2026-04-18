@@ -33,14 +33,23 @@
   color: #0f172a;
   margin-bottom: 8px;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.05rem * 1.3 * 2);
 }
 .venue-info .location {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   font-size: 0.85rem;
   color: #64748b;
   margin-bottom: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 /* ── Search + filter (unified block) ─────────────────────────── */
 .venues-search-block {
@@ -728,7 +737,7 @@
   position: relative;
   height: 200px;
   overflow: hidden;
-  flex: 0 0 auto;
+  background: #e2e8f0;
 }
 
 .venue-image img {
@@ -739,7 +748,7 @@
 }
 
 .venue-card:hover .venue-image img {
-  transform: scale(1.08);
+  transform: scale(1.05);
 }
 
 .sport-badge {
@@ -774,67 +783,113 @@
   color: #0f172a;
   margin-bottom: 8px;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.1rem * 1.3 * 2);
 }
 
 .venue-info .location {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   font-size: 0.85rem;
   color: #64748b;
   margin-bottom: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .venue-info .location svg {
   flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.venue-info .location span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Meta row: hours (left) + rating (right) ── */
+.venue-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .venue-hours {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: -2px 0 14px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  color: #0f766e;
-  line-height: 1.45;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
 }
 
 .venue-hours svg {
   flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.venue-hours span {
-  display: block;
-}
-
-/* Rating row */
-.rating-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.rating {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.rating .star {
-  color: #facc15;
-  fill: #facc15;
-}
-
-.rating .reviews {
-  font-weight: 400;
   color: #64748b;
+  stroke-width: 2;
+}
+
+.venue-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.venue-rating-star {
+  fill: #f59e0b;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* ── 5-star overlay rating ──────────────────────────────────── */
+.star-rating {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.star-rating-empty,
+.star-rating-filled {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.star-rating-empty svg {
+  fill: #e2e8f0;
+  color: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.star-rating-filled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.star-rating-filled svg {
+  fill: #f59e0b;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.rating-value {
   font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
 }
 
 .venue-info .price {
@@ -844,12 +899,12 @@
 }
 
 .venue-distance {
-  font-size: 0.82rem;
-  color: #64748b;
+  font-size: 0.8rem;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 2px 0 0;
+  margin: -6px 0 10px;
 }
 
 /* Book button */
@@ -1037,5 +1092,3 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
-
-

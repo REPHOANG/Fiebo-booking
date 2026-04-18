@@ -38,7 +38,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const customerProfileSchema = yup.object({
   fullName: yup.string().trim().required("Vui lòng nhập họ và tên"),
-  phoneNumber: yup.string().trim().optional(),
+  phoneNumber: yup
+    .string()
+    .transform((value) => String(value ?? "").replace(/\s/g, "").trim())
+    .matches(/^\d{10,15}$/, "Số điện thoại không hợp lệ")
+    .optional(),
   dateOfBirth: yup.string().optional(),
 });
 
@@ -47,7 +51,7 @@ const customerPasswordSchema = yup.object({
   newPassword: yup
     .string()
     .required("Vui lòng nhập mật khẩu mới")
-    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
     .matches(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ hoa")
     .matches(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường")
     .matches(/[0-9]/, "Mật khẩu phải có ít nhất 1 chữ số")
@@ -72,7 +76,7 @@ const Profile = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const hasToken = Boolean(localStorage.getItem(AUTH_STORAGE_KEY));
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
     enabled: hasToken,
@@ -122,11 +126,20 @@ const Profile = () => {
     });
   }, [profile, resetProfileForm]);
 
+  const syncProfileForm = (nextProfile) => {
+    if (!nextProfile) return;
+    resetProfileForm({
+      fullName: nextProfile.fullName || "",
+      phoneNumber: nextProfile.phoneNumber || "",
+      dateOfBirth: nextProfile.dateOfBirth ? nextProfile.dateOfBirth.slice(0, 10) : "",
+    });
+  };
+
   const onUpdateProfile = async (values) => {
     const payload = {
       fullName: values.fullName.trim(),
       email: profile?.email || "",
-      phoneNumber: values.phoneNumber?.trim() || "",
+      phoneNumber: String(values.phoneNumber ?? "").replace(/\s/g, "").trim(),
       dateOfBirth: values.dateOfBirth || "",
     };
     setIsLoading(true);

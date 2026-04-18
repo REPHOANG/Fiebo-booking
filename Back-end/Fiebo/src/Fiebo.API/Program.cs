@@ -132,6 +132,7 @@ builder.Services.AddScoped<ICancelBookingRepository, CancelBookingRepository>();
 builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository>();
 builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
 builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
@@ -169,6 +170,7 @@ builder.Services.AddScoped<ISportTypeService, SportTypeService>();
 builder.Services.AddScoped<IFinanceAdminService, FinanceAdminService>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddHttpClient();
 
@@ -268,7 +270,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
 
         // 2. Gọi class DbInitializer của bạn và truyền 'services' vào
-        await DbInitializer.SeedRolesAsync(services);
+        //await DbInitializer.SeedRolesAsync(services);
     }
     catch (Exception ex)
     {

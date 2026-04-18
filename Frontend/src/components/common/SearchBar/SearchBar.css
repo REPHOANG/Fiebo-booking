@@ -1,3 +1,52 @@
+.ch-search-section {
+  --ch-search-height: 112px;
+  position: fixed;
+  top: 90px;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 12px 24px;
+}
+
+.ch-search-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.ch-search-spacer {
+  height: 112px;
+}
+
+.ch-search-bar {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 14px;
+  padding: 0 10px 0 14px;
+  height: 44px;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  flex: 1;
+  min-width: 0;
+  overflow: visible;
+  position: relative;
+}
+
+.ch-search-bar:focus-within {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+  background: #ffffff;
+}
+
 .ch-search-btn{
   width:40px;
   height:40px;
@@ -17,7 +66,65 @@
   border-color: #16a34a;
 }
 .ch-search-input{
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: #0f172a;
   border-radius: 999px;
+}
+
+.ch-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.ch-filter-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ch-filter-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.ch-nav-tabs {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ch-nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ch-nav-tab:hover {
+  background: #f0fdf4;
+  color: #16a34a;
+  transform: translateY(-1px);
+}
+
+.ch-nav-tab svg {
+  color: #22c55e;
 }
 
 /* Mega “Sân” — cùng nội dung với Header */

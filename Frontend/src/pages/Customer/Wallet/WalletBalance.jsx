@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import SouthWestIcon from "@mui/icons-material/SouthWest";
-const WalletBalance = ({ data }) => {
+const WalletBalance = ({ data, onWithdrawClick }) => {
   const user = useSelector((state) => state.auth.user);
   const navigate = useNavigate();
   return (
@@ -116,6 +116,7 @@ const WalletBalance = ({ data }) => {
         <Button
           variant="contained"
           startIcon={<SouthWestIcon />}
+          onClick={onWithdrawClick}
           sx={{
             borderRadius: "12px",
             textTransform: "none",

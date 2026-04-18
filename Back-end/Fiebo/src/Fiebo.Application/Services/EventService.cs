@@ -179,6 +179,34 @@ namespace Fiebo.Application.Services
                 };
             }).ToList();
         }
+        public async Task<List<DropInEventListItemResponse>> GetEventsByVenueIdAsync(int venueId)
+        {
+            var events = await _unitOfWork.TicketEvents.GetEventsByVenueIdAsync(venueId);
+
+            return events.Select(e =>
+            {
+                var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
+
+                return new DropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    Name = e.Name,
+                    VenueName = e.Details.FirstOrDefault()?.Field.Venue?.Name ?? "",
+                    EventDate = e.EventDate,
+                    TicketPrice = e.PricePerPerson,
+                    RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
+                    Slots = e.Details
+                        .Select(d => new TicketEventSlotResponse
+                        {
+                            FieldName = d.Field.Name,
+                            StartTime = d.Slot.StartTime,
+                            EndTime = d.Slot.EndTime
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList()
+                };
+            }).ToList();
+        }
 
         /// <summary>
         /// Get drop-in event detail by event id
