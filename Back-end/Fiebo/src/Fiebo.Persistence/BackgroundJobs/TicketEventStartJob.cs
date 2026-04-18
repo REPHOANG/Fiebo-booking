@@ -24,11 +24,11 @@ namespace Fiebo.Persistence.BackgroundJobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("TicketEventStartJob started");
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    _logger.LogInformation("");
                     await Run(stoppingToken);
                 }
                 catch (Exception ex)

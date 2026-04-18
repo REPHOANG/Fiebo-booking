@@ -60,11 +60,11 @@ namespace Fiebo.Persistence.Repositories
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Date, x => x.Count);
 
-            data.NewUsersByDate = await _context.OwnerPlans
+            data.NewUsersByDate = await _context.Users
                 .AsNoTracking()
                 .Where(op => op.CreatedAt >= currentFrom && op.CreatedAt <= currentTo)
                 .GroupBy(op => op.CreatedAt.Date)
-                .Select(g => new { Date = g.Key, Count = g.Select(x => x.OwnerId).Distinct().Count() })
+                .Select(g => new { Date = g.Key, Count = g.Select(x => x.Id).Distinct().Count() })
                 .ToDictionaryAsync(x => x.Date, x => x.Count);
 
             // 4. Distribution Data

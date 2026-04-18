@@ -49,3 +49,16 @@ export const rejectVenue = async ({ id, reason }) => {
   });
   return res.data;
 };
+
+export const getAdminDashboard = async (params = {}) => {
+  const { fromDate, toDate } = params;
+
+  const response = await api.get('/api/admin/dashboard', {
+    params: {
+      From: fromDate || undefined,
+      To: toDate || undefined,
+    },
+  });
+
+  return response.data.data ?? response.data;
+};
