@@ -9,7 +9,6 @@ import {
   LogOut,
   MapPinned,
   ScrollText,
-  Search,
   Shield,
   Trophy,
   Users,
@@ -73,15 +72,6 @@ const AdminLayout = () => {
 
       <div className="admin-shell__main">
         <header className="admin-shell__header">
-          <label className="admin-shell__search">
-            <Search size={16} />
-            <input
-              type="search"
-              placeholder="Tìm sân, khu vực hoặc mã sân..."
-              aria-label="Tìm kiếm quản trị"
-            />
-          </label>
-
           <div className="admin-shell__header-actions">
             <div className="admin-shell__account-meta">
               <span>Đăng nhập bằng</span>

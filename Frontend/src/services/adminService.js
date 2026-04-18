@@ -51,6 +51,23 @@ export const createFinanceAdmin = async (payload) => {
   return response.data?.data ?? response.data;
 };
 
+export const resetFinanceAdminPassword = async (id) => {
+  const response = await api.put(`/api/Admin/finance-admins/${id}/reset-password`);
+  return response.data?.data ?? response.data;
+};
+
+export const getCustomers = async (params) => {
+  const response = await api.get("/api/Admin/customers", { params });
+  const data = response.data?.data ?? {};
+  return {
+    page: Number(data.page ?? 1),
+    pageSize: Number(data.pageSize ?? 10),
+    totalItems: Number(data.totalItems ?? 0),
+    totalPages: Number(data.totalPages ?? 0),
+    items: Array.isArray(data.items) ? data.items : [],
+  };
+};
+
 export const getSportTypesAdmin = async () => {
   const response = await api.get("/api/sport-types");
   const data = response.data?.data ?? response.data;
