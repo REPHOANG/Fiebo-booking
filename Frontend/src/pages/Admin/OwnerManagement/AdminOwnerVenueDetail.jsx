@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import {
   ArrowLeft,
   Building2,
   Hash,
   Layers,
   Lock,
+  LockOpen,
   MapPin,
 } from "lucide-react";
+import { toggleLockVenue } from "../../../services/adminService";
 import "../VenueRegistration/VenueDetailPage.css";
 
 const venueStatusStyle = {
@@ -23,6 +28,26 @@ export const AdminOwnerVenueDetail = () => {
   const { state } = useLocation();
   const venue = state?.venue ?? null;
 
+  const [currentStatus, setCurrentStatus] = useState(venue?.status ?? "");
+
+  const { mutate: toggleLock, isPending } = useMutation({
+    mutationFn: () =>
+      toggleLockVenue({
+        id: venue?.id ?? venueId,
+        isLocked: currentStatus !== "Locked",
+      }),
+    onSuccess: () => {
+      const nextStatus = currentStatus === "Locked" ? "Open" : "Locked";
+      setCurrentStatus(nextStatus);
+      toast.success(
+        nextStatus === "Locked" ? "Đã khoá cơ sở thành công" : "Đã mở khoá cơ sở thành công"
+      );
+    },
+    onError: () => {
+      toast.error("Thao tác thất bại. Vui lòng thử lại.");
+    },
+  });
+
   if (!venue) {
     return (
       <div className="avr-page">
@@ -38,7 +63,7 @@ export const AdminOwnerVenueDetail = () => {
     );
   }
 
-  const rawStatus = venue.status ?? "";
+  const rawStatus = currentStatus;
   const vSt = venueStatusStyle[rawStatus] ?? { label: rawStatus || "Không rõ", bg: "#f1f5f9", color: "#475569" };
   const venueName = venue.venueName ?? venue.name ?? "Chưa đặt tên";
   const addressParts = [venue.addressDetail, venue.ward, venue.province].filter(Boolean);
@@ -164,18 +189,29 @@ export const AdminOwnerVenueDetail = () => {
           </div>
         </div>
 
-        {/* Actions — lock/unlock requires backend endpoint not yet available */}
+        {/* Actions */}
         <div className="avr-actions">
-          <button
-            type="button"
-            className="avr-action-btn avr-action-btn--reject"
-            disabled
-            title="Chức năng khoá sân đang được phát triển"
-            style={{ opacity: 0.5, cursor: "not-allowed" }}
-          >
-            <Lock size={18} strokeWidth={2.2} aria-hidden />
-            <span>Khoá sân (chưa khả dụng)</span>
-          </button>
+          {currentStatus === "Locked" ? (
+            <button
+              type="button"
+              className="avr-action-btn avr-action-btn--approve"
+              onClick={() => toggleLock()}
+              disabled={isPending}
+            >
+              <LockOpen size={18} strokeWidth={2.2} aria-hidden />
+              <span>{isPending ? "Đang xử lý..." : "Mở khoá sân"}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="avr-action-btn avr-action-btn--reject"
+              onClick={() => toggleLock()}
+              disabled={isPending}
+            >
+              <Lock size={18} strokeWidth={2.2} aria-hidden />
+              <span>{isPending ? "Đang xử lý..." : "Khoá sân"}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

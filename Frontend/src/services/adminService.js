@@ -93,13 +93,8 @@ export const getAdminVenueDetail = async (id) => {
   return response.data?.data ?? response.data;
 };
 
-export const lockVenue = async (id) => {
-  const response = await api.post(`/api/Admin/venues/${id}/lock`);
-  return response.data?.data ?? response.data;
-};
-
-export const unlockVenue = async (id) => {
-  const response = await api.post(`/api/Admin/venues/${id}/unlock`);
+export const toggleLockVenue = async ({ id, isLocked }) => {
+  const response = await api.patch(`/api/Admin/venue/${id}`, { isLocked });
   return response.data?.data ?? response.data;
 };
 
