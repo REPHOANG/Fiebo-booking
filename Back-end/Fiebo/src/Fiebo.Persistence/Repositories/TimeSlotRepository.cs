@@ -1,4 +1,5 @@
 using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -75,10 +76,11 @@ namespace Fiebo.Persistence.Repositories
         {
             var today = DateOnly.FromDateTime(DateTime.Now);
             var booking = await _context.BookingDetails
-                .AnyAsync(bd => bd.SlotId == sloId && bd.Booking.BookingDate >= today);
+                .AnyAsync(bd => bd.SlotId == sloId && bd.Booking.BookingDate >= today 
+                && (bd.Booking.Status == BookingStatus.Booked || bd.Booking.Status == BookingStatus.Pending));
             var eventUsed = await _context.TicketEventDetails
-                .AnyAsync(d => d.SlotId == sloId && d.Event.EventDate >= today);
-            return !booking && !eventUsed;
+                .AnyAsync(d => d.SlotId == sloId && d.Event.EventDate >= today && d.Event.Status == TicketEventStatus.Pending);
+            return !booking || !eventUsed;
         }
     }
 }
