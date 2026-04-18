@@ -72,13 +72,14 @@ namespace Fiebo.Persistence.Repositories
                 );
         }
         public async Task<bool> CanBeEditedOrDeleted(int sloId)
-        {
-            var today = DateOnly.FromDateTime(DateTime.Now);
-            var booking = await _context.BookingDetails
-                .AnyAsync(bd => bd.SlotId == sloId && bd.Booking.BookingDate >= today);
-            var eventUsed = await _context.TicketEventDetails
-                .AnyAsync(d => d.SlotId == sloId && d.Event.EventDate >= today);
-            return !booking && !eventUsed;
-        }
+{
+    var today = DateOnly.FromDateTime(DateTime.Now);
+    var booking = await _context.BookingDetails
+        .AnyAsync(bd => bd.SlotId == sloId && bd.Booking.BookingDate >= today 
+        && (bd.Booking.Status == BookingStatus.Booked || bd.Booking.Status == BookingStatus.Pending));
+    var eventUsed = await _context.TicketEventDetails
+        .AnyAsync(d => d.SlotId == sloId && d.Event.EventDate >= today && d.Event.Status == TicketEventStatus.Pending);
+    return !booking && !eventUsed;
+}
     }
 }

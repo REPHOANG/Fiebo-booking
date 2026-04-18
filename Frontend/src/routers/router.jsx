@@ -109,7 +109,7 @@ const routes = [
     path: "/event/ticket/:id/payment",
     element: <ProtectedRoute element={<EventTicketPayment />} />,
   },
-  { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
+  
   {
     path: "wallet/top-up",
     element: <ProtectedRoute element={<WalletTopUp />} />,
@@ -142,6 +142,7 @@ const routes = [
         element: <ProtectedRoute element={<BookingList />} />,
       },
       { path: "venues", element: <Venues /> },
+      { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
     ],
   },
   {

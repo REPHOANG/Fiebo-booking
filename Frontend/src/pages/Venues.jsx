@@ -96,7 +96,18 @@ const Venues = () => {
   const [inputValue, setInputValue] = useState(initialSearch);
   const [, setTotalItems] = useState(0);
   /** Đọc vị trí đã lưu ngay khi khởi tạo để tránh hai lần đổi `filtersKey` → hai request chồng chéo, response cũ ghi đè danh sách. */
-  const [userGeo, setUserGeo] = useState({ userLat: null, userLng: null });
+  const [userGeo, setUserGeo] = useState(() => {
+    try {
+      const stored = localStorage.getItem("userLocation");
+      if (stored) {
+        const coords = JSON.parse(stored);
+        const lat = coords?.latitude ?? null;
+        const lng = coords?.longitude ?? null;
+        if (lat != null && lng != null) return { userLat: lat, userLng: lng };
+      }
+    } catch {}
+    return { userLat: null, userLng: null };
+  });
 
   // Add filter panel state
   const [showFilterPanel, setShowFilterPanel] = useState(false);

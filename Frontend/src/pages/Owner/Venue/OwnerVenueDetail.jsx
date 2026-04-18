@@ -426,7 +426,7 @@ const OwnerVenueDetail = () => {
               if (!canCreateField) e.preventDefault();
             }}
           >
-            <Calendar size={16} /> Time slot
+            <Calendar size={16} /> Quản lý khung giờ
           </Link>
           <Link
             className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}

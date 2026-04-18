@@ -6,6 +6,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 import {
   BadgeCheck,
   Cake,
@@ -273,8 +274,16 @@ const OwnerProfile = () => {
   };
 
   const handleDeleteBank = async (account) => {
-    const confirmed = window.confirm(`Xóa tài khoản ${account.bankName} - ${account.accountNumber}?`);
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: "Xóa tài khoản ngân hàng?",
+      text: `${account.bankName} - ${account.accountNumber}`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#e53e3e",
+    });
+    if (!result.isConfirmed) return;
     setDeletingBankId(account.id);
     try {
       await deleteBankAccount(account.id);
@@ -419,6 +428,7 @@ const OwnerProfile = () => {
                 type="button"
                 className="op-btn op-btn--edit"
                 onClick={showBankForm ? closeBankForm : openCreateBankForm}
+                style={bankAccounts.length > 0 && !showBankForm ? { display: "none" } : undefined}
               >
                 {showBankForm ? "Đóng" : <><Plus size={16} /> Thêm tài khoản</>}
               </button>
@@ -468,7 +478,7 @@ const OwnerProfile = () => {
               </div>
             )}
 
-            {showBankForm ? (
+            {showBankForm && bankAccounts.length === 0 ? (
               <form className="op-form op-bank-form" onSubmit={submitBank(onBankSave)} noValidate>
                 <div className="op-form-grid">
                   <label className="op-field">

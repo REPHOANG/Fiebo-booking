@@ -229,7 +229,7 @@ const VerifyOTP = ({ isPopup = false, onClose, onOpenLogin, onOpenRegister }) =>
             <p className="otp-timer" style={{
               marginTop: "15px"
             }}>
-              {timeLeft > 0 ? (
+              {expiryTimeLeft > 0 ? (
                 <>
                   Mã có hiệu lực trong <span className="timer">{formatTime(expiryTimeLeft)}</span>
                 </>
