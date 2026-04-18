@@ -1,6 +1,7 @@
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.AdminDashboard;
+using Fiebo.Application.DTOs.Subscription;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Constants;
@@ -19,12 +20,20 @@ namespace Fiebo.API.Controllers
         private readonly IAdminDashboardService _adminDashboardService;
         private readonly IAdminService _adminService;
         private readonly IAdminVenueService _adminVenueService;
-        public AdminController(IFinanceAdminService financeAdminService, IAdminDashboardService adminDashboardService, IAdminService adminService, IAdminVenueService adminVenueService)
+        private readonly ISubscriptionService _subscriptionService;
+
+        public AdminController(
+            IFinanceAdminService financeAdminService,
+            IAdminDashboardService adminDashboardService,
+            IAdminService adminService,
+            IAdminVenueService adminVenueService,
+            ISubscriptionService subscriptionService)
         {
             _financeAdminService = financeAdminService;
             _adminDashboardService = adminDashboardService;
             _adminService = adminService;
             _adminVenueService = adminVenueService;
+            _subscriptionService = subscriptionService;
         }
         /// <summary>
         /// Lấy danh sách tài khoản Finance Admin
@@ -182,6 +191,69 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Đã từ chối đăng ký cơ sở."
+            });
+        }
+
+        // ─── Subscription Plan Management ─────────────────────────────────────
+
+        /// <summary>
+        /// Lấy danh sách gói đăng ký đang hoạt động (dùng cho trang quản lý Admin).
+        /// </summary>
+        [HttpGet("subscription-plans")]
+        public async Task<IActionResult> GetAllSubscriptionPlans()
+        {
+            var result = await _subscriptionService.GetAvailablePlansAsync();
+            return Ok(new ApiResponse<List<SubscriptionPlanResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách gói đăng ký thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Tạo gói đăng ký mới.
+        /// </summary>
+        [HttpPost("subscription-plans")]
+        public async Task<IActionResult> CreateSubscriptionPlan([FromBody] CreateSubscriptionPlanRequest request)
+        {
+            var result = await _subscriptionService.CreatePlanAsync(request);
+            return Ok(new ApiResponse<SubscriptionPlanResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Tạo gói đăng ký thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Chỉnh sửa gói đăng ký.
+        /// - Nếu gói CHƯA có ai đăng ký → edit trực tiếp.
+        /// - Nếu gói ĐÃ có người đăng ký → soft-delete gói cũ + tạo gói mới (Id sẽ thay đổi).
+        /// </summary>
+        [HttpPut("subscription-plans/{id}")]
+        public async Task<IActionResult> UpdateSubscriptionPlan([FromRoute] int id, [FromBody] UpdateSubscriptionPlanRequest request)
+        {
+            var result = await _subscriptionService.UpdatePlanAsync(id, request);
+            return Ok(new ApiResponse<SubscriptionPlanResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật gói đăng ký thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Xóa mềm gói đăng ký. Gói sẽ không hiển thị cho owner nhưng vẫn được giữ lại vì lý do lịch sử.
+        /// </summary>
+        [HttpDelete("subscription-plans/{id}")]
+        public async Task<IActionResult> DeleteSubscriptionPlan([FromRoute] int id)
+        {
+            await _subscriptionService.DeletePlanAsync(id);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xóa gói đăng ký thành công."
             });
         }
     }
