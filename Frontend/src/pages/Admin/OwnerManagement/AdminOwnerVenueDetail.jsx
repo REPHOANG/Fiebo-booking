@@ -54,7 +54,7 @@ const DetailPanel = ({ title, icon: Icon, children }) => (
 );
 
 export const AdminOwnerVenueDetail = () => {
-  const { ownerId, venueId } = useParams();
+  const { venueId } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
   const queryClient = useQueryClient();
@@ -87,7 +87,7 @@ export const AdminOwnerVenueDetail = () => {
         nextStatus === "Locked" ? "Đã khoá cơ sở thành công" : "Đã mở khoá cơ sở thành công"
       );
       queryClient.invalidateQueries({ queryKey: ["adminVenueDetail", venueId] });
-      queryClient.invalidateQueries({ queryKey: ["adminOwnerDetail", ownerId] });
+      queryClient.invalidateQueries({ queryKey: ["adminOwnerDetail", state?.owner.id] });
     },
     onError: () => {
       toast.error("Thao tác thất bại. Vui lòng thử lại.");

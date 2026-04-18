@@ -211,7 +211,7 @@ const routes = [
       { path: "venue-registrations/:id", element: <VenueDetailPage /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "owners/:id", element: <AdminOwnerDetail /> },
-      { path: "owners/:ownerId/venues/:venueId", element: <AdminOwnerVenueDetail /> },
+      { path: "venues/:venueId", element: <AdminOwnerVenueDetail /> },
       { path: "venue-registrations", element: <AdminVenueRegistrations /> },
       { path: "finance-admins", element: <FinanceAdminManagement /> },
       { path: "sports", element: <SportCatalog /> },

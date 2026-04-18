@@ -221,8 +221,8 @@ const AdminOwnerDetail = () => {
                       key={venueId}
                       className="owner-detail-venue-card"
                       onClick={() =>
-                        navigate(`/admin/owners/${id}/venues/${venueId}`, {
-                          state: { venue: v, owner: { name, email, phone } },
+                        navigate(`/admin/venues/${venueId}`, {
+                          state: { venue: v, owner: { id, name, email, phone } },
                         })
                       }
                       role="button"

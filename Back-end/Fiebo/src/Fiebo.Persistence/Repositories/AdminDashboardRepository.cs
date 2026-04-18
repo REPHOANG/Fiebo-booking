@@ -71,7 +71,7 @@ namespace Fiebo.Persistence.Repositories
             data.PlanDistribution = await _context.SubscriptionTransactions
                 .AsNoTracking()
                 .Include(st => st.Plan)
-                .Where(t => t.PaidAt >= currentFrom && t.PaidAt <= currentTo)
+                .Where(t => t.PaidAt >= currentFrom && t.PaidAt <= currentTo && !t.Plan.IsDeleted)
                 .GroupBy(t => t.Plan.Name)
                 .Select(g => new { PlanName = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.PlanName, x => x.Count);

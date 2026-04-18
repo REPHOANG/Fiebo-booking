@@ -408,7 +408,7 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
                   className="signup-link auth-inline-link"
                   onClick={() => onOpenRegister({ accountRole: "FieldOwner" })}
                 >
-                  Đăng ký Owner
+                  Đăng ký tài khoản chủ sân
                 </button>
               ) : (
                 <Link
