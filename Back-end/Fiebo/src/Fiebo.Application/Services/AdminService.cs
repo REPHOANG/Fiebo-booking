@@ -1,5 +1,6 @@
 ﻿using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.Interfaces;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -14,9 +15,11 @@ namespace Fiebo.Application.Services
     public class AdminService : IAdminService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public AdminService(IUnitOfWork unitOfWork)
+        public readonly IIdentityService _identityService;
+        public AdminService(IUnitOfWork unitOfWork, IIdentityService identityService)
         {
             _unitOfWork = unitOfWork;
+            _identityService = identityService;
         }
         public async Task<PagedResult<CustomerResponse>> GetCustomerListAsync(CustomerFilter filter)
         {
@@ -27,6 +30,13 @@ namespace Fiebo.Application.Services
 
             return result;
         }
+
+        public async Task<PagedResult<OwnerListResponse>> GetOwnerListAsync(OwnerListRequest request)
+        {
+            var owners = await _identityService.GetOwnersAsync(request.Page, request.PageSize, request.From, request.To);
+            return owners;
+        }
+
         public async Task<string> ResetFinanceAdminPasswordAsync(string userId)
         {
             var newPass = await _unitOfWork.Admins.ResetFinanceAdminPasswordAsync(userId);

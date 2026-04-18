@@ -12,5 +12,6 @@ namespace Fiebo.Application.Interfaces
     {
         Task<PagedResult<CustomerResponse>> GetCustomerListAsync(CustomerFilter filter);
         Task<string> ResetFinanceAdminPasswordAsync(string userId);
+        Task<PagedResult<OwnerListResponse>> GetOwnerListAsync(OwnerListRequest request);
     }
 }

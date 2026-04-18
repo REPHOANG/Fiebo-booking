@@ -1,8 +1,11 @@
+using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
+using Fiebo.Domain.Shared;
+using Fiebo.Persistence.Data;
 using Fiebo.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,14 +25,17 @@ namespace Fiebo.Infrastructure.ExternalServices
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILogger<IdentityService> _logger;
+        private readonly FieboDbContext _context;
 
         public IdentityService(UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            ILogger<IdentityService> logger)
+            ILogger<IdentityService> logger,
+            FieboDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _logger = logger;
+            _context = context;
         }
 
         public async Task<(bool IsSuccess, string UserId, string ErrorMessage)> CreateUserAsync(
@@ -373,6 +379,67 @@ namespace Fiebo.Infrastructure.ExternalServices
                 PhoneNumber = u.PhoneNumber,
                 Status = u.Status.ToString() // Hoặc map theo đúng kiểu Status của bạn
             }).ToList();
+        }
+
+        public async Task<PagedResult<OwnerListResponse>> GetOwnersAsync(
+    int pageIndex,
+    int pageSize,
+    DateTime? fromDate,
+    DateTime? toDate)
+        {
+            var query = from user in _context.Users
+                        join ur in _context.UserRoles on user.Id equals ur.UserId
+                        join r in _context.Roles on ur.RoleId equals r.Id
+                        where r.Name == AppRoles.FieldOwner
+                        select user;
+
+            if (fromDate.HasValue)
+                query = query.Where(u => u.CreatedAt >= fromDate.Value);
+
+            if (toDate.HasValue)
+                query = query.Where(u => u.CreatedAt <= toDate.Value);
+
+            var totalCount = await query.CountAsync();
+
+            var owners = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var ownerIds = owners.Select(o => o.Id).ToList();
+
+            var venueCounts = await _context.Venues
+                .Where(v => ownerIds.Contains(v.OwnerId))
+                .GroupBy(v => v.OwnerId)
+                .Select(g => new { OwnerId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.OwnerId, x => x.Count);
+
+            var fieldCounts = await (
+                from f in _context.Fields
+                join v in _context.Venues on f.VenueId equals v.Id
+                where ownerIds.Contains(v.OwnerId)
+                group f by v.OwnerId into g
+                select new { OwnerId = g.Key, Count = g.Count() }
+            ).ToDictionaryAsync(x => x.OwnerId, x => x.Count);
+
+            var items = owners.Select(o => new OwnerListResponse
+            {
+                Id = o.Id,
+                OwnerName = o.FullName,
+                Email = o.Email!,
+                PhoneNumber = o.PhoneNumber!,
+                TotalVenues = venueCounts.TryGetValue(o.Id, out var v) ? v : 0,
+                TotalFields = fieldCounts.TryGetValue(o.Id, out var f) ? f : 0
+            }).ToList();
+
+            return new PagedResult<OwnerListResponse>
+            {
+                Items = items,
+                TotalItems = totalCount,
+                Page = pageIndex,
+                PageSize = pageSize
+            };
         }
     }
 }

@@ -22,9 +22,9 @@ namespace Fiebo.Application.Services
 
         public async Task<AdminDashboardResponse> GetDashboardAsync(DashboardRequest request)
         {
-            // Set default date range to last 30 days if not provided
+            // Set default date range to last 7 days if not provided
             var currentTo = request.To ?? DateTime.Now;
-            var currentFrom = request.From ?? currentTo.AddDays(-30);
+            var currentFrom = request.From ?? currentTo.AddDays(-7);
 
             // Validate date range constraints
             if ((currentTo - currentFrom).TotalDays > 365)

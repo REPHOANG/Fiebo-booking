@@ -1,5 +1,9 @@
-﻿using Fiebo.Application.DTOs.Auth;
+﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Auth;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
+using Fiebo.Domain.Shared;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +33,11 @@ namespace Fiebo.Application.Interfaces
         Task<UserProfileResponse> CreateActiveUserWithoutPasswordAsync(string fullname, string phoneNumber);
         Task<bool> UpdateUserStatusAsync(string userId, UserStatus status);
         Task<List<UserProfileResponse>> GetUsersByRoleAsync(string role);
+        public Task<PagedResult<OwnerListResponse>> GetOwnersAsync(
+    int pageIndex,
+    int pageSize,
+    DateTime? fromDate,
+    DateTime? toDate);
 
     }
 }

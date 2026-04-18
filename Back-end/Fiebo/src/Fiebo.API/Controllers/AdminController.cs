@@ -12,7 +12,7 @@ namespace Fiebo.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = AppRoles.Admin)] 
+    [Authorize(Roles = AppRoles.Admin)]
     public class AdminController : ControllerBase
     {
         private readonly IFinanceAdminService _financeAdminService;
@@ -68,7 +68,7 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> GetDashboard([FromQuery] DashboardRequest request)
         {
             var result = await _adminDashboardService.GetDashboardAsync(request);
-            
+
             // BR-A2: Empty State Check (If there's no data for the queried period, return specific message, but still DTO to avoid breaking charts UI structure)
             if (result.TotalRevenue.Value == 0 && result.TotalBookings.Value == 0)
             {
@@ -117,7 +117,7 @@ namespace Fiebo.API.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Reset mật khẩu thành công. Mật khẩu mới đã được tạo.",
-                    Data = new { TempPassword = newPassword } 
+                    Data = new { TempPassword = newPassword }
                 });
             }
             catch (Exception ex)
@@ -182,6 +182,18 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Đã từ chối đăng ký cơ sở."
+            });
+        }
+
+        [HttpGet("owners")]
+        public async Task<IActionResult> GetOwners([FromQuery] OwnerListRequest filter)
+        {
+            var result = await _adminService.GetOwnerListAsync(filter);
+            return Ok(new ApiResponse<PagedResult<OwnerListResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách chủ sở hữu thành công.",
+                Data = result
             });
         }
     }

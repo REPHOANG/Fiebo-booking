@@ -1115,6 +1115,9 @@ namespace Fiebo.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date");
 
@@ -1160,6 +1163,9 @@ namespace Fiebo.Persistence.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)

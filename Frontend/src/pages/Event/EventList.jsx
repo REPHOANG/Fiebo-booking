@@ -5,9 +5,10 @@ import { getEventList } from "../../services/eventService";
 import { getVenueDetail } from "../../services/fieldService";
 import "./EventList.css";
 
-
-
-const normalize = (s) => String(s || "").trim().toLowerCase();
+const normalize = (s) =>
+  String(s || "")
+    .trim()
+    .toLowerCase();
 const pick = (obj, ...keys) => {
   for (const k of keys) {
     const v = obj?.[k];
@@ -87,7 +88,9 @@ const EventList = () => {
         const list = Array.isArray(events) ? events : [];
 
         // API list hiện chưa trả venueId, nên lọc theo venueName từ venueId trên URL.
-        const filtered = list.filter((e) => normalize(e?.venueName) === venueName);
+        const filtered = list.filter(
+          (e) => normalize(e?.venueName) === venueName,
+        );
 
         const mapped = filtered.map((e) => {
           const slots = Array.isArray(e?.slots) ? e.slots : [];
@@ -96,11 +99,13 @@ const EventList = () => {
           const eventName =
             pick(e, "name", "Name", "title", "Title") ??
             `[Xé vé] - Sự kiện #${e?.eventId ?? ""}`;
-          const capacity = Number(e?.ticketQuantity ?? e?.TicketQuantity ?? 16) || 16;
+          const capacity =
+            Number(e?.ticketQuantity ?? e?.TicketQuantity ?? 16) || 16;
           const remaining = Number(
-            e?.remainingTicketQuantity ?? e?.RemainingTicketQuantity ?? capacity
+            e?.remainingTicketQuantity ??
+              e?.RemainingTicketQuantity ??
+              capacity,
           );
-         
 
           const status = getEventStatus({
             eventDate: e?.eventDate ?? e?.EventDate,
@@ -136,7 +141,11 @@ const EventList = () => {
         if (mounted) setItems(mapped);
       } catch (e) {
         if (mounted) {
-          setError(e?.response?.data?.message || e?.message || "Không tải được sự kiện.");
+          setError(
+            e?.response?.data?.message ||
+              e?.message ||
+              "Không tải được sự kiện.",
+          );
           setItems([]);
         }
       } finally {
@@ -157,27 +166,17 @@ const EventList = () => {
   return (
     <div className="es-page">
       <div className="es-topbar">
-        <button className="es-back" type="button" onClick={() => navigate(-1)} aria-label="Back">
+        <button
+          className="es-back"
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label="Back"
+        >
           <ArrowLeft size={20} />
         </button>
 
         <div className="es-title-wrap">
           <h1 className="es-title">Đặt lịch sự kiện</h1>
-          {venueId && (
-            <div className="es-subtitle">
-              <MapPin size={14} /> Venue #{venueId}
-            </div>
-          )}
-        </div>
-
-        <div className="es-range">
-          <CalendarDays size={18} />
-          <input
-            className="es-range-input"
-            value={rangeLabel}
-            onChange={(e) => setRangeLabel(e.target.value)}
-            aria-label="Date range"
-          />
         </div>
       </div>
 
@@ -190,48 +189,51 @@ const EventList = () => {
         {!loading &&
           !error &&
           items.map((s) => (
-          <button
-            key={s.id}
-            className="es-card"
-            type="button"
-            onClick={() => openEvent(s.id)}
-          >
-            <div className="es-card-head">
-              <div className="es-card-title">
-                <span className="es-id">#{s.id}:</span> {s.title}
+            <button
+              key={s.id}
+              className="es-card"
+              type="button"
+              onClick={() => openEvent(s.id)}
+            >
+              <div className="es-card-head">
+                <div className="es-card-title">
+                  <span className="es-id">#{s.id}:</span> {s.title}
+                </div>
+                <div className="es-date">{s.date}</div>
               </div>
-              <div className="es-date">{s.date}</div>
-            </div>
 
-            <div className="es-card-sub">
-              <div className="es-time">
-                {s.time} | {s.fields}
+              <div className="es-card-sub">
+                <div className="es-time">
+                  {s.time} | {s.fields}
+                </div>
               </div>
-            </div>
 
-            <div className="es-tags">
-              <span className="es-tag es-tag-sport">
-                <span className="es-tag-dot" /> {s.sport}
-              </span>
-              <span className={`es-tag es-tag-status ${s.statusClass}`}>{s.status}</span>
-              <span className="es-tag es-tag-info">
-                <Info size={14} />
-              </span>
-            </div>
-
-            <div className="es-foot">
-              <div className="es-people">       
-                <span className="es-remaining-pill">Còn {s.remaining} vé</span>
+              <div className="es-tags">
+                <span className="es-tag es-tag-sport">
+                  <span className="es-tag-dot" /> {s.sport}
+                </span>
+                <span className={`es-tag es-tag-status ${s.statusClass}`}>
+                  {s.status}
+                </span>
+                <span className="es-tag es-tag-info">
+                  <Info size={14} />
+                </span>
               </div>
-              <span className="es-price">{s.price}</span>
-              <span className="es-go">→</span>
-            </div>
-          </button>
-        ))}
+
+              <div className="es-foot">
+                <div className="es-people">
+                  <span className="es-remaining-pill">
+                    Còn {s.remaining} vé
+                  </span>
+                </div>
+                <span className="es-price">{s.price}</span>
+                <span className="es-go">→</span>
+              </div>
+            </button>
+          ))}
       </div>
     </div>
   );
 };
 
 export default EventList;
-
