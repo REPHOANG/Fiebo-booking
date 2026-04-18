@@ -1,6 +1,9 @@
 ﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -41,6 +44,96 @@ namespace Fiebo.Application.Services
         {
             var newPass = await _unitOfWork.Admins.ResetFinanceAdminPasswordAsync(userId);
             return newPass;
+        }
+
+        public async Task<OwnerDetailResponse> GetOwnerAsync(string ownerId)
+        {
+            var owner = await _identityService.GetUserProfileAsync(ownerId) ?? throw new NotFoundException("Owner not found");
+            if(owner.Roles != AppRoles.FieldOwner)
+            {
+                throw new NotFoundException("Owner not found");
+            }
+            var subscription = await _unitOfWork.OwnerPlans.GetCurrentActiveByOwnerIdAsync(ownerId);
+            var venues = await _unitOfWork.Venues.GetVenuesByOwnerAsync(ownerId);
+
+            return new OwnerDetailResponse
+            {
+                Name = owner.FullName ?? "",
+                Email = owner.Email ?? "",
+                PhoneNumber = owner?.PhoneNumber ?? "",
+                Status = owner?.Status?.ToString() ?? "",
+                CreatedAt = owner?.CreatedAt,
+                Subscription = subscription != null ? new SubscriptionInfoDto
+                {
+                    Id = subscription.Id,
+                    CurrentPlan = subscription.Plan.Name,
+                    StartDate = subscription.StartDate,
+                    EndDate = subscription.EndDate,
+                    SubscriptionStatus = subscription.Status.ToString() ?? "",
+                } : null,
+                Venues = [.. venues.Select(v => new VenueInfoDto
+                {
+                    Id = v.Id,
+                    VenueName = v.Name,
+                    Province = v.Province?.Name ?? "",
+                    Ward = v.Ward?.Name ?? "",
+                    Status = v?.Status.ToString() ?? "",
+                    AddressDetail = v?.AddressDetail ?? "",
+                    NumberOfFields = v?.Fields?.Count() ?? 0,
+                })]
+            };
+        }
+
+        public async Task<VenueDetailResponse> GetVenueDetailAsync(int venueId)
+        {
+            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsAsync(venueId);
+            if (venue == null)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+            }
+
+            var ownerProfile = await _identityService.GetUserProfileAsync(venue.OwnerId);
+            if (ownerProfile == null)
+            {
+                throw new NotFoundException("Không tìm thấy thông tin chủ sân.");
+            }
+
+            var bankAccounts = await _unitOfWork.UserBankAccounts.FindAsync(b => b.UserId == venue.OwnerId);
+            var bankAccount = bankAccounts.FirstOrDefault();
+            string address = $"{venue.AddressDetail}, {venue.Ward?.Name}, {venue.Province?.Name}";
+
+            return new VenueDetailResponse
+            {
+                VenueId = venue.Id,
+                VenueName = venue.Name,
+                Address = address,
+                Description = venue.Description ?? string.Empty,
+                OpenTime = venue.OpenTime,
+                CloseTime = venue.CloseTime,
+                VenueStatus = venue.Status.ToString(),
+                OwnerName = ownerProfile.FullName ?? string.Empty,
+                OwnerEmail = ownerProfile.Email ?? string.Empty,
+                OwnerPhone = ownerProfile.PhoneNumber ?? string.Empty,
+                OwnerBankName = bankAccount?.BankName ?? string.Empty,
+                OwnerBankAccountNumber = bankAccount?.AccountNumber ?? string.Empty,
+                OwnerAccountHolderName = bankAccount?.AccountHolderName ?? string.Empty,
+                BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = bizDoc.IssueDate,
+                        ExpiryDate = bizDoc.ExpiryDate,
+                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null,
+                LandUseDocument = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse) is VenueDocument landDoc
+                    ? new VenueDocumentResponse
+                    {
+                        IssueDate = landDoc.IssueDate,
+                        ExpiryDate = landDoc.ExpiryDate,
+                        Images = [.. landDoc.Images.Select(i => i.ImageUrl)]
+                    }
+                    : null
+            };
         }
     }
 }

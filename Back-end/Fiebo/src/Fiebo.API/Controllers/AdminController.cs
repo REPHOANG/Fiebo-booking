@@ -268,5 +268,29 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        [HttpGet("owners/{id}")]
+        public async Task<IActionResult> GetOwner([FromRoute] string id)
+        {
+            var result = await _adminService.GetOwnerAsync(id);
+            return Ok(new ApiResponse<OwnerDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin chủ sở hữu thành công.",
+                Data = result
+            });
+        }
+
+        [HttpGet("venue/{id}")]
+        public async Task<IActionResult> GetVenue([FromRoute] int id)
+        {
+            var result = await _adminService.GetVenueDetailAsync(id);
+            return Ok(new ApiResponse<VenueDetailResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy thông tin cơ sở thành công.",
+                Data = result
+            });
+        }
     }
 }
