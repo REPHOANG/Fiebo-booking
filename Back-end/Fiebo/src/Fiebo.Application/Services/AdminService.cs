@@ -135,5 +135,24 @@ namespace Fiebo.Application.Services
                     : null
             };
         }
+
+        public async Task UpdateVenueStatusAsync(int venueId)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId) ?? throw new NotFoundException("Venue not found");
+            if(venue.Status == VenueStatus.Active || venue.Status == VenueStatus.Inactive)
+            {
+                venue.Status = VenueStatus.Locked;
+                _unitOfWork.Venues.Update(venue);
+                await _unitOfWork.SaveChangesAsync();
+                return;
+            }
+            if(venue.Status == VenueStatus.Locked)
+            {
+                venue.Status = VenueStatus.Inactive;
+                _unitOfWork.Venues.Update(venue);
+                await _unitOfWork.SaveChangesAsync();
+                return;
+            }
+        }
     }
 }

@@ -292,5 +292,21 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Lock/Unlock the venue
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpPatch("venue/{id}")]
+        public async Task<IActionResult> UpdateVenueStatus([FromRoute] int id)
+        {
+            await _adminService.UpdateVenueStatusAsync(id);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái cơ sở thành công."
+            });
+        }
     }
 }
