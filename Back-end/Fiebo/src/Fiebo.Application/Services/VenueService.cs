@@ -448,15 +448,6 @@ namespace Fiebo.Application.Services
 
             if (venue.Status == VenueStatus.Active)
             {
-                var hasUpcoming = await _unitOfWork.BookingDetails.HasUpcomingBookingsForVenueAsync(venueId);
-
-                if (hasUpcoming)
-                {
-                    throw new BadRequestException(
-                        "Không thể tắt cơ sở. Hiện đang có lịch đặt sắp tới. " +
-                        "Vui lòng xử lý hoặc hủy các lịch đặt trước khi cập nhật.");
-                }
-
                 venue.Status = VenueStatus.Inactive;
             }
             else
