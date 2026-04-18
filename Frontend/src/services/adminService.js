@@ -147,6 +147,11 @@ export const getVenueDetail = async (id) => {
   return normalizeVenueDetail(response.data);
 };
 
+export const getAdminVenueById = async (id) => {
+  const response = await api.get(`/api/Admin/venue/${id}`);
+  return normalizeVenueDetail(response.data);
+};
+
 export const approveVenue = async (id) => {
   const res = await api.post(`/api/Admin/venues/${id}/approve`);
   return res.data?.data ?? res.data;
