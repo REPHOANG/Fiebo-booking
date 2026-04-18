@@ -8,6 +8,7 @@ namespace Fiebo.Application.DTOs.Admin
 {
     public class FinanceAdminListResponse
     {
+        public required string Id { get; set; }
         public required string FullName { get; set; }
         public required string Username { get; set; }
         public required string Status { get; set; }
