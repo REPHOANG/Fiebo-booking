@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 import {
@@ -27,6 +27,7 @@ import "../VenueRegistration/VenueDetailPage.css";
 const venueStatusStyle = {
   Open: { label: "Đang mở", bg: "#dcfce7", color: "#166534" },
   Active: { label: "Đang mở", bg: "#dcfce7", color: "#166534" },
+  Inactive: { label: "Không hoạt động", bg: "#fef9c3", color: "#854d0e" },
   Locked: { label: "Đã khoá", bg: "#fee2e2", color: "#991b1b" },
   Pending: { label: "Chờ duyệt", bg: "#fef9c3", color: "#854d0e" },
   Rejected: { label: "Bị từ chối", bg: "#fef3f2", color: "#b42318" },
@@ -56,6 +57,7 @@ export const AdminOwnerVenueDetail = () => {
   const { ownerId, venueId } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
+  const queryClient = useQueryClient();
   const stateVenue = state?.venue ?? null;
   const owner = state?.owner ?? null;
 
@@ -79,11 +81,13 @@ export const AdminOwnerVenueDetail = () => {
         isLocked: currentStatus !== "Locked",
       }),
     onSuccess: () => {
-      const nextStatus = currentStatus === "Locked" ? "Open" : "Locked";
+      const nextStatus = currentStatus === "Locked" ? "Inactive" : "Locked";
       setCurrentStatus(nextStatus);
       toast.success(
         nextStatus === "Locked" ? "Đã khoá cơ sở thành công" : "Đã mở khoá cơ sở thành công"
       );
+      queryClient.invalidateQueries({ queryKey: ["adminVenueDetail", venueId] });
+      queryClient.invalidateQueries({ queryKey: ["adminOwnerDetail", ownerId] });
     },
     onError: () => {
       toast.error("Thao tác thất bại. Vui lòng thử lại.");
