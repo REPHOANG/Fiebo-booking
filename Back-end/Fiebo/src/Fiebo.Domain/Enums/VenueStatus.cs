@@ -12,6 +12,7 @@ namespace Fiebo.Domain.Enums
         Inactive = 0,
         Pending = 2,
         Rejected = 3,
-        Draft = 4
+        Draft = 4,
+        Locked = 5
     }
 }

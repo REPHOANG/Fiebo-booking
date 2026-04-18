@@ -15,5 +15,6 @@ namespace Fiebo.Application.Interfaces
         Task<PagedResult<OwnerListResponse>> GetOwnerListAsync(OwnerListRequest request);
         Task<OwnerDetailResponse> GetOwnerAsync(string ownerId);
         Task<VenueDetailResponse> GetVenueDetailAsync(int venueId);
+        Task UpdateVenueStatusAsync(int venueId);
     }
 }
