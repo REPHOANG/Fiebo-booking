@@ -209,7 +209,7 @@ const OwnerEventDetail = () => {
   };
 
   const confirmCancelEvent = async () => {
-    if (!id || !detail?.isEditable || cancelEventMutation.isPending) return;
+    if (!id || cancelEventMutation.isPending) return;
 
     if (!selectedCancelReason) {
       setCancelReasonError("Vui lòng chọn lý do hủy.");
@@ -261,7 +261,7 @@ const OwnerEventDetail = () => {
   const d = detail || {};
   const statusLower = String(d.status || "").toLowerCase();
   const showCancelButton = statusLower === "pending";
-  const canCancel = Boolean(d.isEditable) && !editMode && !cancelEventMutation.isPending;
+
   const eventName =
     d.name ?? d.eventName ?? d.title ?? d.Name ?? d.EventName ?? d.Title;
   const slots = d.slots ?? [];
@@ -307,7 +307,6 @@ const OwnerEventDetail = () => {
                   type="button"
                   className="oed-btn oed-cancel-btn"
                   onClick={openCancelPopup}
-                  disabled={!canCancel}
                 >
                   Huỷ sự kiện
                 </button>

@@ -4,9 +4,9 @@
     container_name: fiebo_mysql
     environment:
       MYSQL_ROOT_PASSWORD: hieulun123
-      MYSQL_DATABASE: FieboDb4
+      MYSQL_DATABASE: FieboDb9
       TZ: Asia/Ho_Chi_Minh
-    command: --default-time-zone='+07:00'
+    command: --default-time-zone='+07:00' --lower_case_table_names=1
     volumes:
       - mysql_data:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro

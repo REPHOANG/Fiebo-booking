@@ -221,8 +221,6 @@ const OwnerTimeSlot = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
-  const [selectedApplyVenueIds, setSelectedApplyVenueIds] = useState([]);
-  const [applyVenueFailures, setApplyVenueFailures] = useState([]);
   /** Chỉ một dòng đang sửa (theo index trong `slotRows`); slot đã lưu trên máy chủ mặc định khóa cho đến khi bấm Sửa. */
   const [editingRowIdx, setEditingRowIdx] = useState(null);
   const editSnapshotRef = useRef(null);
@@ -690,14 +688,6 @@ const OwnerTimeSlot = () => {
     [sortedOwnerVenues],
   );
 
-  const applyVenueOptions = useMemo(
-    () => ownerVenueOptions.filter((option) => option.vid !== String(id)),
-    [ownerVenueOptions, id],
-  );
-
-  const allApplyVenuesSelected =
-    applyVenueOptions.length > 0 && selectedApplyVenueIds.length === applyVenueOptions.length;
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -746,15 +736,6 @@ const OwnerTimeSlot = () => {
       mounted = false;
     };
   }, [id]);
-
-  useEffect(() => {
-    const validIds = new Set(applyVenueOptions.map((option) => option.vid));
-    setSelectedApplyVenueIds((prev) => prev.filter((venueId) => validIds.has(venueId)));
-  }, [applyVenueOptions]);
-
-  useEffect(() => {
-    setApplyVenueFailures([]);
-  }, [id, sportTypeId, activeDayIndex]);
 
   // useEffect(() => {
   //   let mounted = true;
@@ -828,77 +809,7 @@ const OwnerTimeSlot = () => {
     setEditingRowIdx(null);
   }, []);
 
-  const toggleApplyVenue = useCallback((venueId) => {
-    setSelectedApplyVenueIds((prev) =>
-      prev.includes(venueId) ? prev.filter((idValue) => idValue !== venueId) : [...prev, venueId],
-    );
-  }, []);
 
-  const toggleAllApplyVenues = useCallback(() => {
-    setSelectedApplyVenueIds((prev) => {
-      if (applyVenueOptions.length === 0) return prev;
-      return prev.length === applyVenueOptions.length ? [] : applyVenueOptions.map((option) => option.vid);
-    });
-  }, [applyVenueOptions]);
-
-  const syncActiveDaySlotsToVenue = useCallback(
-    async (targetVenueId, sid, dow, desiredSlots) => {
-      const { timeSlots } = await getOwnerVenueTimeSlots(targetVenueId, sid);
-      const targetRows = rowsFromApiOnly(timeSlots, weekDates);
-      const targetDaySlots = targetRows
-        .map((row) => {
-          const slotId = row.slotIds?.[activeDayKey];
-          if (slotId == null || String(slotId).trim() === "") return null;
-          return {
-            slotId,
-            start: row.start,
-            end: row.end,
-            price: Number(row.prices?.[activeDayKey] ?? 0),
-          };
-        })
-        .filter(Boolean);
-
-      const desiredByKey = new Map(desiredSlots.map((slot) => [`${slot.start}|${slot.end}`, slot]));
-      const existingByKey = new Map(targetDaySlots.map((slot) => [`${slot.start}|${slot.end}`, slot]));
-
-      const slotsToDelete = targetDaySlots
-        .filter((slot) => !desiredByKey.has(`${slot.start}|${slot.end}`))
-        .map((slot) => slot.slotId);
-
-      for (const slotId of slotsToDelete) {
-        await deleteOwnerVenueTimeSlot(slotId);
-      }
-
-      await Promise.all(
-        desiredSlots.map(async (slot) => {
-          const key = `${slot.start}|${slot.end}`;
-          const existing = existingByKey.get(key);
-          if (!existing) return;
-          if (Number(existing.price) === Number(slot.price)) return;
-          await updateOwnerVenueTimeSlot(existing.slotId, {
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            price: slot.price,
-          });
-        }),
-      );
-
-      const createPayload = desiredSlots
-        .filter((slot) => !existingByKey.has(`${slot.start}|${slot.end}`))
-        .map((slot) => ({
-          sportTypeId: sid,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          dayOfWeek: dow,
-          price: slot.price,
-        }));
-
-      if (createPayload.length > 0) {
-        await createOwnerVenueTimeSlot(targetVenueId, createPayload);
-      }
-    },
-    [activeDayKey, weekDates],
-  );
 
   const buildDesiredSlotsForActiveDay = useCallback(() => {
     const d = weekDates[activeDayIndex];
@@ -1116,7 +1027,7 @@ const OwnerTimeSlot = () => {
   };
 
   /** Chỉ đồng bộ ngày đang xem — tránh lặp 7× số dòng (mỗi ngày một loạt create/update/delete). */
-  const saveSlots = async ({ applyToSelectedVenues = false } = {}) => {
+  const saveSlots = async () => {
     const sid = Number(sportTypeId);
     if (!sid) {
       toast.error("Vui lòng chọn loại sân / môn thể thao.");
@@ -1128,26 +1039,10 @@ const OwnerTimeSlot = () => {
       return;
     }
 
-    if (applyToSelectedVenues) {
-      if (selectedApplyVenueIds.length === 0) {
-        toast.info("Chọn ít nhất một cơ sở để áp dụng khung giờ.");
-        return;
-      }
-
-      const selectedVenueNames = selectedApplyVenueIds
-        .map((venueId) => applyVenueOptions.find((option) => option.vid === venueId)?.name)
-        .filter(Boolean);
-      const confirmed = window.confirm(
-        `Khung giờ của ${weekDayLabels[activeDayIndex]} sẽ được ghi đè sang ${selectedVenueNames.length} cơ sở đã chọn. Bạn có chắc muốn tiếp tục?`,
-      );
-      if (!confirmed) return;
-    }
-
     let dk;
     let dow;
-    let desiredSlots;
     try {
-      ({ dk, dow, desiredSlots } = buildDesiredSlotsForActiveDay());
+      ({ dk, dow } = buildDesiredSlotsForActiveDay());
     } catch (error) {
       toast.error(getErrorMessage(error, "Không thể chuẩn bị dữ liệu khung giờ."));
       return;
@@ -1155,7 +1050,6 @@ const OwnerTimeSlot = () => {
 
     setSaving(true);
     try {
-      setApplyVenueFailures([]);
       const createBatchPayload = [];
 
       for (const row of slotRows) {
@@ -1195,54 +1089,11 @@ const OwnerTimeSlot = () => {
         }
       }
       if (createBatchPayload.length > 0) {
-        // Create all new slots for the active day in one API call.
         await createOwnerVenueTimeSlot(id, createBatchPayload);
       }
       editSnapshotRef.current = null;
       setEditingRowIdx(null);
-      let syncedVenueCount = 0;
-      let failedVenueReasons = [];
-
-      if (applyToSelectedVenues && selectedApplyVenueIds.length > 0) {
-        const applyResults = await Promise.all(
-          selectedApplyVenueIds.map(async (venueId) => {
-            const venueName =
-              applyVenueOptions.find((option) => option.vid === venueId)?.name ?? `Cơ sở #${venueId}`;
-            try {
-              await syncActiveDaySlotsToVenue(venueId, sid, dow, desiredSlots);
-              return { ok: true, venueName };
-            } catch (error) {
-              return {
-                ok: false,
-                venueName,
-                reason: getErrorMessage(error, "Không thể áp dụng khung giờ."),
-              };
-            }
-          }),
-        );
-
-        syncedVenueCount = applyResults.filter((result) => result.ok).length;
-        failedVenueReasons = applyResults
-          .filter((result) => !result.ok)
-          .map((result) => ({
-            venueName: result.venueName,
-            reason: result.reason,
-          }));
-      }
-
-      setApplyVenueFailures(failedVenueReasons);
-
-      if (failedVenueReasons.length > 0) {
-        toast.warn(
-          `Đã lưu ${weekDayLabels[activeDayIndex]} cho cơ sở hiện tại. Có ${failedVenueReasons.length} cơ sở áp dụng thất bại.`,
-        );
-      } else if (applyToSelectedVenues && syncedVenueCount > 0) {
-        toast.success(
-          `Đã lưu ${weekDayLabels[activeDayIndex]} và áp dụng cho ${syncedVenueCount} cơ sở khác.`,
-        );
-      } else {
-        toast.success(`Đã lưu khung giờ cho ${weekDayLabels[activeDayIndex]}.`);
-      }
+      toast.success(`Đã lưu khung giờ cho ${weekDayLabels[activeDayIndex]}.`);
       await reloadSlots();
     } catch (e) {
       toast.error(getErrorMessage(e, "Không lưu được khung giờ."));
@@ -1307,7 +1158,6 @@ const OwnerTimeSlot = () => {
     saving || !sportTypeId || loadingSlots || !slotRows.length || !otherDayKeys.length || hasActiveDayValidationErrors;
   const saveDisabled = saving || !sportTypeId || loadingSlots || hasActiveDayValidationErrors;
   const saveWeekDisabled = saving || !sportTypeId || loadingSlots || hasWeekValidationErrors;
-  const applyVenuesDisabled = saveDisabled || selectedApplyVenueIds.length === 0;
 
   return (
     <div className="ots-page" ref={otsPageRef}>
@@ -1393,60 +1243,7 @@ const OwnerTimeSlot = () => {
             ))}
           </select>
 
-          <h3 className="ots-fields-heading">ÁP DỤNG CHO CƠ SỞ KHÁC</h3>
-          {applyVenueOptions.length === 0 ? (
-            <p className="ots-apply-venues-empty">Không có cơ sở nào khác để áp dụng chung.</p>
-          ) : (
-            <>
-              <label className="ots-apply-venues-toggle">
-                <input
-                  type="checkbox"
-                  checked={allApplyVenuesSelected}
-                  onChange={toggleAllApplyVenues}
-                />
-                <span>Chọn tất cả cơ sở còn lại</span>
-              </label>
-              <div className="ots-apply-venues-list">
-                {applyVenueOptions.map((option) => {
-                  const checked = selectedApplyVenueIds.includes(option.vid);
-                  return (
-                    <label key={option.vid} className={`ots-apply-venue-item${checked ? " is-checked" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleApplyVenue(option.vid)}
-                      />
-                      <span>{option.name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="ots-apply-venues-note">
-                Các cơ sở được tick sẽ nhận cùng khung giờ của <strong>{weekDayLabels[activeDayIndex]}</strong>
-                khi bấm nút áp dụng bên dưới.
-              </p>
-              <button
-                type="button"
-                className="ots-apply-venues-btn"
-                disabled={applyVenuesDisabled}
-                onClick={() => saveSlots({ applyToSelectedVenues: true })}
-              >
-                {saving ? "Đang áp dụng…" : `ÁP DỤNG KHUNG GIỜ ${weekDayLabels[activeDayIndex].toUpperCase()}`}
-              </button>
-              {applyVenueFailures.length > 0 ? (
-                <div className="ots-apply-venues-errors" role="alert">
-                  <div className="ots-apply-venues-errors-title">Các cơ sở áp dụng thất bại</div>
-                  <ul className="ots-apply-venues-errors-list">
-                    {applyVenueFailures.map((item) => (
-                      <li key={`${item.venueName}-${item.reason}`}>
-                        <strong>{item.venueName}</strong>: {item.reason}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </>
-          )}
+
 
           {/*
           <h3 className="ots-fields-heading">DANH SÁCH CÁC SÂN ÁP DỤNG</h3>
@@ -1895,7 +1692,7 @@ const OwnerTimeSlot = () => {
         className="ots-fab"
         disabled={saveDisabled}
         title={`Lưu khung giờ — chỉ ${weekDayLabels[activeDayIndex]}`}
-        onClick={() => saveSlots({ applyToSelectedVenues: false })}
+        onClick={() => saveSlots()}
       >
         <Save size={22} strokeWidth={2.2} />
       </button>

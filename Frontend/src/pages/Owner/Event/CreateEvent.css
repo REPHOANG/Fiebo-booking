@@ -58,6 +58,7 @@
 .ce-row.two-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
 }
 
 .ce-row label {

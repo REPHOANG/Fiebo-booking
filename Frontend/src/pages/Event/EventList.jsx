@@ -1,14 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Info, MapPin } from "lucide-react";
-import { getEventList } from "../../services/eventService";
-import { getVenueDetail } from "../../services/fieldService";
+import { ArrowLeft, Info } from "lucide-react";
+import { getEventsByVenue } from "../../services/eventService";
 import "./EventList.css";
 
-const normalize = (s) =>
-  String(s || "")
-    .trim()
-    .toLowerCase();
 const pick = (obj, ...keys) => {
   for (const k of keys) {
     const v = obj?.[k];
@@ -60,7 +55,6 @@ const EventList = () => {
   const { id } = useParams(); // venue id when route is /venue/:id/events
   const venueId = useMemo(() => id ?? null, [id]);
 
-  const [rangeLabel, setRangeLabel] = useState("18/03 - 24/03");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -79,20 +73,10 @@ const EventList = () => {
       try {
         setLoading(true);
         setError("");
-        const [events, venue] = await Promise.all([
-          getEventList(),
-          getVenueDetail(Number(venueId)),
-        ]);
-
-        const venueName = normalize(venue?.name ?? venue?.venueName);
+        const events = await getEventsByVenue(venueId);
         const list = Array.isArray(events) ? events : [];
 
-        // API list hiện chưa trả venueId, nên lọc theo venueName từ venueId trên URL.
-        const filtered = list.filter(
-          (e) => normalize(e?.venueName) === venueName,
-        );
-
-        const mapped = filtered.map((e) => {
+        const mapped = list.map((e) => {
           const slots = Array.isArray(e?.slots) ? e.slots : [];
           const first = slots[0];
           const last = slots[slots.length - 1];

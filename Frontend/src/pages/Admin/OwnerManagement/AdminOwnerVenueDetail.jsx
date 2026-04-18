@@ -137,7 +137,7 @@ export const AdminOwnerVenueDetail = () => {
             <button
               type="button"
               className="avr-back-btn"
-              onClick={() => navigate(`/admin/owners/${ownerId}`)}
+              onClick={() => navigate(`/admin/owners/${owner.Id}`)}
             >
               <ArrowLeft size={16} strokeWidth={2.2} aria-hidden />
               Quay lại hồ sơ chủ sân

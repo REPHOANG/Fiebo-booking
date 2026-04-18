@@ -17,19 +17,6 @@ export const ownerVenueScheduleUrl = (venueId) =>
  * @returns {Promise<{venueId:number,status:string}|any>}
  */
 export const createVenue = async (formData) => {
-  // Nếu có Latitude/Longitude, chuyển dấu chấm thành dấu phẩy (giống giveRatingApi)
-  if (formData.has("Latitude")) {
-    const lat = formData.get("Latitude");
-    if (typeof lat === "string") {
-      formData.set("Latitude", lat.replace(".", ","));
-    }
-  }
-  if (formData.has("Longitude")) {
-    const lng = formData.get("Longitude");
-    if (typeof lng === "string") {
-      formData.set("Longitude", lng.replace(".", ","));
-    }
-  }
   const response = await api.post('/api/owner/venue/draft', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 120000,
