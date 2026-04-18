@@ -222,7 +222,7 @@ const AdminOwnerDetail = () => {
                       className="owner-detail-venue-card"
                       onClick={() =>
                         navigate(`/admin/owners/${id}/venues/${venueId}`, {
-                          state: { venue: v },
+                          state: { venue: v, owner: { name, email, phone } },
                         })
                       }
                       role="button"
@@ -230,7 +230,7 @@ const AdminOwnerDetail = () => {
                       onKeyDown={(e) =>
                         e.key === "Enter" &&
                         navigate(`/admin/owners/${id}/venues/${venueId}`, {
-                          state: { venue: v },
+                          state: { venue: v, owner: { name, email, phone } },
                         })
                       }
                     >
