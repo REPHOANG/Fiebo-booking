@@ -29,13 +29,10 @@ namespace Fiebo.Persistence.Repositories
 
         public async Task<OwnerPlan?> GetCurrentActiveByOwnerIdAsync(string ownerId)
         {
-            var now = DateTime.Now;
-
             return await _context.OwnerPlans
                 .Include(x => x.Plan)
                 .Where(x => x.OwnerId == ownerId)
                 .OrderByDescending(x => x.EndDate)
-                .ThenByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
         }
 

@@ -92,6 +92,7 @@ namespace Fiebo.Application.Services
                 Description = venue.Description ?? string.Empty,
                 OpenTime = venue.OpenTime,
                 CloseTime = venue.CloseTime,
+                ThumbnailUrl = venue.ThumbnailUrl ?? string.Empty,
                 OwnerName = ownerProfile.FullName ?? string.Empty,
                 OwnerEmail = ownerProfile.Email ?? string.Empty,
                 OwnerPhone = ownerProfile.PhoneNumber ?? string.Empty,

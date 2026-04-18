@@ -68,8 +68,24 @@ namespace Fiebo.Application.Services
                 Longitude = v.Longitude
             }).ToList();
 
-            var distances = await _mapService
-                .GetDistancesAsync(userLat, userLng, locationList);
+            Dictionary<int, double> distances;
+
+            try
+            {
+                distances = await _mapService
+                    .GetDistancesAsync(userLat, userLng, locationList);
+            }
+            catch (Exception ex)
+            {
+                // Log lại để theo dõi
+                _logger.LogWarning(ex, "Map service failed, fallback to Haversine");
+
+                // Fallback: tự tính distance
+                distances = locationList.ToDictionary(
+                    x => x.VenueId,
+                    x => 0d
+                );
+            }
 
             var result = venues
                 .Select(v =>

@@ -40,7 +40,7 @@ const subStatusStyle = {
 };
 
 const venueStatusStyle = {
-  Open: { label: "Đang mở", bg: "#dcfce7", color: "#166534" },
+  Inactive: { label: "Không hoạt động", bg: "#fef9c3", color: "#854d0e" },
   Active: { label: "Đang mở", bg: "#dcfce7", color: "#166534" },
   Locked: { label: "Đã khoá", bg: "#fee2e2", color: "#991b1b" },
   Pending: { label: "Chờ duyệt", bg: "#fef9c3", color: "#854d0e" },
@@ -171,7 +171,7 @@ const AdminOwnerDetail = () => {
                   <dl className="avr-dl avr-dl--compact">
                     <div className="avr-dl-row">
                       <dt><Package size={14} strokeWidth={2} /> Tên gói</dt>
-                      <dd>{sub.planName ?? sub.name ?? "-"}</dd>
+                      <dd>{sub.currentPlan ?? "-"}</dd>
                     </div>
                     <div className="avr-dl-row">
                       <dt><CalendarDays size={14} strokeWidth={2} /> Bắt đầu</dt>
@@ -221,8 +221,8 @@ const AdminOwnerDetail = () => {
                       key={venueId}
                       className="owner-detail-venue-card"
                       onClick={() =>
-                        navigate(`/admin/owners/${id}/venues/${venueId}`, {
-                          state: { venue: v, owner: { name, email, phone } },
+                        navigate(`/admin/venues/${venueId}`, {
+                          state: { venue: v, owner: { id, name, email, phone } },
                         })
                       }
                       role="button"
@@ -250,11 +250,11 @@ const AdminOwnerDetail = () => {
                       </p>
                       <p className="owner-detail-venue-address">
                         <MapPin size={13} strokeWidth={2} />
-                        {v.address ?? "-"}
+                        {v.addressDetail} - {v.ward} - {v.province}
                       </p>
                       <p className="owner-detail-venue-fields">
                         <Store size={13} strokeWidth={2} />
-                        {fieldCount} sân con
+                        {fieldCount} sân
                       </p>
                     </div>
                   );

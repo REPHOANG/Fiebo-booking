@@ -20,6 +20,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.SubscriptionPlans
                 .AsNoTracking()
+                .Where(p => p.IsDeleted == false)
                 .OrderBy(p => p.Price)
                 .ToListAsync();
         }
