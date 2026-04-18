@@ -179,9 +179,12 @@ export const logout = async (token) => {
 export const getProfile = async () => {
   try {
     const response = await api.get('/api/auth/profile');
-    return response.data?.data ?? response.data;
-  } catch {
-    return undefined;
+    return response.data?.data ?? response.data ?? null;
+  } catch (error) {
+    const payload = getErrorPayload(error);
+    const authError = new Error(payload.message || 'Failed to fetch profile');
+    authError.status = payload.status;
+    throw authError;
   }
 };
 

@@ -1,6 +1,14 @@
 .finance-admin-page,
 .finance-admin-page * {
-  font-family: "Be Vietnam Pro", sans-serif;
+  font-family: "Be Vietnam Pro", sans-serif !important;
+}
+
+.finance-admin-page .MuiTypography-root,
+.finance-admin-page .MuiInputBase-root,
+.finance-admin-page .MuiButton-root,
+.finance-admin-page .MuiChip-label,
+.finance-admin-page .MuiAvatar-root {
+  font-family: "Be Vietnam Pro", sans-serif !important;
 }
 
 .finance-admin-select,
