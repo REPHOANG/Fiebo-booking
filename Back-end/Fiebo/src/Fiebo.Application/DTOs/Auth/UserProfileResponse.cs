@@ -16,5 +16,6 @@ namespace Fiebo.Application.DTOs.Auth
         public DateOnly? DateOfBirth { get; set; }
         public string? Roles { get; set; }
         public string? Status { get; set; }
+        public DateTime? CreatedAt { get; set; }
     }
 }
