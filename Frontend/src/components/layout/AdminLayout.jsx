@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPinned,
+  PackageOpen,
   ScrollText,
   Shield,
   Trophy,
@@ -25,6 +26,7 @@ const navItems = [
   { to: "/admin/owners", label: "Hồ sơ chủ sân", icon: Users },
   { to: "/admin/venue-registrations", label: "Duyệt đăng ký sân", icon: ScrollText },
   { to: "/admin/finance-admins", label: "Quản lý tài chính", icon: BadgeDollarSign },
+  { to: "/admin/subscriptions", label: "Quản lý gói", icon: PackageOpen },
   { to: "/admin/sports", label: "Danh mục thể thao", icon: Trophy },
   { to: "/admin/policies", label: "Chính sách", icon: Shield },
 ];
