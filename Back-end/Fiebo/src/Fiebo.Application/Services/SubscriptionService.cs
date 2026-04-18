@@ -214,6 +214,136 @@ namespace Fiebo.Application.Services
             }).ToList();
         }
 
+        // ─── Admin ────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// UC-Admin: Tạo gói đăng ký mới.
+        /// </summary>
+        public async Task<SubscriptionPlanResponse> CreatePlanAsync(CreateSubscriptionPlanRequest request)
+        {
+            // 1. Validate tên không trùng
+            var isNameExists = await _unitOfWork.SubscriptionPlans.IsNameExistsAsync(request.Name);
+            if (isNameExists)
+            {
+                throw new ResourceConflictException($"Tên gói '{request.Name}' đã tồn tại trong hệ thống.");
+            }
+
+            // 2. Tạo entity mới
+            var plan = new SubscriptionPlan
+            {
+                Name = request.Name,
+                DurationDays = request.DurationDays,
+                Price = request.Price
+            };
+
+            _unitOfWork.SubscriptionPlans.Add(plan);
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Admin tạo gói mới: {PlanName} - {Price} VND - {Days} ngày", plan.Name, plan.Price, plan.DurationDays);
+
+            return new SubscriptionPlanResponse
+            {
+                Id = plan.Id,
+                Name = plan.Name,
+                DurationDays = plan.DurationDays,
+                Price = plan.Price
+            };
+        }
+
+        /// <summary>
+        /// UC-Admin: Chỉnh sửa gói đăng ký.
+        /// - Nếu gói CHƯA có ai đăng ký → edit trực tiếp.
+        /// - Nếu gói ĐÃ có người đăng ký → soft-delete gói cũ + tạo gói mới.
+        /// </summary>
+        public async Task<SubscriptionPlanResponse> UpdatePlanAsync(int id, UpdateSubscriptionPlanRequest request)
+        {
+            // 1. Tìm gói
+            var plan = await _unitOfWork.SubscriptionPlans.GetByIdAsync(id);
+            if (plan == null)
+            {
+                throw new NotFoundException("Không tìm thấy gói đăng ký.");
+            }
+
+            // 2. Kiểm tra tên trùng (loại trừ chính gói đang sửa)
+            var isNameExists = await _unitOfWork.SubscriptionPlans.IsNameExistsAsync(request.Name, excludeId: id);
+            if (isNameExists)
+            {
+                throw new ResourceConflictException($"Tên gói '{request.Name}' đã tồn tại trong hệ thống.");
+            }
+
+            // 3. Kiểm tra gói đã có subscriber chưa
+            var hasSubscribers = await _unitOfWork.SubscriptionPlans.HasSubscribersAsync(id);
+
+            SubscriptionPlan resultPlan;
+
+            if (!hasSubscribers)
+            {
+                // Chưa có subscriber → Edit trực tiếp
+                plan.Name = request.Name;
+                plan.DurationDays = request.DurationDays;
+                plan.Price = request.Price;
+                plan.UpdatedAt = DateTime.Now;
+
+                _unitOfWork.SubscriptionPlans.Update(plan);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Admin edit trực tiếp gói #{PlanId}: {PlanName}", plan.Id, plan.Name);
+                resultPlan = plan;
+            }
+            else
+            {
+                // Đã có subscriber → Soft-delete gói cũ + tạo gói mới
+                plan.IsDeleted = true;
+                plan.UpdatedAt = DateTime.Now;
+                _unitOfWork.SubscriptionPlans.Update(plan);
+
+                var newPlan = new SubscriptionPlan
+                {
+                    Name = request.Name,
+                    DurationDays = request.DurationDays,
+                    Price = request.Price
+                };
+                _unitOfWork.SubscriptionPlans.Add(newPlan);
+
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Admin update gói #{OldPlanId} (đã có subscriber) → soft-delete + tạo gói mới #{NewPlanId}: {PlanName}",
+                    plan.Id, newPlan.Id, newPlan.Name);
+
+                resultPlan = newPlan;
+            }
+
+            return new SubscriptionPlanResponse
+            {
+                Id = resultPlan.Id,
+                Name = resultPlan.Name,
+                DurationDays = resultPlan.DurationDays,
+                Price = resultPlan.Price
+            };
+        }
+
+        /// <summary>
+        /// UC-Admin: Xóa mềm gói đăng ký.
+        /// Gói sẽ không hiển thị cho owner nhưng vẫn được giữ lại vì lý do lịch sử.
+        /// </summary>
+        public async Task DeletePlanAsync(int id)
+        {
+            var plan = await _unitOfWork.SubscriptionPlans.GetByIdAsync(id);
+            if (plan == null)
+            {
+                throw new NotFoundException("Không tìm thấy gói đăng ký.");
+            }
+
+            plan.IsDeleted = true;
+            plan.UpdatedAt = DateTime.Now;
+
+            _unitOfWork.SubscriptionPlans.Update(plan);
+            await _unitOfWork.SaveChangesAsync();
+
+            _logger.LogInformation("Admin xóa mềm gói #{PlanId}: {PlanName}", plan.Id, plan.Name);
+        }
+
         private static int CalculateRemainingDays(DateTime endDate)
         {
             var remaining = endDate.Date - DateTime.Now.Date;

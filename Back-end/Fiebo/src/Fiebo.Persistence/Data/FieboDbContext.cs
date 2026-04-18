@@ -607,6 +607,10 @@ namespace Fiebo.Persistence.Data
                 entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 entity.Property(x => x.Price).HasPrecision(12, 2).IsRequired();
                 entity.Property(x => x.DurationDays).IsRequired();
+                entity.Property(x => x.IsDeleted).HasDefaultValue(false).IsRequired();
+
+                // Global Query Filter: tự động exclude các gói đã xóa mềm khỏi mọi query
+                entity.HasQueryFilter(x => !x.IsDeleted);
             });
 
             // OwnerPlan

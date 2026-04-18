@@ -20,6 +20,7 @@ namespace Fiebo.Application.Services
 
             var response = users.Select(u => new FinanceAdminListResponse
             {
+                Id = u.Id,
                 FullName = u.FullName ?? "",
                 Username = u.Email?.Replace("@fiebo.com", "") ?? "",
                 Status = u.Status ?? ""

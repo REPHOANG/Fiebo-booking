@@ -11,5 +11,7 @@ namespace Fiebo.Domain.Repositories
     public interface ISubscriptionPlanRepository : IRepository<SubscriptionPlan>
     {
         Task<List<SubscriptionPlan>> GetAllPlansAsync();
+        Task<bool> HasSubscribersAsync(int planId);
+        Task<bool> IsNameExistsAsync(string name, int? excludeId = null);
     }
 }
