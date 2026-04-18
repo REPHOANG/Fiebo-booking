@@ -7,10 +7,15 @@ import {
   Card,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
   InputAdornment,
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { Select as AntdSelect } from "antd";
@@ -23,8 +28,11 @@ import SortRoundedIcon from "@mui/icons-material/SortRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
+import LockResetRoundedIcon from "@mui/icons-material/LockResetRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CreateFinanceAdminForm from "./CreateFinanceAdminForm";
-import { createFinanceAdmin, getFinanceAdmins } from "../../../services/adminService";
+import { createFinanceAdmin, getFinanceAdmins, resetFinanceAdminPassword } from "../../../services/adminService";
 import { formatDateTime } from "../../../utils/helperFunction";
 import "./FinanceAdminManagement.css";
 
@@ -57,6 +65,7 @@ const FinanceAdminManagement = () => {
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("createdDesc");
   const [openCreate, setOpenCreate] = useState(false);
+  const [resetPasswordResult, setResetPasswordResult] = useState(null);
 
   const {
     data: apiAccounts = [],
@@ -70,14 +79,14 @@ const FinanceAdminManagement = () => {
     refetchOnWindowFocus: false,
     select: (list) => {
       const createdAt = new Date().toISOString();
-      return (Array.isArray(list) ? list : []).map((item, index) => ({
-        id: `FIN-${new Date().getFullYear()}-${String(index + 1).padStart(3, "0")}`,
-        name: item?.fullName || "Chưa có tên",
-        email: item?.username || "-",
+      return (Array.isArray(list) ? list : []).map((item) => ({
+        id: item?.id ?? item?.Id ?? "",
+        name: item?.fullName || item?.FullName || "Chưa có tên",
+        email: item?.username || item?.Username || "-",
         phone: "-",
         createdAt,
         status:
-          String(item?.status || "")
+          String(item?.status || item?.Status || "")
             .trim()
             .toLowerCase() === "active"
             ? "active"
@@ -92,6 +101,18 @@ const FinanceAdminManagement = () => {
       toast.success("Tạo tài khoản Finance Admin thành công!");
       setOpenCreate(false);
       await queryClient.invalidateQueries({ queryKey: ["financeAdmins"] });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (id) => resetFinanceAdminPassword(id),
+    onSuccess: (data) => {
+      setResetPasswordResult(data?.TempPassword ?? data?.tempPassword ?? "");
+    },
+    onError: (err) => {
+      toast.error(
+        err?.response?.data?.message || err?.message || "Reset mật khẩu thất bại."
+      );
     },
   });
 
@@ -381,11 +402,25 @@ const FinanceAdminManagement = () => {
                       </Typography>
                     </Stack>
 
-                    <Switch
-                      checked={item.status === "active"}
-                      onChange={() => toggleAccountStatus(item.id)}
-                      color="success"
-                    />
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Tooltip title="Reset mật khẩu">
+                        <span>
+                          <IconButton
+                            size="small"
+                            disabled={resetPasswordMutation.isPending}
+                            onClick={() => resetPasswordMutation.mutate(item.id)}
+                            sx={{ color: "#7b7487" }}
+                          >
+                            <LockResetRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Switch
+                        checked={item.status === "active"}
+                        onChange={() => toggleAccountStatus(item.id)}
+                        color="success"
+                      />
+                    </Stack>
                   </Stack>
                 </Stack>
               </Card>
@@ -432,6 +467,48 @@ const FinanceAdminManagement = () => {
         onSubmit={handleCreate}
         loading={createMutation.isPending}
       />
+
+      <Dialog
+        open={resetPasswordResult !== null}
+        onClose={() => setResetPasswordResult(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, pr: 6 }}>
+          Mật khẩu mới
+          <IconButton
+            size="small"
+            onClick={() => setResetPasswordResult(null)}
+            sx={{ position: "absolute", right: 12, top: 12 }}
+          >
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 1.5, color: "#4a4455" }}>
+            Mật khẩu tạm thời đã được tạo. Vui lòng gửi cho nhân viên và yêu cầu đổi mật khẩu sau khi đăng nhập.
+          </Typography>
+          <Stack direction="row" spacing={1} alignItems="center"
+            sx={{ backgroundColor: "#f3f4f6", borderRadius: 2, px: 2, py: 1.5 }}
+          >
+            <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 18, flex: 1 }}>
+              {resetPasswordResult}
+            </Typography>
+            <Tooltip title="Sao chép">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  navigator.clipboard.writeText(resetPasswordResult ?? "");
+                  toast.success("Đã sao chép mật khẩu!");
+                }}
+              >
+                <ContentCopyRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
