@@ -134,14 +134,6 @@ export const VenueDetailPage = () => {
               Quay lại danh sách
             </button>
           </div>
-
-          <div className="avr-alert" role="status">
-            <CircleAlert size={18} strokeWidth={2} aria-hidden />
-            <span>
-              Đối chiếu thông tin hồ sơ trước khi ra quyết định. Khi <strong>duyệt</strong>, cơ sở sẽ được mở để vận hành;
-              khi <strong>từ chối</strong>, hệ thống sẽ lưu lại lý do phản hồi cho chủ sân.
-            </span>
-          </div>
         </header>
 
         <div className="avr-hero">
@@ -162,9 +154,10 @@ export const VenueDetailPage = () => {
 
           <div className="avr-hero-media">
             <div className="avr-hero-placeholder" role="img" aria-label="Xem trước hồ sơ sân">
-              <Building2 size={40} strokeWidth={1.4} aria-hidden />
-              <span>{venueName}</span>
-              <small>{address}</small>
+              <img style={{
+                width:"100%",
+                height:"100%"
+              }} src="https://cdn.saigontimestravel.com/storage/images/retail/ckeditor/2025/10/1761105328_old-trafford_16.webp" alt="" />
             </div>
           </div>
         </div>
@@ -284,20 +277,20 @@ export const VenueDetailPage = () => {
             type="button"
             className="avr-action-btn avr-action-btn--approve"
             onClick={() => approveMutation.mutate()}
-            disabled={approveMutation.isPending}
+            disabled={approveMutation.isPending || rejectMutation.isPending}
           >
             <CheckCircle2 size={18} strokeWidth={2.2} aria-hidden />
-            <span>{approveMutation.isPending ? "Đang duyệt..." : "Duyệt hồ sơ"}</span>
+            <span>{approveMutation.isPending ? "Đang duyệt..." : "Duyệt"}</span>
           </button>
 
           <button
             type="button"
             className="avr-action-btn avr-action-btn--reject"
             onClick={() => setOpenReject(true)}
-            disabled={rejectMutation.isPending}
+            disabled={rejectMutation.isPending || approveMutation.isPending}
           >
             <XCircle size={18} strokeWidth={2.2} aria-hidden />
-            <span>Từ chối hồ sơ</span>
+            <span>Từ chối</span>
           </button>
         </div>
       </div>

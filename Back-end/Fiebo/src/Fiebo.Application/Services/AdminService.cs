@@ -71,7 +71,7 @@ namespace Fiebo.Application.Services
                     EndDate = subscription.EndDate,
                     SubscriptionStatus = subscription.Status.ToString() ?? "",
                 } : null,
-                Venues = [.. venues.Select(v => new VenueInfoDto
+                Venues = [.. venues.Where(v => v.Status != VenueStatus.Draft).Select(v => new VenueInfoDto
                 {
                     Id = v.Id,
                     VenueName = v.Name,
@@ -111,6 +111,7 @@ namespace Fiebo.Application.Services
                 OpenTime = venue.OpenTime,
                 CloseTime = venue.CloseTime,
                 VenueStatus = venue.Status.ToString(),
+                ThumbnailUrl = venue.ThumbnailUrl ?? string.Empty,
                 OwnerName = ownerProfile.FullName ?? string.Empty,
                 OwnerEmail = ownerProfile.Email ?? string.Empty,
                 OwnerPhone = ownerProfile.PhoneNumber ?? string.Empty,

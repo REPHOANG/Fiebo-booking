@@ -15,6 +15,7 @@ namespace Fiebo.Application.DTOs.Admin
         public string Description { get; set; } = string.Empty;
         public TimeOnly OpenTime { get; set; }
         public TimeOnly CloseTime { get; set; }
+        public string ThumbnailUrl { get; set; } = string.Empty;
         public string VenueStatus { get; set; } = string.Empty;
 
         // Owner Info
