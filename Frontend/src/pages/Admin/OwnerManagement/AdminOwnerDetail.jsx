@@ -220,10 +220,19 @@ const AdminOwnerDetail = () => {
                     <div
                       key={venueId}
                       className="owner-detail-venue-card"
-                      onClick={() => navigate(`/admin/owners/${id}/venues/${venueId}`)}
+                      onClick={() =>
+                        navigate(`/admin/owners/${id}/venues/${venueId}`, {
+                          state: { venue: v },
+                        })
+                      }
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => e.key === "Enter" && navigate(`/admin/owners/${id}/venues/${venueId}`)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" &&
+                        navigate(`/admin/owners/${id}/venues/${venueId}`, {
+                          state: { venue: v },
+                        })
+                      }
                     >
                       <div className="owner-detail-venue-card__top">
                         <span className="owner-detail-venue-icon">
