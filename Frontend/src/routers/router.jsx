@@ -48,7 +48,7 @@ import CreateEvent from "../pages/Owner/Event/CreateEvent";
 import OwnerEventDetail from "../pages/Owner/Event/OwnerEventDetail";
 import ServiceManagement from "../pages/Owner/VenueService/ServiceManagement";
 import PayoutList from "../pages/Owner/Payout/PayoutList";
-import AdminHome from "../pages/Admin/Dashboard/AdminHome";
+import AdminHome from "../pages/Admin/Dashboard/AdminDashboard";
 import AdminAuditLog from "../pages/Admin/AuditLog/AdminAuditLog";
 import AdminReports from "../pages/Admin/Reports/AdminReports";
 import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";

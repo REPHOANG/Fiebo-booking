@@ -126,5 +126,18 @@ export const rejectVenue = async ({ id, reason }) => {
   const res = await api.post(`/api/Admin/venues/${id}/reject`, {
     rejectionReason: reason,
   });
-  return res.data?.data ?? res.data;
+  return res.data;
+};
+
+export const getAdminDashboard = async (params = {}) => {
+  const { fromDate, toDate } = params;
+
+  const response = await api.get('/api/admin/dashboard', {
+    params: {
+      From: fromDate || undefined,
+      To: toDate || undefined,
+    },
+  });
+
+  return response.data.data ?? response.data;
 };

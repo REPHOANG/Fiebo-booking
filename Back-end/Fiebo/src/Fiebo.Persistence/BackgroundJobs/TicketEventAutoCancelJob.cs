@@ -27,6 +27,7 @@ namespace Fiebo.Persistence.BackgroundJobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("TicketEventAutoCancelJob started");
             while (!stoppingToken.IsCancellationRequested)
             {
                 try

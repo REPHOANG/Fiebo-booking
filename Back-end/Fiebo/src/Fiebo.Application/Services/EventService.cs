@@ -730,7 +730,7 @@ namespace Fiebo.Application.Services
                     .ToDateTime(earliestSlot.Slot.StartTime);
 
                 var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
-                if (hoursBeforeEvent > 6)
+                if (hoursBeforeEvent <= 6)
                 {
                     throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
                 }
