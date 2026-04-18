@@ -11,6 +11,7 @@ namespace Fiebo.Domain.Entities
         public required string Name { get; set; }
         public int DurationDays { get; set; }
         public decimal Price { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
         // Navigation
         public ICollection<OwnerPlan> OwnerPlans { get; set; } = [];
