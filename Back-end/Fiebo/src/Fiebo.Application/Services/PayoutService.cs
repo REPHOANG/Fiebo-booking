@@ -215,8 +215,56 @@ namespace Fiebo.Application.Services
                 AccountHolderName = bankAccount?.AccountHolderName,
                 Description = transaction.Description,
                 RequestedAt = transaction.CreatedAt,
-                Status = transaction.Status.ToString()
+                Status = transaction.Status.ToString(),
+                ProcessedBy = transaction.ProcessedBy,
+                ProcessedAt = transaction.ProcessedAt,
+                RejectionReason = transaction.RejectionReason
             };
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            if (transaction.Status != TransactionStatus.Pending)
+                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+
+            var success = await _unitOfWork.WalletTransactions.CompleteWithdrawRequestAsync(transactionId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("CompleteWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
+        }
+
+        public async Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason)
+        {
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+                throw new BadRequestException("Lý do từ chối không được để trống.");
+
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            if (transaction.Status != TransactionStatus.Pending)
+                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+
+            var success = await _unitOfWork.WalletTransactions.RejectWithdrawRequestAsync(transactionId, adminId, rejectionReason);
+
+            if (!success)
+            {
+                _logger.LogError("RejectWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
         }
     }
 }

@@ -32,5 +32,14 @@ namespace Fiebo.Application.DTOs.Wallet
         public string? Description { get; set; }
         public DateTime RequestedAt { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? ProcessedBy { get; set; }
+        public DateTime? ProcessedAt { get; set; }
+        public string? RejectionReason { get; set; }
+    }
+
+    public class RejectWithdrawRequestDto
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Lý do từ chối là bắt buộc.")]
+        public string RejectionReason { get; set; } = string.Empty;
     }
 }

@@ -79,5 +79,48 @@ namespace Fiebo.Persistence.Repositories
                     t.Id == transactionId &&
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
         }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _context.WalletTransactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+                return false;
+
+            transaction.Status = Domain.Enums.TransactionStatus.Success;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason)
+        {
+            // Load transaction with wallet so we can refund (BR-138)
+            var transaction = await _context.WalletTransactions
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+                return false;
+
+            // Mark as rejected with audit info
+            transaction.Status = Domain.Enums.TransactionStatus.Rejected;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.RejectionReason = rejectionReason;
+
+            // Refund the deducted amount back to the customer's wallet
+            transaction.Wallet.Balance += transaction.Amount;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

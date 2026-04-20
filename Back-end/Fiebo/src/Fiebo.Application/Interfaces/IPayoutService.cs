@@ -19,5 +19,7 @@ namespace Fiebo.Application.Interfaces
         Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId);
         Task<PagedResult<AdminWithdrawRequestListItem>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status);
         Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId);
+        Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId);
+        Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason);
     }
 }

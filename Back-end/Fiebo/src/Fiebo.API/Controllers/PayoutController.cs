@@ -141,5 +141,43 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// BR-136 / BR-137: Mark a customer withdrawal request as Completed after bank transfer.
+        /// Finance Admin only. MSG120 on success, MSG121 on failure.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpPatch("/api/admin/withdraw-requests/{id}/complete")]
+        public async Task<IActionResult> CompleteWithdrawRequest([FromRoute] int id)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _payoutService.CompleteWithdrawRequestAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái thành công.", // MSG120
+            });
+        }
+
+        /// <summary>
+        /// AF 7.2 / BR-137: Reject a customer withdrawal request with a required reason.
+        /// Finance Admin only. Refunds the amount back to the customer wallet automatically.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpPatch("/api/admin/withdraw-requests/{id}/reject")]
+        public async Task<IActionResult> RejectWithdrawRequest([FromRoute] int id, [FromBody] RejectWithdrawRequestDto request)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _payoutService.RejectWithdrawRequestAsync(id, adminId, request.RejectionReason);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái thành công.", // MSG120
+            });
+        }
     }
 }

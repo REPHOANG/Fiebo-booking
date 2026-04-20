@@ -67,5 +67,15 @@ namespace Fiebo.Infrastructure.Services
         {
             throw new NotImplementedException();
         }
+
+        public Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
