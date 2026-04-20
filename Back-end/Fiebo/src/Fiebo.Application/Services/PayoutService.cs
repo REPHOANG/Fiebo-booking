@@ -4,6 +4,7 @@ using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +16,11 @@ namespace Fiebo.Application.Services
     public class PayoutService : IPayoutService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public PayoutService(IUnitOfWork unitOfWork)
+        private readonly ILogger<PayoutService> _logger;
+        public PayoutService(IUnitOfWork unitOfWork, ILogger<PayoutService> logger)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
         }
         public async Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
@@ -112,6 +115,48 @@ namespace Fiebo.Application.Services
         {
             throw new NotImplementedException();
         }
+
+        public async Task<PagedResult<AdminPayoutListResponse>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month)
+        {
+            var result = await _unitOfWork.Payouts.GetAdminPayoutsAsync(page, pageSize, status, year, month);
+            return new PagedResult<AdminPayoutListResponse>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = result.Items.Select(p => new AdminPayoutListResponse
+                {
+                    Id = p.Id,
+                    OwnerId = p.OwnerId,
+                    FromDate = p.Batch.FromDate,
+                    ToDate = p.Batch.ToDate,
+                    Amount = p.Amount,
+                    Status = p.Status.ToString(),
+                    ProcessedAt = p.ProcessedAt,
+                    ProcessedBy = p.ProcessedBy
+                }).ToList()
+            };
+        }
+
+        public async Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId)
+        {
+            var payout = await _unitOfWork.Payouts.GetByIdAsync(payoutId);
+
+            if (payout == null)
+                throw new NotFoundException("Không tìm thấy bản ghi thanh toán.");
+
+            if (payout.Status == PayoutStatus.Completed)
+                throw new BadRequestException("Giao dịch này đã được hoàn thành trước đó.");
+
+            var success = await _unitOfWork.Payouts.MarkPayoutAsCompletedAsync(payoutId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("MarkPayoutAsCompleted failed for payoutId={PayoutId} by adminId={AdminId}", payoutId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
+        }
     }
 }
-

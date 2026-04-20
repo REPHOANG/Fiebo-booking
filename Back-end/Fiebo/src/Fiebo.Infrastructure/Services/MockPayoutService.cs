@@ -46,5 +46,15 @@ namespace Fiebo.Infrastructure.Services
         {
             throw new NotImplementedException();
         }
+
+        public Task<PagedResult<AdminPayoutListResponse>> GetAdminPayoutsAsync(int page, int pageSize, Fiebo.Domain.Enums.PayoutStatus? status, int? year, int? month)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
