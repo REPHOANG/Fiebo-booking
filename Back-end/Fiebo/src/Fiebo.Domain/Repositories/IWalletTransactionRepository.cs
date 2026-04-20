@@ -1,4 +1,5 @@
 using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
@@ -12,5 +13,7 @@ namespace Fiebo.Domain.Repositories
     {
         Task<PagedResult<WalletTransaction>> GetTransactionsByWalletIdAsync(int walletId, int pageNumber, int pageSize, DateTime from, DateTime to);
         Task<bool> HasPendingWithdrawalAsync(int walletId);
+        Task<PagedResult<WalletTransaction>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status);
+        Task<WalletTransaction?> GetWithdrawRequestDetailAsync(int transactionId);
     }
 }

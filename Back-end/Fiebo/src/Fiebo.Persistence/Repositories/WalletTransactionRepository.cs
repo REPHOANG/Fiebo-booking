@@ -43,5 +43,41 @@ namespace Fiebo.Persistence.Repositories
                     && t.TransactionType == Domain.Enums.TransactionType.Withdraw
                     && t.Status == Domain.Enums.TransactionStatus.Pending);
         }
+
+        public async Task<PagedResult<WalletTransaction>> GetAdminWithdrawRequestsAsync(int page, int pageSize, Domain.Enums.TransactionStatus? status)
+        {
+            var query = _context.WalletTransactions
+                .AsNoTracking()
+                .Include(t => t.Wallet)
+                .Where(t => t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (status.HasValue)
+                query = query.Where(t => t.Status == status.Value);
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<WalletTransaction>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems
+            };
+        }
+
+        public async Task<WalletTransaction?> GetWithdrawRequestDetailAsync(int transactionId)
+        {
+            return await _context.WalletTransactions
+                .AsNoTracking()
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+        }
     }
 }

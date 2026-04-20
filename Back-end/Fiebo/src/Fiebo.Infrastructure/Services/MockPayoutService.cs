@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Payout;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Shared;
 using Microsoft.Extensions.Logging;
@@ -53,6 +54,16 @@ namespace Fiebo.Infrastructure.Services
         }
 
         public Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<PagedResult<AdminWithdrawRequestListItem>> GetAdminWithdrawRequestsAsync(int page, int pageSize, Fiebo.Domain.Enums.TransactionStatus? status)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId)
         {
             throw new NotImplementedException();
         }

@@ -1,5 +1,6 @@
 using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.Payout;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
@@ -97,6 +98,47 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Cập nhật trạng thái thành công.", // MSG120
+            });
+        }
+
+        /// <summary>
+        /// BR-130 / BR-131: View all customer withdrawal requests (Finance Admin only).
+        /// Filterable by status. Returns MSG122 on retrieval error (handled by global exception middleware).
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpGet("/api/admin/withdraw-requests")]
+        public async Task<IActionResult> GetWithdrawRequests(
+            [FromQuery] string? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            TransactionStatus? txStatus = null;
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TransactionStatus>(status, ignoreCase: true, out var parsed))
+                txStatus = parsed;
+
+            var result = await _payoutService.GetAdminWithdrawRequestsAsync(page, pageSize, txStatus);
+            return Ok(new ApiResponse<PagedResult<AdminWithdrawRequestListItem>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy danh sách yêu cầu rút tiền thành công.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Get detail of a specific customer withdrawal request (Finance Admin only).
+        /// Exposes customer name, bank account, amount, and wallet balance.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpGet("/api/admin/withdraw-requests/{id}")]
+        public async Task<IActionResult> GetWithdrawRequestDetail([FromRoute] int id)
+        {
+            var result = await _payoutService.GetAdminWithdrawRequestDetailAsync(id);
+            return Ok(new ApiResponse<AdminWithdrawRequestDetail>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy chi tiết yêu cầu rút tiền thành công.",
+                Data = result
             });
         }
     }

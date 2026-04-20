@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Payout;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Shared;
 using System;
@@ -16,5 +17,7 @@ namespace Fiebo.Application.Interfaces
         Task<DetailedPayoutResponse> GetPayoutDetailAsync(int payoutId, string ownerId);
         Task<PagedResult<AdminPayoutListResponse>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month);
         Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId);
+        Task<PagedResult<AdminWithdrawRequestListItem>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status);
+        Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId);
     }
 }

@@ -1,4 +1,5 @@
 using Fiebo.Application.DTOs.Payout;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
@@ -17,10 +18,12 @@ namespace Fiebo.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PayoutService> _logger;
-        public PayoutService(IUnitOfWork unitOfWork, ILogger<PayoutService> logger)
+        private readonly IIdentityService _identityService;
+        public PayoutService(IUnitOfWork unitOfWork, ILogger<PayoutService> logger, IIdentityService identityService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _identityService = identityService;
         }
         public async Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
@@ -157,6 +160,63 @@ namespace Fiebo.Application.Services
             }
 
             return true;
+        }
+
+        public async Task<PagedResult<AdminWithdrawRequestListItem>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status)
+        {
+            var result = await _unitOfWork.WalletTransactions.GetAdminWithdrawRequestsAsync(page, pageSize, status);
+
+            // Batch-fetch customer names from identity service
+            var userIds = result.Items.Select(t => t.Wallet.UserId).Distinct().ToList();
+            var nameMap = await _identityService.GetUserFullNameAsync(userIds);
+
+            return new PagedResult<AdminWithdrawRequestListItem>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = result.Items.Select(t => new AdminWithdrawRequestListItem
+                {
+                    TransactionId = t.Id,
+                    CustomerId = t.Wallet.UserId,
+                    CustomerName = nameMap.TryGetValue(t.Wallet.UserId, out var name) ? name : "N/A",
+                    Amount = t.Amount,
+                    RequestedAt = t.CreatedAt,
+                    Status = t.Status.ToString()
+                }).ToList()
+            };
+        }
+
+        public async Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId)
+        {
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            var userId = transaction.Wallet.UserId;
+
+            // Fetch customer full name
+            var nameMap = await _identityService.GetUserFullNameAsync([userId]);
+            var customerName = nameMap.TryGetValue(userId, out var name) ? name : "N/A";
+
+            // Fetch most recent bank account linked to this user (BR-130)
+            var bankAccount = await _unitOfWork.UserBankAccounts.GetSingleAsync(b => b.UserId == userId);
+
+            return new AdminWithdrawRequestDetail
+            {
+                TransactionId = transaction.Id,
+                CustomerId = userId,
+                CustomerName = customerName,
+                Amount = transaction.Amount,
+                WalletBalance = transaction.Wallet.Balance,  // BR-131
+                BankName = bankAccount?.BankName,
+                AccountNumber = bankAccount?.AccountNumber,
+                AccountHolderName = bankAccount?.AccountHolderName,
+                Description = transaction.Description,
+                RequestedAt = transaction.CreatedAt,
+                Status = transaction.Status.ToString()
+            };
         }
     }
 }
