@@ -27,5 +27,10 @@ namespace Fiebo.Domain.Entities
         public string? Description { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // Audit fields for withdrawal processing (BR-136 / BR-137)
+        public string? ProcessedBy { get; set; }
+        public DateTime? ProcessedAt { get; set; }
+        public string? RejectionReason { get; set; }
     }
 }

@@ -43,5 +43,84 @@ namespace Fiebo.Persistence.Repositories
                     && t.TransactionType == Domain.Enums.TransactionType.Withdraw
                     && t.Status == Domain.Enums.TransactionStatus.Pending);
         }
+
+        public async Task<PagedResult<WalletTransaction>> GetAdminWithdrawRequestsAsync(int page, int pageSize, Domain.Enums.TransactionStatus? status)
+        {
+            var query = _context.WalletTransactions
+                .AsNoTracking()
+                .Include(t => t.Wallet)
+                .Where(t => t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (status.HasValue)
+                query = query.Where(t => t.Status == status.Value);
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<WalletTransaction>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems
+            };
+        }
+
+        public async Task<WalletTransaction?> GetWithdrawRequestDetailAsync(int transactionId)
+        {
+            return await _context.WalletTransactions
+                .AsNoTracking()
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _context.WalletTransactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+                return false;
+
+            transaction.Status = Domain.Enums.TransactionStatus.Success;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason)
+        {
+            // Load transaction with wallet so we can refund (BR-138)
+            var transaction = await _context.WalletTransactions
+                .Include(t => t.Wallet)
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+                return false;
+
+            // Mark as rejected with audit info
+            transaction.Status = Domain.Enums.TransactionStatus.Rejected;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.RejectionReason = rejectionReason;
+
+            // Refund the deducted amount back to the customer's wallet
+            transaction.Wallet.Balance += transaction.Amount;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
