@@ -50,6 +50,12 @@ export const getEventById = async (eventId) => {
   return unwrap(response);
 };
 
+/** GET /api/Event/venue/{venueId} - Danh sách sự kiện theo cơ sở */
+export const getEventsByVenue = async (venueId) => {
+  const response = await api.get(`/api/Event/venue/${venueId}`);
+  return unwrap(response);
+};
+
 export const getEventTicketById = async (ticketId) => {
   const response = await api.get(`/api/Event/ticket/${ticketId}`);
   return unwrap(response);
@@ -68,6 +74,7 @@ export const cancelEventTicket = async (ticketParticipantId, payload = {}) => {
   );
   return unwrap(response);
 };
+
 
 /**
  * Lịch sử vé / tham gia sự kiện của khách (GET /api/Event/history).

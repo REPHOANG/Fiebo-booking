@@ -29,13 +29,14 @@ const createEventFormSchema = yup.object({
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối thiểu phải lớn hơn 0")
+    .max(999, "Số người tối thiểu không được vượt quá 999")
     .required("Nhập số người tối thiểu"),
   maxPlayer: yup
     .number()
-    .max(50, "Số người tối đa không được vượt quá 50")
     .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối đa không hợp lệ")
+    .max(999, "Số người tối đa không được vượt quá 999")
     .required("Nhập số người tối đa")
     .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
       const min = this.parent.minPlayer;
@@ -611,9 +612,12 @@ const CreateEvent = () => {
                 <input
                   type="number"
                   min={1}
-                  max={50}
+                  max={999}
                   className={errors.minPlayer ? "ce-input-error" : ""}
                   {...register("minPlayer")}
+                  onInput={(e) => {
+                    if (e.target.value.length > 3) e.target.value = e.target.value.slice(0, 3);
+                  }}
                 />
                 {errors.minPlayer && <span className="ce-field-error">{errors.minPlayer.message}</span>}
               </label>
@@ -622,9 +626,12 @@ const CreateEvent = () => {
                 <input
                   type="number"
                   min={Number(watch("minPlayer")) || 1}
-                  max={50}
+                  max={999}
                   className={errors.maxPlayer ? "ce-input-error" : ""}
                   {...register("maxPlayer")}
+                  onInput={(e) => {
+                    if (e.target.value.length > 3) e.target.value = e.target.value.slice(0, 3);
+                  }}
                 />
                 {errors.maxPlayer && <span className="ce-field-error">{errors.maxPlayer.message}</span>}
               </label>

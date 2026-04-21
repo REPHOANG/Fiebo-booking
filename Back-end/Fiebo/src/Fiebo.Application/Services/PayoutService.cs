@@ -1,9 +1,11 @@
 using Fiebo.Application.DTOs.Payout;
+using Fiebo.Application.DTOs.Wallet;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +17,13 @@ namespace Fiebo.Application.Services
     public class PayoutService : IPayoutService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public PayoutService(IUnitOfWork unitOfWork)
+        private readonly ILogger<PayoutService> _logger;
+        private readonly IIdentityService _identityService;
+        public PayoutService(IUnitOfWork unitOfWork, ILogger<PayoutService> logger, IIdentityService identityService)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
+            _identityService = identityService;
         }
         public async Task<OwnerPayoutListResponse> GetOwnerPayoutsAsync(string? ownerId, int page, int pageSize, int? year, int? month)
         {
@@ -112,6 +118,153 @@ namespace Fiebo.Application.Services
         {
             throw new NotImplementedException();
         }
+
+        public async Task<PagedResult<AdminPayoutListResponse>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month)
+        {
+            var result = await _unitOfWork.Payouts.GetAdminPayoutsAsync(page, pageSize, status, year, month);
+            return new PagedResult<AdminPayoutListResponse>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = result.Items.Select(p => new AdminPayoutListResponse
+                {
+                    Id = p.Id,
+                    OwnerId = p.OwnerId,
+                    FromDate = p.Batch.FromDate,
+                    ToDate = p.Batch.ToDate,
+                    Amount = p.Amount,
+                    Status = p.Status.ToString(),
+                    ProcessedAt = p.ProcessedAt,
+                    ProcessedBy = p.ProcessedBy
+                }).ToList()
+            };
+        }
+
+        public async Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string adminId)
+        {
+            var payout = await _unitOfWork.Payouts.GetByIdAsync(payoutId);
+
+            if (payout == null)
+                throw new NotFoundException("Không tìm thấy bản ghi thanh toán.");
+
+            if (payout.Status == PayoutStatus.Completed)
+                throw new BadRequestException("Giao dịch này đã được hoàn thành trước đó.");
+
+            var success = await _unitOfWork.Payouts.MarkPayoutAsCompletedAsync(payoutId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("MarkPayoutAsCompleted failed for payoutId={PayoutId} by adminId={AdminId}", payoutId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
+        }
+
+        public async Task<PagedResult<AdminWithdrawRequestListItem>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status)
+        {
+            var result = await _unitOfWork.WalletTransactions.GetAdminWithdrawRequestsAsync(page, pageSize, status);
+
+            // Batch-fetch customer names from identity service
+            var userIds = result.Items.Select(t => t.Wallet.UserId).Distinct().ToList();
+            var nameMap = await _identityService.GetUserFullNameAsync(userIds);
+
+            return new PagedResult<AdminWithdrawRequestListItem>
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalItems = result.TotalItems,
+                Items = result.Items.Select(t => new AdminWithdrawRequestListItem
+                {
+                    TransactionId = t.Id,
+                    CustomerId = t.Wallet.UserId,
+                    CustomerName = nameMap.TryGetValue(t.Wallet.UserId, out var name) ? name : "N/A",
+                    Amount = t.Amount,
+                    RequestedAt = t.CreatedAt,
+                    Status = t.Status.ToString()
+                }).ToList()
+            };
+        }
+
+        public async Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId)
+        {
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            var userId = transaction.Wallet.UserId;
+
+            // Fetch customer full name
+            var nameMap = await _identityService.GetUserFullNameAsync([userId]);
+            var customerName = nameMap.TryGetValue(userId, out var name) ? name : "N/A";
+
+            // Fetch most recent bank account linked to this user (BR-130)
+            var bankAccount = await _unitOfWork.UserBankAccounts.GetSingleAsync(b => b.UserId == userId);
+
+            return new AdminWithdrawRequestDetail
+            {
+                TransactionId = transaction.Id,
+                CustomerId = userId,
+                CustomerName = customerName,
+                Amount = transaction.Amount,
+                WalletBalance = transaction.Wallet.Balance,  // BR-131
+                BankName = bankAccount?.BankName,
+                AccountNumber = bankAccount?.AccountNumber,
+                AccountHolderName = bankAccount?.AccountHolderName,
+                Description = transaction.Description,
+                RequestedAt = transaction.CreatedAt,
+                Status = transaction.Status.ToString(),
+                ProcessedBy = transaction.ProcessedBy,
+                ProcessedAt = transaction.ProcessedAt,
+                RejectionReason = transaction.RejectionReason
+            };
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            if (transaction.Status != TransactionStatus.Pending)
+                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+
+            var success = await _unitOfWork.WalletTransactions.CompleteWithdrawRequestAsync(transactionId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("CompleteWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
+        }
+
+        public async Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason)
+        {
+            if (string.IsNullOrWhiteSpace(rejectionReason))
+                throw new BadRequestException("Lý do từ chối không được để trống.");
+
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            if (transaction.Status != TransactionStatus.Pending)
+                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+
+            var success = await _unitOfWork.WalletTransactions.RejectWithdrawRequestAsync(transactionId, adminId, rejectionReason);
+
+            if (!success)
+            {
+                _logger.LogError("RejectWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+            }
+
+            return true;
+        }
     }
 }
-

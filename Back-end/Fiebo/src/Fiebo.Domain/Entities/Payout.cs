@@ -14,6 +14,8 @@ namespace Fiebo.Domain.Entities
         public decimal Amount { get; set; }
         public PayoutStatus Status { get; set; }
         public string? FailureReason { get; set; }
+        public string? ProcessedBy { get; set; }
+        public DateTime? ProcessedAt { get; set; }
 
         // Navigation
         public PayoutBatch Batch { get; set; } = null!;

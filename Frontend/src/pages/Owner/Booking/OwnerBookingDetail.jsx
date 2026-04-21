@@ -161,7 +161,6 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
     <div className="owner-home obd-page">
       <div className="owner-home-header">
         <h1>Đơn đặt sân #{d.bookingId ?? id}</h1>
-        <Link to={bookingsListPath} className="oh-create-btn">Danh sách đơn</Link>
       </div>
 
       <div className="owner-home-content">

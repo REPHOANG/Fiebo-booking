@@ -289,6 +289,12 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ProcessedBy")
+                        .HasColumnType("longtext");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -1073,8 +1079,17 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("Direction")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ProcessedBy")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("ReferenceId")
                         .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("longtext");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()

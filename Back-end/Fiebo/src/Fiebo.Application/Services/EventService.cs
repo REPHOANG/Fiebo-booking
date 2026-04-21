@@ -610,7 +610,7 @@ namespace Fiebo.Application.Services
             if (ticketEvent.Status != TicketEventStatus.Pending)
                 throw new BadRequestException("Chỉ sự kiện đang chờ mới có thể hủy.");
 
-           
+            
             // 5. Load all paid (Joined) participants
             var joinedParticipants = await _unitOfWork.TicketParticipants.GetJoinedParticipantsByEventIdAsync(eventId);
             int refundedCount = joinedParticipants.Count;

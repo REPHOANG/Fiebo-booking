@@ -12,13 +12,15 @@ import api from './api';
  * @returns {Promise<Array>} List of nearby venues
  */
 export const getNearbyFields = async ({
-  userLat = 21.027381,
-  userLng = 105.833529,
+  userLat = null,
+  userLng = null,
   limit = 5,
   radiusKm,
   sportTypeId,
 } = {}) => {
-  const params = { userLat, userLng, limit };
+  const params = { limit };
+  if (userLat != null) params.userLat = userLat;
+  if (userLng != null) params.userLng = userLng;
   if (radiusKm != null) params.radiusKm = radiusKm;
   if (sportTypeId != null) params.sportTypeId = sportTypeId;
   const response = await api.get('/api/Venue/nearby', { params });
@@ -34,13 +36,14 @@ export const getNearbyFields = async ({
  * @returns {Promise<Array>} List of popular venues
  */
 export const getTopBookingFields = async ({
-  userLat = 21.027381,
-  userLng = 105.833529,
+  userLat = null,
+  userLng = null,
   limit = 5,
 } = {}) => {
-  const response = await api.get('/api/Venue/top-booking', {
-    params: { userLat, userLng, limit },
-  });
+  const params = { limit };
+  if (userLat != null) params.userLat = userLat;
+  if (userLng != null) params.userLng = userLng;
+  const response = await api.get('/api/Venue/top-booking', { params });
   return response.data?.data ?? response.data;
 };
 

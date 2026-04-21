@@ -1,4 +1,5 @@
 using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
@@ -13,5 +14,7 @@ namespace Fiebo.Domain.Repositories
         Task<PagedResult<Payout>> GetOwnerPayouts(string? ownerId, int page, int pageSize, int? year, int? month);
         Task<decimal> GetPendingPayoutAmountAsync(string ownerId);
         Task<Payout?> GetPayoutWithDetailsAsync(int payoutId);
+        Task<PagedResult<Payout>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month);
+        Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string processedBy);
     }
 }

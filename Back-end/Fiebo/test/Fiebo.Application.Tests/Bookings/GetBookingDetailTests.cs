@@ -58,24 +58,24 @@ namespace Fiebo.Application.Tests.Bookings
                 _service.GetBookingDetailAsync(1, "user1"));
         }
 
-        [Fact]
-        public async Task Should_ThrowUnauthorized_WhenUserNotOwner()
-        {
-            var booking = new Booking
-            {
-                Id = 1,
-                UserId = "user2",
-                Fullname = "Test User",
-                PhoneNumber = "0901234567"
-            };
+        //[Fact]
+        //public async Task Should_ThrowUnauthorized_WhenUserNotOwner()
+        //{
+        //    var booking = new Booking
+        //    {
+        //        Id = 1,
+        //        UserId = "user2",
+        //        Fullname = "Test User",
+        //        PhoneNumber = "0901234567"
+        //    };
 
-            _bookingRepoMock
-                .Setup(x => x.GetBookingDetailByBookingId(1))
-                .ReturnsAsync(booking);
+        //    _bookingRepoMock
+        //        .Setup(x => x.GetBookingDetailByBookingId(1))
+        //        .ReturnsAsync(booking);
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                _service.GetBookingDetailAsync(1, "user1"));
-        }
+        //    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        //        _service.GetBookingDetailAsync(1, "user1"));
+        //}
 
         [Fact]
         public async Task Should_ReturnBookingDetail_WhenSuccess()

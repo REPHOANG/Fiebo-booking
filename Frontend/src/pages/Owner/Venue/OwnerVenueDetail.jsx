@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Loader2,
@@ -426,7 +427,7 @@ const OwnerVenueDetail = () => {
               if (!canCreateField) e.preventDefault();
             }}
           >
-            <Calendar size={16} /> Time slot
+            <Calendar size={16} /> Quản lý khung giờ
           </Link>
           <Link
             className={`ovd-btn ${!canEditVenue ? "is-disabled" : ""}`}
@@ -445,10 +446,17 @@ const OwnerVenueDetail = () => {
             className="ovd-btn ovd-btn--danger"
             disabled={deactivating || !canDeactivateVenue}
             onClick={async () => {
-              const ok = window.confirm(
-                `Vô hiệu hóa cơ sở "${venue?.name ?? `#${id}`}"? Khách sẽ không đặt sân tại đây nữa.`
-              );
-              if (!ok) return;
+              const { isConfirmed } = await Swal.fire({
+                title: "Vô hiệu hóa cơ sở?",
+                text: `Cơ sở "${venue?.name ?? `#${id}`}" sẽ bị vô hiệu hóa. Khách sẽ không đặt sân tại đây nữa.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#dc2626",
+                cancelButtonColor: "#6b7280",
+                confirmButtonText: "Vô hiệu hóa",
+                cancelButtonText: "Hủy",
+              });
+              if (!isConfirmed) return;
               setDeactivating(true);
               try {
                 await deactivateOwnerVenue(id);
@@ -639,17 +647,7 @@ const OwnerVenueDetail = () => {
                 </Link>
               </div>
             </div>
-            {canCreateField ? (
-              <p className="ovd-muted">
-                Bấm “Thêm sân” để tạo sân mới; hoặc dùng “Time slot” trên thanh trên để quản lý khung giờ theo
-                loại sân.
-              </p>
-            ) : (
-              <p className="ovd-muted">
-                Cơ sở đang ở trạng thái <strong>{statusLower || "không xác định"}</strong> nên không thể
-                tạo sân.
-              </p>
-            )}
+           
             <div className="ovd-filters">
               <input
                 className="ovd-input"
@@ -740,8 +738,17 @@ const OwnerVenueDetail = () => {
                             disabled={!canToggleFieldStatus || isFieldStatusLoading}
                             onClick={async () => {
                               if (!canToggleFieldStatus || fieldId == null) return;
-                              const ok = window.confirm(`${toggleFieldLabel} sân "${fieldName}"?`);
-                              if (!ok) return;
+                              const { isConfirmed } = await Swal.fire({
+                                title: `${toggleFieldLabel} sân?`,
+                                text: `Bạn muốn ${toggleFieldLabel.toLowerCase()} sân "${fieldName}"?`,
+                                icon: statusLower === "inactive" ? "question" : "warning",
+                                showCancelButton: true,
+                                confirmButtonColor: statusLower === "inactive" ? "#16a34a" : "#dc2626",
+                                cancelButtonColor: "#6b7280",
+                                confirmButtonText: toggleFieldLabel,
+                                cancelButtonText: "Hủy",
+                              });
+                              if (!isConfirmed) return;
                               setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: true }));
                               try {
                                 await toggleOwnerFieldStatus(id, fieldId);

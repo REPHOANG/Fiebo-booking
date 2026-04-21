@@ -13,6 +13,10 @@ namespace Fiebo.Domain.Repositories
     {
         Task<PagedResult<WalletTransaction>> GetTransactionsByWalletIdAsync(int walletId, int pageNumber, int pageSize, DateTime from, DateTime to);
         Task<bool> HasPendingWithdrawalAsync(int walletId);
+        Task<PagedResult<WalletTransaction>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status);
+        Task<WalletTransaction?> GetWithdrawRequestDetailAsync(int transactionId);
+        Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId);
+        Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason);
         Task<PagedResult<PaymentTransactionResponse>> GetPaymentTransaction(
             int page, int pageSize, DateTime? from, DateTime? to, TransactionType? type, string? name, TransactionStatus? status);
     }

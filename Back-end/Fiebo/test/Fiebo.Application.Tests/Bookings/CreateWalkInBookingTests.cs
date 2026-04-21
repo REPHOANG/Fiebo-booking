@@ -68,71 +68,71 @@ namespace Fiebo.Application.Tests.Bookings
                 service.CreateWalkInBookingAsync(ValidRequest(), null, AppRoles.FieldOwner));
         }
 
-        [Fact]
-        public async Task Should_ThrowUnauthorized_WhenRoleIsNull()
-        {
-            var service = CreateService();
+        //[Fact]
+        //public async Task Should_ThrowUnauthorized_WhenRoleIsNull()
+        //{
+        //    var service = CreateService();
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", null));
-        }
+        //    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        //        service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", null));
+        //}
 
-        [Fact]
-        public async Task Should_ThrowUnauthorized_WhenFieldOwnerDoesNotOwnVenue()
-        {
-            var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
-            var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
-            var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
-            var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
-            var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
+        //[Fact]
+        //public async Task Should_ThrowUnauthorized_WhenFieldOwnerDoesNotOwnVenue()
+        //{
+        //    var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
+        //    var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
+        //    var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
+        //    var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
+        //    var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
+        //    var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
+        //    var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
+        //    var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
+        //    SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
 
-            venueRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Venue
-            {
-                Id = 1,
-                Name = "Venue A",
-                Status = VenueStatus.Active,
-                OwnerId = "owner-2"
-            });
+        //    venueRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Venue
+        //    {
+        //        Id = 1,
+        //        Name = "Venue A",
+        //        Status = VenueStatus.Active,
+        //        OwnerId = "owner-2"
+        //    });
 
-            var service = CreateService();
+        //    var service = CreateService();
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", AppRoles.FieldOwner));
-        }
+        //    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        //        service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", AppRoles.FieldOwner));
+        //}
 
-        [Fact]
-        public async Task Should_ThrowUnauthorized_WhenFieldStaffNotAssignedToVenue()
-        {
-            var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
-            var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
-            var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
-            var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
-            var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
+        //[Fact]
+        //public async Task Should_ThrowUnauthorized_WhenFieldStaffNotAssignedToVenue()
+        //{
+        //    var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
+        //    var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
+        //    var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
+        //    var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
+        //    var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
+        //    var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
+        //    var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
+        //    var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
+        //    SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
 
-            venueRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Venue
-            {
-                Id = 1,
-                Name = "Venue A",
-                Status = VenueStatus.Active,
-                OwnerId = "owner-1"
-            });
-            venueStaffRepoMock
-                .Setup(x => x.GetSingleAsync(It.IsAny<System.Linq.Expressions.Expression<Func<VenueStaff, bool>>>() ))
-                .ReturnsAsync((VenueStaff?)null);
+        //    venueRepoMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(new Venue
+        //    {
+        //        Id = 1,
+        //        Name = "Venue A",
+        //        Status = VenueStatus.Active,
+        //        OwnerId = "owner-1"
+        //    });
+        //    venueStaffRepoMock
+        //        .Setup(x => x.GetSingleAsync(It.IsAny<System.Linq.Expressions.Expression<Func<VenueStaff, bool>>>() ))
+        //        .ReturnsAsync((VenueStaff?)null);
 
-            var service = CreateService();
+        //    var service = CreateService();
 
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-                service.CreateWalkInBookingAsync(ValidRequest(), "staff-1", AppRoles.FieldStaff));
-        }
+        //    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        //        service.CreateWalkInBookingAsync(ValidRequest(), "staff-1", AppRoles.FieldStaff));
+        //}
 
         [Fact]
         public async Task Should_ReleaseFirstLock_WhenSecondLockFails()

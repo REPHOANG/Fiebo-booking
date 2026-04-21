@@ -74,5 +74,57 @@ namespace Fiebo.Persistence.Repositories
                             .ThenInclude(bd => bd.Field)
                 .FirstOrDefaultAsync(p => p.Id == payoutId);
         }
+
+        public async Task<PagedResult<Payout>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month)
+        {
+            var query = _context.Payouts
+                .AsNoTracking()
+                .Include(p => p.Batch)
+                .AsQueryable();
+
+            if (status.HasValue)
+                query = query.Where(p => p.Status == status.Value);
+
+            if (year.HasValue)
+            {
+                query = query.Where(p => p.Batch.FromDate.Year == year.Value);
+                if (month.HasValue)
+                    query = query.Where(p => p.Batch.FromDate.Month == month.Value);
+            }
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(p => p.Batch.FromDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Payout>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems
+            };
+        }
+
+        public async Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string processedBy)
+        {
+            var payout = await _context.Payouts.FindAsync(payoutId);
+
+            if (payout == null)
+                return false;
+
+            if (payout.Status == PayoutStatus.Completed)
+                return false;
+
+            payout.Status = PayoutStatus.Completed;
+            payout.ProcessedBy = processedBy;
+            payout.ProcessedAt = DateTime.UtcNow;
+            payout.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
