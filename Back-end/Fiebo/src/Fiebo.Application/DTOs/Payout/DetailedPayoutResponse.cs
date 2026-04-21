@@ -36,7 +36,7 @@ namespace Fiebo.Application.DTOs.Payout
 
     public class PayoutBookingDetailDto
     {
-        public int BookingId { get; set; }
+        public int? BookingId { get; set; }
         public DateOnly PlayDate { get; set; }
         public string SubFieldName { get; set; } = null!;
         public decimal Amount { get; set; }

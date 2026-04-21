@@ -147,7 +147,7 @@ namespace Fiebo.Persistence.BackgroundJobs
                                 Direction = TransactionDirection.Credit,
                                 Amount = participant.TotalPrice,
                                 ReferenceId = ticketEvent.Id,
-                                Description = "Auto refund for underfilled event cancellation"
+                                Description = "Tự động hoàn tiền cho sự kiện bị hủy do không đủ người tham gia"
                             });
 
                             if (usersById.TryGetValue(participant.UserId, out var user)
