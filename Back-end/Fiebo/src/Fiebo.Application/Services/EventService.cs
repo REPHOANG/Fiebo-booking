@@ -598,7 +598,7 @@ namespace Fiebo.Application.Services
         public async Task<int> CancelDropInEventAsync(int eventId, string ownerId, string? cancelNote)
         {
             // 1. Load the event (with details for start time, and participants for refund)
-            var ticketEvent = await _unitOfWork.TicketEvents.GetDropInEventDetailAsync(eventId);
+            var ticketEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
             if (ticketEvent == null)
                 throw new NotFoundException("Sự kiện này không tồn tại.");
 
@@ -610,18 +610,7 @@ namespace Fiebo.Application.Services
             if (ticketEvent.Status != TicketEventStatus.Pending)
                 throw new BadRequestException("Chỉ sự kiện đang chờ mới có thể hủy.");
 
-            // 4. BR-144: Reject if StartTime < 6 hours from now
-            var firstDetail = ticketEvent.Details
-                .OrderBy(d => d.Slot.StartTime)
-                .FirstOrDefault();
-
-            if (firstDetail == null)
-                throw new BadRequestException("Sự kiện không có slot hợp lệ.");
-
-            var eventStartDateTime = ticketEvent.EventDate.ToDateTime(firstDetail.Slot.StartTime);
-            if ((eventStartDateTime - DateTime.Now).TotalHours < 6)
-                throw new BadRequestException("Bạn không thể tự hủy sự kiện khi thời gian bắt đầu chỉ còn dưới 6 tiếng. Vui lòng liên hệ CSKH Fiebo để được hỗ trợ.");
-
+           
             // 5. Load all paid (Joined) participants
             var joinedParticipants = await _unitOfWork.TicketParticipants.GetJoinedParticipantsByEventIdAsync(eventId);
             int refundedCount = joinedParticipants.Count;
@@ -654,9 +643,6 @@ namespace Fiebo.Application.Services
                             ReferenceId = ticketEvent.Id
                         });
 
-                        // Mark participant as Cancelled
-                        participant.Status = TicketParticipantStatus.Cancelled;
-                        _unitOfWork.TicketParticipants.Update(participant);
                     }
 
                     // 7. Cancel the event

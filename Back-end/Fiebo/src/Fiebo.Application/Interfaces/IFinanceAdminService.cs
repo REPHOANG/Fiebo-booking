@@ -1,4 +1,5 @@
 ﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,6 @@ namespace Fiebo.Application.Interfaces
     {
         Task<List<FinanceAdminListResponse>> GetFinanceAdminListAsync();
         Task<bool> CreateFinanceAdminAsync(CreateFinanceAdminRequest request);
+        Task<PagedResult<PaymentTransactionResponse>> GetPaymentTransactionAsync(int page, int pageSize, TransactionFilter filter);
     }
 }

@@ -69,6 +69,15 @@ namespace Fiebo.API.Middlewares
                 );
             }
 
+            catch(ForbiddenException ex)
+            {
+                await HandleExceptionAsync(
+                    context,
+                    HttpStatusCode.Forbidden,
+                    ex.Message
+                );
+            }
+
             catch (ArgumentException ex)
             {
                 await HandleExceptionAsync(

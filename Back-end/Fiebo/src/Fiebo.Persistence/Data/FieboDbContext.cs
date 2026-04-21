@@ -204,8 +204,10 @@ namespace Fiebo.Persistence.Data
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(e => e.BookingId)
-                        .IsUnique();
+                entity.HasIndex(e => e.BookingId);
+
+                entity.HasIndex(e => new { e.UserId, e.BookingId })
+                .IsUnique();
 
                 entity.HasMany(r => r.Images)
                       .WithOne(i => i.Review)
@@ -228,10 +230,10 @@ namespace Fiebo.Persistence.Data
                       .HasForeignKey(e => e.VenueId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.Review)
-                      .WithOne(r => r.Booking)
-                      .HasForeignKey<Review>(r => r.BookingId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(b => b.Reviews)
+                .WithOne(r => r.Booking)
+                .HasForeignKey(r => r.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
                 entity.Property(b => b.TotalPrice)
                       .HasPrecision(18, 2);
@@ -714,6 +716,18 @@ namespace Fiebo.Persistence.Data
 
                 entity.HasIndex(e => e.BookingId)
                     .IsUnique();
+                entity.HasIndex(e => e.EventId)
+                    .IsUnique();
+
+                entity.HasOne(e => e.Booking)
+                .WithOne(b => b.PayoutDetail)
+                .HasForeignKey<PayoutDetail>(e => e.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Event)
+                .WithMany()
+                .HasForeignKey(e => e.EventId)
+                .OnDelete(DeleteBehavior.Restrict);
             });
 
             // CancelBooking
