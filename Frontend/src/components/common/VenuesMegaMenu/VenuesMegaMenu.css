@@ -1,19 +1,22 @@
 /* Panel mega menu — giống Header, có thể căn trái hoặc phải */
 .venues-mega-panel {
   position: absolute;
-  top: calc(100% + 8px);
+  /* overlap slightly with the trigger to avoid a hover gap */
+  top: calc(100% - 4px);
   left: 0;
   width: 520px;
   max-width: calc(100vw - 32px);
   background: #fff;
-  padding: 20px 24px;
-  border-radius: 14px;
+  padding: 4px 12px;
+  border-radius: 10px;
   display: flex;
-  gap: 28px;
+  align-items: flex-start;
+  gap: 10px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   opacity: 0;
-  transform: translateY(8px) scale(0.98);
+  transform: translateY(4px) scale(0.99);
   pointer-events: none;
+  visibility: hidden;
   transition: opacity 0.22s ease, transform 0.22s ease;
   z-index: 1000;
 }
@@ -23,37 +26,86 @@
   right: 0;
 }
 
+.venues-mega-panel--open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  visibility: visible;
+}
+
 .venues-mega-column {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
+  align-items: flex-start;
 }
 
 .venues-mega-column h4 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
   letter-spacing: -0.01em;
 }
 
 .venues-mega-column a {
   text-decoration: none;
   color: #475569;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 2px 0;
-  transition: color 0.15s ease;
+  padding: 4px 0;
+  line-height: 1.2;
+  display: block;
+  height: auto;
+  min-height: 26px;
+  transition: color 0.12s ease;
+  background: transparent;
+  border-radius: 4px;
 }
 
 .venues-mega-column a:hover {
   color: #0f172a;
+  background: transparent;
 }
 
 .venues-mega-muted {
   font-size: 13px;
   color: #94a3b8;
   padding: 2px 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 899px) {
+  .venues-mega-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: 100%;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0,0,0,0.06);
+    z-index: 200;
+    gap: 16px;
+    padding: 16px 18px;
+  }
+
+  .venues-mega-panel--end {
+    left: 12px;
+    right: 12px;
+  }
+
+  .venues-mega-column a {
+    padding: 6px 0;
+    font-size: 15px;
+  }
+
+  .venues-mega-column h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
 }

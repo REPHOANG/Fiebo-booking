@@ -38,6 +38,7 @@ const normalizeVenueDetail = (payload) => {
     ownerAccountHolderName: data.ownerAccountHolderName ?? "",
     businessLicense: normalizeVenueDocument(data.businessLicense),
     landUseDocument: normalizeVenueDocument(data.landUseDocument),
+    thumbnailUrl: data?.thumbnailUrl ?? "",
   };
 };
 

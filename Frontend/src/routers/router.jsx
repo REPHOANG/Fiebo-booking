@@ -86,16 +86,14 @@ const OwnerVenueTimeSlotLegacyRedirect = () => {
 
 const routes = [
   { path: "/login", element: <Login /> },
-    { path: "/register", element: <Register /> },
+  { path: "/register", element: <Register /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
   {
     path: "/forgot-password",
     element: <Navigate to="/" replace state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }} />,
   },
   { path: "/rating", element: <GiveRating /> },
-  { path: "/profile", element: <ProtectedRoute element={<Profile />} /> },
   { path: "/venue/:id", element: <VenueDetail /> },
-  { path: "/map", element: <MapExplore /> },
   { path: "/event/:id", element: <EventDetail /> },
   {
     path: "/event/:id/register",
@@ -109,7 +107,7 @@ const routes = [
     path: "/event/ticket/:id/payment",
     element: <ProtectedRoute element={<EventTicketPayment />} />,
   },
-  
+
   {
     path: "wallet/top-up",
     element: <ProtectedRoute element={<WalletTopUp />} />,
@@ -123,11 +121,13 @@ const routes = [
     path: "/",
     element: <Layout />,
     children: [
+      { path: "/profile", element: <ProtectedRoute element={<Profile />} /> },
       { index: true, path: "", element: <CustomerHome /> },
       { path: "venue/:id/booking/schedule", element: <BookingSchedule /> },
       { path: "venue/:id/events", element: <EventList /> },
       { path: "venue/:id/booking", element: <BookingConfirmation /> },
       { path: "booking/:bookingId/payment", element: <BookingPayment /> },
+      { path: "/map", element: <MapExplore /> },
       {
         path: "booking/:bookingId/payment/success",
         element: <BookingPaymentSuccess />,

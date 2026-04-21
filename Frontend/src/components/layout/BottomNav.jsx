@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Home, MapPin, Compass, Star, User, Map, CalendarDays, Phone, MoreHorizontal, X } from "lucide-react";
+import { Home, MapPin, Wallet, Star, User, Map, CalendarDays, MoreHorizontal, X } from "lucide-react";
+import { useSelector } from "react-redux";
 import "./BottomNav.css";
 
 const BottomNav = () => {
@@ -10,14 +11,17 @@ const BottomNav = () => {
     { to: "/", label: "Trang chủ", icon: <Home size={20} /> , end: true},
     { to: "/venues", label: "Sân", icon: <Map size={20} /> },
     { to: "/map", label: "Bản đồ", icon: <MapPin size={20} /> },
-    { to: "/discover", label: "Khám phá", icon: <Compass size={20} /> },
+    { to: "/events", label: "Sự kiện", icon: <CalendarDays size={20} /> },
+   
   ];
+
+  const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
 
   const more = [
     { to: "/featured", label: "Nổi bật", icon: <Star size={20} /> },
-    { to: "/events", label: "Sự kiện", icon: <CalendarDays size={20} /> },
-    { to: "/contact", label: "Contact", icon: <Phone size={20} /> },
-    { to: "/profile", label: "Tài khoản", icon: <User size={20} /> },
+    { to: "/wallet", label: "Ví", icon: <Wallet size={20} /> },
+    { to: "/bookings", label: "Sân đã đặt", icon: <CalendarDays size={20} /> },
+    { to: "/profile", label: isLoggedIn ? "Tài khoản" : "Đăng nhập", icon: <User size={20} /> },
   ];
 
   return (

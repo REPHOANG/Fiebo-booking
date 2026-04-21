@@ -30,7 +30,7 @@ const VenuesMegaMenu = ({ align = "start", active = true }) => {
 
   return (
     <div
-      className={`venues-mega-panel ${align === "end" ? "venues-mega-panel--end" : ""}`}
+      className={`venues-mega-panel ${align === "end" ? "venues-mega-panel--end" : ""} ${active ? "venues-mega-panel--open" : ""}`}
       role="region"
       aria-label="Lọc sân theo môn và khu vực"
     >

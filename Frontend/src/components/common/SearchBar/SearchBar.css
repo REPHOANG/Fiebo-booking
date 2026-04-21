@@ -134,25 +134,21 @@
 }
 
 .ch-mega-wrapper:hover .venues-mega-panel,
-.ch-mega-wrapper:focus-within .venues-mega-panel {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
-}
-
+.ch-mega-wrapper:focus-within .venues-mega-panel 
+  /* Không dùng hover để mở — dùng class active thay thế */
 .ch-mega-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: #64748b;
+  gap: 6px;
+  border: 1px solid rgba(15,23,42,0.06);
+  background: #f8fafc;
+  color: #0f172a;
   font-size: 14px;
-  font-weight: 600;
-  padding: 6px 8px;
-  border-radius: 8px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.08s ease;
   white-space: nowrap;
 }
 
@@ -161,6 +157,89 @@
   color: #0f172a;
 }
 
+.ch-mega-trigger--active {
+  background: #e6ffef;
+  color: #047857;
+}
+
+.ch-mega-trigger--active .ch-mega-chevron {
+  transform: rotate(180deg);
+}
+
 .ch-mega-chevron {
   opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+/* Backdrop khi dropdown mở trên mobile */
+@media (max-width: 899px) {
+  .ch-mega-wrapper::before {
+    content: '';
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 199;
+    animation: ch-fade-in 0.18s ease;
+  }
+
+  .ch-mega-wrapper:has(.venues-mega-panel[aria-hidden="false"])::before,
+  .ch-search-backdrop {
+    display: block;
+  }
+}
+
+@keyframes ch-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ch-search-backdrop {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .ch-search-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 98;
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 899px) {
+  .ch-search-section {
+    top: 60px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+  .ch-search-inner {
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .ch-search-bar {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .ch-nav-tabs {
+    flex-shrink: 1;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 0 !important;
+  }
+
+  .ch-nav-tab {
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+
+  .ch-search-spacer {
+    height: 110px;
+  }
 }
