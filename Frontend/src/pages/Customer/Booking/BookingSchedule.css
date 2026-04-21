@@ -558,7 +558,7 @@
 
 /* Một môn = một khối lưới (trục giờ riêng) */
 .bs-sport-block {
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1.25px solid rgba(15,23,42,0.12);
 }
 .bs-sport-block:last-child {
   border-bottom: none;
@@ -644,7 +644,7 @@
   left: 0;
   z-index: 3;
   background: transparent;
-  border-bottom: 1px solid #d1d5db;
+  border-bottom: 1.25px solid rgba(15,23,42,0.12);
   min-width: 0;
 }
 
@@ -652,7 +652,7 @@
   height: 10px;
   background: linear-gradient(180deg, #7dd3c5 0%, #5ec4b6 100%);
   position: relative;
-  border-bottom: 1px solid #d1d5db;
+  border-bottom: 1.25px solid rgba(15,23,42,0.12);
   overflow: visible;
 }
 
@@ -661,9 +661,10 @@
   top: 0;
   left: 0;
   width: 2px;
-  height: calc(100% + 6px);
+  height: calc(100% + 2px);
   background: #f59e0b;
   z-index: 2;
+  transform: translateX(-50%);
 }
 
 /* Field label (left column) */
@@ -678,8 +679,8 @@
   font-weight: 600;
   color: #1e293b;
   background: #eef7f0;
-  border-right: 1px solid #d1d5db;
-  border-bottom: 1px solid #e5e7eb;
+  border-right: 1.25px solid rgba(15,23,42,0.12);
+  border-bottom: 1.25px solid rgba(15,23,42,0.12);
   white-space: nowrap;
   max-width: none;
   min-width: 0;
@@ -836,8 +837,8 @@
 /* ── Cells ───────────────────────────────────────────────────── */
 .bs-cell {
   min-height: 38px;
-  border-right: 1px solid #e5e7eb;
-  border-bottom: 1px solid #e5e7eb;
+  border-right: 1.5px solid rgba(3, 4, 7, 0.25);
+  border-bottom: 1.5px solid rgba(15,23,42,0.25);
   cursor: pointer;
   transition: background 0.12s;
   position: relative;
@@ -932,12 +933,15 @@
   align-items: center;
   justify-content: center;
   padding: 0 12px;
-  color: #f8fafc;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  background: #818385;
+  color: #181b20;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-align: center;
+  border-right: 1px solid #e2e8f0;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Sự kiện còn chỗ (RemainingTicketQuantity > 0) — vàng */
