@@ -1,17 +1,22 @@
 ﻿using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
+using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Services
 {
     public class FinanceAdminService : IFinanceAdminService
     {
         private readonly IIdentityService _identityService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public FinanceAdminService(IIdentityService identityService)
+        public FinanceAdminService(IIdentityService identityService, IUnitOfWork unitOfWork)
         {
             _identityService = identityService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<List<FinanceAdminListResponse>> GetFinanceAdminListAsync()
@@ -38,7 +43,7 @@ namespace Fiebo.Application.Services
                 null!,
                 request.Password,
                 request.FullName,
-                AppRoles.FinanceAdmin, 
+                AppRoles.FinanceAdmin,
                 null
             );
 
@@ -59,6 +64,30 @@ namespace Fiebo.Application.Services
             }
 
             return true;
+        }
+
+        public async Task<PagedResult<PaymentTransactionResponse>> GetPaymentTransactionAsync(int page, int pageSize, TransactionFilter filter)
+        {
+            TransactionType? transactionType = null;
+            TransactionStatus? transactionStatus = null;
+            if (!string.IsNullOrEmpty(filter.Type))
+            {
+                if (!Enum.TryParse<TransactionType>(filter.Type, true, out var parsedType))
+                {
+                    throw new BadRequestException("TransactionType không hợp lệ");
+                }
+                transactionType = parsedType;
+            }
+            if(!string.IsNullOrEmpty(filter.Status))
+            {
+                if (!Enum.TryParse<TransactionStatus>(filter.Status, true, out var parsedStatus))
+                {
+                    throw new BadRequestException("TransactionStatus không hợp lệ");
+                }
+                transactionStatus = parsedStatus;
+            }
+            var transactions = await _unitOfWork.WalletTransactions.GetPaymentTransaction(page, pageSize, filter.From, filter.To, transactionType, filter.Name, transactionStatus);
+            return transactions;
         }
     }
 }

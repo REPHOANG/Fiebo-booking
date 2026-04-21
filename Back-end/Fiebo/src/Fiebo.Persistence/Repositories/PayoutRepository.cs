@@ -51,7 +51,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Payouts
                 .Where(p => p.Status == PayoutStatus.Pending)
-                .Where(p => p.PayoutDetails.Any(pd => pd.Booking.Venue.OwnerId == ownerId))
+                .Where(p => p.PayoutDetails.Any(pd => pd.Payout.OwnerId == ownerId))
                 .SumAsync(p => p.Amount);
         }
  
@@ -59,6 +59,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Payouts
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(p => p.Batch)
                 .Include(p => p.PayoutDetails)
                     .ThenInclude(pd => pd.Booking)
@@ -66,6 +67,10 @@ namespace Fiebo.Persistence.Repositories
                 .Include(p => p.PayoutDetails)
                     .ThenInclude(pd => pd.Booking)
                         .ThenInclude(b => b.BookingDetails)
+                            .ThenInclude(bd => bd.Field)
+                            .Include(p => p.PayoutDetails)
+                    .ThenInclude(pd => pd.Event)
+                        .ThenInclude(b => b.Details)
                             .ThenInclude(bd => bd.Field)
                 .FirstOrDefaultAsync(p => p.Id == payoutId);
         }

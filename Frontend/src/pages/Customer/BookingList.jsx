@@ -102,6 +102,7 @@ function normHistoryItem(it) {
     ward: it?.ward ?? it?.Ward,
     venueId: it?.venueId ?? it?.VenueId,
     totalPrice: it?.totalPrice ?? it?.TotalPrice,
+    canReview: Boolean(it?.canReview)
   };
 }
 
@@ -1128,7 +1129,7 @@ const BookingList = () => {
                           {cancelMutation.isLoading ? "Đang huỷ..." : "Hủy"}
                         </button>
                       )}
-                      {(b.status || "").toLowerCase() === "completed" && (
+                      {b.canReview && (
                         <button
                           type="button"
                           className="bl-btn primary bl-btn-sm"

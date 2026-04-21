@@ -14,8 +14,8 @@ namespace Fiebo.Persistence.Repositories
 
         public async Task<TicketEvent?> GetDropInEventDetailAsync(int eventId)
         {
-            return await _context.TicketEvents       
-                .AsNoTracking()      
+            return await _context.TicketEvents     
+                .AsNoTracking()
                 .AsSplitQuery()    
                 .Include(te => te.Details)       
                 .ThenInclude(d => d.Field)           

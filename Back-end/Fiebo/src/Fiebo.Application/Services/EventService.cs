@@ -598,7 +598,7 @@ namespace Fiebo.Application.Services
         public async Task<int> CancelDropInEventAsync(int eventId, string ownerId, string? cancelNote)
         {
             // 1. Load the event (with details for start time, and participants for refund)
-           var ticketEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
+            var ticketEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
             if (ticketEvent == null)
                 throw new NotFoundException("Sự kiện này không tồn tại.");
 
@@ -643,9 +643,6 @@ namespace Fiebo.Application.Services
                             ReferenceId = ticketEvent.Id
                         });
 
-                        // Mark participant as Cancelled
-                        participant.Status = TicketParticipantStatus.Cancelled;
-                        _unitOfWork.TicketParticipants.Update(participant);
                     }
 
                     // 7. Cancel the event

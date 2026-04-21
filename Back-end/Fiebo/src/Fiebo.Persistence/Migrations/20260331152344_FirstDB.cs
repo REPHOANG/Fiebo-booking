@@ -1029,8 +1029,7 @@ namespace Fiebo.Persistence.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_BookingId",
                 table: "Reviews",
-                column: "BookingId",
-                unique: true);
+                column: "BookingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_UserId",

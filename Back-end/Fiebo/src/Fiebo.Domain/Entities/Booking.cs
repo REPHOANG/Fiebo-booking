@@ -22,9 +22,9 @@ namespace Fiebo.Domain.Entities
         public DateTime? ExpiredAt { get; set; }
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
-        public Review? Review { get; set; }
+        public ICollection<Review> Reviews { get; set; } = [];
         public ICollection<BookingServiceItem> BookingServiceItems { get; set; } = [];
-        public ICollection<PayoutDetail> PayoutDetails { get; set; } = [];
+        public PayoutDetail? PayoutDetail { get; set; }
         public CancelBooking? CancelBooking { get; set; }
     }
 }

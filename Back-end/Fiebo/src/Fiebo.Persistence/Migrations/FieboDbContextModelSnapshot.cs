@@ -358,7 +358,13 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("BookingId")
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PayoutDetailType")
                         .HasColumnType("int");
 
                     b.Property<int>("PayoutId")
@@ -367,6 +373,9 @@ namespace Fiebo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("EventId")
                         .IsUnique();
 
                     b.HasIndex("PayoutId");
@@ -472,10 +481,10 @@ namespace Fiebo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId")
-                        .IsUnique();
+                    b.HasIndex("BookingId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "BookingId")
+                        .IsUnique();
 
                     b.ToTable("Reviews");
                 });
@@ -1464,10 +1473,14 @@ namespace Fiebo.Persistence.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.PayoutDetail", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.Booking", "Booking")
-                        .WithMany("PayoutDetails")
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithOne("PayoutDetail")
+                        .HasForeignKey("Fiebo.Domain.Entities.PayoutDetail", "BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fiebo.Domain.Entities.TicketEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Fiebo.Domain.Entities.Payout", "Payout")
                         .WithMany("PayoutDetails")
@@ -1476,6 +1489,8 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+
+                    b.Navigation("Event");
 
                     b.Navigation("Payout");
                 });
@@ -1500,8 +1515,8 @@ namespace Fiebo.Persistence.Migrations
             modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>
                 {
                     b.HasOne("Fiebo.Domain.Entities.Booking", "Booking")
-                        .WithOne("Review")
-                        .HasForeignKey("Fiebo.Domain.Entities.Review", "BookingId")
+                        .WithMany("Reviews")
+                        .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1773,9 +1788,9 @@ namespace Fiebo.Persistence.Migrations
 
                     b.Navigation("CancelBooking");
 
-                    b.Navigation("PayoutDetails");
+                    b.Navigation("PayoutDetail");
 
-                    b.Navigation("Review");
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Field", b =>
