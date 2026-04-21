@@ -96,11 +96,16 @@ const AppContent = () => {
     }
   }, []);
 
-  const handleLocationConfirm = (coords) => {
+  const handleLocationConfirm = (allowed) => {
     setShowLocationPrompt(false);
     localStorage.setItem("locationPromptAsked", "true");
-    if (coords) {
-      localStorage.setItem("userLocation", JSON.stringify(coords));
+    if (allowed && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          localStorage.setItem("userLocation", JSON.stringify(position.coords));
+        },
+        () => {}
+      );
     }
   };
 
