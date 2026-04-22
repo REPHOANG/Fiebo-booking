@@ -8,7 +8,7 @@ import {
   ChevronDownIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Logohomepage from "../../assets/images/Logo Fiebo.png";
+import Logohomepage from "../../assets/images/logo-fiebo.png";
 import "./Header.css";
 import { useAuthModal } from "../../context/AuthModalContext";
 import VenuesMegaMenu from "../common/VenuesMegaMenu/VenuesMegaMenu";

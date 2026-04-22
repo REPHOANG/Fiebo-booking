@@ -13,7 +13,7 @@ import {
   Send,
 } from 'lucide-react'
 import './Footer.css'
-import FieboLogo from '../../assets/images/Logo Fiebo.png'
+import FieboLogo from '../../assets/images/logo-fiebo.png'
 
 const Footer = () => {
   return (

@@ -16,7 +16,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import fieboLogo from "../../assets/images/Logo Fiebo.png";
+import fieboLogo from "../../assets/images/logo-fiebo.png";
 import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
 import "./AdminLayout.css";
 

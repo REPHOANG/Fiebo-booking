@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 import Alert from '@mui/material/Alert';
 import Collapse from '@mui/material/Collapse';
 import { getHomePathByRole } from '../../utils/roleUtils';
-import fieboLogo from '../../assets/images/Logo với chữ.png';
+import fieboLogo from '../../assets/images/logo-with-text.png';
 import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
 import './Login.css';
 
