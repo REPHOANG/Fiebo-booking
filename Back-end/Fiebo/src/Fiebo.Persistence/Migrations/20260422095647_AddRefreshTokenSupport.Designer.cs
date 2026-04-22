@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fiebo.Persistence.Migrations
 {
     [DbContext(typeof(FieboDbContext))]
-    [Migration("20260422073911_AddRefreshTokenFields")]
-    partial class AddRefreshTokenFields
+    [Migration("20260422095647_AddRefreshTokenSupport")]
+    partial class AddRefreshTokenSupport
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
