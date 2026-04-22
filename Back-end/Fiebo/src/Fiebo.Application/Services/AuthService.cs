@@ -6,6 +6,7 @@ using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using static System.Net.WebRequestMethods;
 
@@ -150,7 +151,7 @@ namespace Fiebo.Application.Services
 
 
 
-        public async Task<string> LoginAsync(LoginRequest request)
+        public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.EmailOrPhone) || string.IsNullOrWhiteSpace(request.Password))
                 throw new BadRequestException("Nhập liệu không hợp lệ. Vui lòng kiểm tra các trường được đánh dấu.");
@@ -180,12 +181,20 @@ namespace Fiebo.Application.Services
                 throw new UnauthorizedException("Phiên đăng nhập của bạn đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.");
 
             var token = _tokenService.GenerateAccessToken(authResult.UserId, authResult.FullName, authResult.Role, authResult.Email);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            
+            // Set refresh token valid for 7 days
+            await _identityService.UpdateRefreshTokenAsync(authResult.UserId, refreshToken, DateTime.Now.AddDays(7));
 
             _logger.LogInformation("Đăng nhập thành công: {Account}", input);
-            return token;
+            return new AuthResponse 
+            { 
+                AccessToken = token, 
+                RefreshToken = refreshToken 
+            };
         }
 
-        public async Task<string> GoogleLoginAsync(GoogleLoginRequest request)
+        public async Task<AuthResponse> GoogleLoginAsync(GoogleLoginRequest request)
         {
             var googlePayload = await _googleAuthService.VerifyGoogleTokenAsync(request.IdToken);
             if (!googlePayload.IsValid)
@@ -203,7 +212,56 @@ namespace Fiebo.Application.Services
                 catch { /* Log */ }
             }
 
-            return _tokenService.GenerateAccessToken(userResult.UserId, userResult.FullName, userResult.Role, userResult.Email);
+            var token = _tokenService.GenerateAccessToken(userResult.UserId, userResult.FullName, userResult.Role, userResult.Email);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            
+            // Set refresh token valid for 7 days
+            await _identityService.UpdateRefreshTokenAsync(userResult.UserId, refreshToken, DateTime.Now.AddDays(7));
+
+            return new AuthResponse 
+            { 
+                AccessToken = token, 
+                RefreshToken = refreshToken 
+            };
+        }
+
+        public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+        {
+            var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
+            if (principal == null)
+            {
+                throw new BadRequestException("Token không hợp lệ.");
+            }
+
+            var userId = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+                      ?? principal.FindFirst("sub")?.Value; // depending on how sub is mapped
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new BadRequestException("Token không hợp lệ.");
+            }
+
+            var isValid = await _identityService.ValidateRefreshTokenAsync(userId, request.RefreshToken);
+            if (!isValid)
+            {
+                throw new BadRequestException("Refresh token không hợp lệ hoặc đã hết hạn.");
+            }
+
+            var newAccessToken = _tokenService.GenerateAccessToken(
+                userId,
+                principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "",
+                principal.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "",
+                principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? ""
+            );
+            
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
+            await _identityService.UpdateRefreshTokenAsync(userId, newRefreshToken, DateTime.Now.AddDays(7));
+
+            return new AuthResponse
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
+            };
         }
 
         public Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request)

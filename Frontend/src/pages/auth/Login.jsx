@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials, AUTH_STORAGE_KEY } from '../../store/authSlice';
+import { setCredentials, AUTH_STORAGE_KEY, REFRESH_STORAGE_KEY } from '../../store/authSlice';
 import { login, loginWithGoogle } from '../../services/authService';
 import { GoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
@@ -139,7 +139,7 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
     try {
       const response = await login(loginPayload);
       const token = response.accessToken || response.token;
-      dispatch(setCredentials({ user: response.user, token }));
+      dispatch(setCredentials({ user: response.user, token, refreshToken: response.refreshToken }));
 
       if (rememberMe) {
         localStorage.setItem(
@@ -153,6 +153,9 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
       }
 
       localStorage.setItem(AUTH_STORAGE_KEY, token);
+      if (response.refreshToken) {
+        localStorage.setItem(REFRESH_STORAGE_KEY, response.refreshToken);
+      }
 
       toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
         position: 'top-right', autoClose: 3000,
@@ -206,8 +209,11 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
       setAlertInfo(null);
       const response = await loginWithGoogle(credential);
       const token = response.accessToken || response.token;
-      dispatch(setCredentials({ user: response.user, token }));
+      dispatch(setCredentials({ user: response.user, token, refreshToken: response.refreshToken }));
       localStorage.setItem(AUTH_STORAGE_KEY, token);
+      if (response.refreshToken) {
+        localStorage.setItem(REFRESH_STORAGE_KEY, response.refreshToken);
+      }
       toast.success('Đăng nhập Google thành công!', {
         position: 'top-right',
         autoClose: 3000,

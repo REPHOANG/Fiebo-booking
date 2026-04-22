@@ -48,26 +48,39 @@ namespace Fiebo.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] Application.DTOs.Auth.LoginRequest request)
         {
-            var token = await _authService.LoginAsync(request);
+            var response = await _authService.LoginAsync(request);
 
-            return Ok(new ApiResponse<string>
+            return Ok(new ApiResponse<AuthResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Đăng nhập thành công",
-                Data = token
+                Data = response
             });
         }
 
         [HttpPost("google-login")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
         {
-            var token = await _authService.GoogleLoginAsync(request);
+            var response = await _authService.GoogleLoginAsync(request);
 
-            return Ok(new ApiResponse<string>
+            return Ok(new ApiResponse<AuthResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Đăng nhập thành công",
-                Data = token
+                Data = response
+            });
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var response = await _authService.RefreshTokenAsync(request);
+
+            return Ok(new ApiResponse<AuthResponse>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Refresh token thành công",
+                Data = response
             });
         }
 

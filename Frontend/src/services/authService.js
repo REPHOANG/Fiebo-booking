@@ -86,7 +86,8 @@ export const login = async (credentials) => {
       password: credentials.password,
     });
     const res = response.data;
-    const token = res.data ?? res.accessToken ?? res.token ?? res.jwtToken;
+    const token = res.data?.accessToken ?? res.data ?? res.accessToken ?? res.token ?? res.jwtToken;
+    const refreshToken = res.data?.refreshToken;
     if (!token) throw { message: 'No token in response' };
 
     const decodedToken = decodeJWT(token);
@@ -106,6 +107,7 @@ export const login = async (credentials) => {
         status: decodedToken?.status ?? 'active',
       },
       accessToken: token,
+      refreshToken: refreshToken,
       token,
       expiresIn: res.expiresIn,
     };
@@ -122,7 +124,8 @@ export const loginWithGoogle = async (credential) => {
   try {
     const response = await api.post('/api/auth/google-login', { idToken: credential });
     const res = response.data;
-    const token = res.data ?? res.accessToken ?? res.token;
+    const token = res.data?.accessToken ?? res.data ?? res.accessToken ?? res.token;
+    const refreshToken = res.data?.refreshToken;
     if (!token) throw { message: 'No token in Google login response' };
 
     const decodedToken = decodeJWT(token);
@@ -139,6 +142,7 @@ export const loginWithGoogle = async (credential) => {
         status: decodedToken?.status ?? 'active',
       },
       accessToken: token,
+      refreshToken: refreshToken,
       token,
     };
   } catch (error) {
@@ -148,14 +152,19 @@ export const loginWithGoogle = async (credential) => {
 };
 
 // Refresh access token using refresh token
-export const refreshToken = async (token) => {
+export const refreshToken = async (currentAccessToken, currentRefreshToken) => {
   try {
-    const response = await api.post('/api/auth/refresh', { refreshToken: token }, {
-      headers: { Authorization: `Bearer ${token}` },
+    const response = await api.post('/api/auth/refresh-token', { 
+      accessToken: currentAccessToken, 
+      refreshToken: currentRefreshToken 
     });
     const res = response.data;
+    const newAccessToken = res.data?.accessToken ?? res.accessToken ?? res.token;
+    const newRefreshToken = res.data?.refreshToken ?? res.refreshToken;
+    
     return {
-      accessToken: res.accessToken ?? res.token,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
       expiresIn: res.expiresIn,
     };
   } catch (error) {

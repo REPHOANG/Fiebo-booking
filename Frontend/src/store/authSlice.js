@@ -2,14 +2,16 @@ import { createSlice } from '@reduxjs/toolkit';
 
 // Chỉ lưu accessToken trong localStorage; user profile được đồng bộ từ API /auth/profile.
 export const AUTH_STORAGE_KEY = 'accessToken';
+export const REFRESH_STORAGE_KEY = 'refreshToken';
 
 /** Đọc auth từ storage (token), user sẽ được lấy từ API profile. */
 function getStoredAuth() {
   try {
     const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    const refreshToken = localStorage.getItem(REFRESH_STORAGE_KEY);
     if (!token) return null;
 
-    return { token };
+    return { token, refreshToken };
   } catch {
     return null;
   }
@@ -20,6 +22,7 @@ const getInitialState = () => {
   return {
     user: null,
     token: stored?.token ?? null,
+    refreshToken: stored?.refreshToken ?? null,
     isAuthenticated: Boolean(stored?.token),
     profile: null,
     profileLoading: Boolean(stored?.token),
@@ -46,6 +49,9 @@ const authSlice = createSlice({
       state.user = action.payload.user ?? state.user;
       const nextToken = action.payload.token ?? action.payload.accessToken;
       if (nextToken !== undefined) state.token = nextToken;
+      const nextRefreshToken = action.payload.refreshToken;
+      if (nextRefreshToken !== undefined) state.refreshToken = nextRefreshToken;
+      
       state.isAuthenticated = Boolean(state.token);
       if (action.payload.user) state.profileLoading = false;
       state.error = null;
@@ -62,6 +68,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
     },
 
     // Clear registration pending
@@ -75,6 +82,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
       state.profile = null;
       state.profileLoading = false;
