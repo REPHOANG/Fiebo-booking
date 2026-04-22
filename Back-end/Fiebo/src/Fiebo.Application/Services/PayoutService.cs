@@ -94,7 +94,8 @@ namespace Fiebo.Application.Services
                     AccountHolderName = bankAccount?.AccountHolderName ?? "N/A"
                 },
                 FacilitiesBreakdown = payout.PayoutDetails
-                    .GroupBy(pd => new { pd.Booking.VenueId, VenueName = pd.Booking.Venue.Name })
+                    .Where(pd => pd.Booking != null)
+                    .GroupBy(pd => new { pd.Booking!.VenueId, VenueName = pd.Booking.Venue.Name })
                     .Select(g => new VenuePayoutBreakdownDto
                     {
                         VenueId = g.Key.VenueId,
@@ -103,10 +104,20 @@ namespace Fiebo.Application.Services
                         Bookings = g.Select(pd => new PayoutBookingDetailDto
                         {
                             BookingId = pd.BookingId,
-                            PlayDate = pd.Booking.BookingDate,
+                            PlayDate = pd.Booking!.BookingDate,
                             SubFieldName = string.Join(", ", pd.Booking.BookingDetails.Select(bd => bd.Field.Name).Distinct()),
                             Amount = pd.Amount
                         }).ToList()
+                    })
+                    .ToList(),
+                EventsBreakdown = payout.PayoutDetails
+                    .Where(pd => pd.Event != null)
+                    .Select(pd => new EventPayoutBreakdownDto
+                    {
+                        EventId = pd.EventId!.Value,
+                        EventName = pd.Event!.Name,
+                        EventDate = pd.Event.EventDate,
+                        Amount = pd.Amount
                     })
                     .ToList()
             };
