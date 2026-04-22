@@ -141,7 +141,7 @@ namespace Fiebo.Persistence.Repositories
                         {
                             t,
                             UserId = u.Id,
-                            UserName = u.FullName
+                            Fullname = u.FullName
                         };
 
             // Filter
@@ -166,7 +166,7 @@ namespace Fiebo.Persistence.Repositories
             if (!string.IsNullOrEmpty(name))
             {
                 query = query.Where(x =>
-                    x.UserName != null && x.UserName.Contains(name));
+                    x.Fullname != null && x.Fullname.Contains(name));
             }
 
             var total = await query.CountAsync();
@@ -179,7 +179,7 @@ namespace Fiebo.Persistence.Repositories
                 {
                     Id = x.t.Id,
                     UserId = x.UserId,
-                    UserName = x.UserName ?? string.Empty,
+                    Fullname = x.Fullname ?? string.Empty,
                     Amount = x.t.Amount,
                     Direction = x.t.Direction.ToString(),
                     TransactionType = x.t.TransactionType.ToString(),

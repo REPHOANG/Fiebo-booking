@@ -133,6 +133,8 @@ builder.Services.AddScoped<IUserBankAccountRepository, UserBankAccountRepository
 builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
 builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IPayoutBatchRepository, PayoutBatchRepository>();
+builder.Services.AddScoped<IPayoutDetailRepository, PayoutDetailRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();

@@ -45,7 +45,8 @@ namespace Fiebo.Domain.Repositories
         IUserBankAccountRepository UserBankAccounts { get; }
         IPayoutRepository Payouts { get; }
         IAdminRepository Admins { get; }
-
+        IPayoutBatchRepository PayoutBatches { get; }
+        IPayoutDetailRepository PayoutDetails { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

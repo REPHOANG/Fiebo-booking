@@ -1,10 +1,13 @@
-﻿using Fiebo.Application.DTOs.Owner;
+﻿using Fiebo.Application.DTOs.Booking;
+using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Owner;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Services
 {
@@ -106,6 +109,49 @@ namespace Fiebo.Application.Services
             result = await _identityService.UpdateUserStatusAsync(staffId, UserStatus.Active);
 
             return result;
+        }
+
+        public async Task<List<OwnerVenueListResponse>> GetAssignedVenuesAsync(string? staffId)
+        {
+            if(staffId == null)
+            {
+                throw new UnauthorizedAccessException("Staff ID cannot be null.");
+            }
+            var staffVenues = await _unitOfWork.VenueStaffs.GetVenuesByStaffIdAsync(staffId);
+            return [.. staffVenues.Select(v => new OwnerVenueListResponse
+            {
+                VenueId = v.Id,
+                Name = v.Name,
+                ThumbnailUrl = v?.ThumbnailUrl ?? "",
+                Province = v.Province?.Name ?? "",
+                Ward = v.Ward?.Name ?? "",
+                Status = v.Status.ToString(),
+                TotalFields = v.Fields.Count
+            })];
+        }
+
+        public async Task<PagedResult<OwnerBookingListResponse>> GetStaffBookingsAsync(string? staffId, OwnerBookingHistoryFilter param)
+        {
+            var venueIds = (await _unitOfWork.VenueStaffs.FindAsync(vs => vs.StaffId == staffId)).Select(vs => vs.VenueId).ToList();
+            var staffBookings = await _unitOfWork.Bookings.GetBookingsByStaffIdAsync(venueIds, param);
+            return new PagedResult<OwnerBookingListResponse>
+            {
+                Page = staffBookings.Page,
+                PageSize = staffBookings.PageSize,
+                TotalItems = staffBookings.TotalItems,
+                Items = [.. staffBookings.Items.Select(b => new OwnerBookingListResponse
+                {
+                    BookingId = b.Id,
+                    CustomerName = b.Fullname,
+                    PhoneNumber = b.PhoneNumber,
+                    BookingDate = b.BookingDate,
+                    VenueName = b.Venue.Name,
+                    FieldNames = b.BookingDetails.Select(d => d.Field.Name).ToList(),
+                    TotalPrice = b.TotalPrice,
+                    Status = b.Status.ToString(),
+                    CreatedAt = b.CreatedAt,
+                })]
+            };
         }
     }
 }

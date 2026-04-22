@@ -126,5 +126,58 @@ namespace Fiebo.Persistence.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<PagedResult<PayoutResponse>> GetPayoutsByBatchIdAsync(
+    int batchId,
+    int page,
+    int pageSize,
+    string? name,
+    PayoutStatus? status)
+        {
+            var query = from p in _context.Payouts
+                        join b in _context.PayoutBatches on p.BatchId equals b.Id
+                        join u in _context.Users on p.OwnerId equals u.Id
+                        where p.BatchId == batchId
+                        select new { p, b, u };
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                query = query.Where(x => EF.Functions.Like(x.u.UserName, $"%{name}%"));
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(x => x.p.Status == status.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new PayoutResponse
+                {
+                    Id = x.p.Id,
+
+                    OwnerId = x.p.OwnerId,
+                    OwnerName = x.u.FullName,
+
+                    Amount = x.p.Amount,
+                    Status = x.p.Status.ToString(),
+                    FailureReason = x.p.FailureReason,
+
+                    ProcessedBy = x.p.ProcessedBy,
+                    ProcessedAt = x.p.ProcessedAt
+                })
+                .ToListAsync();
+
+            return new PagedResult<PayoutResponse>
+            {
+                Items = items,
+                TotalItems = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
     }
 }

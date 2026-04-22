@@ -9,5 +9,6 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IVenueStaffRepository : IRepository<VenueStaff>
     {
+        Task<List<Venue>> GetVenuesByStaffIdAsync(string staffId);
     }
 }
