@@ -45,7 +45,11 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 24));
 builder.Services.AddDbContext<FieboDbContext>(options =>
 {
     options.UseMySql(connectionString, serverVersion,
-        b => b.MigrationsAssembly("Fiebo.Persistence"));
+        b => b.MigrationsAssembly("Fiebo.Persistence")
+              .EnableRetryOnFailure(
+                  maxRetryCount: 10,
+                  maxRetryDelay: TimeSpan.FromSeconds(30),
+                  errorNumbersToAdd: null));
 });
 
 // ASP.NET Core Identity
