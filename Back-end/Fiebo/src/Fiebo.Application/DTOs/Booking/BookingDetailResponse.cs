@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,5 +31,6 @@ namespace Fiebo.Application.DTOs.Booking
         public string? CancelReason { get; set; }
 
         public List<BookingSlotResponse> Details { get; set; } = [];
+        public List<BookingServiceItemResponse> Services { get; set; } = [];
     }
 }
