@@ -42,5 +42,7 @@ namespace Fiebo.Application.Interfaces
         Task DeleteVenueServiceAsync(int serviceId, string ownerId, CancellationToken cancellationToken = default);
         Task<PagedResult<VenueServiceDetailResponse>> GetVenueServicesAsync(int venueId, GetVenueServicesRequest request, CancellationToken cancellationToken = default);
         Task<List<OwnerVenueSelectOptionResponse>> GetOwnerVenueSelectOptionAsync(string? ownerId);
+        Task<bool> ApproveVenueUpdateAsync(int updateRequestId, string adminId);
+        Task<bool> RejectVenueUpdateAsync(int updateRequestId, string adminId, string adminNote);
     }
 }

@@ -136,6 +136,7 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IPayoutBatchRepository, PayoutBatchRepository>();
 builder.Services.AddScoped<IPayoutDetailRepository, PayoutDetailRepository>();
 builder.Services.AddScoped<IBookingServiceItemRepository, BookingServiceItemRepository>();
+builder.Services.AddScoped<IVenueUpdateRequestRepository, VenueUpdateRequestRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
@@ -155,6 +156,7 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IQrPaymentService, QrPaymentService>();
 builder.Services.AddHostedService<BookingExpirationJob>();
+builder.Services.AddHostedService<BookingConfirmExpirationJob>();
 builder.Services.AddHostedService<TicketExpireJob>();
 builder.Services.AddHostedService<BookingCompleteJob>();
 builder.Services.AddHostedService<TicketEventStartJob>();

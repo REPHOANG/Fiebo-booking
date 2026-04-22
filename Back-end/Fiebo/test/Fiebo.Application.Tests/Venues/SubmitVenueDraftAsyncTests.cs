@@ -1,4 +1,4 @@
-﻿using AutoFixture;
+using AutoFixture;
 using AutoFixture.AutoMoq;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -29,7 +29,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🔴 INVALID
+        // ?? INVALID
         // =========================
 
         [Fact]
@@ -112,7 +112,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🟢 VALID
+        // ?? VALID
         // =========================
 
         [Fact]
@@ -139,7 +139,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🧩 HELPER
+        // ?? HELPER
         // =========================
 
         private Venue CreateVenue(

@@ -48,6 +48,7 @@ namespace Fiebo.Persistence.Data
         public DbSet<PayoutDetail> PayoutDetails { get; set; }
         public DbSet<CancelBooking> CancelBookings { get; set; }
         public DbSet<UserBankAccount> UserBankAccounts { get; set; }
+        public DbSet<VenueUpdateRequest> VenueUpdateRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -237,6 +238,9 @@ namespace Fiebo.Persistence.Data
 
                 entity.Property(b => b.TotalPrice)
                       .HasPrecision(18, 2);
+
+                entity.Property(b => b.ConfirmExpiredAt)
+                      .IsRequired(false);
             });
 
             // BookingDetail
@@ -771,6 +775,24 @@ namespace Fiebo.Persistence.Data
                 entity.HasOne<ApplicationUser>()
                       .WithMany()
                       .HasForeignKey(x => x.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // VenueUpdateRequest
+            modelBuilder.Entity<VenueUpdateRequest>(entity =>
+            {
+                entity.ToTable("VenueUpdateRequests");
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.Id).ValueGeneratedOnAdd();
+
+                entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+                entity.Property(x => x.NewAddressDetail).HasMaxLength(255).IsRequired(false);
+                entity.Property(x => x.AdminNote).HasMaxLength(500).IsRequired(false);
+                entity.Property(x => x.ReviewedByAdminId).HasMaxLength(450).IsRequired(false);
+
+                entity.HasOne(x => x.Venue)
+                      .WithMany(v => v.VenueUpdateRequests)
+                      .HasForeignKey(x => x.VenueId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

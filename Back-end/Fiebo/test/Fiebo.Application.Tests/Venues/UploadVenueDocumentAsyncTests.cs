@@ -1,4 +1,4 @@
-﻿using AutoFixture;
+using AutoFixture;
 using AutoFixture.AutoMoq;
 using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
@@ -33,7 +33,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🔴 INVALID
+        // ?? INVALID
         // =========================
 
         [Fact]
@@ -84,7 +84,7 @@ namespace Fiebo.Application.Tests.Venues
             var service = CreateService();
             var request = ValidRequest();
 
-            // ❌ invalid file
+            // ? invalid file
             request.BusinessDocument.Images = new List<IFormFile> { Mock.Of<IFormFile>() };
 
             await Assert.ThrowsAsync<BadRequestException>(() =>
@@ -92,7 +92,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🟢 VALID
+        // ?? VALID
         // =========================
 
         [Fact]
@@ -110,10 +110,10 @@ namespace Fiebo.Application.Tests.Venues
 
             await service.UploadVenueDocumentAsync(1, "owner", request);
 
-            // verify add document (2 loại)
+            // verify add document (2 lo?i)
             docRepoMock.Verify(x => x.Add(It.IsAny<VenueDocument>()), Times.Exactly(2));
 
-            // save 2 lần
+            // save 2 l?n
             uowMock.Verify(x => x.SaveChangesAsync(), Times.Exactly(2));
 
             // add images
@@ -121,7 +121,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🧩 HELPER
+        // ?? HELPER
         // =========================
 
         private Venue CreateValidVenue(string ownerId)
@@ -129,8 +129,8 @@ namespace Fiebo.Application.Tests.Venues
             return new Venue
             {
                 Id = 1,
-                Name = "Test Venue",        // ✅ required
-                OwnerId = ownerId,         // ✅ required
+                Name = "Test Venue",        // ? required
+                OwnerId = ownerId,         // ? required
                 OpenTime = new TimeOnly(8, 0),
                 CloseTime = new TimeOnly(22, 0),
                 ProvinceId = 1,

@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -28,7 +28,7 @@ namespace Fiebo.Application.Tests.Venues
             _unitOfWork.Setup(x => x.Reviews).Returns(_reviewRepo.Object);
             _unitOfWork.Setup(x => x.BookingDetails).Returns(_bookingRepo.Object);
 
-            _service = new VenueService(_unitOfWork.Object, _mapService.Object, null!, null!, null!);
+            _service = new VenueService(_unitOfWork.Object, _mapService.Object, null!, null!, null!, null!);
         }
 
         [Fact]

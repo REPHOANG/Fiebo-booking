@@ -23,13 +23,15 @@ namespace Fiebo.Application.Services
         private readonly IIdentityService _identityService;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly ILogger<VenueService> _logger;
+        private readonly INotificationService _notificationService;
 
         public VenueService(
             IUnitOfWork unitOfWork,
             IMapService mapService,
             IIdentityService identityService,
             ICloudinaryService cloudinaryService,
-            ILogger<VenueService> logger
+            ILogger<VenueService> logger,
+            INotificationService notificationService
             )
         {
             _unitOfWork = unitOfWork;
@@ -37,6 +39,7 @@ namespace Fiebo.Application.Services
             _identityService = identityService;
             _cloudinaryService = cloudinaryService;
             _logger = logger;
+            _notificationService = notificationService;
         }
 
         public async Task<List<VenueInfoResponse>> GetNearbyVenues(
@@ -687,165 +690,185 @@ namespace Fiebo.Application.Services
 
         public async Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId)
         {
-            // 1. Load venue with documents (tracked for updates)
             var venue = await _unitOfWork.Venues.GetVenueWithDocumentsTrackedAsync(venueId);
             if (venue == null)
-            {
                 throw new NotFoundException("Không tìm thấy cơ sở.");
-            }
 
-            // BR-03: OwnerId is immutable — only the owner can edit
             if (venue.OwnerId != ownerId)
-            {
                 throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này.");
-            }
 
-            // E2 / MSG-E02: CloseTime must be after OpenTime
             if (request.CloseTime <= request.OpenTime)
-            {
-                throw new BadRequestException(
-                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
-            }
+                throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
-
-            // E3 / MSG-E05: TimeSlot conflict when shortening hours on Active venue
+            // Kiểm tra conflict giờ hoạt động
             if (venue.Status == VenueStatus.Active)
             {
-                bool isHoursShortened = request.OpenTime > venue.OpenTime
-                                    || request.CloseTime < venue.CloseTime;
-
+                bool isHoursShortened = request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime;
                 if (isHoursShortened)
                 {
                     var hasConflict = await _unitOfWork.TimeSlots
                         .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
-
                     if (hasConflict)
-                    {
                         throw new BadRequestException(
-                            "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động " +
-                            "nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
-                    }
+                            "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
                 }
             }
 
-            // BR-01: Status Transition (State Machine)
-            // Rejected(3) -> Pending(2) on any save
-            // Draft(4) -> stays Draft(4)
-            // Active(1), Inactive(0), Pending(2) -> unchanged (BR-02 may override below)
-            if (venue.Status == VenueStatus.Rejected)
-            {
-                venue.Status = VenueStatus.Pending;
-            }
-
-            // BR-02: Critical Info Lock — Active venue with address change -> Pending
-            if (venue.Status == VenueStatus.Active || venue.Status == VenueStatus.Inactive)
-            {
-                bool addressChanged = venue.ProvinceId != request.ProvinceId
-                                   || venue.WardId != request.WardId
-                                   || venue.AddressDetail != request.AddressDetail;
-
-                if (addressChanged)
-                {
-                    venue.Status = VenueStatus.Pending;
-                }
-            }
-
-            // Apply field updates
+            // PHẦN 1: Các trường được cập nhật ngay lập tức
             venue.Name = request.Name;
             venue.Description = request.Description;
-            venue.AddressDetail = request.AddressDetail;
-            venue.ProvinceId = request.ProvinceId;
-            venue.WardId = request.WardId;
-            venue.Longitude = request.Longitude;
-            venue.Latitude = request.Latitude;
             venue.OpenTime = request.OpenTime;
             venue.CloseTime = request.CloseTime;
 
-            // Handle thumbnail upload
             if (request.ThumbnailImage is { Length: > 0 })
             {
                 var fileList = new List<IFormFile> { request.ThumbnailImage };
                 ImageValidator.ValidateFiles(fileList, 1, 1);
-
                 var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
                 venue.ThumbnailUrl = uploadResult.Url;
             }
 
             venue.UpdatedAt = DateTime.Now;
 
-            // Handle Documents update
-            bool documentsChanged = false;
+            //Thay đổi địa chỉ hoặc giấy tờ → staging table
+            bool addressChanged = venue.ProvinceId != request.ProvinceId
+                               || venue.WardId != request.WardId
+                               || venue.AddressDetail != request.AddressDetail
+                               || Math.Abs(venue.Longitude - request.Longitude) > 0.00001
+                               || Math.Abs(venue.Latitude - request.Latitude) > 0.00001;
 
-            if (request.BusinessDocument != null)
+            bool documentChanged = request.BusinessDocument != null || request.LandUseDocument != null;
+
+            if (addressChanged || documentChanged)
             {
-                var bizDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense);
-                if (bizDoc == null)
+                var stagingRequest = new VenueUpdateRequest
                 {
-                    bizDoc = new VenueDocument { VenueId = venueId, DocumentType = DocumentType.BusinessLicense };
-                    _unitOfWork.VenueDocuments.Add(bizDoc);
+                    VenueId = venueId,
+                    Status = "Pending"
+                };
+
+                if (addressChanged)
+                {
+                    stagingRequest.NewAddressDetail = request.AddressDetail;
+                    stagingRequest.NewProvinceId = request.ProvinceId;
+                    stagingRequest.NewWardId = request.WardId;
+                    stagingRequest.NewLatitude = request.Latitude;
+                    stagingRequest.NewLongitude = request.Longitude;
                 }
 
-                if (request.BusinessDocument.IssueDate.HasValue)
+                if (request.BusinessDocument != null)
                 {
-                    bizDoc.IssueDate = request.BusinessDocument.IssueDate.Value;
-                    documentsChanged = true;
-                }
-                if (request.BusinessDocument.ExpiryDate.HasValue)
-                {
-                    bizDoc.ExpiryDate = request.BusinessDocument.ExpiryDate.Value;
-                    documentsChanged = true;
+                    stagingRequest.NewBusinessLicenseIssueDate = request.BusinessDocument.IssueDate;
+                    stagingRequest.NewBusinessLicenseExpiryDate = request.BusinessDocument.ExpiryDate;
                 }
 
-                if (request.BusinessDocument.Images != null && request.BusinessDocument.Images.Any())
+                if (request.LandUseDocument != null)
                 {
-                    ImageValidator.ValidateFiles(request.BusinessDocument.Images);
-                    bizDoc.Images.Clear(); // Remove old images
-                    var newImages = new List<VenueDocumentImage>();
-                    await UploadDocumentImagesAsync(request.BusinessDocument.Images, bizDoc.Id, newImages);
-                    foreach (var img in newImages) bizDoc.Images.Add(img);
-                    documentsChanged = true;
-                }
-            }
-
-            if (request.LandUseDocument != null)
-            {
-                var landDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse);
-                if (landDoc == null)
-                {
-                    landDoc = new VenueDocument { VenueId = venueId, DocumentType = DocumentType.LandUse };
-                    _unitOfWork.VenueDocuments.Add(landDoc);
+                    stagingRequest.NewLandUseIssueDate = request.LandUseDocument.IssueDate;
+                    stagingRequest.NewLandUseExpiryDate = request.LandUseDocument.ExpiryDate;
                 }
 
-                if (request.LandUseDocument.IssueDate.HasValue)
-                {
-                    landDoc.IssueDate = request.LandUseDocument.IssueDate.Value;
-                    documentsChanged = true;
-                }
-                if (request.LandUseDocument.ExpiryDate.HasValue)
-                {
-                    landDoc.ExpiryDate = request.LandUseDocument.ExpiryDate.Value;
-                    documentsChanged = true;
-                }
-
-                if (request.LandUseDocument.Images != null && request.LandUseDocument.Images.Any())
-                {
-                    ImageValidator.ValidateFiles(request.LandUseDocument.Images);
-                    landDoc.Images.Clear(); // Remove old images
-                    var newImages = new List<VenueDocumentImage>();
-                    await UploadDocumentImagesAsync(request.LandUseDocument.Images, landDoc.Id, newImages);
-                    foreach (var img in newImages) landDoc.Images.Add(img);
-                    documentsChanged = true;
-                }
-            }
-
-            // BR-02 extended: Demote to Pending if documents changed
-            if (documentsChanged && venue.Status == VenueStatus.Active)
-            {
-                venue.Status = VenueStatus.Pending;
+                _unitOfWork.VenueUpdateRequests.Add(stagingRequest);
             }
 
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        // ================================================================
+        //   Admin: Approve Venue Update
+        // ================================================================
+        public async Task<bool> ApproveVenueUpdateAsync(int updateRequestId, string adminId)
+        {
+            var updateRequest = await _unitOfWork.VenueUpdateRequests.GetByIdWithVenueAsync(updateRequestId);
+            if (updateRequest == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu cập nhật.");
+
+            if (updateRequest.Status != "Pending")
+                throw new BadRequestException("Yêu cầu này đã được xử lý.");
+
+            var venue = updateRequest.Venue;
+
+            // Áp dụng thay đổi địa chỉ
+            if (updateRequest.NewProvinceId.HasValue) venue.ProvinceId = updateRequest.NewProvinceId.Value;
+            if (updateRequest.NewWardId.HasValue) venue.WardId = updateRequest.NewWardId.Value;
+            if (updateRequest.NewAddressDetail != null) venue.AddressDetail = updateRequest.NewAddressDetail;
+            if (updateRequest.NewLatitude.HasValue) venue.Latitude = updateRequest.NewLatitude.Value;
+            if (updateRequest.NewLongitude.HasValue) venue.Longitude = updateRequest.NewLongitude.Value;
+
+            // Áp dụng thay đổi giấy tờ
+            if (updateRequest.NewBusinessLicenseIssueDate.HasValue || updateRequest.NewBusinessLicenseExpiryDate.HasValue)
+            {
+                var bizDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense);
+                if (bizDoc != null)
+                {
+                    if (updateRequest.NewBusinessLicenseIssueDate.HasValue)
+                        bizDoc.IssueDate = updateRequest.NewBusinessLicenseIssueDate.Value;
+                    if (updateRequest.NewBusinessLicenseExpiryDate.HasValue)
+                        bizDoc.ExpiryDate = updateRequest.NewBusinessLicenseExpiryDate.Value;
+                }
+            }
+
+            if (updateRequest.NewLandUseIssueDate.HasValue || updateRequest.NewLandUseExpiryDate.HasValue)
+            {
+                var landDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse);
+                if (landDoc != null)
+                {
+                    if (updateRequest.NewLandUseIssueDate.HasValue)
+                        landDoc.IssueDate = updateRequest.NewLandUseIssueDate.Value;
+                    if (updateRequest.NewLandUseExpiryDate.HasValue)
+                        landDoc.ExpiryDate = updateRequest.NewLandUseExpiryDate.Value;
+                }
+            }
+
+            venue.Status = VenueStatus.Active;
+            venue.UpdatedAt = DateTime.Now;
+
+            updateRequest.Status = "Approved";
+            updateRequest.ReviewedAt = DateTime.Now;
+            updateRequest.ReviewedByAdminId = adminId;
+
+            _unitOfWork.Venues.Update(venue);
+            _unitOfWork.VenueUpdateRequests.Update(updateRequest);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+
+        // ================================================================
+        //   Admin: Reject Venue Update
+        // ================================================================
+        public async Task<bool> RejectVenueUpdateAsync(int updateRequestId, string adminId, string adminNote)
+        {
+            var updateRequest = await _unitOfWork.VenueUpdateRequests.GetByIdWithVenueAsync(updateRequestId);
+            if (updateRequest == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu cập nhật.");
+
+            if (updateRequest.Status != "Pending")
+                throw new BadRequestException("Yêu cầu này đã được xử lý.");
+
+            updateRequest.Status = "Rejected";
+            updateRequest.AdminNote = adminNote;
+            updateRequest.ReviewedAt = DateTime.Now;
+            updateRequest.ReviewedByAdminId = adminId;
+
+            _unitOfWork.VenueUpdateRequests.Update(updateRequest);
+            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _notificationService.NotifyVenueUpdateRejectedAsync(
+                    updateRequest.Venue.OwnerId,
+                    updateRequest.VenueId,
+                    updateRequest.Venue.Name,
+                    adminNote);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send venue update rejection notification for request {Id}", updateRequestId);
+            }
+
+            return true;
         }
 
         public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)

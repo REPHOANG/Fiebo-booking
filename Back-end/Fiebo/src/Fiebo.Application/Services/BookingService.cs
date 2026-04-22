@@ -102,9 +102,29 @@ namespace Fiebo.Application.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                // Load earliest slot start time to calculate ConfirmExpiredAt
+                var bookingWithDetails = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+                DateTime slotStart;
+                if (bookingWithDetails?.BookingDetails != null && bookingWithDetails.BookingDetails.Any(d => d.TimeSlot != null))
+                {
+                    slotStart = bookingWithDetails.BookingDetails
+                        .Where(d => d.TimeSlot != null)
+                        .Select(d => booking.BookingDate.ToDateTime(d.TimeSlot!.StartTime))
+                        .OrderBy(t => t)
+                        .First();
+                }
+                else
+                {
+                    // Fallback: không tìm thấy slot → áp dụng BR3 (12h)
+                    slotStart = DateTime.Now.AddHours(25);
+                }
+
+                var confirmExpiredAt = CalculateConfirmExpiredAt(DateTime.Now, slotStart);
+
                 wallet.Balance -= booking.TotalPrice;
-                booking.Status = BookingStatus.Booked;
+                booking.Status = BookingStatus.Pending; // Đã thanh toán, chờ chủ sân confirm
                 booking.ExpiredAt = null;
+                booking.ConfirmExpiredAt = confirmExpiredAt;
                 booking.UpdatedAt = DateTime.Now;
 
                 _unitOfWork.Wallets.Update(wallet);
@@ -126,6 +146,23 @@ namespace Fiebo.Application.Services
                 throw;
             }
 
+            // Notify owner
+            try
+            {
+                var ownerUserId = (await _unitOfWork.Venues
+                    .FindAsync(v => v.Id == booking.VenueId))
+                    .FirstOrDefault()?.OwnerId;
+
+                if (!string.IsNullOrEmpty(ownerUserId))
+                {
+                    await _notificationService.NotifyOwnerNewBookingPendingAsync(ownerUserId, booking.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification to owner for booking {BookingId}", booking.Id);
+            }
+
             return new BookingPaymentResponse
             {
                 BookingId = booking.Id,
@@ -135,11 +172,40 @@ namespace Fiebo.Application.Services
             };
         }
 
+        /// <summary>
+        /// Tính thời hạn chủ sân phải confirm theo 3 Business Rules.
+        /// </summary>
+        private static DateTime CalculateConfirmExpiredAt(DateTime createdAt, DateTime earliestSlotStart)
+        {
+            var delta = earliestSlotStart - createdAt;
+
+            if (delta < TimeSpan.FromHours(1))
+            {
+                // BR1: slot bắt đầu trong <1h → tự hủy đúng lúc slot bắt đầu
+                return earliestSlotStart;
+            }
+            else if (delta < TimeSpan.FromHours(24))
+            {
+                // BR2: slot bắt đầu trong 1h-24h → tự hủy trước slot 1h
+                return earliestSlotStart.AddHours(-1);
+            }
+            else
+            {
+                // BR3: slot bắt đầu sau >24h → tự hủy sau 12h kể từ lúc đặt
+                return createdAt.AddHours(12);
+            }
+        }
+
         private static void EnsureBookingCanBePaid(BookingStatus status)
         {
+            if (status == BookingStatus.Holding)
+            {
+                return; // Holding = chờ thanh toán, hợp lệ
+            }
+
             if (status == BookingStatus.Pending)
             {
-                return;
+                throw new BadRequestException("Lịch đặt đã được thanh toán, đang chờ chủ sân xác nhận.");
             }
 
             if (status is BookingStatus.Booked or BookingStatus.Completed)
@@ -305,7 +371,7 @@ namespace Fiebo.Application.Services
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.Online,
                     ExpiredAt = expiredAt,
-                    Status = BookingStatus.Pending
+                    Status = BookingStatus.Holding  // Đang giữ slot, chờ thanh toán
                 };
 
                 _unitOfWork.Bookings.Add(booking);
@@ -576,7 +642,7 @@ namespace Fiebo.Application.Services
                     BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.WalkIn,
-                    Status = BookingStatus.Booked
+                    Status = BookingStatus.Pending // WalkIn cũng cần chủ sân confirm
                 };
 
                 _unitOfWork.Bookings.Add(booking);
@@ -973,6 +1039,120 @@ namespace Fiebo.Application.Services
                 Items = items
             };
         }
-        
+
+        // ================================================================
+        //   Owner Confirm Booking
+        // ================================================================
+        public async Task<bool> ConfirmBookingAsync(int bookingId, string ownerId)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Không tìm thấy lịch đặt");
+
+            if (booking.Venue.OwnerId != ownerId)
+                throw new ForbiddenException("Bạn không có quyền xác nhận lịch đặt này");
+
+            if (booking.Status != BookingStatus.Pending)
+                throw new BadRequestException("Chỉ có thể xác nhận lịch đặt đang chờ xác nhận.");
+
+            var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
+            trackedBooking.Status = BookingStatus.Booked;
+            trackedBooking.ConfirmExpiredAt = null;
+            trackedBooking.UpdatedAt = DateTime.Now;
+            _unitOfWork.Bookings.Update(trackedBooking);
+            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _notificationService.NotifyBookingConfirmedAsync(booking.UserId, bookingId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify customer for confirmed booking {BookingId}", bookingId);
+            }
+
+            return true;
+        }
+
+        // ================================================================
+        //   Owner Reject Booking (+ Refund)
+        // ================================================================
+        public async Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason)
+        {
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Không tìm thấy lịch đặt");
+
+            if (booking.Venue.OwnerId != ownerId)
+                throw new ForbiddenException("Bạn không có quyền từ chối lịch đặt này");
+
+            if (booking.Status != BookingStatus.Pending)
+                throw new BadRequestException("Chỉ có thể từ chối lịch đặt đang chờ xác nhận.");
+
+            var refundAmount = booking.TotalPrice;
+
+            var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
+
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                trackedBooking.Status = BookingStatus.Rejected;
+                trackedBooking.ConfirmExpiredAt = null;
+                trackedBooking.UpdatedAt = DateTime.Now;
+                _unitOfWork.Bookings.Update(trackedBooking);
+
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    CancelReason = rejectReason,
+                    RefundAmount = refundAmount
+                });
+
+                if (refundAmount > 0 && !string.IsNullOrEmpty(booking.UserId))
+                {
+                    var customerWallet = (await _unitOfWork.Wallets
+                        .FindAsync(w => w.UserId == booking.UserId))
+                        .FirstOrDefault();
+
+                    if (customerWallet is null)
+                        throw new NotFoundException("Không tìm thấy ví khách hàng.");
+
+                    customerWallet.Balance += refundAmount;
+                    _unitOfWork.Wallets.Update(customerWallet);
+
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = customerWallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = bookingId
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Refund failed for rejected booking {BookingId}", bookingId);
+                throw new BadRequestException("Đã xảy ra lỗi khi xử lý hoàn tiền. Vui lòng thử lại.");
+            }
+
+            try
+            {
+                await _notificationService.NotifyBookingRejectedAsync(booking.UserId, bookingId, rejectReason, refundAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify customer for rejected booking {BookingId}", bookingId);
+            }
+
+            return true;
+        }
+
     }
 }

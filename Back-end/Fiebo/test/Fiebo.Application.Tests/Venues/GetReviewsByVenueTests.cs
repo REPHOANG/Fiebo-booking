@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
@@ -24,7 +24,7 @@ namespace Fiebo.Application.Tests.Venues
         {
             _unitOfWork.Setup(x => x.Reviews).Returns(_reviewRepo.Object);
 
-            _service = new VenueService(_unitOfWork.Object, null!, _identityService.Object, null!, null!);
+            _service = new VenueService(_unitOfWork.Object, null!, _identityService.Object, null!, null!, null!);
         }
 
         //[Fact]
