@@ -4,7 +4,7 @@
     container_name: fiebo_mysql
     environment:
       MYSQL_ROOT_PASSWORD: hieulun123
-      MYSQL_DATABASE: FieboDb9
+      MYSQL_DATABASE: FieboDb4
       TZ: Asia/Ho_Chi_Minh
     command: --default-time-zone='+07:00' --lower_case_table_names=1
     volumes:
@@ -25,8 +25,8 @@
       - "6379:6379"
 
   fiebo-api:
-    build: 
-      context: . 
+    build:
+      context: .
       dockerfile: Dockerfile
     container_name: fiebo_api
     environment:
@@ -36,7 +36,7 @@
     ports:
       - "8080:8080"
     env_file:
-      - ./src/Fiebo.API/.env 
+      - ./src/Fiebo.API/.env
     depends_on:
       - fiebo-mysql
       - fiebo-redis
