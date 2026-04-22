@@ -218,5 +218,71 @@ namespace Fiebo.Persistence.Repositories
                 .Select(r => r.BookingId)
                 .ToListAsync();
         }
+
+        public async Task<PagedResult<Booking>> GetBookingsByStaffIdAsync(List<int> venueIds, OwnerBookingHistoryFilter parameters)
+        {
+            var page = parameters.PageNumber <= 0 ? 1 : parameters.PageNumber;
+            var pageSize = parameters.PageSize <= 0 ? 10 : parameters.PageSize;
+
+            var query = _context.Bookings
+                .AsNoTracking()
+                .Include(b => b.Venue)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.Field)
+                .Where(b => venueIds.Contains(b.Venue.Id));
+
+            if (parameters.BookingId.HasValue)
+            {
+                query = query.Where(b => b.Id == parameters.BookingId.Value);
+            }
+
+            if (parameters.VenueId.HasValue)
+            {
+                query = query.Where(b => b.VenueId == parameters.VenueId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.VenueName))
+            {
+                query = query.Where(b => b.Venue.Name.Contains(parameters.VenueName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameters.FieldName))
+            {
+                query = query.Where(b => b.BookingDetails.Any(bd => bd.Field.Name.Contains(parameters.FieldName)));
+            }
+
+            if (parameters.FromDate.HasValue)
+            {
+                var fromDateOnly = DateOnly.FromDateTime(parameters.FromDate.Value);
+                query = query.Where(b => b.BookingDate >= fromDateOnly);
+            }
+
+            if (parameters.ToDate.HasValue)
+            {
+                var toDateOnly = DateOnly.FromDateTime(parameters.ToDate.Value);
+                query = query.Where(b => b.BookingDate <= toDateOnly);
+            }
+
+            if (parameters.Status.HasValue)
+            {
+                query = query.Where(b => b.Status == parameters.Status.Value);
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Booking>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
+        }
     }
 }
