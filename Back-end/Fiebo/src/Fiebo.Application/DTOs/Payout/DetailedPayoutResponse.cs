@@ -8,6 +8,7 @@ namespace Fiebo.Application.DTOs.Payout
         public PayoutGeneralInfoDto GeneralInfo { get; set; } = null!;
         public PayoutFinancialSummaryDto FinancialSummary { get; set; } = null!;
         public List<VenuePayoutBreakdownDto> FacilitiesBreakdown { get; set; } = [];
+        public List<EventPayoutBreakdownDto> EventsBreakdown { get; set; } = [];
     }
 
     public class PayoutGeneralInfoDto
@@ -39,6 +40,14 @@ namespace Fiebo.Application.DTOs.Payout
         public int? BookingId { get; set; }
         public DateOnly PlayDate { get; set; }
         public string SubFieldName { get; set; } = null!;
+        public decimal Amount { get; set; }
+    }
+
+    public class EventPayoutBreakdownDto
+    {
+        public int EventId { get; set; }
+        public string EventName { get; set; } = null!;
+        public DateOnly EventDate { get; set; }
         public decimal Amount { get; set; }
     }
 }

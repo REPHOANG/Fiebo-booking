@@ -51,7 +51,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Payouts
                 .Where(p => p.Status == PayoutStatus.Pending)
-                .Where(p => p.PayoutDetails.Any(pd => pd.Payout.OwnerId == ownerId))
+                .Where(p => p.OwnerId == ownerId)
                 .SumAsync(p => p.Amount);
         }
  
@@ -68,10 +68,10 @@ namespace Fiebo.Persistence.Repositories
                     .ThenInclude(pd => pd.Booking)
                         .ThenInclude(b => b.BookingDetails)
                             .ThenInclude(bd => bd.Field)
-                            .Include(p => p.PayoutDetails)
+                .Include(p => p.PayoutDetails)
                     .ThenInclude(pd => pd.Event)
-                        .ThenInclude(b => b.Details)
-                            .ThenInclude(bd => bd.Field)
+                        .ThenInclude(e => e.Details)
+                            .ThenInclude(ed => ed.Field)
                 .FirstOrDefaultAsync(p => p.Id == payoutId);
         }
 

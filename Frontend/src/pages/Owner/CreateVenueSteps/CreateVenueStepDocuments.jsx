@@ -104,12 +104,19 @@ export default function CreateVenueStepDocuments({
                           control={control}
                           rules={{
                             required: "Vui lòng chọn ngày cấp.",
+                            validate: (value) => {
+                              if (!value) return true;
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return new Date(value) <= today || "Ngày cấp không được vượt quá ngày hiện tại.";
+                            },
                           }}
                           render={({ field }) => (
                             <input
                               type="date"
                               className={issueDateError ? "cv-input-invalid" : ""}
                               value={field.value || ""}
+                              max={new Date().toISOString().split("T")[0]}
                               onChange={(e) => {
                                 const nextValue = e.target.value;
                                 field.onChange(nextValue);

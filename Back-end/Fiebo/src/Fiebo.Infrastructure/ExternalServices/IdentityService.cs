@@ -74,6 +74,27 @@ namespace Fiebo.Infrastructure.ExternalServices
             return (true, user.Id, user.FullName, roles.FirstOrDefault() ?? "User", user.Email!, user.Status);
         }
 
+        public async Task<bool> UpdateRefreshTokenAsync(string userId, string refreshToken, DateTime expiryTime)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return false;
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = expiryTime;
+            
+            var result = await _userManager.UpdateAsync(user);
+            return result.Succeeded;
+        }
+
+        public async Task<bool> ValidateRefreshTokenAsync(string userId, string refreshToken)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
+                return false;
+
+            return true;
+        }
+
         public async Task<bool> IsEmailUniqueAsync(string email)
         {
             return await _userManager.FindByEmailAsync(email) == null;

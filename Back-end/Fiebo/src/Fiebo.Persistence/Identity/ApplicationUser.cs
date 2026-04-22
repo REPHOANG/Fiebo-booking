@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Enums;
+using Fiebo.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
@@ -15,5 +15,8 @@ namespace Fiebo.Persistence.Identity
         public UserStatus Status { get; set; } = UserStatus.Inactive;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
+
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
     }
 }

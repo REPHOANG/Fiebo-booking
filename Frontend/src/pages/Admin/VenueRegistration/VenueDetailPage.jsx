@@ -115,6 +115,7 @@ export const VenueDetailPage = () => {
     expiryDateLabel: formatDate(data?.landUseDocument?.expiryDate),
     images: landUseDocumentImages,
   };
+  console.log("thumbnail:", data?.thumbnailUrl);
 
   return (
     <div className="avr-page">
@@ -157,7 +158,8 @@ export const VenueDetailPage = () => {
               <img style={{
                 width:"100%",
                 height:"100%"
-              }} src="https://cdn.saigontimestravel.com/storage/images/retail/ckeditor/2025/10/1761105328_old-trafford_16.webp" alt="" />
+
+              }} src={data?.thumbnailUrl} alt="" />
             </div>
           </div>
         </div>

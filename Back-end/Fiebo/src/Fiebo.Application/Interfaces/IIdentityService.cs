@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.Auth;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Enums;
@@ -21,7 +21,8 @@ namespace Fiebo.Application.Interfaces
         Task<bool> IsEmailUniqueAsync(string email);
         Task<bool> IsPhoneUniqueAsync(string phone);
         Task<(bool IsSuccess, string UserId, string FullName, string Role, string Email, Fiebo.Domain.Enums.UserStatus Status)> AuthenticateAsync(string account, string password);
-
+        Task<bool> UpdateRefreshTokenAsync(string userId, string refreshToken, DateTime expiryTime);
+        Task<bool> ValidateRefreshTokenAsync(string userId, string refreshToken);
         Task<(bool IsNewUser, string UserId, string FullName, string Role, string Email)> GetOrCreateExternalUserAsync(string email, string fullName);
         Task<ServiceResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request);
         Task<UserProfileResponse?> GetUserProfileAsync(string userId);

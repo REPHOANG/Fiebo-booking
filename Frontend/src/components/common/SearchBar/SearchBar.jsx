@@ -1,16 +1,14 @@
 import React from 'react';
 import './SearchBar.css';
-import { Search, SlidersHorizontal, Map, CheckSquare, Heart, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, Map, CheckSquare, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button, FormControl } from 'react-bootstrap';
 import { useAuthModal } from '../../../context/AuthModalContext';
-import VenuesMegaMenu from '../VenuesMegaMenu/VenuesMegaMenu';
 
 
 const SearchBar = ({ searchQuery, setSearchQuery, onSearch, isAuthenticated, variant = 'icon' }) => {
   const navigate = useNavigate();
   const { openLogin } = useAuthModal();
-  const [venuesMegaActive, setVenuesMegaActive] = React.useState(false);
 
   const renderSearchButton = () => {
     if (variant === 'none') return null;
@@ -39,6 +37,7 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, isAuthenticated, var
 
   return (
     <>
+      {/* removed Sân backdrop (mega moved to Header) */}
       <div className="ch-search-section">
         <div className="ch-search-inner">
           <div className="ch-search-bar d-flex align-items-center">
@@ -51,22 +50,7 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, isAuthenticated, var
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onSearch()}
             />
-            <div
-              className="ch-mega-wrapper"
-              onMouseEnter={() => setVenuesMegaActive(true)}
-              onMouseLeave={() => setVenuesMegaActive(false)}
-              onFocusCapture={() => setVenuesMegaActive(true)}
-              onBlurCapture={(event) => {
-                if (event.currentTarget.contains(event.relatedTarget)) return;
-                setVenuesMegaActive(false);
-              }}
-            >
-              <button type="button" className="ch-mega-trigger" aria-haspopup="true" aria-expanded={venuesMegaActive}>
-                Sân
-                <ChevronDown size={16} className="ch-mega-chevron" aria-hidden />
-              </button>
-              <VenuesMegaMenu align="end" active={venuesMegaActive} />
-            </div>
+            {/* removed Sân trigger and mega menu from search bar (desktop header keeps its own mega) */}
             <Button
               variant="light"
               className="ms-2 ch-filter-btn"
@@ -89,9 +73,9 @@ const SearchBar = ({ searchQuery, setSearchQuery, onSearch, isAuthenticated, var
             >
               <CheckSquare size={16} /> <span className="ms-1">Sân đã đặt</span>
             </Button>
-            <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && openLogin()}>
+            {/* <Button variant="link" className="ch-nav-tab p-0" onClick={() => !isAuthenticated && openLogin()}>
               <Heart size={16} fill="#22c55e" /> <span className="ms-1">Yêu thích</span>
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

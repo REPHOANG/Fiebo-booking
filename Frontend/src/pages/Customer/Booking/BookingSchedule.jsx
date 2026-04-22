@@ -1232,11 +1232,6 @@ const BookingSchedule = () => {
         {/* Schedule Grid */}
         {fields.length > 0 && slots.length > 0 ? (
           <div className="bs-grid-wrapper-outer">
-            {/* Notice bar */}
-            <div className="bs-notice">
-              <span className="bs-notice-icon">⚠️</span>
-              <span><strong>Lưu ý:</strong> Nếu bạn cần đặt lịch cố định vui lòng liên hệ hotline để được hỗ trợ.</span>
-            </div>
 
             <div
               className={`bs-grid-wrapper ${isDragging ? 'dragging' : ''}`}
@@ -1338,38 +1333,64 @@ const BookingSchedule = () => {
                               Chưa có khung giờ nào được thiết lập
                             </div>
                           ) : (
-                            gSlots.map((gs, si) => {
+                            (() => {
                               const sk = normalizeText(group.sportType);
                               const continuationSet = slotContinuationStartsBySport.get(sk);
-                              if (continuationSet?.has(gs.label)) return null;
-                              const spanMap = slotSpanBySportAndStart.get(sk);
-                              const rawSpan = Number(spanMap?.get(gs.label) ?? 1);
-                              const span = Math.max(1, Math.min(rawSpan, gSlots.length - si));
-                              const globalSi = globalIdxForSlotLabel(gs.label);
-                              const eid = globalSi >= 0
-                                ? getEventIdForCell(field.originalIdx, globalSi)
-                                : null;
-                              const cellClass = globalSi >= 0
-                                ? `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)} ${getLockedRunExtraClass(field.originalIdx, globalSi)}`.trim()
-                                : `bs-cell locked ${getOffGridLockedRunClass(si, gSlots)}`.trim();
-                              return (
-                                <div
-                                  key={`${field.originalIdx}-${si}-${gs.label}`}
-                                  className={cellClass}
-                                  onClick={() =>
-                                    globalSi >= 0
-                                      ? handleCellClick(field.originalIdx, globalSi)
-                                      : undefined
+                              const spanMapForSk = slotSpanBySportAndStart.get(sk);
+                              const cells = [];
+                              let si = 0;
+                              while (si < gSlots.length) {
+                                const gs = gSlots[si];
+                                // Skip continuation slots (covered by a previous multi-span cell)
+                                if (continuationSet?.has(gs.label)) { si++; continue; }
+
+                                const globalSi = globalIdxForSlotLabel(gs.label);
+                                const isUnconfigured =
+                                  globalSi < 0 || isUnconfiguredSlotStart(sk, gs.label);
+
+                                if (isUnconfigured) {
+                                  // Merge consecutive unconfigured columns into one "Trống" cell
+                                  let runLen = 1;
+                                  while (si + runLen < gSlots.length) {
+                                    const next = gSlots[si + runLen];
+                                    if (continuationSet?.has(next.label)) break;
+                                    const nextGsi = globalIdxForSlotLabel(next.label);
+                                    if (nextGsi >= 0 && !isUnconfiguredSlotStart(sk, next.label)) break;
+                                    runLen++;
                                   }
-                                  role={
-                                    isLocked(globalSi) ? undefined : eid != null ? "link" : "button"
-                                  }
-                                  data-event-nav={eid != null && !isLocked(globalSi) ? "true" : undefined}
-                                  title={eid != null ? "Sự kiện — xem chi tiết" : undefined}
-                                  style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
-                                />
-                              );
-                            })
+                                  cells.push(
+                                    <div
+                                      key={`${field.originalIdx}-empty-${si}`}
+                                      className="bs-cell bs-cell-no-slot-merged"
+                                      aria-hidden="true"
+                                      style={{ gridColumn: `span ${runLen}` }}
+                                    >
+                                      Trống
+                                    </div>
+                                  );
+                                  si += runLen;
+                                  continue;
+                                }
+
+                                const rawSpan = Number(spanMapForSk?.get(gs.label) ?? 1);
+                                const span = Math.max(1, Math.min(rawSpan, gSlots.length - si));
+                                const eid = getEventIdForCell(field.originalIdx, globalSi);
+                                const cellClass = `${getCellClass(field.originalIdx, globalSi)} ${getEventRunExtraClass(field.originalIdx, globalSi)} ${getBookedRunExtraClass(field.originalIdx, globalSi)} ${getLockedRunExtraClass(field.originalIdx, globalSi)}`.trim();
+                                cells.push(
+                                  <div
+                                    key={`${field.originalIdx}-${si}-${gs.label}`}
+                                    className={cellClass}
+                                    onClick={() => handleCellClick(field.originalIdx, globalSi)}
+                                    role={isLocked(globalSi) ? undefined : eid != null ? "link" : "button"}
+                                    data-event-nav={eid != null && !isLocked(globalSi) ? "true" : undefined}
+                                    title={eid != null ? "Sự kiện — xem chi tiết" : undefined}
+                                    style={span > 1 ? { gridColumn: `span ${span}` } : undefined}
+                                  />
+                                );
+                                si++;
+                              }
+                              return cells;
+                            })()
                           )}
                           <div />
                         </React.Fragment>

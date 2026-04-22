@@ -72,7 +72,7 @@ const Header = () => {
             <NavLink to="/" end>Trang chủ</NavLink>
 
             <div
-              className="mega-wrapper"
+              className={`mega-wrapper ${venuesMegaActive ? 'mega-open' : ''}`}
               onMouseEnter={() => setVenuesMegaActive(true)}
               onMouseLeave={() => setVenuesMegaActive(false)}
               onFocusCapture={() => setVenuesMegaActive(true)}
@@ -84,12 +84,8 @@ const Header = () => {
               <VenuesMegaMenu align="start" active={venuesMegaActive} />
             </div>
 
-
-            <NavLink to="/map">Bản đồ</NavLink>
-            <NavLink to="/discover">Khám phá</NavLink>
             <NavLink to="/featured">Nổi bật</NavLink>
             <NavLink to="/events">Sự kiện</NavLink>
-            <NavLink to="/contact">Contact</NavLink>
           </nav>
         </div>
 
