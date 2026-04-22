@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Shared;
 using System;
 using System.Collections.Generic;
@@ -8,13 +8,9 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Domain.Repositories;
 
-public interface IVenueServiceItemRepository
+public interface IVenueServiceItemRepository : IRepository<VenueServiceItem>
 {
-    void Add(VenueServiceItem item);
-    void Update(VenueServiceItem item);
-    void Remove(VenueServiceItem item);
     Task<bool> IsServiceInUseAsync(int serviceId, CancellationToken cancellationToken = default);
-    Task<VenueServiceItem?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<PagedResult<VenueServiceItem>> GetPagedServicesAsync(
         int venueId,
         string? keyword,
