@@ -47,7 +47,11 @@ const OWNER_CANCEL_REASONS = [
   "Khác",
 ];
 
-const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
+const OwnerBookingDetail = ({
+  bookingsListPath = "/owner/bookings",
+  fetchDetailFn = getOwnerBookingDetail,
+  isStaff = false,
+}) => {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +67,7 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
     setLoading(true);
     setError("");
     try {
-      const data = await getOwnerBookingDetail(id);
+      const data = await fetchDetailFn(id);
       setDetail(data);
     } catch (e) {
       setDetail(null);
@@ -172,7 +176,7 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
             <span>Đặt lúc: {d.createdAt ? new Date(d.createdAt).toLocaleString("vi-VN") : "—"}</span>
 
             <div className="obd-action-group">
-              {statusKey === "pending" && (
+              {!isStaff && statusKey === "pending" && (
                 <>
                   <button type="button" className="obd-action-btn obd-btn-accept">
                     Xác nhận
@@ -187,7 +191,7 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
                   </button>
                 </>
               )}
-              {statusKey === "booked" && (
+              {!isStaff && statusKey === "booked" && (
                 <button
                   type="button"
                   className="obd-cancel-btn"
