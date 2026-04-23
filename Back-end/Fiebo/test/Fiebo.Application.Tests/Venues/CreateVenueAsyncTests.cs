@@ -1,4 +1,4 @@
-﻿using AutoFixture;
+using AutoFixture;
 using AutoFixture.AutoMoq;
 using Fiebo.Application.DTOs.Common;
 using Fiebo.Application.DTOs.Venue;
@@ -33,7 +33,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🔴 INVALID
+        // ?? INVALID
         // =========================
 
         [Fact]
@@ -62,7 +62,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🟡 BOUNDARY
+        // ?? BOUNDARY
         // =========================
 
         [Fact]
@@ -79,7 +79,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🟢 VALID + PATH + BRANCH
+        // ?? VALID + PATH + BRANCH
         // =========================
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Fiebo.Application.Tests.Venues
             var service = CreateService();
             var request = ValidRequest();
 
-            // ✅ FIX: mock file hợp lệ
+            // ? FIX: mock file h?p l?
             request.Thumbnail = CreateFakeImage();
 
             var result = await service.CreateVenueAsync(request, "owner");
@@ -133,7 +133,7 @@ namespace Fiebo.Application.Tests.Venues
         }
 
         // =========================
-        // 🧩 HELPER
+        // ?? HELPER
         // =========================
 
         private CreateVenueRequest ValidRequest()
@@ -182,7 +182,7 @@ namespace Fiebo.Application.Tests.Venues
 
             var mock = new Mock<IFormFile>();
             mock.Setup(f => f.OpenReadStream()).Returns(ms);
-            mock.Setup(f => f.FileName).Returns("test.jpg"); // quan trọng
+            mock.Setup(f => f.FileName).Returns("test.jpg"); // quan tr?ng
             mock.Setup(f => f.Length).Returns(ms.Length);
             mock.Setup(f => f.ContentType).Returns("image/jpeg");
 

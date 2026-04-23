@@ -196,5 +196,124 @@ namespace Fiebo.API.Services
                 Console.WriteLine($"Failed to send venue rejection email to user {ownerId}: {ex.Message}");
             }
         }
+        public async Task NotifyOwnerNewBookingPendingAsync(string ownerId, int bookingId)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "booking_pending_confirm",
+                bookingId
+            });
+            await _sseService.SendToUserAsync(ownerId, payload);
+        }
+
+        public async Task NotifyBookingConfirmedAsync(string userId, int bookingId)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "booking_confirmed",
+                bookingId
+            });
+            await _sseService.SendToUserAsync(userId, payload);
+
+            try
+            {
+                var user = await _identityService.GetUserProfileAsync(userId);
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    string subject = "Fiebo - Lịch đặt sân đã được xác nhận";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                            <h2 style='color: #28a745; text-align: center;'>Lịch đặt sân đã được xác nhận</h2>
+                            <p>Xin chào <strong>{user.FullName ?? "Quý khách"}</strong>,</p>
+                            <p>Chủ sân đã xác nhận lịch đặt sân <strong>#{bookingId}</strong> của bạn.</p>
+                            <p>Hẹn gặp bạn tại sân!</p>
+                            <hr style='margin: 30px 0;' />
+                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                        </div>";
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send booking confirmation email to user {userId}: {ex.Message}");
+            }
+        }
+
+        public async Task NotifyBookingRejectedAsync(string userId, int bookingId, string reason, decimal refundAmount)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "booking_rejected",
+                bookingId,
+                reason,
+                refundAmount
+            });
+            await _sseService.SendToUserAsync(userId, payload);
+
+            try
+            {
+                var user = await _identityService.GetUserProfileAsync(userId);
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    string subject = "Fiebo - Lịch đặt sân bị từ chối";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                            <h2 style='color: #d9534f; text-align: center;'>Lịch đặt sân bị từ chối</h2>
+                            <p>Xin chào <strong>{user.FullName ?? "Quý khách"}</strong>,</p>
+                            <p>Rất tiếc, chủ sân đã từ chối lịch đặt sân <strong>#{bookingId}</strong> của bạn.</p>
+                            <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;'>
+                                <p><strong>Lý do:</strong> {reason}</p>
+                                <p><strong>Số tiền hoàn lại:</strong> <span style='color: #28a745; font-weight: bold;'>{refundAmount:N0} VND</span></p>
+                            </div>
+                            <p>Số tiền đã được hoàn về ví Fiebo của bạn.</p>
+                            <hr style='margin: 30px 0;' />
+                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                        </div>";
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send booking rejection email to user {userId}: {ex.Message}");
+            }
+        }
+
+        public async Task NotifyVenueUpdateRejectedAsync(string ownerId, int venueId, string venueName, string adminNote)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "venue_update_rejected",
+                venueId,
+                venueName,
+                adminNote
+            });
+            await _sseService.SendToUserAsync(ownerId, payload);
+
+            try
+            {
+                var user = await _identityService.GetUserProfileAsync(ownerId);
+                if (user != null && !string.IsNullOrEmpty(user.Email))
+                {
+                    string subject = "Fiebo - Yêu cầu cập nhật cơ sở bị từ chối";
+                    string body = $@"
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                            <h2 style='color: #d9534f; text-align: center;'>Yêu cầu cập nhật cơ sở bị từ chối</h2>
+                            <p>Xin chào <strong>{user.FullName ?? "Chủ sân"}</strong>,</p>
+                            <p>Yêu cầu cập nhật thông tin cơ sở <strong>{venueName}</strong> của bạn đã bị từ chối.</p>
+                            <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;'>
+                                <p><strong>Ghi chú từ quản trị viên:</strong> {adminNote}</p>
+                            </div>
+                            <p>Vui lòng kiểm tra lại thông tin và gửi lại yêu cầu.</p>
+                            <hr style='margin: 30px 0;' />
+                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                        </div>";
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send venue update rejection email to owner {ownerId}: {ex.Message}");
+            }
+        }
     }
 }
