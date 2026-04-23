@@ -144,8 +144,43 @@
   color: #166534;
 }
 
-.obd-cancel-btn {
+.obd-action-group {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.obd-action-btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+}
+
+.obd-action-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.obd-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.obd-btn-accept {
+  background: #047857;
+  color: #fff;
+}
+
+.obd-btn-reject {
+  background: #ef4444;
+  color: #fff;
+}
+
+.obd-cancel-btn {
   border: none;
   background: #ef4444;
   color: #fff;
@@ -163,6 +198,7 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 
 /* Modal hủy đặt sân */
 .obd-sr-only {
@@ -300,6 +336,16 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .obd-action-group {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .obd-action-btn {
+    width: 100%;
   }
 
   .obd-cancel-btn {

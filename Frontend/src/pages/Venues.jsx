@@ -702,7 +702,7 @@ const Venues = () => {
                 type="text"
                 enterKeyHint="search"
                 autoComplete="off"
-                placeholder="Tìm theo tên sân ..."
+                placeholder="Tìm theo tên sân..."
                 value={inputValue}
                 onChange={handleSearchChange}
               />

@@ -265,6 +265,7 @@ const OwnerProfile = () => {
         toast.success("Thêm tài khoản ngân hàng thành công.");
       }
       await queryClient.invalidateQueries({ queryKey: BANK_ACCOUNTS_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
       closeBankForm();
     } catch (error) {
       toast.error(errMessage(error));
@@ -289,6 +290,7 @@ const OwnerProfile = () => {
       await deleteBankAccount(account.id);
       toast.success("Đã xóa tài khoản ngân hàng.");
       await queryClient.invalidateQueries({ queryKey: BANK_ACCOUNTS_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
       if (editingBankId === account.id) {
         closeBankForm();
       }

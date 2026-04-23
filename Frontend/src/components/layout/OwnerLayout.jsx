@@ -153,6 +153,32 @@ const OwnerLayout = () => {
     setMenuOpen(false);
   };
 
+  const handleCreateVenueSidebar = (e) => {
+    const hasBank = user?.hasBankAccount || user?.HasBankAccount;
+    if (!hasBank) {
+      e.preventDefault();
+      setMenuOpen(false);
+      import("sweetalert2").then((Swal) => {
+        Swal.default.fire({
+          icon: "warning",
+          title: "Thiếu thông tin ngân hàng",
+          text: "Bạn cần thêm tài khoản ngân hàng trong Hồ sơ trước khi tạo cơ sở để có thể nhận thanh toán.",
+          showCancelButton: true,
+          confirmButtonText: "Đến Hồ sơ",
+          cancelButtonText: "Đóng",
+          confirmButtonColor: "#045e36",
+          cancelButtonColor: "#64748b",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/owner/profile");
+          }
+        });
+      });
+    } else {
+      handleSidebarNavigate();
+    }
+  };
+
   useEffect(() => {
     if (!userMenuOpen) return undefined;
 
@@ -324,7 +350,7 @@ const OwnerLayout = () => {
               </NavLink> */}
               <NavLink
                 to="/owner/create-venue"
-                onClick={handleSidebarNavigate}
+                onClick={handleCreateVenueSidebar}
                 className={({ isActive }) =>
                   `owner-sidebar-sublink ${isActive ? "active" : ""}`
                 }

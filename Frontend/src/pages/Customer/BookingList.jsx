@@ -1010,8 +1010,9 @@ const BookingList = () => {
                             Thanh toán
                           </button>
                         )}
-                        {String(ev.participantStatus || "").toLowerCase() ===
-                          "joined" && (
+                        {["joined", "pending"].includes(
+                          String(ev.participantStatus || "").toLowerCase(),
+                        ) && (
                           <button
                             type="button"
                             className="bl-btn danger bl-btn-sm"
@@ -1118,7 +1119,9 @@ const BookingList = () => {
                           toán
                         </button>
                       )}
-                      {(b.status || "").toLowerCase() === "booked" && (
+                      {["booked", "pending"].includes(
+                        (b.status || "").toLowerCase(),
+                      ) && (
                         <button
                           type="button"
                           className="bl-btn danger bl-btn-sm"

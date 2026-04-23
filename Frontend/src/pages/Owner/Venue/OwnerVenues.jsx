@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, CircleCheck, FilePenLine, Hourglass, Ban } from "lucide-react";
 import { toast } from "react-toastify";
+import Swal from "sweetalert2";
+import { useSelector } from "react-redux";
 import "./OwnerVenues.css";
 import { deactivateOwnerVenue, getOwnerVenues } from "../../../services/venueService";
 
@@ -53,10 +55,35 @@ function bucketVenuesByApproval(list) {
 }
 
 const OwnerVenues = () => {
+  const navigate = useNavigate();
+  const profile = useSelector((state) => state.auth?.user);
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [listTab, setListTab] = useState("approved");
+
+  const handleCreateVenue = (e) => {
+    e.preventDefault();
+    const hasBank = profile?.hasBankAccount || profile?.HasBankAccount;
+    if (!hasBank) {
+      Swal.fire({
+        icon: "warning",
+        title: "Thiếu thông tin ngân hàng",
+        text: "Bạn cần thêm tài khoản ngân hàng trong Hồ sơ trước khi tạo cơ sở để có thể nhận thanh toán.",
+        showCancelButton: true,
+        confirmButtonText: "Đến Hồ sơ",
+        cancelButtonText: "Đóng",
+        confirmButtonColor: "#045e36",
+        cancelButtonColor: "#64748b",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/owner/profile");
+        }
+      });
+    } else {
+      navigate("/owner/create-venue");
+    }
+  };
 
   const loadVenues = useCallback(async () => {
     setLoading(true);
@@ -198,9 +225,9 @@ const OwnerVenues = () => {
               placeholder="Tìm theo tên cơ sở, phường, tỉnh..."
             />
           </label>
-          <Link to="/owner/create-venue" className="ov-create-btn">
+          <a href="/owner/create-venue" className="ov-create-btn" onClick={handleCreateVenue}>
             + Tạo cơ sở mới
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -213,9 +240,9 @@ const OwnerVenues = () => {
       ) : venues.length === 0 ? (
         <div className="ov-empty">
           <p>Hiện bạn chưa có cơ sở nào.</p>
-          <Link to="/owner/create-venue" className="ov-create-link">
+          <a href="/owner/create-venue" className="ov-create-link" onClick={handleCreateVenue}>
             Bắt đầu tạo cơ sở đầu tiên
-          </Link>
+          </a>
         </div>
       ) : (
         <div className="ov-tab-wrap">

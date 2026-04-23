@@ -474,13 +474,25 @@ const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
                       <strong>{formatPrice(total)}</strong>
                     </div>
 
-                    <button
-                      type="button"
-                      className="ob-detail-btn"
-                      onClick={() => navigate(`${bookingDetailBasePath}/${bid}`)}
-                    >
-                      Xem chi tiết
-                    </button>
+                    <div className="ob-item-actions">
+                      {String(status || "").toLowerCase() === "pending" && (
+                        <>
+                          <button type="button" className="ob-action-btn ob-btn-accept">
+                            Xác nhận
+                          </button>
+                          <button type="button" className="ob-action-btn ob-btn-reject">
+                            Từ chối
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className="ob-detail-btn"
+                        onClick={() => navigate(`${bookingDetailBasePath}/${bid}`)}
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
                   </div>
                 );
               })}
