@@ -21,9 +21,6 @@ services:
     image: redis:alpine
     container_name: fiebo_redis
     restart: always
-    environment:
-      TZ: Asia/Ho_Chi_Minh
-    command: --default-time-zone='+07:00'
     ports:
       - "6379:6379"
     volumes:
