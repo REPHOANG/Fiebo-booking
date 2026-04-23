@@ -55,10 +55,10 @@ namespace Fiebo.Persistence.BackgroundJobs
 
             var now = DateTime.Now;
 
-            // Get IDs of expired pending bookings
+            // Get IDs of expired Holding bookings (slot locked for 5 min, not yet paid)
             var expiredBookingIds = await context.Bookings
                 .Where(b =>
-                    b.Status == BookingStatus.Pending &&
+                    b.Status == BookingStatus.Holding &&
                     b.ExpiredAt.HasValue &&
                     b.ExpiredAt.Value <= now)
                 .Select(b => b.Id)

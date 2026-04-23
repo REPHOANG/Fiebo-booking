@@ -39,6 +39,9 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<int>("BookingType")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ConfirmExpiredAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -1024,6 +1027,74 @@ namespace Fiebo.Persistence.Migrations
                     b.ToTable("VenueStaff");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.VenueUpdateRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("NewAddressDetail")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime?>("NewBusinessLicenseExpiryDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("NewBusinessLicenseIssueDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("NewLandUseExpiryDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("NewLandUseIssueDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<double?>("NewLatitude")
+                        .HasColumnType("double");
+
+                    b.Property<double?>("NewLongitude")
+                        .HasColumnType("double");
+
+                    b.Property<int?>("NewProvinceId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NewWardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReviewedByAdminId")
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VenueId");
+
+                    b.ToTable("VenueUpdateRequests", (string)null);
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Wallet", b =>
                 {
                     b.Property<int>("Id")
@@ -1716,6 +1787,17 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("Venue");
                 });
 
+            modelBuilder.Entity("Fiebo.Domain.Entities.VenueUpdateRequest", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany("VenueUpdateRequests")
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("Fiebo.Domain.Entities.Wallet", b =>
                 {
                     b.HasOne("Fiebo.Persistence.Identity.ApplicationUser", null)
@@ -1884,6 +1966,8 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("VenueServiceItems");
 
                     b.Navigation("VenueStaffs");
+
+                    b.Navigation("VenueUpdateRequests");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.VenueDocument", b =>

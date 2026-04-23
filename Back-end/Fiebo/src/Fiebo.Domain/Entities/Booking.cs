@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Enums;
+using Fiebo.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +20,7 @@ namespace Fiebo.Domain.Entities
         public decimal TotalPrice { get; set; }
         public BookingStatus Status { get; set; }
         public DateTime? ExpiredAt { get; set; }
+        public DateTime? ConfirmExpiredAt { get; set; }  // Thời hạn chủ sân confirm
         public Venue Venue { get; set; } = null!;
         public ICollection<BookingDetail> BookingDetails { get; set; } = [];
         public ICollection<Review> Reviews { get; set; } = [];
