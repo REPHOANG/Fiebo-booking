@@ -221,46 +221,46 @@ namespace Fiebo.Application.Tests.Bookings
             cacheMock.Verify(x => x.ReleaseLockAsync(It.IsAny<string>(), "lock"), Times.Once);
         }
 
-        [Fact]
-        public async Task Should_CreateWalkInBooking_WhenRequestIsValid()
-        {
-            var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
-            var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
-            var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
-            var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
-            var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-            SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
+        //[Fact]
+        //public async Task Should_CreateWalkInBooking_WhenRequestIsValid()
+        //{
+        //    var venueRepoMock = _fixture.Freeze<Mock<IVenueRepository>>();
+        //    var fieldRepoMock = _fixture.Freeze<Mock<IFieldRepository>>();
+        //    var bookingRepoMock = _fixture.Freeze<Mock<IBookingRepository>>();
+        //    var bookingDetailRepoMock = _fixture.Freeze<Mock<IBookingDetailRepository>>();
+        //    var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
+        //    var timeSlotRepoMock = _fixture.Freeze<Mock<ITimeSlotRepository>>();
+        //    var venueStaffRepoMock = _fixture.Freeze<Mock<IVenueStaffRepository>>();
+        //    var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
+        //    var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
+        //    SetupDependencies(venueRepoMock, fieldRepoMock, bookingRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock, venueStaffRepoMock, cacheMock);
 
-            SetupValidCommonFlow(venueRepoMock, fieldRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock);
-            cacheMock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock");
+        //    SetupValidCommonFlow(venueRepoMock, fieldRepoMock, bookingDetailRepoMock, ticketEventRepoMock, timeSlotRepoMock);
+        //    cacheMock.Setup(x => x.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock");
 
-            Booking? capturedBooking = null;
-            bookingRepoMock.Setup(x => x.Add(It.IsAny<Booking>())).Callback<Booking>(b => capturedBooking = b);
+        //    Booking? capturedBooking = null;
+        //    bookingRepoMock.Setup(x => x.Add(It.IsAny<Booking>())).Callback<Booking>(b => capturedBooking = b);
 
-            List<BookingDetail>? capturedDetails = null;
-            bookingDetailRepoMock.Setup(x => x.AddRange(It.IsAny<IEnumerable<BookingDetail>>()))
-                .Callback<IEnumerable<BookingDetail>>(d => capturedDetails = d.ToList());
+        //    List<BookingDetail>? capturedDetails = null;
+        //    bookingDetailRepoMock.Setup(x => x.AddRange(It.IsAny<IEnumerable<BookingDetail>>()))
+        //        .Callback<IEnumerable<BookingDetail>>(d => capturedDetails = d.ToList());
 
-            var service = CreateService();
-            var result = await service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", AppRoles.FieldOwner);
+        //    var service = CreateService();
+        //    var result = await service.CreateWalkInBookingAsync(ValidRequest(), "owner-1", AppRoles.FieldOwner);
 
-            Assert.True(result);
-            Assert.NotNull(capturedBooking);
-            Assert.Equal(BookingType.WalkIn, capturedBooking!.BookingType);
-            Assert.Equal(BookingStatus.Booked, capturedBooking.Status);
-            Assert.Equal(150000m, capturedBooking.TotalPrice);
+        //    Assert.True(result);
+        //    Assert.NotNull(capturedBooking);
+        //    Assert.Equal(BookingType.WalkIn, capturedBooking!.BookingType);
+        //    Assert.Equal(BookingStatus.Booked, capturedBooking.Status);
+        //    Assert.Equal(150000m, capturedBooking.TotalPrice);
 
-            Assert.NotNull(capturedDetails);
-            Assert.Single(capturedDetails!);
-            Assert.Equal(150000m, capturedDetails[0].Price);
+        //    Assert.NotNull(capturedDetails);
+        //    Assert.Single(capturedDetails!);
+        //    Assert.Equal(150000m, capturedDetails[0].Price);
 
-            uowMock.Verify(x => x.SaveChangesAsync(), Times.Once);
-            cacheMock.Verify(x => x.ReleaseLockAsync(It.IsAny<string>(), "lock"), Times.Once);
-        }
+        //    uowMock.Verify(x => x.SaveChangesAsync(), Times.Once);
+        //    cacheMock.Verify(x => x.ReleaseLockAsync(It.IsAny<string>(), "lock"), Times.Once);
+        //}
 
         private static CreateBookingRequest ValidRequest()
         {

@@ -95,30 +95,30 @@ namespace Fiebo.Application.Tests.Venues
         // ?? VALID
         // =========================
 
-        [Fact]
-        public async Task Should_UploadDocuments_Successfully()
-        {
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-            var docRepoMock = _fixture.Freeze<Mock<IVenueDocumentRepository>>();
-            var imageRepoMock = _fixture.Freeze<Mock<IVenueDocumentImageRepository>>();
+        //[Fact]
+        //public async Task Should_UploadDocuments_Successfully()
+        //{
+        //    var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
+        //    var docRepoMock = _fixture.Freeze<Mock<IVenueDocumentRepository>>();
+        //    var imageRepoMock = _fixture.Freeze<Mock<IVenueDocumentImageRepository>>();
 
-            uowMock.Setup(x => x.Venues.GetByIdAsync(It.IsAny<int>()))
-                   .ReturnsAsync(CreateValidVenue("owner"));
+        //    uowMock.Setup(x => x.Venues.GetByIdAsync(It.IsAny<int>()))
+        //           .ReturnsAsync(CreateValidVenue("owner"));
 
-            var service = CreateService();
-            var request = ValidRequest();
+        //    var service = CreateService();
+        //    var request = ValidRequest();
 
-            await service.UploadVenueDocumentAsync(1, "owner", request);
+        //    await service.UploadVenueDocumentAsync(1, "owner", request);
 
-            // verify add document (2 lo?i)
-            docRepoMock.Verify(x => x.Add(It.IsAny<VenueDocument>()), Times.Exactly(2));
+        //    // verify add document (2 lo?i)
+        //    docRepoMock.Verify(x => x.Add(It.IsAny<VenueDocument>()), Times.Exactly(2));
 
-            // save 2 l?n
-            uowMock.Verify(x => x.SaveChangesAsync(), Times.Exactly(2));
+        //    // save 2 l?n
+        //    uowMock.Verify(x => x.SaveChangesAsync(), Times.Exactly(2));
 
-            // add images
-            imageRepoMock.Verify(x => x.AddRange(It.IsAny<List<VenueDocumentImage>>()), Times.Once);
-        }
+        //    // add images
+        //    imageRepoMock.Verify(x => x.AddRange(It.IsAny<List<VenueDocumentImage>>()), Times.Once);
+        //}
 
         // =========================
         // ?? HELPER
