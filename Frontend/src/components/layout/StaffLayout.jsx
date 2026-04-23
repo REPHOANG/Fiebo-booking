@@ -16,6 +16,7 @@ import {
   Volleyball,
   X,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import "./OwnerLayout.css";
 
 const StaffLayout = () => {
@@ -23,6 +24,7 @@ const StaffLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
+  const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -39,7 +41,13 @@ const StaffLayout = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem("token");
+      queryClient.clear();
+    } catch (e) {
+      // ignore
+    }
     navigate("/", { replace: true });
     setMenuOpen(false);
     setUserMenuOpen(false);
