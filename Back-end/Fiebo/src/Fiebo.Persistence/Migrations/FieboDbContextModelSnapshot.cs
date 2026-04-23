@@ -1052,12 +1052,6 @@ namespace Fiebo.Persistence.Migrations
                     b.Property<DateTime?>("NewBusinessLicenseIssueDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("NewLandUseExpiryDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("NewLandUseIssueDate")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<double?>("NewLatitude")
                         .HasColumnType("double");
 

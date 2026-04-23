@@ -542,7 +542,6 @@ namespace Fiebo.Application.Services
                 throw new UnauthorizedException("Bạn cần đăng nhập để tải lên giấy tờ");
             }
             DocumentValidator.ValidateDocument(request.BusinessDocument, DateTime.Now, "Giấy phép kinh doanh");
-            DocumentValidator.ValidateDocument(request.LandUseDocument, DateTime.Now, "Giấy tờ sử dụng đất");
 
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if (venue == null)
@@ -554,7 +553,6 @@ namespace Fiebo.Application.Services
                 throw new UnauthorizedException("Bạn không có quyền tải lên giấy tờ cho sân này");
             }
             ImageValidator.ValidateFiles(request.BusinessDocument.Images);
-            ImageValidator.ValidateFiles(request.LandUseDocument.Images);
             var businessDoc = new VenueDocument
             {
                 VenueId = venueId,
@@ -563,21 +561,11 @@ namespace Fiebo.Application.Services
                 ExpiryDate = request.BusinessDocument.ExpiryDate,
             };
 
-            var landDoc = new VenueDocument
-            {
-                VenueId = venueId,
-                DocumentType = DocumentType.LandUse,
-                IssueDate = request.LandUseDocument.IssueDate,
-                ExpiryDate = request.LandUseDocument.ExpiryDate
-            };
-
             _unitOfWork.VenueDocuments.Add(businessDoc);
-            _unitOfWork.VenueDocuments.Add(landDoc);
             await _unitOfWork.SaveChangesAsync();
             var images = new List<VenueDocumentImage>();
 
             await UploadDocumentImagesAsync(request.BusinessDocument.Images, businessDoc.Id, images);
-            await UploadDocumentImagesAsync(request.LandUseDocument.Images, landDoc.Id, images);
 
             _unitOfWork.VenueDocumentImages.AddRange(images);
             await _unitOfWork.SaveChangesAsync();
@@ -640,14 +628,6 @@ namespace Fiebo.Application.Services
                 Longitude = venue.Longitude,
                 Latitude = venue.Latitude,
                 Status = venue.Status.ToString(),
-                LandDocument = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse) is VenueDocument landDoc
-                    ? new VenueDocumentResponse
-                    {
-                        IssueDate = landDoc.IssueDate,
-                        ExpiryDate = landDoc.ExpiryDate,
-                        Images = [.. landDoc.Images.Select(i => i.ImageUrl)]
-                    }
-                    : null,
                 BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
                     ? new VenueDocumentResponse
                     {
@@ -678,8 +658,7 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Chỉ có thể gửi duyệt bản nháp của sân đang ở trạng thái Draft");
             }
-            if (venue.Documents.Count(d => d.DocumentType == DocumentType.BusinessLicense) == 0 ||
-               venue.Documents.Count(d => d.DocumentType == DocumentType.LandUse) == 0)
+            if (venue.Documents.Count(d => d.DocumentType == DocumentType.BusinessLicense) == 0)
             {
                 throw new BadRequestException("Vui lòng tải lên đầy đủ giấy tờ trước khi gửi duyệt");
             }
@@ -737,7 +716,7 @@ namespace Fiebo.Application.Services
                                || Math.Abs(venue.Longitude - request.Longitude) > 0.00001
                                || Math.Abs(venue.Latitude - request.Latitude) > 0.00001;
 
-            bool documentChanged = request.BusinessDocument != null || request.LandUseDocument != null;
+            bool documentChanged = request.BusinessDocument != null;
 
             if (addressChanged || documentChanged)
             {
@@ -760,12 +739,6 @@ namespace Fiebo.Application.Services
                 {
                     stagingRequest.NewBusinessLicenseIssueDate = request.BusinessDocument.IssueDate;
                     stagingRequest.NewBusinessLicenseExpiryDate = request.BusinessDocument.ExpiryDate;
-                }
-
-                if (request.LandUseDocument != null)
-                {
-                    stagingRequest.NewLandUseIssueDate = request.LandUseDocument.IssueDate;
-                    stagingRequest.NewLandUseExpiryDate = request.LandUseDocument.ExpiryDate;
                 }
 
                 _unitOfWork.VenueUpdateRequests.Add(stagingRequest);
@@ -806,18 +779,6 @@ namespace Fiebo.Application.Services
                         bizDoc.IssueDate = updateRequest.NewBusinessLicenseIssueDate.Value;
                     if (updateRequest.NewBusinessLicenseExpiryDate.HasValue)
                         bizDoc.ExpiryDate = updateRequest.NewBusinessLicenseExpiryDate.Value;
-                }
-            }
-
-            if (updateRequest.NewLandUseIssueDate.HasValue || updateRequest.NewLandUseExpiryDate.HasValue)
-            {
-                var landDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse);
-                if (landDoc != null)
-                {
-                    if (updateRequest.NewLandUseIssueDate.HasValue)
-                        landDoc.IssueDate = updateRequest.NewLandUseIssueDate.Value;
-                    if (updateRequest.NewLandUseExpiryDate.HasValue)
-                        landDoc.ExpiryDate = updateRequest.NewLandUseExpiryDate.Value;
                 }
             }
 

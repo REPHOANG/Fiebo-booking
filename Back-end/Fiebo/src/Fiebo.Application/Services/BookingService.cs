@@ -381,8 +381,9 @@ namespace Fiebo.Application.Services
                 if (request.Services != null && request.Services.Any())
                 {
                     var serviceIds = request.Services.Select(s => s.ServiceId).ToList();
-                    var venueServices = await _unitOfWork.VenueServiceItems
-                        .FindAsync(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted);
+                    var venueServices = _unitOfWork.VenueServiceItems.GetQueryable()
+                        .Where(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted)
+                        .ToList();
 
                     var serviceDict = venueServices.ToDictionary(s => s.Id);
 
@@ -652,8 +653,9 @@ namespace Fiebo.Application.Services
                 if (request.Services != null && request.Services.Any())
                 {
                     var serviceIds = request.Services.Select(s => s.ServiceId).ToList();
-                    var venueServices = await _unitOfWork.VenueServiceItems
-                        .FindAsync(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted);
+                    var venueServices = _unitOfWork.VenueServiceItems.GetQueryable()
+                        .Where(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted)
+                        .ToList();
 
                     var serviceDict = venueServices.ToDictionary(s => s.Id);
 

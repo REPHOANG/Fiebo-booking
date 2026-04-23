@@ -23,9 +23,6 @@ namespace Fiebo.Domain.Entities
         public DateTime? NewBusinessLicenseIssueDate { get; set; }
         public DateTime? NewBusinessLicenseExpiryDate { get; set; }
 
-        // ---- Thay đổi giấy tờ sử dụng đất ----
-        public DateTime? NewLandUseIssueDate { get; set; }
-        public DateTime? NewLandUseExpiryDate { get; set; }
 
         // ---- Ghi chú từ Admin (khi reject) ----
         public string? AdminNote { get; set; }

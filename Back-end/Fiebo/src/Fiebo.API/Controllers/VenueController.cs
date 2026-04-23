@@ -387,18 +387,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
-        [HttpPut("/api/owner/document/{documentId}")]
-        public async Task<IActionResult> UpdateVenueDocument([FromRoute] int documentId, [FromForm] UpdateVenueDocumentRequest request)
-        {
-            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            await _venueService.UpdateVenueDocumentAsync(documentId, ownerId, request);
-            return Ok(new ApiResponse<object>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật tài liệu sân thành công."
-            });
-        }
+
 
         /// <summary>
         /// Get the draft venue detail (for preview before submit) or view detail of draft venue
