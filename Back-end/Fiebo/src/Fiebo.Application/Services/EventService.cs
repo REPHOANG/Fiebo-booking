@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Fiebo.Application.Services
 {
@@ -23,19 +24,22 @@ namespace Fiebo.Application.Services
         private readonly ICacheService _cacheService;
         private readonly INotificationService _notificationService;
         private readonly IIdentityService _identityService;
+        private readonly IServiceProvider _serviceProvider;
         private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(5);
         public EventService(
             IUnitOfWork unitOfWork,
             ILogger<EventService> logger,
             ICacheService cacheService,
             INotificationService notificationService,
-            IIdentityService identityService)
+            IIdentityService identityService,
+            IServiceProvider serviceProvider)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _cacheService = cacheService;
             _notificationService = notificationService;
             _identityService = identityService;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<int> CreateDropInEventAsync(CreateDropInEventRequest request, string userId)
@@ -663,23 +667,30 @@ namespace Fiebo.Application.Services
                     throw;
                 }
 
-                // 8. Send push notifications (fire-and-forget, don't fail the whole request)
-                foreach (var participant in joinedParticipants)
+                // 8. Send push notifications (fire-and-forget background task)
+                _ = Task.Run(async () =>
                 {
-                    try
+                    using var scope = _serviceProvider.CreateScope();
+                    var backgroundNotificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                    var backgroundLogger = scope.ServiceProvider.GetRequiredService<ILogger<EventService>>();
+
+                    foreach (var participant in joinedParticipants)
                     {
-                        await _notificationService.NotifyEventCancelledByOwnerAsync(
-                            participant.UserId,
-                            eventId,
-                            ticketEvent.Name,
-                            cancelNote,
-                            participant.TotalPrice);
+                        try
+                        {
+                            await backgroundNotificationService.NotifyEventCancelledByOwnerAsync(
+                                participant.UserId,
+                                eventId,
+                                ticketEvent.Name,
+                                cancelNote,
+                                participant.TotalPrice);
+                        }
+                        catch (Exception ex)
+                        {
+                            backgroundLogger.LogWarning(ex, "Failed to send cancellation notification to user {UserId} in background task", participant.UserId);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to send cancellation notification to user {UserId}", participant.UserId);
-                    }
-                }
+                });
             }
             else
             {
