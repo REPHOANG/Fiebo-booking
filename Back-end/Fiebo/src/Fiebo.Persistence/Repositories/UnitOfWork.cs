@@ -24,7 +24,7 @@ namespace Fiebo.Persistence.Repositories
         public IBookingDetailRepository BookingDetails { get; }
         public ISportTypeRepository SportTypes { get; }
         public ITimeSlotRepository TimeSlots { get; }
-        //public IReportRepository Reports { get; }
+        public IReportRepository Reports { get; }
         public ITopUpRequestRepository TopUpRequests { get; }
         public IWalletTransactionRepository WalletTransactions { get; }
 
@@ -82,8 +82,8 @@ namespace Fiebo.Persistence.Repositories
             IAdminRepository adminRepository,
             IPayoutBatchRepository payoutBatchRepository,
             IPayoutDetailRepository payoutDetailRepository,
-            IBookingServiceItemRepository bookingServiceItemRepository
-            //IReportRepository reportRepository
+            IBookingServiceItemRepository bookingServiceItemRepository,
+            IReportRepository reportRepository
             )
         {
             _context = context;
@@ -96,7 +96,7 @@ namespace Fiebo.Persistence.Repositories
             BookingDetails = bookingDetailRepository;
             SportTypes = sportTypeRepository;
             TimeSlots = timeSlotRepository;
-            //Reports = reportRepository;
+            Reports = reportRepository;
             TopUpRequests = topUpRequestRepository;
             WalletTransactions = walletTransactionRepository;
             TicketEvents = ticketEventRepository;

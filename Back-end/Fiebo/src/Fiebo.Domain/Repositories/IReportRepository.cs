@@ -9,5 +9,6 @@ namespace Fiebo.Domain.Repositories
 {
     public interface IReportRepository : IRepository<Report>
     {
+        Task<IEnumerable<Report>> GetReportsWithDetailsAsync();
     }
 }
