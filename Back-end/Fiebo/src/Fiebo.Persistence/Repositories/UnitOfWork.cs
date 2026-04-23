@@ -83,8 +83,8 @@ namespace Fiebo.Persistence.Repositories
             IAdminRepository adminRepository,
             IPayoutBatchRepository payoutBatchRepository,
             IPayoutDetailRepository payoutDetailRepository,
-            IBookingServiceItemRepository bookingServiceItemRepository,,
-            IVenueUpdateRequestRepository venueUpdateRequestRepository
+            IBookingServiceItemRepository bookingServiceItemRepository,
+            IVenueUpdateRequestRepository venueUpdateRequestRepository,
             IReportRepository reportRepository
             )
         {
