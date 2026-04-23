@@ -34,7 +34,6 @@ namespace Fiebo.Application.DTOs.Venue
         public double Longitude { get; set; }
 
         public double Latitude { get; set; }
-        public VenueDocumentResponse? LandDocument { get; set; }
         public VenueDocumentResponse? BusinessLicense { get; set; }
 
         public string? Status { get; set; }

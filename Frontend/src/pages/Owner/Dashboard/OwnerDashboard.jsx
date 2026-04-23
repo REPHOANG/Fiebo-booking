@@ -84,7 +84,7 @@ export default function OwnerDashboardVer2() {
 		isLoading,
 		isError,
 	} = useQuery({
-		queryKey: ['owner-dashboard-v2', queryParams],
+		queryKey: ['owner-dashboard', queryParams],
 		queryFn: async () => {
 			const data = await getOwnerDashboard(queryParams);
 			return normalizeOwnerDashboard(data);

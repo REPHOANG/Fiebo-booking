@@ -83,7 +83,7 @@ namespace Fiebo.Persistence.Repositories
                 .FirstOrDefaultAsync(b => b.Id == id);
         }
 
-        public async Task<Booking?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId)
+        public async Task<Booking?> GetBookingDetailForOwnerAsync(int bookingId)
         {
             return await _context.Bookings
                 .AsNoTracking()
@@ -94,7 +94,7 @@ namespace Fiebo.Persistence.Repositories
                     .ThenInclude(bd => bd.TimeSlot)
                 .Include(b => b.BookingServiceItems)
                     .ThenInclude(si => si.VenueServiceItem)
-                .FirstOrDefaultAsync(b => b.Id == bookingId && b.Venue.OwnerId == ownerId);
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
         }
 
         public async Task<PagedResult<Booking>> GetBookingListForOwnerAsync(string ownerId, Fiebo.Domain.Shared.OwnerBookingHistoryFilter parameters)

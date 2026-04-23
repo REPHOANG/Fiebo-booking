@@ -12,7 +12,7 @@ namespace Fiebo.Application.Interfaces
         Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId);
         Task<PagedResult<BookingHistoryResponse>> GetBookingHistoryAsync(string userId, BookingHistory request);
         Task<BookingDetailResponse> GetBookingDetailAsync(int bookingId, string userId);
-        Task<string> GetCancelPreviewAsync(int bookingId, string userId);
+        Task<string> GetCancelPreviewAsync(int bookingId, string? userId);
         Task<bool> CancelBookingAsync(int bookingId, string userId);
         Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string? userId, string? userRole);
         Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);

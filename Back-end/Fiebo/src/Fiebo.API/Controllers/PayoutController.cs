@@ -22,7 +22,7 @@ namespace Fiebo.API.Controllers
             _payoutService = payoutService;
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/payouts")]
         public async Task<IActionResult> GetPayoutsForOwner(
             [FromQuery] int? year,
@@ -39,7 +39,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/payouts/{id}")]
         public async Task<IActionResult> GetPayoutDetail(int id)
         {

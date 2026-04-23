@@ -121,19 +121,15 @@ namespace Fiebo.Application.Services
                 BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
                     ? new VenueDocumentResponse
                     {
+                        DocumentId = bizDoc.Id,
                         IssueDate = bizDoc.IssueDate,
                         ExpiryDate = bizDoc.ExpiryDate,
-                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
+                        Images = [.. bizDoc.Images.Select(i => new DocumentImageDto {
+                            ImageId = i.Id,
+                            ImageUrl = i.ImageUrl
+                        })]
                     }
                     : null,
-                LandUseDocument = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.LandUse) is VenueDocument landDoc
-                    ? new VenueDocumentResponse
-                    {
-                        IssueDate = landDoc.IssueDate,
-                        ExpiryDate = landDoc.ExpiryDate,
-                        Images = [.. landDoc.Images.Select(i => i.ImageUrl)]
-                    }
-                    : null
             };
         }
 

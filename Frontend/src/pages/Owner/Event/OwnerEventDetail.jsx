@@ -77,10 +77,8 @@ const translateStatus = (status) => {
 
 const translateParticipantStatus = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "Chờ";
-  if (s === "pendingpayment" || s === "pending_payment")
-    return "Chờ thanh toán";
-  if (s === "confirmed" || s === "paid") return "Đã xác nhận";
+  if (s === "pending") return "Chờ thanh toán";
+  if (s === "joined" || s === "paid") return "Đã thanh toán";
   if (s === "cancelled" || s === "canceled") return "Đã hủy";
   if (s === "used") return "Đã sử dụng";
   if (s === "refunded") return "Đã hoàn tiền";
