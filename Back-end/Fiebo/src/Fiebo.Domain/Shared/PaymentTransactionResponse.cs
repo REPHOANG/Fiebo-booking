@@ -13,7 +13,7 @@ namespace Fiebo.Domain.Shared
 
         public string UserId { get; set; } = string.Empty;
 
-        public string UserName { get; set; } = string.Empty;
+        public string Fullname { get; set; } = string.Empty;
 
         public decimal Amount { get; set; }
 

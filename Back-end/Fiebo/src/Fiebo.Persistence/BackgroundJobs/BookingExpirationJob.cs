@@ -66,9 +66,13 @@ namespace Fiebo.Persistence.BackgroundJobs
 
             if (expiredBookingIds.Count == 0) return;
 
-            // 1. Delete BookingDetails first (child records)
+            // 1. Delete associated records first (child records)
             var deletedDetails = await context.BookingDetails
                 .Where(bd => expiredBookingIds.Contains(bd.BookingId))
+                .ExecuteDeleteAsync(cancellationToken);
+
+            var deletedServiceItems = await context.BookingServiceItems
+                .Where(si => expiredBookingIds.Contains(si.BookingId))
                 .ExecuteDeleteAsync(cancellationToken);
 
             // 2. Delete Bookings (parent records)
@@ -77,8 +81,8 @@ namespace Fiebo.Persistence.BackgroundJobs
                 .ExecuteDeleteAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Deleted {BookingCount} expired booking(s) and {DetailCount} booking detail(s).",
-                deletedBookings, deletedDetails);
+                "Deleted {BookingCount} expired booking(s), {DetailCount} booking detail(s), and {ServiceItemCount} service item(s).",
+                deletedBookings, deletedDetails, deletedServiceItems);
         }
     }
 }
