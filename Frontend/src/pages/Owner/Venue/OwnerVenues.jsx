@@ -321,9 +321,6 @@ const OwnerVenues = () => {
             </button>
           </div>
 
-          <p className="ov-tab-hint" id="ov-tab-hint">
-          </p>
-
           <div
             id="ov-tabpanel-venues"
             role="tabpanel"

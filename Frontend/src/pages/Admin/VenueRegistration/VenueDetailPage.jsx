@@ -109,12 +109,6 @@ export const VenueDetailPage = () => {
     expiryDateLabel: formatDate(data?.businessLicense?.expiryDate),
     images: businessLicenseImages,
   };
-  const landUseInfo = {
-    label: "Giấy tờ sử dụng đất",
-    issueDateLabel: formatDate(data?.landUseDocument?.issueDate),
-    expiryDateLabel: formatDate(data?.landUseDocument?.expiryDate),
-    images: landUseDocumentImages,
-  };
   console.log("thumbnail:", data?.thumbnailUrl);
 
   return (
@@ -241,7 +235,7 @@ export const VenueDetailPage = () => {
             </h4>
 
             <div className="avr-docs-columns" role="list" aria-label="Danh sách giấy tờ pháp lý">
-              {[businessLicenseInfo, landUseInfo].map((doc) => (
+              {[businessLicenseInfo].map((doc) => (
                 <article key={doc.label} className="avr-legal-card" role="listitem">
                   <div className="avr-legal-card-head">
                     <h4 className="avr-legal-card-title">{doc.label}</h4>

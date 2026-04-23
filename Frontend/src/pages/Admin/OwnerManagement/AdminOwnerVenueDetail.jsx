@@ -111,18 +111,11 @@ export const AdminOwnerVenueDetail = () => {
   const ownerPhone = data?.ownerPhone || owner?.phone || "-";
 
   const businessLicenseImages = data?.businessLicense?.images ?? [];
-  const landUseDocumentImages = data?.landUseDocument?.images ?? [];
   const businessLicenseInfo = {
     label: "Giấy phép kinh doanh",
     issueDateLabel: formatDate(data?.businessLicense?.issueDate),
     expiryDateLabel: formatDate(data?.businessLicense?.expiryDate),
     images: businessLicenseImages,
-  };
-  const landUseInfo = {
-    label: "Giấy tờ sử dụng đất",
-    issueDateLabel: formatDate(data?.landUseDocument?.issueDate),
-    expiryDateLabel: formatDate(data?.landUseDocument?.expiryDate),
-    images: landUseDocumentImages,
   };
 
   return (
@@ -293,7 +286,7 @@ export const AdminOwnerVenueDetail = () => {
               Giấy tờ pháp lý
             </h4>
             <div className="avr-docs-columns" role="list" aria-label="Danh sách giấy tờ pháp lý">
-              {[businessLicenseInfo, landUseInfo].map((doc) => (
+              {[businessLicenseInfo].map((doc) => (
                 <article key={doc.label} className="avr-legal-card" role="listitem">
                   <div className="avr-legal-card-head">
                     <h4 className="avr-legal-card-title">{doc.label}</h4>

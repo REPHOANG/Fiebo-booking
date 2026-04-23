@@ -486,7 +486,6 @@ const OwnerEditVenue = () => {
 
   const [docsForm, setDocsForm] = useState({
     business: { issueDate: "", expiryDate: "", existingImages: [], files: [] },
-    land: { issueDate: "", expiryDate: "", existingImages: [], files: [] },
   });
   const initialFormRef = useRef({
     name: "",
@@ -501,7 +500,6 @@ const OwnerEditVenue = () => {
   });
   const docsInitialRef = useRef({
     business: { issueDate: "", expiryDate: "" },
-    land: { issueDate: "", expiryDate: "" },
   });
 
   const canEdit = useMemo(() => ["active", "draft"].includes(statusLower), [statusLower]);
@@ -552,19 +550,12 @@ const OwnerEditVenue = () => {
         const businessDoc = normalizeDoc(
           draft?.businessLicense ?? draft?.BusinessLicense,
         );
-        const landDoc = normalizeDoc(draft?.landDocument ?? draft?.LandDocument);
 
         const nextDocsForm = {
           business: {
             issueDate: businessDoc?.issueDate ?? "",
             expiryDate: businessDoc?.expiryDate ?? "",
             existingImages: businessDoc?.images ?? [],
-            files: [],
-          },
-          land: {
-            issueDate: landDoc?.issueDate ?? "",
-            expiryDate: landDoc?.expiryDate ?? "",
-            existingImages: landDoc?.images ?? [],
             files: [],
           },
         };
@@ -574,10 +565,6 @@ const OwnerEditVenue = () => {
           business: {
             issueDate: nextDocsForm.business.issueDate,
             expiryDate: nextDocsForm.business.expiryDate,
-          },
-          land: {
-            issueDate: nextDocsForm.land.issueDate,
-            expiryDate: nextDocsForm.land.expiryDate,
           },
         };
       } catch (e) {
@@ -631,20 +618,14 @@ const OwnerEditVenue = () => {
     if (!form.provinceId || !form.wardId) return toast.error("Vui lòng chọn tỉnh/thành và quận/huyện.");
 
     const businessInitial = docsInitialRef.current.business;
-    const landInitial = docsInitialRef.current.land;
 
     const businessFiles = Array.isArray(docsForm.business.files) ? docsForm.business.files : [];
-    const landFiles = Array.isArray(docsForm.land.files) ? docsForm.land.files : [];
 
     const businessDatesChanged =
       docsForm.business.issueDate !== businessInitial.issueDate ||
       docsForm.business.expiryDate !== businessInitial.expiryDate;
-    const landDatesChanged =
-      docsForm.land.issueDate !== landInitial.issueDate ||
-      docsForm.land.expiryDate !== landInitial.expiryDate;
 
     const businessChanged = businessFiles.length > 0 || businessDatesChanged;
-    const landChanged = landFiles.length > 0 || landDatesChanged;
 
     const validateDocDates = (label, issueDate, expiryDate) => {
       if (!issueDate || !expiryDate) {
@@ -653,8 +634,15 @@ const OwnerEditVenue = () => {
       }
       const issue = new Date(issueDate);
       const expiry = new Date(expiryDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       if (Number.isNaN(issue.getTime()) || Number.isNaN(expiry.getTime())) {
         toast.error(`Ngày không hợp lệ cho "${label}".`);
+        return false;
+      }
+      if (expiry.getTime() < today.getTime()) {
+        toast.error(`Ngày hết hạn không được trước ngày hiện tại cho "${label}".`);
         return false;
       }
       if (expiry.getTime() <= issue.getTime()) {
@@ -670,14 +658,6 @@ const OwnerEditVenue = () => {
         return;
       }
       if (!validateDocDates("Giấy phép kinh doanh", docsForm.business.issueDate, docsForm.business.expiryDate)) return;
-    }
-
-    if (landChanged) {
-      if (landFiles.length > 5) {
-        toast.error("Mỗi loại giấy tờ tối đa 5 ảnh (LandUseDocument).");
-        return;
-      }
-      if (!validateDocDates("Giấy tờ sử dụng đất", docsForm.land.issueDate, docsForm.land.expiryDate)) return;
     }
 
     setSaving(true);
@@ -701,15 +681,6 @@ const OwnerEditVenue = () => {
               },
             }
           : {}),
-        ...(landChanged
-          ? {
-              landUseDocument: {
-                issueDate: docsForm.land.issueDate,
-                expiryDate: docsForm.land.expiryDate,
-                files: landFiles,
-              },
-            }
-          : {}),
       });
       toast.success("Đã cập nhật thông tin cơ sở.");
       navigate(`/owner/venues/${id}`);
@@ -721,20 +692,14 @@ const OwnerEditVenue = () => {
   };
 
   const businessInitial = docsInitialRef.current.business;
-  const landInitial = docsInitialRef.current.land;
 
   const businessHasFiles = Array.isArray(docsForm.business.files) && docsForm.business.files.length > 0;
-  const landHasFiles = Array.isArray(docsForm.land.files) && docsForm.land.files.length > 0;
 
   const businessDatesChanged =
     docsForm.business.issueDate !== businessInitial.issueDate ||
     docsForm.business.expiryDate !== businessInitial.expiryDate;
-  const landDatesChanged =
-    docsForm.land.issueDate !== landInitial.issueDate ||
-    docsForm.land.expiryDate !== landInitial.expiryDate;
 
   const businessHasChanges = businessHasFiles || businessDatesChanged;
-  const landHasChanges = landHasFiles || landDatesChanged;
   const formHasChanges = useMemo(() => {
     if (loading) return false;
     const initial = initialFormRef.current;
@@ -750,7 +715,7 @@ const OwnerEditVenue = () => {
       Number(form.longitude) !== Number(initial.longitude)
     );
   }, [form, loading]);
-  const hasUnsavedChanges = formHasChanges || businessHasChanges || landHasChanges;
+  const hasUnsavedChanges = formHasChanges || businessHasChanges;
 
   useEffect(() => {
     if (!hasUnsavedChanges) return undefined;
@@ -899,165 +864,6 @@ const OwnerEditVenue = () => {
 
               <div className="ovd-docs-grid">
                 <div className="ovd-doc-card">
-                  <h4 className="ovd-doc-title">Giấy tờ sử dụng đất</h4>
-                  <div className="ovd-create-grid">
-                    <label className="ovd-label">
-                      Ngày cấp
-                      <input
-                        type="date"
-                        className="ovd-input"
-                        value={docsForm.land.issueDate}
-                        disabled={!canEdit}
-                        onChange={(e) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            land: { ...p.land, issueDate: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="ovd-label">
-                      Ngày hết hạn
-                      <input
-                        type="date"
-                        className="ovd-input"
-                        value={docsForm.land.expiryDate}
-                        disabled={!canEdit}
-                        min={docsForm.land.issueDate || undefined}
-                        onChange={(e) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            land: { ...p.land, expiryDate: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="ovd-label ovd-full">
-                      Ảnh giấy tờ (file, tối đa 5)
-                    </label>
-                  </div>
-
-                  {docsForm.land.files.length > 0 ? (
-                    <div style={{ marginTop: 10 }}>
-                      <LocalDocumentImageCarousel
-                        files={docsForm.land.files}
-                        title="Giấy tờ sử dụng đất"
-                        inputId="land-document-upload"
-                        disabled={!canEdit}
-                        maxImages={5}
-                        onAddChange={(e) => {
-                          const picked = Array.from(e.target.files || []).filter(Boolean);
-                          const maxImages = 5;
-                          const prevFiles = Array.isArray(docsForm.land.files) ? docsForm.land.files : [];
-
-                          if (picked.length > maxImages) {
-                            const id = "land-max-images";
-                            if (!toast.isActive(id)) {
-                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Vui lòng chọn lại.`, { toastId: id });
-                            }
-                            e.target.value = "";
-                            return;
-                          }
-
-                          if (prevFiles.length + picked.length > maxImages) {
-                            const id = "land-max-total-images";
-                            if (!toast.isActive(id)) {
-                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
-                            }
-                            e.target.value = "";
-                            return;
-                          }
-
-                          setDocsForm((p) => ({
-                            ...p,
-                            land: {
-                              ...p.land,
-                              files: [...prevFiles, ...picked],
-                            },
-                          }));
-                          e.target.value = "";
-                        }}
-                        onRemove={(removeIdx) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            land: {
-                              ...p.land,
-                              files: (p.land.files || []).filter((_, i) => i !== removeIdx),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="ovd-doc-images">
-                        {docsForm.land.existingImages.length > 0 ? (
-                          <DocumentImageCarousel
-                            images={docsForm.land.existingImages}
-                            title="Land document"
-                          />
-                        ) : (
-                          <span className="ovd-muted">Chưa có ảnh.</span>
-                        )}
-                      </div>
-                      <div style={{ marginTop: 10 }}>
-                        <LocalDocumentImageCarousel
-                          files={[]}
-                          title="Giấy tờ sử dụng đất"
-                          inputId="land-document-upload"
-                          disabled={!canEdit}
-                          maxImages={5}
-                          onAddChange={(e) => {
-                            const picked = Array.from(e.target.files || []).filter(Boolean);
-                            const maxImages = 5;
-                            const prevFiles = Array.isArray(docsForm.land.files) ? docsForm.land.files : [];
-
-                            if (picked.length > maxImages) {
-                              const id = "land-max-images";
-                              if (!toast.isActive(id)) {
-                                toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Vui lòng chọn lại.`, { toastId: id });
-                              }
-                              e.target.value = "";
-                              return;
-                            }
-
-                            if (prevFiles.length + picked.length > maxImages) {
-                              const id = "land-max-total-images";
-                              if (!toast.isActive(id)) {
-                                toast.error(`Tối đa ${maxImages} hình ảnh cho giấy tờ sử dụng đất. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
-                              }
-                              e.target.value = "";
-                              return;
-                            }
-
-                            setDocsForm((p) => ({
-                              ...p,
-                              land: {
-                                ...p.land,
-                                files: [...prevFiles, ...picked],
-                              },
-                            }));
-                            e.target.value = "";
-                          }}
-                          onRemove={() => {}}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div className="ovd-doc-actions">
-                    <button
-                      type="button"
-                      className="ovd-btn"
-                      disabled={!canEdit || saving || !landHasChanges}
-                      onClick={() => resetDoc("land")}
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
-
-                <div className="ovd-doc-card">
                   <h4 className="ovd-doc-title">Giấy phép kinh doanh</h4>
                   <div className="ovd-create-grid">
                     <label className="ovd-label">
@@ -1082,7 +888,11 @@ const OwnerEditVenue = () => {
                         className="ovd-input"
                         value={docsForm.business.expiryDate}
                         disabled={!canEdit}
-                        min={docsForm.business.issueDate || undefined}
+                        min={
+                          docsForm.business.issueDate && new Date(docsForm.business.issueDate) > new Date()
+                            ? docsForm.business.issueDate
+                            : new Date().toISOString().split("T")[0]
+                        }
                         onChange={(e) =>
                           setDocsForm((p) => ({
                             ...p,
