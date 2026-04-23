@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   BadgeDollarSign,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import fieboLogo from "../../assets/images/Logo Fiebo.png";
 import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import "./AdminLayout.css";
 
 const navItems = [
@@ -32,8 +33,10 @@ const navItems = [
 
 const AdminLayout = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const queryClient = useQueryClient();
   const initials = String(user?.name || user?.email || "AD")
     .split(/\s+/)
     .filter(Boolean)
@@ -42,9 +45,16 @@ const AdminLayout = () => {
     .join("");
 
   const handleLogout = () => {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
     dispatch(logout());
-    window.location.assign("/");
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem("token");
+      queryClient.clear();
+    } catch (e) {
+      // ignore
+    }
+    navigate("/", { replace: true });
+    setSidebarOpen(false);
   };
 
   const closeSidebar = () => setSidebarOpen(false);
