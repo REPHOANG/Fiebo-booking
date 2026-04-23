@@ -149,7 +149,7 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> GetCancelPreview([FromRoute] int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _bookingService.GetCancelPreviewAsync(id, userId ?? "-1");
+            var result = await _bookingService.GetCancelPreviewAsync(id, userId);
             return Ok(new ApiResponse<string>
             {
                 StatusCode = StatusCodes.Status200OK,
@@ -179,7 +179,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-59: Field Owner cancels a customer's booking with 100% refund.
         /// </summary>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPost("{id}/owner-cancel")]
         public async Task<IActionResult> OwnerCancelBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
         {
@@ -198,7 +198,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerOrStaffPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpPost("walk-in")]
         public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)
         {
@@ -219,7 +219,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/booking/{id:int}")]
         public async Task<IActionResult> GetBookingDetail([FromRoute] int id)
@@ -256,7 +256,7 @@ namespace Fiebo.API.Controllers
         /// <param name="filter"></param>
         /// <returns></returns>
         /// <exception cref="UnauthorizedAccessException"></exception>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/bookings")]
         public async Task<IActionResult> GetBookingList([FromQuery] OwnerBookingFilter filter)

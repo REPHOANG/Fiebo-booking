@@ -630,17 +630,18 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.Property<decimal>("PricePerPerson")
                         .HasColumnType("decimal(12,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("VenueId");
 
                     b.ToTable("TicketEvent", (string)null);
                 });
@@ -1563,6 +1564,17 @@ namespace Fiebo.Persistence.Migrations
                     b.Navigation("OwnerPlan");
 
                     b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("Fiebo.Domain.Entities.TicketEvent", b =>
+                {
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venue");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.TicketEventDetail", b =>

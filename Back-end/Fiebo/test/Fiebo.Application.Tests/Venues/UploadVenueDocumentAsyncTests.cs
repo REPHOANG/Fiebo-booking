@@ -150,12 +150,6 @@ namespace Fiebo.Application.Tests.Venues
                     IssueDate = DateTime.UtcNow,
                     ExpiryDate = DateTime.UtcNow.AddYears(1),
                     Images = new List<IFormFile> { CreateFakeImage() }
-                },
-                LandUseDocument = new VenueDocumentDto
-                {
-                    IssueDate = DateTime.UtcNow,
-                    ExpiryDate = DateTime.UtcNow.AddYears(1),
-                    Images = new List<IFormFile> { CreateFakeImage() }
                 }
             };
         }

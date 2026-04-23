@@ -33,6 +33,5 @@ namespace Fiebo.Application.DTOs.Field
         public IFormFile? ThumbnailImage { get; set; }
 
         public Fiebo.Application.DTOs.Venue.UpdateVenueDocumentDto? BusinessDocument { get; set; }
-        public Fiebo.Application.DTOs.Venue.UpdateVenueDocumentDto? LandUseDocument { get; set; }
     }
 }
