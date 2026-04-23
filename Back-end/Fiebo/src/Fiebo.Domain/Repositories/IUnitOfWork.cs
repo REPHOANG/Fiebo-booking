@@ -26,7 +26,7 @@ namespace Fiebo.Domain.Repositories
         ITimeSlotRepository TimeSlots { get; }
         ITopUpRequestRepository TopUpRequests { get; }
 
-        //IReportRepository Reports { get; }
+        IReportRepository Reports { get; }
         IWalletTransactionRepository WalletTransactions { get; }
         ITicketEventRepository TicketEvents { get; }
         ITicketParticipantRepository TicketParticipants { get; }
