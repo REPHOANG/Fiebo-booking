@@ -8,6 +8,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: hieulun123
       MYSQL_DATABASE: FieboDb4
+      TZ: Asia/Ho_Chi_Minh
+    command: --default-time-zone='+07:00' --lower_case_table_names=1
     ports:
       - "3306:3306"
     volumes:
@@ -19,6 +21,9 @@ services:
     image: redis:alpine
     container_name: fiebo_redis
     restart: always
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    command: --default-time-zone='+07:00'
     ports:
       - "6379:6379"
     volumes:
@@ -31,6 +36,8 @@ services:
       context: ./Back-end/Fiebo
       dockerfile: Dockerfile
     container_name: fiebo_api
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
     restart: always
     ports:
       - "8080:8080"
