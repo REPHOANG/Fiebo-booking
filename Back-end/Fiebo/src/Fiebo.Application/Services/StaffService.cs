@@ -1,6 +1,8 @@
 ﻿using Fiebo.Application.DTOs.Booking;
+using Fiebo.Application.DTOs.Event;
 using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.DTOs.Owner;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
@@ -150,6 +152,109 @@ namespace Fiebo.Application.Services
                     TotalPrice = b.TotalPrice,
                     Status = b.Status.ToString(),
                     CreatedAt = b.CreatedAt,
+                })]
+            };
+        }
+
+        public async Task<PagedResult<OwnerDropInEventListItemResponse>> GetStaffEventsAsync(string? staffId, int page, int pageSize)
+        {
+            if(staffId == null)
+            {
+                throw new UnauthorizedAccessException("Staff ID cannot be null.");
+            }
+            var venueIds = (await _unitOfWork.VenueStaffs.FindAsync(vs => vs.StaffId == staffId))
+                .Select(vs => vs.VenueId).ToList();
+            var staffEvents = await _unitOfWork.TicketEvents.GetEventsByVenueIdsAsync(venueIds, page, pageSize);
+            return new PagedResult<OwnerDropInEventListItemResponse>
+            {
+                Page = staffEvents.Page,
+                PageSize = staffEvents.PageSize,
+                TotalItems = staffEvents.TotalItems,
+                Items = [.. staffEvents.Items.Select(e => new OwnerDropInEventListItemResponse
+                {
+                    EventId = e.Id,
+                    Name = e.Name,
+                    VenueName = e.Venue.Name,
+                    EventDate = e.EventDate,
+                    TotalTicketQuantity = e.MaxPlayer,
+                    RemainingTicketQuantity = e.MaxPlayer - e.Participants.Count,
+                    Status = e.Status.ToString(),
+                    CreatedAt = e.CreatedAt
+                })]
+            };
+        }
+
+        public async Task<OwnerTicketEventDetailResponse> GetEventDetailsAsync(string? staffId, int eventId)
+        {
+            if(staffId == null)
+            {
+                throw new UnauthorizedAccessException("Staff ID cannot be null.");
+            }
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForStaff(eventId) 
+                ?? throw new NotFoundException("Sự kiện này không tồn tại");
+            var venueIds = (await _unitOfWork.VenueStaffs.FindAsync(vs => vs.StaffId == staffId)).Select(vs => vs.VenueId).ToList();
+            if (!venueIds.Contains(ticketEvent.VenueId))
+            {
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập sự kiện này.");
+            }
+            return new OwnerTicketEventDetailResponse
+            {
+                Id = ticketEvent.Id,
+                Name = ticketEvent.Name,
+                Description = ticketEvent.Description,
+                EventDate = ticketEvent.EventDate,
+                MinPlayer = ticketEvent.MinPlayer,
+                MaxPlayer = ticketEvent.MaxPlayer,
+                PricePerPerson = ticketEvent.PricePerPerson,
+                Status = ticketEvent.Status.ToString(),
+                IsEditable = false,
+                Slots = [.. ticketEvent.Details.Select(d => new EventSlotResponse
+                {
+                    FieldName = d.Field.Name,
+                    StartTime = d.Slot.StartTime,
+                    EndTime = d.Slot.EndTime
+                })],
+
+                Participants = [.. ticketEvent.Participants.Where(p => p.Status == TicketParticipantStatus.Joined).Select(p => new ParticipantResponse
+                {
+                    Fullname = p.Fullname,
+                    PhoneNumber = p.PhoneNumber,
+                    TicketQuantity = p.TicketQuantity,
+                    Status = p.Status.ToString(),
+                    JoinedAt = p.JoinedAt
+                })]
+            };
+        }
+
+        public async Task<OwnerBookingDetailResponse> GetBookingDetailAsync(string? staffId, int bookingId)
+        {
+            if (string.IsNullOrEmpty(staffId))
+            {
+                throw new UnauthorizedAccessException("Staff ID cannot be null or empty.");
+            }
+            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId)
+                ?? throw new NotFoundException("Đặt sân không tồn tại.");
+            var venueIds = (await _unitOfWork.VenueStaffs.FindAsync(vs => vs.StaffId == staffId)).Select(vs => vs.VenueId).ToList();
+            if (!venueIds.Contains(booking.VenueId))
+            {
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này.");
+            }
+            return new OwnerBookingDetailResponse
+            {
+                BookingId = booking.Id,
+                CustomerName = booking.Fullname,
+                PhoneNumber = booking.PhoneNumber,
+                Status = booking.Status.ToString(),
+                BookingNote = booking.BookingNote,
+                TotalPrice = booking.TotalPrice,
+                CreatedAt = booking.CreatedAt,
+                BookedItems = [.. booking.BookingDetails.Select(bd => new DetailItemResponse
+                {
+                    FieldName = bd.Field?.Name ?? "N/A",
+                    PlayDate = bd.Booking.BookingDate,
+                    StartTime = bd.TimeSlot?.StartTime ?? default,
+                    EndTime = bd.TimeSlot?.EndTime ?? default,
+                    Price = bd.Price
                 })]
             };
         }

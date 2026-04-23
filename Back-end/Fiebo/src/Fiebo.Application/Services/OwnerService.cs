@@ -81,7 +81,7 @@ namespace Fiebo.Application.Services
             var query = _unitOfWork.TicketParticipants
                 .GetQueryable()
                 .AsNoTracking()
-                .Where(tp => tp.Event.OwnerId == ownerId
+                .Where(tp => tp.Event.Venue.OwnerId == ownerId
                     && tp.Event.Status == TicketEventStatus.Completed
                     && tp.Status == TicketParticipantStatus.Joined
                     && tp.JoinedAt >= fromDateTime

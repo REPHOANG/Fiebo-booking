@@ -20,7 +20,7 @@ namespace Fiebo.Domain.Entities
 
         public decimal PricePerPerson { get; set; }
 
-        public required string OwnerId { get; set; }
+        public required int VenueId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
@@ -29,5 +29,6 @@ namespace Fiebo.Domain.Entities
         // Navigation
         public ICollection<TicketEventDetail> Details { get; set; } = [];
         public ICollection<TicketParticipant> Participants { get; set; } = [];
+        public Venue Venue { get; set; } = null!;
     }
 }

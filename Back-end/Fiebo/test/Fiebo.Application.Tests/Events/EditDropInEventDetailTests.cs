@@ -75,7 +75,7 @@ namespace Fiebo.Application.Tests.Events
 
             ticketEventRepoMock
                 .Setup(x => x.GetByIdAsync(1))
-                .ReturnsAsync(PendingEvent("owner-1"));
+                .ReturnsAsync(PendingEvent(1));
 
             ticketEventDetailRepoMock
                 .Setup(x => x.GetEarliestDetailAsync(1))
@@ -97,7 +97,7 @@ namespace Fiebo.Application.Tests.Events
 
             ticketEventRepoMock
                 .Setup(x => x.GetByIdAsync(1))
-                .ReturnsAsync(PendingEvent("owner-1"));
+                .ReturnsAsync(PendingEvent(1));
 
             ticketEventDetailRepoMock
                 .Setup(x => x.GetEarliestDetailAsync(1))
@@ -117,7 +117,7 @@ namespace Fiebo.Application.Tests.Events
             var ticketParticipantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
             SetupRepositories(ticketEventRepoMock, ticketEventDetailRepoMock, ticketParticipantRepoMock);
 
-            var evt = PendingEvent("owner-1");
+            var evt = PendingEvent(1);
             evt.Status = TicketEventStatus.Completed;
 
             ticketEventRepoMock
@@ -144,7 +144,7 @@ namespace Fiebo.Application.Tests.Events
 
             ticketEventRepoMock
                 .Setup(x => x.GetByIdAsync(1))
-                .ReturnsAsync(PendingEvent("owner-1"));
+                .ReturnsAsync(PendingEvent(1));
 
             ticketEventDetailRepoMock
                 .Setup(x => x.GetEarliestDetailAsync(1))
@@ -169,7 +169,7 @@ namespace Fiebo.Application.Tests.Events
             var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
             SetupRepositories(ticketEventRepoMock, ticketEventDetailRepoMock, ticketParticipantRepoMock);
 
-            var evt = PendingEvent("owner-1");
+            var evt = PendingEvent(1);
             var request = new UpdateEventRequest
             {
                 PricePerPerson = 120000m,
@@ -210,7 +210,7 @@ namespace Fiebo.Application.Tests.Events
             var ticketParticipantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
             SetupRepositories(ticketEventRepoMock, ticketEventDetailRepoMock, ticketParticipantRepoMock);
 
-            var evt = PendingEvent("owner-1");
+            var evt = PendingEvent(1);
 
             ticketEventRepoMock
                 .Setup(x => x.GetByIdAsync(1))
@@ -246,12 +246,12 @@ namespace Fiebo.Application.Tests.Events
             };
         }
 
-        private static TicketEvent PendingEvent(string ownerId)
+        private static TicketEvent PendingEvent(int venueId)
         {
             return new TicketEvent
             {
                 Id = 1,
-                OwnerId = ownerId,
+                VenueId = venueId,
                 EventDate = DateOnly.FromDateTime(DateTime.Now.AddDays(2)),
                 PricePerPerson = 80000m,
                 MinPlayer = 4,

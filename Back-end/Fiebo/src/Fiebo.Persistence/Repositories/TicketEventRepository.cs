@@ -1,6 +1,7 @@
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
+using Fiebo.Domain.Shared;
 using Fiebo.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +15,11 @@ namespace Fiebo.Persistence.Repositories
 
         public async Task<TicketEvent?> GetDropInEventDetailAsync(int eventId)
         {
-            return await _context.TicketEvents     
+            return await _context.TicketEvents
                 .AsNoTracking()
-                .AsSplitQuery()    
-                .Include(te => te.Details)       
-                .ThenInclude(d => d.Field)           
+                .AsSplitQuery()
+                .Include(te => te.Details)
+                .ThenInclude(d => d.Field)
                 .ThenInclude(f => f.Venue)
                 .ThenInclude(v => v!.Province)
                 .Include(te => te.Details)
@@ -59,27 +60,28 @@ namespace Fiebo.Persistence.Repositories
                     (d.Event.Status == TicketEventStatus.Pending || d.Event.Status == TicketEventStatus.Ongoing));
         }
 
-        public async Task<TicketEvent?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
+        public async Task<TicketEvent?> GetEventDetailForOwnerAsync(int eventId)
         {
             return await _context.TicketEvents
                 .AsNoTracking()
                 .AsSplitQuery()
+                .Include(e => e.Venue)
                 .Include(e => e.Details)
                     .ThenInclude(d => d.Field)
                 .Include(e => e.Details)
                     .ThenInclude(d => d.Slot)
                 .Include(e => e.Participants)
-                .FirstOrDefaultAsync(e => e.Id == eventId && e.OwnerId == ownerId);
+                .FirstOrDefaultAsync(e => e.Id == eventId);
         }
         public async Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId)
         {
             return await _context.TicketEvents
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(te => te.OwnerId == ownerId)
+                .Where(te => te.Venue.OwnerId == ownerId)
+                .Include(e => e.Venue)
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
-                        .ThenInclude(f => f.Venue)
                 .Include(te => te.Participants)
                 .OrderByDescending(te => te.CreatedAt)
                 .ToListAsync();
@@ -117,6 +119,48 @@ namespace Fiebo.Persistence.Repositories
                 .Select(d => new ValueTuple<int, int>(d.SlotId, d.FieldId))
                 .Distinct()
                 .ToListAsync();
+        }
+
+        public async Task<PagedResult<TicketEvent>> GetEventsByVenueIdsAsync(
+            List<int> venueIds, int page, int pageSize)
+        {
+            var baseQuery = _context.TicketEvents
+                .AsNoTracking()
+                .Where(te => venueIds.Contains(te.VenueId));
+
+            var totalItems = await baseQuery.CountAsync();
+
+            var items = await baseQuery
+                .Include(te => te.Venue)
+                .Include(te => te.Details)
+                    .ThenInclude(d => d.Field)
+                .Include(te => te.Participants)
+                .OrderByDescending(te => te.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<TicketEvent>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
+        }
+
+        public async Task<TicketEvent?> GetEventDetailForStaff(int eventId)
+        {
+            return await _context.TicketEvents
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(e => e.Venue)
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Field)
+                .Include(e => e.Details)
+                    .ThenInclude(d => d.Slot)
+                .Include(e => e.Participants)
+                .FirstOrDefaultAsync(e => e.Id == eventId);
         }
     }
 }

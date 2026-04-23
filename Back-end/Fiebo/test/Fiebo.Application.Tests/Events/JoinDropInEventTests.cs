@@ -244,7 +244,7 @@ namespace Fiebo.Application.Tests.Events
             ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(new TicketEvent
             {
                 Id = 1,
-                OwnerId = "owner-1",
+                VenueId = 1,
                 EventDate = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 MinPlayer = 2,
                 MaxPlayer = 10,
@@ -282,7 +282,7 @@ namespace Fiebo.Application.Tests.Events
             return new TicketEvent
             {
                 Id = 1,
-                OwnerId = "owner-1",
+                VenueId = 1,
                 EventDate = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
                 MinPlayer = 2,
                 MaxPlayer = maxPlayer,

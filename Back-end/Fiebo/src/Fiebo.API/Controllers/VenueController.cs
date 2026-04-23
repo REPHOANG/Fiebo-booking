@@ -196,7 +196,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/venues")]
         public async Task<IActionResult> GetOwnerVenues()
@@ -233,7 +233,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpGet]
         [Route("/api/owner/venue/{id}/schedule")]
         public async Task<IActionResult> GetOwnerVenueSchedule([FromRoute] int id, [FromQuery] DateOnly date)
@@ -255,7 +255,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-41: Get all fields under a specific venue for the Field Owner.
         /// </summary>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/venue/{venueId}/fields")]
         public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
@@ -387,12 +387,25 @@ namespace Fiebo.API.Controllers
             });
         }
 
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPut("/api/owner/document/{documentId}")]
+        public async Task<IActionResult> UpdateVenueDocument([FromRoute] int documentId, [FromForm] UpdateVenueDocumentRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.UpdateVenueDocumentAsync(documentId, ownerId, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật tài liệu sân thành công."
+            });
+        }
+
         /// <summary>
         /// Get the draft venue detail (for preview before submit) or view detail of draft venue
         /// </summary>
         /// <param name="venueId"></param>
         /// <returns></returns>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/venues/{venueId}/detail")]
         public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
         {
@@ -564,7 +577,7 @@ namespace Fiebo.API.Controllers
         /// <param name="id"></param>
         /// <param name="sportTypeId"></param>
         /// <returns></returns>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/venue/{id}/time-slot")]
         public async Task<IActionResult> GetOwnerVenueSchedule(
             [FromRoute] int id, [FromQuery] int sportTypeId)
@@ -642,7 +655,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/field/{id}")]
         public async Task<IActionResult> GetOwnerFieldDetail([FromRoute] int id)
         {
@@ -656,7 +669,7 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/venue/select-option")]
         public async Task<IActionResult> GetOwnerVenueSelectOption()
         {

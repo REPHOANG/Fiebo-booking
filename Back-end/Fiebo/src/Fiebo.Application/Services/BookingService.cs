@@ -653,8 +653,12 @@ namespace Fiebo.Application.Services
         //   Cancel Booking
         // ================================================================
 
-        public async Task<string> GetCancelPreviewAsync(int bookingId, string userId)
+        public async Task<string> GetCancelPreviewAsync(int bookingId, string? userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
@@ -663,17 +667,22 @@ namespace Fiebo.Application.Services
             if (booking.UserId != userId)
                 throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
 
-            if (booking.Status != BookingStatus.Booked)
+            if (booking.Status != BookingStatus.Booked && booking.Status != BookingStatus.Pending)
                 throw new BadRequestException("Lịch không thể hủy");
 
             var bookingStartTime = GetBookingStartTime(booking);
 
             if (DateTime.Now >= bookingStartTime)
-                throw new BadRequestException("Lịch không thể hủy");
+                throw new BadRequestException("Đã bắt đầu lịch đặt, không thể hủy");
 
             var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
             var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
+
+            if(booking.Status == BookingStatus.Pending)
+            {
+                return "Lịch đặt này vẫn chưa được chủ sân xác nhận, nếu huỷ bạn sẽ được hoàn lại số tiền đã thanh toán vào ví.";
+            }
 
             return refundPercentage switch
             {
@@ -699,7 +708,7 @@ namespace Fiebo.Application.Services
                 throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
 
             // Only Booked status can be cancelled
-            if (booking.Status != BookingStatus.Booked)
+            if (booking.Status != BookingStatus.Booked && booking.Status != BookingStatus.Pending)
                 throw new BadRequestException("Lịch không thể hủy");
 
             // Load booking details with TimeSlot for start time calculation
@@ -712,7 +721,14 @@ namespace Fiebo.Application.Services
 
             // BR-28: Calculate refund
             var hoursBeforeStart = (bookingStartTime - DateTime.Now).TotalHours;
-            var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
+            var refundPercentage = 0;
+            if (booking.Status == BookingStatus.Booked)
+            {
+                refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
+            } else if(booking.Status == BookingStatus.Booked)
+            {
+                refundPercentage = 100;
+            }
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
 
             // BR-27: Refund to wallet within a transaction
@@ -903,11 +919,15 @@ namespace Fiebo.Application.Services
 
         public async Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId)
         {
-            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId, ownerId);
+            var booking = await _unitOfWork.Bookings.GetBookingDetailForOwnerAsync(bookingId);
 
             if (booking == null)
             {
                 throw new NotFoundException("Không tìm thấy lịch đặt");
+            }
+            if(booking.Venue.OwnerId != ownerId)
+            {
+                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
             }
 
             return new OwnerBookingDetailResponse

@@ -30,6 +30,5 @@ namespace Fiebo.Application.DTOs.Admin
 
         // Documents
         public VenueDocumentResponse? BusinessLicense { get; set; } = new();
-        public VenueDocumentResponse? LandUseDocument { get; set; } = new();
     }
 }

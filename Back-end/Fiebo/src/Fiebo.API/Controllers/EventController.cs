@@ -139,7 +139,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Get drop-in event list for the current owner.
         /// </summary>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet]
         [Route("/api/owner/events")]
         public async Task<IActionResult> GetOwnerEventList()
@@ -187,7 +187,7 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// Get detailed info of a drop-in event for the Owner (including player list).
         /// </summary>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpGet("/api/owner/event/{id:int}")]
         public async Task<IActionResult> GetOwnerEventDetail([FromRoute] int id)
         {
@@ -285,7 +285,7 @@ namespace Fiebo.API.Controllers
         /// BR-144 / BR-145: Owner cancels a Drop-in Event (self-service, blocked within 2h of start).
         /// Triggers 100% refund for all paid participants.
         /// </summary>
-        [Authorize(Policy = "ActiveOwnerPlan")]
+        [Authorize(Roles = AppRoles.FieldOwner)]
         [HttpPost("/api/owner/event/{id}/cancel")]
         public async Task<IActionResult> CancelDropInEvent([FromRoute] int id, [FromBody] CancelEventRequest request)
         {

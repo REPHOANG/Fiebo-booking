@@ -66,8 +66,6 @@ namespace Fiebo.Application.Services
             if (request.EventDate > maxEventDate)
                 throw new BadRequestException($"Chỉ có thể tạo sự kiện đến hết ngày {maxEventDate:dd/MM/yyyy}.");
 
-            // Verify all fields exist and belong to a venue owned by this user
-            int? venueId = null;
             foreach (var detail in request.Details)
             {
                 var field = await _unitOfWork.Fields.GetByIdAsync(detail.FieldId);
@@ -76,15 +74,13 @@ namespace Fiebo.Application.Services
                 if (field.Status != FieldStatus.Active)
                     throw new BadRequestException("Sân hiện tại không hoạt động.");
 
-                var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId);
+                var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
                 if (venue == null || venue.OwnerId != userId)
                     throw new ForbiddenException("Bạn không có quyền tạo sự kiện cho sân này.");
                 if (venue.Status != VenueStatus.Active)
                     throw new BadRequestException("Cơ sở này hiện không hoạt động.");
 
-                if (venueId == null)
-                    venueId = venue.Id;
-                else if (venueId != venue.Id)
+                else if (field.VenueId != venue.Id)
                     throw new BadRequestException("Tất cả sân phải thuộc cùng một cơ sở.");
 
                 var slot = await _unitOfWork.TimeSlots.GetByIdAsync(detail.SlotId);
@@ -124,7 +120,7 @@ namespace Fiebo.Application.Services
                 MinPlayer = request.MinPlayer,
                 MaxPlayer = request.MaxPlayer,
                 Description = request.Description,
-                OwnerId = userId,
+                VenueId = request.VenueId,
                 Status = TicketEventStatus.Pending
             };
 
@@ -448,9 +444,16 @@ namespace Fiebo.Application.Services
 
         public async Task<OwnerTicketEventDetailResponse?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
         {
-            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId, ownerId);
+            var ticketEvent = await _unitOfWork.TicketEvents.GetEventDetailForOwnerAsync(eventId);
 
-            if (ticketEvent == null) return null;
+            if (ticketEvent == null)
+            {
+                throw new NotFoundException("Sự kiện này không tồn tại");
+            }
+            if(ticketEvent.Venue.OwnerId != ownerId)
+            {
+                throw new BadRequestException("Bạn không có quyền xem sự kiện này");
+            }
 
             // Logic kiểm tra: Nếu mảng Participants có bất kỳ ai thì không cho sửa
             bool hasParticipants = ticketEvent.Participants.Any(p => p.Status != TicketParticipantStatus.Cancelled);
@@ -476,7 +479,7 @@ namespace Fiebo.Application.Services
                     EndTime = d.Slot.EndTime
                 }).ToList(),
 
-                Participants = ticketEvent.Participants.Select(p => new ParticipantResponse
+                Participants = ticketEvent.Participants.Where(p => p.Status == TicketParticipantStatus.Joined).Select(p => new ParticipantResponse
                 {
                     Fullname = p.Fullname,
                     PhoneNumber = p.PhoneNumber,
@@ -499,7 +502,8 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Sự kiện không có slot");
             }
-            if (dropInEvent.OwnerId != ownerId)
+            var venue = await _unitOfWork.Venues.GetByIdAsync(dropInEvent.VenueId) ?? throw new NotFoundException("Cơ sở của sự kiện không tồn tại");
+            if (venue.OwnerId != ownerId)
             {
                 throw new BadRequestException("Bạn không có quyền chỉnh sửa sự kiện này");
             }
@@ -530,14 +534,13 @@ namespace Fiebo.Application.Services
 
             return events.Select(e =>
             {
-                var firstDetail = e.Details.FirstOrDefault();
                 var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
 
                 return new OwnerDropInEventListItemResponse
                 {
                     EventId = e.Id,
                     Name = e.Name,
-                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    VenueName = e.Venue.Name,
                     EventDate = e.EventDate,
                     TotalTicketQuantity = e.MaxPlayer,
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
@@ -603,7 +606,8 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Sự kiện này không tồn tại.");
 
             // 2. Authorize: only the owner of the event may cancel it
-            if (ticketEvent.OwnerId != ownerId)
+            var venue = await _unitOfWork.Venues.GetByIdAsync(ticketEvent.VenueId) ?? throw new NotFoundException("Cơ sở của sự kiện không tồn tại");
+            if (venue.OwnerId != ownerId)
                 throw new ForbiddenException("Bạn không có quyền hủy sự kiện này.");
 
             // 3. Guard: can only cancel if still Pending

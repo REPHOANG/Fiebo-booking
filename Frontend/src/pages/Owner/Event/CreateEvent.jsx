@@ -377,6 +377,7 @@ const CreateEvent = () => {
     try {
       const eventName = values.eventName?.trim() || "";
       const payload = {
+        venueId: Number(values.venueId),
         eventDate: values.eventDate.slice(0, 10),
         name: eventName,
         details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),

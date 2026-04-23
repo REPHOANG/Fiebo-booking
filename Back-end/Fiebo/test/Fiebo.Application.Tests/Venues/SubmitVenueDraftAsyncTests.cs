@@ -97,19 +97,6 @@ namespace Fiebo.Application.Tests.Venues
                 service.SubmitVenueDraftAsync(1, "owner"));
         }
 
-        [Fact]
-        public async Task Should_ThrowBadRequest_WhenMissingLandUse()
-        {
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-
-            uowMock.Setup(x => x.Venues.GetVenueWithDocumentsAsync(It.IsAny<int>()))
-                   .ReturnsAsync(CreateVenue("owner", VenueStatus.Draft, true, false));
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<BadRequestException>(() =>
-                service.SubmitVenueDraftAsync(1, "owner"));
-        }
 
         // =========================
         // 🟢 VALID
@@ -155,14 +142,6 @@ namespace Fiebo.Application.Tests.Venues
                 docs.Add(new VenueDocument
                 {
                     DocumentType = DocumentType.BusinessLicense
-                });
-            }
-
-            if (hasLand)
-            {
-                docs.Add(new VenueDocument
-                {
-                    DocumentType = DocumentType.LandUse
                 });
             }
 
