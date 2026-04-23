@@ -92,7 +92,11 @@ const CANCEL_REASON_OPTIONS = [
   "Khác",
 ];
 
-const OwnerEventDetail = () => {
+const OwnerEventDetail = ({
+  eventListPath = "/owner/events",
+  fetchEventFn = getEventOwner,
+  isStaff = false,
+}) => {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState("");
@@ -125,8 +129,8 @@ const OwnerEventDetail = () => {
     error: detailError,
     refetch: refetchDetail,
   } = useQuery({
-    queryKey: ["owner-event-detail", id],
-    queryFn: () => getEventOwner(id),
+    queryKey: [isStaff ? "staff-event-detail" : "owner-event-detail", id],
+    queryFn: () => fetchEventFn(id),
     enabled: Boolean(id),
     retry: 0,
   });
@@ -243,7 +247,7 @@ const OwnerEventDetail = () => {
     return (
       <div className="owner-home oed-page">
         <div className="owner-home-header">
-          <Link to="/owner/events" className="oed-back">
+          <Link to={eventListPath} className="oed-back">
             ← Danh sách sự kiện
           </Link>
         </div>
@@ -258,7 +262,7 @@ const OwnerEventDetail = () => {
 
   const d = detail || {};
   const statusLower = String(d.status || "").toLowerCase();
-  const showCancelButton = statusLower === "pending";
+  const showCancelButton = !isStaff && statusLower === "pending";
 
   const eventName =
     d.name ?? d.eventName ?? d.title ?? d.Name ?? d.EventName ?? d.Title;
@@ -292,14 +296,16 @@ const OwnerEventDetail = () => {
               <span>Ngày: {formatDate(d.eventDate)}</span>
             </div>
             <div className="oed-meta-right">
-              <button
-                type="button"
-                className="oed-btn oed-edit-btn"
-                onClick={() => setEditMode(true)}
-                disabled={!d.isEditable || editMode || cancelEventMutation.isPending || updateEventMutation.isPending}
-              >
-                Sửa thông tin
-              </button>
+              {!isStaff && (
+                <button
+                  type="button"
+                  className="oed-btn oed-edit-btn"
+                  onClick={() => setEditMode(true)}
+                  disabled={!d.isEditable || editMode || cancelEventMutation.isPending || updateEventMutation.isPending}
+                >
+                  Sửa thông tin
+                </button>
+              )}
               {showCancelButton && (
                 <button
                   type="button"

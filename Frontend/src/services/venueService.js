@@ -39,6 +39,18 @@ export const addVenueDocuments = async (venueId, formData) => {
 };
 
 /**
+ * Update an existing document using its ID (PUT)
+ * Payload is FormData with IssueDate, ExpiryDate, Images (new), DeletedImageIds (array)
+ */
+export const updateOwnerDocument = async (documentId, formData) => {
+  const response = await api.put(`/api/owner/document/${documentId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000,
+  });
+  return unwrap(response) ?? response;
+};
+
+/**
  * Legacy / optional — gán bộ môn (nếu backend còn route `/api/venues/...`)
  * POST `/api/venues/{venueId}/sport-types`
  */
@@ -117,10 +129,9 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
     form.append('ThumbnailImage', payload.thumbnailFile);
   }
 
-  // Optional — update legal documents (BusinessDocument + LandUseDocument).
+  // Optional — update legal documents (BusinessDocument).
   // Backend expects nested form fields:
   // - BusinessDocument.IssueDate / ExpiryDate / Images[]
-  // - LandUseDocument.IssueDate / ExpiryDate / Images[]
   const businessDocument = payload?.businessDocument;
   if (businessDocument) {
     if (businessDocument.issueDate) {
@@ -135,19 +146,7 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
     }
   }
 
-  const landUseDocument = payload?.landUseDocument;
-  if (landUseDocument) {
-    if (landUseDocument.issueDate) {
-      form.append("LandUseDocument.IssueDate", String(landUseDocument.issueDate));
-    }
-    if (landUseDocument.expiryDate) {
-      form.append("LandUseDocument.ExpiryDate", String(landUseDocument.expiryDate));
-    }
-    const files = Array.isArray(landUseDocument.files) ? landUseDocument.files : [];
-    for (const file of files) {
-      if (file) form.append("LandUseDocument.Images", file);
-    }
-  }
+
 
   const response = await api.put(`/api/owner/venues/${venueId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },

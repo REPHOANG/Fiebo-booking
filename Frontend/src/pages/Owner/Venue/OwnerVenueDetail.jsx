@@ -286,10 +286,6 @@ const OwnerVenueDetail = () => {
     () => normalizeDoc(venueRaw?.businessLicense ?? venueRaw?.BusinessLicense),
     [venueRaw],
   );
-  const landDocumentDoc = useMemo(
-    () => normalizeDoc(venueRaw?.landDocument ?? venueRaw?.LandDocument),
-    [venueRaw],
-  );
 
   const extraVenueEntries = useMemo(() => {
     if (!venueRaw || typeof venueRaw !== "object") return [];
@@ -522,31 +518,12 @@ const OwnerVenueDetail = () => {
             </div>
           </div>
 
-          {businessLicenseDoc || landDocumentDoc ? (
+          {businessLicenseDoc ? (
             <div className="ovd-card ovd-card--legal">
               <h3 className="ovd-subtitle ovd-legal-heading">
                 <Calendar size={18} /> Giấy tờ pháp lý
               </h3>
               <div className="ovd-docs-grid">
-                {landDocumentDoc ? (
-                  <div className="ovd-doc-card">
-                    <h4 className="ovd-doc-title">Giấy tờ sử dụng đất</h4>
-                    <div className="ovd-doc-meta ovd-doc-meta--row">
-                      <div className="ovd-doc-meta-item">
-                        <span className="ovd-doc-meta-label">Ngày cấp</span>
-                        <strong className="ovd-doc-meta-value">{formatLegalDocDate(landDocumentDoc.issueDate)}</strong>
-                      </div>
-                      <div className="ovd-doc-meta-item">
-                        <span className="ovd-doc-meta-label">Ngày hết hạn</span>
-                        <strong className="ovd-doc-meta-value">{formatLegalDocDate(landDocumentDoc.expiryDate)}</strong>
-                      </div>
-                    </div>
-                    <div className="ovd-doc-images">
-                      <DocumentImageCarousel images={landDocumentDoc.images} title="Giấy tờ sử dụng đất" />
-                    </div>
-                  </div>
-                ) : null}
-
                 {businessLicenseDoc ? (
                   <div className="ovd-doc-card">
                     <h4 className="ovd-doc-title">Giấy phép kinh doanh</h4>

@@ -47,7 +47,11 @@ const OWNER_CANCEL_REASONS = [
   "Khác",
 ];
 
-const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
+const OwnerBookingDetail = ({
+  bookingsListPath = "/owner/bookings",
+  fetchDetailFn = getOwnerBookingDetail,
+  isStaff = false,
+}) => {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +67,7 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
     setLoading(true);
     setError("");
     try {
-      const data = await getOwnerBookingDetail(id);
+      const data = await fetchDetailFn(id);
       setDetail(data);
     } catch (e) {
       setDetail(null);
@@ -171,16 +175,33 @@ const OwnerBookingDetail = ({ bookingsListPath = "/owner/bookings" }) => {
             </span>
             <span>Đặt lúc: {d.createdAt ? new Date(d.createdAt).toLocaleString("vi-VN") : "—"}</span>
 
-            {canCancel && (
-              <button
-                type="button"
-                className="obd-cancel-btn"
-                onClick={openCancelModal}
-                disabled={cancelling}
-              >
-                Hủy đặt sân
-              </button>
-            )}
+            <div className="obd-action-group">
+              {!isStaff && statusKey === "pending" && (
+                <>
+                  <button type="button" className="obd-action-btn obd-btn-accept">
+                    Xác nhận
+                  </button>
+                  <button
+                    type="button"
+                    className="obd-action-btn obd-btn-reject"
+                    onClick={openCancelModal}
+                    disabled={cancelling}
+                  >
+                    Từ chối
+                  </button>
+                </>
+              )}
+              {!isStaff && statusKey === "booked" && (
+                <button
+                  type="button"
+                  className="obd-cancel-btn"
+                  onClick={openCancelModal}
+                  disabled={cancelling}
+                >
+                  Hủy đặt sân
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="obd-section">

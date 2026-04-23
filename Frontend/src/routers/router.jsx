@@ -67,6 +67,7 @@ import StaffOfflineBooking from "../pages/Staff/Booking/StaffOfflineBooking";
 import StaffBookings from "../pages/Staff/Booking/StaffBookings";
 import StaffBookingDetail from "../pages/Staff/Booking/StaffBookingDetail";
 import StaffEvents from "../pages/Staff/Event/StaffEvents";
+import StaffEventDetail from "../pages/Staff/Event/StaffEventDetail";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -260,6 +261,7 @@ const routes = [
       { path: "bookings", element: <StaffBookings /> },
       { path: "bookings/:id", element: <StaffBookingDetail /> },
       { path: "events", element: <StaffEvents /> },
+      { path: "events/:id", element: <StaffEventDetail /> },
     ],
   },
   { path: "*", element: <NotFoundPage /> },

@@ -47,7 +47,7 @@ export default function CreateVenueStepDocuments({
   const validateImagesBeforeSubmit = () => {
     let hasImageError = false;
     docs.forEach((d, di) => {
-      const totalImages = (d.existingImageUrls?.length ?? 0) + (d.files?.length ?? 0);
+      const totalImages = (d.existingImages?.length ?? 0) + (d.files?.length ?? 0);
       if (totalImages === 0) {
         hasImageError = true;
         setError(`docs.${di}.images`, {
@@ -80,7 +80,7 @@ export default function CreateVenueStepDocuments({
             
             <div className="cv-docs">
               {docs.map((d, di) => {
-                const existing = d.existingImageUrls ?? [];
+                const existing = d.existingImages ?? [];
                 const files = d.files ?? [];
                 const total = existing.length + files.length;
                 const canAddMore = total < 5;
@@ -144,10 +144,17 @@ export default function CreateVenueStepDocuments({
                             required: "Vui lòng chọn ngày hết hạn.",
                             validate: (value) => {
                               const issue = watch(`docs.${di}.issueDate`);
-                              if (!issue || !value) return true;
-                              const issueMs = new Date(issue).getTime();
+                              if (!value) return true;
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
                               const expiryMs = new Date(value).getTime();
-                              if (Number.isNaN(issueMs) || Number.isNaN(expiryMs)) return true;
+
+                              if (Number.isNaN(expiryMs)) return true;
+                              if (expiryMs < today.getTime()) return "Ngày hết hạn không được trước ngày hiện tại.";
+
+                              if (!issue) return true;
+                              const issueMs = new Date(issue).getTime();
+                              if (Number.isNaN(issueMs)) return true;
                               return expiryMs >= issueMs || "Ngày hết hạn phải từ ngày cấp trở đi.";
                             },
                           }}
@@ -156,7 +163,11 @@ export default function CreateVenueStepDocuments({
                               type="date"
                               className={expiryDateError ? "cv-input-invalid" : ""}
                               value={field.value || ""}
-                              min={issueDateValue || undefined}
+                              min={
+                                issueDateValue && new Date(issueDateValue) > new Date()
+                                  ? issueDateValue
+                                  : new Date().toISOString().split("T")[0]
+                              }
                               onChange={(e) => {
                                 const nextValue = e.target.value;
                                 field.onChange(nextValue);
@@ -181,10 +192,10 @@ export default function CreateVenueStepDocuments({
                           className={`cv-doc-gallery${imageError ? " cv-doc-gallery-invalid" : ""}`}
                           aria-label={`Ảnh ${d.label}`}
                         >
-                          {existing.map((url, ui) => (
-                            <li key={`srv-${url}-${ui}`} className="cv-doc-gallery-item">
+                          {existing.map((imgObj, ui) => (
+                            <li key={`srv-${imgObj.imageUrl}-${ui}`} className="cv-doc-gallery-item">
                               <div className="cv-doc-gallery-tile cv-doc-gallery-tile--server">
-                                <img src={url} alt="" />
+                                <img src={imgObj.imageUrl} alt="" />
                                 <span className="cv-doc-gallery-badge">Đã lưu</span>
                                 <button
                                   type="button"
@@ -194,16 +205,19 @@ export default function CreateVenueStepDocuments({
                                     e.preventDefault();
                                     e.stopPropagation();
                                     setDocs((p) =>
-                                      p.map((x, i) =>
-                                        i === di
-                                          ? {
-                                              ...x,
-                                              existingImageUrls: (x.existingImageUrls ?? []).filter(
-                                                (u) => u !== url,
-                                              ),
-                                            }
-                                          : x,
-                                      ),
+                                      p.map((x, i) => {
+                                        if (i !== di) return x;
+                                        const newExisting = (x.existingImages ?? []).filter((u) => u !== imgObj);
+                                        const newDeleted = [...(x.deletedImageIds || [])];
+                                        if (imgObj.imageId != null) {
+                                          newDeleted.push(imgObj.imageId);
+                                        }
+                                        return {
+                                          ...x,
+                                          existingImages: newExisting,
+                                          deletedImageIds: newDeleted,
+                                        };
+                                      })
                                     );
                                   }}
                                 >
@@ -249,7 +263,7 @@ export default function CreateVenueStepDocuments({
                                     setDocs((p) =>
                                       p.map((x, i) => {
                                         if (i !== di) return x;
-                                        const ex = x.existingImageUrls?.length ?? 0;
+                                        const ex = x.existingImages?.length ?? 0;
                                         const cur = x.files?.length ?? 0;
                                         const room = Math.max(0, 5 - ex - cur);
                                         const take = picked.slice(0, room);

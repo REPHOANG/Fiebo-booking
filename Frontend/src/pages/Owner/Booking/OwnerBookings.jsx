@@ -81,7 +81,12 @@ const getVenueOptionId = (venue) => venue?.venueId ?? venue?.VenueId ?? venue?.i
 
 const getVenueOptionName = (venue) => venue?.name ?? venue?.Name ?? "";
 
-const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
+const OwnerBookings = ({
+  bookingDetailBasePath = "/owner/bookings",
+  fetchBookings = getOwnerBookingList,
+  fetchVenues = getOwnerVenueSelectOptions,
+  isStaff = false,
+}) => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
   const [venuesLoading, setVenuesLoading] = useState(true);
@@ -121,7 +126,7 @@ const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
     (async () => {
       setVenuesLoading(true);
       try {
-        const list = await getOwnerVenueSelectOptions();
+        const list = await fetchVenues();
         if (!cancelled) setVenues(Array.isArray(list) ? list : []);
       } catch (e) {
         if (!cancelled) {
@@ -157,8 +162,8 @@ const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
       if (statusFilter) {
         if (statusFilter === "Cancelled") {
           const [customerCancelledRes, ownerCancelledRes] = await Promise.all([
-            getOwnerBookingList({ ...baseParams, status: "CustomerCancelled" }),
-            getOwnerBookingList({ ...baseParams, status: "OwnerCancelled" }),
+            fetchBookings({ ...baseParams, status: "CustomerCancelled" }),
+            fetchBookings({ ...baseParams, status: "OwnerCancelled" }),
           ]);
 
           const merged = [
@@ -182,7 +187,7 @@ const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
         }
       }
 
-      const result = await getOwnerBookingList({ ...baseParams, status: statusFilter || undefined });
+      const result = await fetchBookings({ ...baseParams, status: statusFilter || undefined });
       setItems(Array.isArray(result?.items) ? result.items : []);
       setTotalItems(Number(result?.totalItems) || 0);
     } catch (e) {
@@ -474,13 +479,25 @@ const OwnerBookings = ({ bookingDetailBasePath = "/owner/bookings" }) => {
                       <strong>{formatPrice(total)}</strong>
                     </div>
 
-                    <button
-                      type="button"
-                      className="ob-detail-btn"
-                      onClick={() => navigate(`${bookingDetailBasePath}/${bid}`)}
-                    >
-                      Xem chi tiết
-                    </button>
+                    <div className="ob-item-actions">
+                      {!isStaff && String(status || "").toLowerCase() === "pending" && (
+                        <>
+                          <button type="button" className="ob-action-btn ob-btn-accept">
+                            Xác nhận
+                          </button>
+                          <button type="button" className="ob-action-btn ob-btn-reject">
+                            Từ chối
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className="ob-detail-btn"
+                        onClick={() => navigate(`${bookingDetailBasePath}/${bid}`)}
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
                   </div>
                 );
               })}

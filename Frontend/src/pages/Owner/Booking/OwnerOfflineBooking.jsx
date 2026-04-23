@@ -35,6 +35,7 @@ const OwnerOfflineBooking = ({
   venueOfflineBasePath = "/owner/venues",
   createVenuePath = "/owner/create-venue",
   noVenueBackPath = "/owner/venues",
+  fetchVenues = getOwnerVenues,
 }) => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
@@ -43,7 +44,7 @@ const OwnerOfflineBooking = ({
   const loadVenues = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await getOwnerVenues();
+      const list = await fetchVenues();
       setVenues(Array.isArray(list) ? list : []);
     } catch (e) {
       toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được danh sách cơ sở.");

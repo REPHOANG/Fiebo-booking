@@ -11,6 +11,7 @@ import {
   getVenueDraft,
   submitVenue,
   updateOwnerVenueInfo,
+  updateOwnerDocument,
 } from "../../../services/venueService";
 import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
 import CreateVenueStepBasic from "../CreateVenueSteps/CreateVenueStepBasic";
@@ -77,9 +78,7 @@ const schema = yup.object({
     .required("Vui lòng nhập kinh độ"),
 });
 
-/** Khớp DTO backend: LandUseDocument + BusinessDocument (ảnh là file, không phải URL) */
 const DOC_SLOTS = [
-  { apiPrefix: "LandUseDocument", label: "Giấy tờ sử dụng đất" },
   { apiPrefix: "BusinessDocument", label: "Giấy phép kinh doanh" },
 ];
 
@@ -107,17 +106,6 @@ function draftDateToInputValue(raw) {
 }
 
 /** Backend OwnerVenueDetailResponse: LandDocument (+ alias cũ nếu có) */
-function pickLandDocFromDraft(draft) {
-  if (!draft) return null;
-  return (
-    draft.landDocument ??
-    draft.LandDocument ??
-    draft.landUseDocument ??
-    draft.LandUseDocument ??
-    null
-  );
-}
-
 /** Backend: BusinessLicense (+ alias) */
 function pickBusinessDocFromDraft(draft) {
   if (!draft) return null;
@@ -133,28 +121,28 @@ function pickBusinessDocFromDraft(draft) {
 function docImagesList(doc) {
   if (!doc) return [];
   const imgs = doc.images ?? doc.Images;
-  return Array.isArray(imgs) ? imgs.filter(Boolean) : [];
+  if (!Array.isArray(imgs)) return [];
+  return imgs.map((img) => {
+    if (typeof img === "string") return { imageId: null, imageUrl: img };
+    return {
+      imageId: img.imageId ?? img.ImageId ?? img.id ?? img.Id ?? null,
+      imageUrl: img.imageUrl ?? img.ImageUrl ?? img.url ?? img.Url ?? "",
+    };
+  }).filter((x) => x.imageUrl);
 }
 
 function buildDocsStateFromDraft(draft) {
-  const land = pickLandDocFromDraft(draft);
   const biz = pickBusinessDocFromDraft(draft);
   return [
     {
       apiPrefix: DOC_SLOTS[0].apiPrefix,
       label: DOC_SLOTS[0].label,
-      issueDate: draftDateToInputValue(land?.issueDate ?? land?.IssueDate),
-      expiryDate: draftDateToInputValue(land?.expiryDate ?? land?.ExpiryDate),
-      files: [],
-      existingImageUrls: docImagesList(land),
-    },
-    {
-      apiPrefix: DOC_SLOTS[1].apiPrefix,
-      label: DOC_SLOTS[1].label,
+      documentId: biz?.documentId ?? biz?.DocumentId ?? null,
       issueDate: draftDateToInputValue(biz?.issueDate ?? biz?.IssueDate),
       expiryDate: draftDateToInputValue(biz?.expiryDate ?? biz?.ExpiryDate),
       files: [],
-      existingImageUrls: docImagesList(biz),
+      existingImages: docImagesList(biz),
+      deletedImageIds: [],
     },
   ];
 }
@@ -210,10 +198,12 @@ const CreateVenue = () => {
     DOC_SLOTS.map((s) => ({
       apiPrefix: s.apiPrefix,
       label: s.label,
+      documentId: null,
       issueDate: "",
       expiryDate: "",
       files: [],
-      existingImageUrls: [],
+      existingImages: [],
+      deletedImageIds: [],
     })),
   );
 
@@ -273,9 +263,7 @@ const CreateVenue = () => {
         const draft = await getVenueDraft(resumeVenueId);
         if (!mounted || !draft) return;
 
-        const land = pickLandDocFromDraft(draft);
         const biz = pickBusinessDocFromDraft(draft);
-        const landImgs = docImagesList(land);
         const bizImgs = docImagesList(biz);
 
         const canonicalVenueId = Number(resumeVenueId);
@@ -303,7 +291,7 @@ const CreateVenue = () => {
         setExistingThumbnailUrl(String(draft?.thumbnailUrl ?? draft?.ThumbnailUrl ?? "").trim());
         setDocs(buildDocsStateFromDraft(draft));
 
-        const hasFullDocumentsOnServer = landImgs.length > 0 && bizImgs.length > 0;
+        const hasFullDocumentsOnServer = bizImgs.length > 0;
         setActiveStep(hasFullDocumentsOnServer ? 2 : 1);
       } catch (e) {
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được bản nháp để tiếp tục.");
@@ -541,7 +529,7 @@ const CreateVenue = () => {
         return;
       }
       const slotHasImages = (d) =>
-        (d.files?.length ?? 0) > 0 || (d.existingImageUrls?.length ?? 0) > 0;
+        (d.files?.length ?? 0) > 0 || (d.existingImages?.length ?? 0) > 0;
       const missingImages = docs.find((d) => !slotHasImages(d));
       if (missingImages) {
         toast.error(
@@ -555,41 +543,65 @@ const CreateVenue = () => {
         return;
       }
 
-      const hasNewFiles = docs.some((d) => (d.files?.length ?? 0) > 0);
-      const allSlotsHaveServerImages = docs.every((d) => (d.existingImageUrls?.length ?? 0) > 0);
-      const allSlotsHaveNewFiles = docs.every((d) => (d.files?.length ?? 0) > 0);
+      const docsToUpdate = docs.filter(d => d.documentId != null);
+      const docsToCreate = docs.filter(d => d.documentId == null);
 
-      if (hasNewFiles) {
-        if (!allSlotsHaveNewFiles) {
-          toast.error(
-            "Khi tải ảnh mới lần đầu, cần chọn file cho cả hai loại giấy trong cùng một lần. Nếu ảnh đã có trên máy chủ, bỏ chọn file và bấm Lưu để tiếp tục.",
-          );
-          return;
-        }
+      let hasError = false;
+
+      for (const d of docsToUpdate) {
         const form = new FormData();
-        docs.forEach((d) => {
+        form.append("IssueDate", d.issueDate);
+        form.append("ExpiryDate", d.expiryDate);
+        d.files.forEach((file) => {
+          if (file) form.append("Images", file);
+        });
+        d.deletedImageIds.forEach((id) => {
+          if (id != null) form.append("DeletedImageIds", id);
+        });
+
+        try {
+          await updateOwnerDocument(d.documentId, form);
+        } catch (e) {
+          hasError = true;
+          toast.error(`Lỗi cập nhật "${d.label}": ${e?.response?.data?.message || e?.message}`);
+        }
+      }
+
+      if (docsToCreate.length > 0) {
+        const form = new FormData();
+        let hasNewData = false;
+        docsToCreate.forEach((d) => {
           form.append(`${d.apiPrefix}.IssueDate`, d.issueDate);
           form.append(`${d.apiPrefix}.ExpiryDate`, d.expiryDate);
           d.files.forEach((file) => {
-            if (file) form.append(`${d.apiPrefix}.Images`, file);
+            if (file) {
+              form.append(`${d.apiPrefix}.Images`, file);
+              hasNewData = true;
+            }
           });
         });
-        await addVenueDocuments(venueId, form);
-        try {
-          const refreshed = await getVenueDraft(venueId);
-          if (refreshed) setDocs(buildDocsStateFromDraft(refreshed));
-        } catch {
-          /* bước xác nhận vẫn dùng state hiện tại */
+        if (hasNewData) {
+          try {
+            await addVenueDocuments(venueId, form);
+          } catch (e) {
+            hasError = true;
+            toast.error(`Lỗi tải lên giấy tờ: ${e?.response?.data?.message || e?.message}`);
+          }
+        } else if (docsToUpdate.length === 0) {
+          toast.error("Vui lòng tải lên ảnh giấy tờ.");
+          return;
         }
-        toast.success("Đã tải lên giấy tờ.");
-      } else if (allSlotsHaveServerImages) {
-        toast.success("Giấy tờ đã có trên máy chủ — sang bước xác nhận.");
-      } else {
-        toast.error(
-          "Thiếu ảnh giấy tờ. Hãy tải đủ hai loại cùng lúc, hoặc đảm bảo cả hai loại đã được lưu trước đó trên máy chủ.",
-        );
-        return;
       }
+
+      if (hasError) return;
+
+      try {
+        const refreshed = await getVenueDraft(venueId);
+        if (refreshed) setDocs(buildDocsStateFromDraft(refreshed));
+      } catch {
+        /* bước xác nhận vẫn dùng state hiện tại */
+      }
+      toast.success("Đã lưu giấy tờ.");
 
       setActiveStep(2);
     } catch (e) {
@@ -635,7 +647,7 @@ const CreateVenue = () => {
       issueDateLabel: formatReviewDate(d.issueDate),
       expiryDateLabel: formatReviewDate(d.expiryDate),
       newFileCount: d.files?.length ?? 0,
-      existingImageUrls: Array.isArray(d.existingImageUrls) ? d.existingImageUrls : [],
+      existingImageUrls: Array.isArray(d.existingImages) ? d.existingImages.map(x => x.imageUrl) : [],
     }));
 
     return {

@@ -392,6 +392,36 @@
     cursor: pointer;
 }
 
+.ob-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ob-action-btn {
+    border: none;
+    border-radius: 10px;
+    height: 34px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.ob-action-btn:hover {
+    opacity: 0.9;
+}
+
+.ob-btn-accept {
+    background: #047857;
+    color: #fff;
+}
+
+.ob-btn-reject {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
 .ob-empty {
     border: 1px dashed #cbd5e1;
     border-radius: 10px;

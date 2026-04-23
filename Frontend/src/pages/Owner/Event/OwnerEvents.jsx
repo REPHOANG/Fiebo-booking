@@ -33,7 +33,11 @@ const translateStatus = (status) => {
   return status || "—";
 };
 
-const OwnerEvents = ({ showCreate = true, eventDetailBasePath = "/owner/events" }) => {
+const OwnerEvents = ({
+  showCreate = true,
+  eventDetailBasePath = "/owner/events",
+  fetchEvents = getEventListOwner,
+}) => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,7 +46,7 @@ const OwnerEvents = ({ showCreate = true, eventDetailBasePath = "/owner/events" 
     let mounted = true;
     const fetchList = async () => {
       try {
-        const data = await getEventListOwner();
+        const data = await fetchEvents();
         if (mounted && Array.isArray(data)) setList(data);
         else if (mounted) setList([]);
       } catch (e) {
