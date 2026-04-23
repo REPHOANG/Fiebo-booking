@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
+import Swal from "sweetalert2";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import CancelReasonModal from "../../../components/common/CancelReasonModal/CancelReasonModal";
 import {
   getOwnerBookingDetail,
   ownerCancelBookingApi,
+  confirmBookingApi,
+  rejectBookingApi,
 } from "../../../services/bookingService";
 import "./OwnerBookingDetail.css";
 
@@ -28,11 +31,13 @@ const formatTime = (t) => {
 
 const translateStatus = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "Chờ thanh toán";
+  if (s === "pending") return "Chờ xác nhận";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
   if (s === "customercancelled") return "Đã hủy (khách)";
   if (s === "ownercancelled") return "Đã hủy (chủ sân)";
+  if (s === "cancelled") return "Đã hủy";
+  if (s === "rejected") return "Đã từ chối";
   if (s === "expired") return "Hết hạn";
   return status || "—";
 };
@@ -112,20 +117,44 @@ const OwnerBookingDetail = ({
   const statusKey = String(d.status || "").toLowerCase();
   const canCancel = statusKey === "pending" || statusKey === "booked";
 
-  const openCancelModal = () => {
-    if (!canCancel) return;
-    setCancelReason("");
-    setCustomCancelReason("");
-    setCancelReasonError("");
-    setCancelModalOpen(true);
+  const handleReject = async () => {
+    if (!bookingId) return;
+    const result = await Swal.fire({
+      title: "Từ chối đơn đặt sân?",
+      text: "Bạn có chắc chắn muốn từ chối đơn này không? Hệ thống sẽ hoàn trả tiền cho khách.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Từ chối",
+      cancelButtonText: "Đóng",
+      confirmButtonColor: "#dc3545",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true);
+        await rejectBookingApi(bookingId, "Chủ sân từ chối đơn đặt sân");
+        toast.success("Đã từ chối đơn đặt sân thành công.");
+        await fetchDetail();
+      } catch (e) {
+        toast.error(e?.response?.data?.message || "Không thể từ chối đơn.");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  const closeCancelModal = () => {
-    if (cancelling) return;
-    setCancelModalOpen(false);
-    setCancelReason("");
-    setCustomCancelReason("");
-    setCancelReasonError("");
+  const handleConfirm = async () => {
+    if (!bookingId) return;
+    try {
+      setLoading(true);
+      await confirmBookingApi(bookingId);
+      toast.success("Đã xác nhận đơn đặt sân.");
+      await fetchDetail();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Không thể xác nhận đơn.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -137,8 +166,8 @@ const OwnerBookingDetail = ({
     if (!reason) {
       setCancelReasonError(
         cancelReason === "Khác"
-          ? "Vui lòng nhập lý do hủy"
-          : "Vui lòng chọn lý do hủy",
+          ? "Vui lòng nhập lý do"
+          : "Vui lòng chọn lý do",
       );
       return;
     }
@@ -146,7 +175,7 @@ const OwnerBookingDetail = ({
     setCancelling(true);
     try {
       await ownerCancelBookingApi(bookingId, reason);
-      toast.success("Đã hủy đặt sân thành công");
+      toast.success("Đã hủy đơn đặt sân thành công");
       setCancelModalOpen(false);
       setCancelReason("");
       setCustomCancelReason("");
@@ -154,7 +183,7 @@ const OwnerBookingDetail = ({
       await fetchDetail();
     } catch (e) {
       toast.error(
-        e?.response?.data?.message ?? e?.message ?? "Không thể hủy đặt sân",
+        e?.response?.data?.message ?? e?.message ?? "Thao tác thất bại",
       );
     } finally {
       setCancelling(false);
@@ -178,14 +207,19 @@ const OwnerBookingDetail = ({
             <div className="obd-action-group">
               {!isStaff && statusKey === "pending" && (
                 <>
-                  <button type="button" className="obd-action-btn obd-btn-accept">
+                  <button
+                    type="button"
+                    className="obd-action-btn obd-btn-accept"
+                    onClick={handleConfirm}
+                    disabled={loading}
+                  >
                     Xác nhận
                   </button>
                   <button
                     type="button"
                     className="obd-action-btn obd-btn-reject"
-                    onClick={openCancelModal}
-                    disabled={cancelling}
+                    onClick={handleReject}
+                    disabled={loading || cancelling}
                   >
                     Từ chối
                   </button>
@@ -253,8 +287,12 @@ const OwnerBookingDetail = ({
       {cancelModalOpen && (
         <CancelReasonModal
           open={cancelModalOpen}
-          title="Hủy đặt sân"
-          description="Chọn lý do hủy. Sau khi xác nhận, hệ thống sẽ hoàn tiền 100% cho khách hàng (theo quy định)."
+          title={statusKey === "pending" ? "Từ chối đơn đặt sân" : "Hủy đơn đặt sân"}
+          description={
+            statusKey === "pending"
+              ? "Chọn lý do từ chối. Hệ thống sẽ hoàn trả tiền cho khách hàng."
+              : "Chọn lý do hủy. Hệ thống sẽ hoàn tiền 100% cho khách hàng."
+          }
           reasons={OWNER_CANCEL_REASONS}
           selectedReason={cancelReason}
           onSelectReason={(reason) => {

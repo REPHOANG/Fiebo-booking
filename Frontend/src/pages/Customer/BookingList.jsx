@@ -158,11 +158,13 @@ function getEventHistoryTab(participantStatus, eventStatus) {
 
 function translateStatus(status) {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "Chờ thanh toán";
+  if (s === "pending") return "Chờ xác nhận";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
   if (s === "customercancelled") return "Đã hủy (khách)";
   if (s === "ownercancelled") return "Đã hủy (chủ sân)";
+  if (s === "cancelled") return "Đã hủy";
+  if (s === "rejected") return "Đã từ chối";
   if (s === "expired") return "Hết hạn";
   return status || "—";
 }
@@ -1129,7 +1131,7 @@ const BookingList = () => {
                           disabled={cancelMutation.isLoading}
                         >
                           <XCircle size={16} className="bl-btn-icon" />
-                          {cancelMutation.isLoading ? "Đang huỷ..." : "Hủy"}
+                          {cancelMutation.isLoading ? "Đang huỷ..." : "Hủy đơn"}
                         </button>
                       )}
                       {b.canReview && (
@@ -1323,8 +1325,9 @@ const BookingList = () => {
                         </div>
                       ) : null}
                       <div className="bl-actions">
-                        {(popupBooking.status || "").toLowerCase() ===
-                          "booked" && (
+                        {["booked", "pending"].includes(
+                          (popupBooking.status || "").toLowerCase(),
+                        ) && (
                           <button
                             type="button"
                             className="bl-btn danger"

@@ -112,3 +112,21 @@ export const ownerCancelBookingApi = async (id, cancelReason) => {
   });
   return response.data?.data ?? response.data ?? response;
 };
+
+/**
+ * Owner confirms a pending booking.
+ */
+export const confirmBookingApi = async (id) => {
+  const response = await api.post(`/api/Booking/${id}/confirm`);
+  return response.data?.data ?? response.data ?? response;
+};
+
+/**
+ * Owner rejects a pending booking.
+ */
+export const rejectBookingApi = async (id, cancelReason) => {
+  const response = await api.post(`/api/Booking/${id}/reject`, {
+    cancelReason: String(cancelReason || ""),
+  });
+  return response.data?.data ?? response.data ?? response;
+};

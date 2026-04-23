@@ -6,8 +6,9 @@ import * as yup from "yup";
 import { toast } from "react-toastify";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Filter, MapPin, User } from "lucide-react";
 import "./OwnerBookingsCompact.css";
-import { getOwnerBookingList } from "../../../services/bookingService";
+import { getOwnerBookingList, confirmBookingApi, rejectBookingApi, ownerCancelBookingApi } from "../../../services/bookingService";
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
+import Swal from "sweetalert2";
 
 const filterSchema = yup.object({
   venueId: yup.string(),
@@ -18,9 +19,11 @@ const WEEK_DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 const BOOKING_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
+  { value: "Pending", label: "Chờ xác nhận" },
   { value: "Booked", label: "Đã đặt" },
   { value: "Completed", label: "Hoàn thành" },
   { value: "Cancelled", label: "Đã hủy" },
+  { value: "Rejected", label: "Đã từ chối" },
 ];
 
 const formatDate = (d) => {
@@ -42,10 +45,13 @@ const formatPrice = (n) => {
 
 const translateStatus = (status) => {
   const s = (status || "").toLowerCase();
+  if (s === "pending") return "Chờ xác nhận";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
   if (s === "customercancelled") return "Đã hủy";
   if (s === "ownercancelled") return "Đã hủy";
+  if (s === "cancelled") return "Đã hủy";
+  if (s === "rejected") return "Đã từ chối";
   return status || "—";
 };
 
@@ -108,6 +114,78 @@ const OwnerBookings = ({
     resolver: yupResolver(filterSchema),
     defaultValues: { venueId: "" },
   });
+
+  const handleConfirm = async (bookingId) => {
+    const result = await Swal.fire({
+      title: "Xác nhận đơn hàng?",
+      text: "Bạn có chắc chắn muốn xác nhận đơn đặt sân này không?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Đóng",
+      confirmButtonColor: "#28a745",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await confirmBookingApi(bookingId);
+        toast.success("Đã xác nhận đơn hàng.");
+        loadList();
+      } catch (e) {
+        toast.error(e?.response?.data?.message || "Không thể xác nhận đơn hàng.");
+      }
+    }
+  };
+
+  const handleReject = async (bookingId) => {
+    const result = await Swal.fire({
+      title: "Từ chối đơn hàng?",
+      text: "Bạn có chắc chắn muốn từ chối đơn đặt sân này không?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Từ chối",
+      cancelButtonText: "Đóng",
+      confirmButtonColor: "#dc3545",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await rejectBookingApi(bookingId, "Chủ sân từ chối đơn đặt sân");
+        toast.success("Đã từ chối đơn hàng.");
+        loadList();
+      } catch (e) {
+        toast.error(e?.response?.data?.message || "Không thể từ chối đơn hàng.");
+      }
+    }
+  };
+
+  const handleCancel = async (bookingId) => {
+    const { value: reason } = await Swal.fire({
+      title: "Hủy đơn hàng",
+      input: "textarea",
+      inputLabel: "Lý do hủy đơn",
+      inputPlaceholder: "Nhập lý do hủy đơn hàng...",
+      showCancelButton: true,
+      confirmButtonText: "Hủy đơn",
+      cancelButtonText: "Đóng",
+      confirmButtonColor: "#dc3545",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Vui lòng nhập lý do hủy!";
+        }
+      },
+    });
+
+    if (reason) {
+      try {
+        await ownerCancelBookingApi(bookingId, reason);
+        toast.success("Đã hủy đơn hàng và hoàn tiền.");
+        loadList();
+      } catch (e) {
+        toast.error(e?.response?.data?.message || "Không thể hủy đơn hàng.");
+      }
+    }
+  };
 
   const selectedVenueId = watch("venueId") ?? "";
 
@@ -482,13 +560,30 @@ const OwnerBookings = ({
                     <div className="ob-item-actions">
                       {!isStaff && String(status || "").toLowerCase() === "pending" && (
                         <>
-                          <button type="button" className="ob-action-btn ob-btn-accept">
+                          <button
+                            type="button"
+                            className="ob-action-btn ob-btn-accept"
+                            onClick={() => handleConfirm(bid)}
+                          >
                             Xác nhận
                           </button>
-                          <button type="button" className="ob-action-btn ob-btn-reject">
+                          <button
+                            type="button"
+                            className="ob-action-btn ob-btn-reject"
+                            onClick={() => handleReject(bid)}
+                          >
                             Từ chối
                           </button>
                         </>
+                      )}
+                      {!isStaff && String(status || "").toLowerCase() === "booked" && (
+                        <button
+                          type="button"
+                          className="ob-action-btn ob-btn-reject"
+                          onClick={() => handleCancel(bid)}
+                        >
+                          Hủy đơn
+                        </button>
                       )}
                       <button
                         type="button"
