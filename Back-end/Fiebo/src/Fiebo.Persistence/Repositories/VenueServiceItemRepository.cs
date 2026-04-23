@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -7,34 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fiebo.Persistence.Repositories;
 
-public class VenueServiceItemRepository : IVenueServiceItemRepository
+public class VenueServiceItemRepository : Repository<VenueServiceItem> ,IVenueServiceItemRepository
 {
-    private readonly FieboDbContext _context;
 
-    public VenueServiceItemRepository(FieboDbContext context)
+    public VenueServiceItemRepository(FieboDbContext context) : base(context)
     {
-        _context = context;
-    }
-
-    public void Add(VenueServiceItem item)
-    {
-        _context.VenueServiceItems.Add(item);
-    }
-
-    public void Update(VenueServiceItem item)
-    {
-        _context.VenueServiceItems.Update(item);
-    }
-
-    public void Remove(VenueServiceItem item)
-    {
-        _context.VenueServiceItems.Remove(item);
-    }
-
-    public async Task<VenueServiceItem?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await _context.VenueServiceItems
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
     public async Task<bool> IsServiceInUseAsync(int serviceId, CancellationToken cancellationToken = default)

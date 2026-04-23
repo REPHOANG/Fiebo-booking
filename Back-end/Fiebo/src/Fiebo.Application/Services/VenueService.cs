@@ -836,7 +836,7 @@ namespace Fiebo.Application.Services
 
         public async Task UpdateVenueServiceAsync(int serviceId, string ownerId, UpdateVenueServiceRequest request, CancellationToken cancellationToken = default)
         {
-            var existingService = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+            var existingService = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId);
 
             if (existingService == null || existingService.IsDeleted)
             {
@@ -876,7 +876,7 @@ namespace Fiebo.Application.Services
 
         public async Task DeleteVenueServiceAsync(int serviceId, string ownerId, CancellationToken cancellationToken = default)
         {
-            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId, cancellationToken);
+            var serviceItem = await _unitOfWork.VenueServiceItems.GetByIdAsync(serviceId);
 
             if (serviceItem == null || serviceItem.IsDeleted)
             {

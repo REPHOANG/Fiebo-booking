@@ -78,6 +78,8 @@ namespace Fiebo.Persistence.Repositories
                 .ThenInclude(d => d.Field)
                 .Include(b => b.BookingDetails)
                 .ThenInclude(d => d.TimeSlot)
+                .Include(b => b.BookingServiceItems)
+                .ThenInclude(si => si.VenueServiceItem)
                 .FirstOrDefaultAsync(b => b.Id == id);
         }
 
@@ -90,6 +92,8 @@ namespace Fiebo.Persistence.Repositories
                     .ThenInclude(bd => bd.Field)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.TimeSlot)
+                .Include(b => b.BookingServiceItems)
+                    .ThenInclude(si => si.VenueServiceItem)
                 .FirstOrDefaultAsync(b => b.Id == bookingId);
         }
 

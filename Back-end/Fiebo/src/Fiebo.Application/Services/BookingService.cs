@@ -310,14 +310,48 @@ namespace Fiebo.Application.Services
 
                 _unitOfWork.Bookings.Add(booking);
 
-                decimal totalPrice = 0;
+
+                // Handle Services
+                if (request.Services != null && request.Services.Any())
+                {
+                    var serviceIds = request.Services.Select(s => s.ServiceId).ToList();
+                    var venueServices = await _unitOfWork.VenueServiceItems
+                        .FindAsync(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted);
+
+                    var serviceDict = venueServices.ToDictionary(s => s.Id);
+
+                    foreach (var serviceRequest in request.Services)
+                    {
+                        if (!serviceDict.TryGetValue(serviceRequest.ServiceId, out var service))
+                        {
+                            throw new BadRequestException($"Dịch vụ ID {serviceRequest.ServiceId} không tồn tại hoặc không thuộc cơ sở này.");
+                        }
+
+                        if (serviceRequest.Quantity <= 0)
+                        {
+                            throw new BadRequestException($"Số lượng dịch vụ {service.Name} phải lớn hơn 0.");
+                        }
+
+                        var serviceItem = new BookingServiceItem
+                        {
+                            Booking = booking,
+                            VenueServiceItemId = service.Id,
+                            Quantity = serviceRequest.Quantity,
+                            Price = service.Price
+                        };
+
+                        _unitOfWork.BookingServiceItems.Add(serviceItem);
+                    }
+                }
+
                 var details = new List<BookingDetail>();
+                decimal slotsTotalPrice = 0;
 
                 foreach (var item in request.Details)
                 {
                     var slot = slotDict[item.SlotId];
 
-                    totalPrice += slot.Price;
+                    slotsTotalPrice += slot.Price;
 
                     details.Add(new BookingDetail
                     {
@@ -329,14 +363,14 @@ namespace Fiebo.Application.Services
                 }
 
                 _unitOfWork.BookingDetails.AddRange(details);
-                booking.TotalPrice = totalPrice;
+                booking.TotalPrice = slotsTotalPrice; // TotalPrice only includes slots
 
                 await _unitOfWork.SaveChangesAsync();
 
                 return new HoldSlotResponse
                 {
                     BookingId = booking.Id,
-                    TotalPrice = totalPrice,
+                    TotalPrice = slotsTotalPrice,
                     ExpiredAt = expiredAt,
                     BookingStatus = BookingStatus.Pending.ToString()
                 };
@@ -380,6 +414,12 @@ namespace Fiebo.Application.Services
                     FieldName = d.Field.Name,
                     StartTime = d.TimeSlot!.StartTime,
                     EndTime = d.TimeSlot.EndTime
+                })],
+                Services = [.. booking.BookingServiceItems.Select(si => new BookingServiceItemResponse
+                {
+                    ServiceName = si.VenueServiceItem.Name,
+                    Quantity = si.Quantity,
+                    Price = si.Price
                 })]
             };
         }
@@ -541,14 +581,48 @@ namespace Fiebo.Application.Services
 
                 _unitOfWork.Bookings.Add(booking);
 
-                decimal totalPrice = 0;
+
+                // Handle Services
+                if (request.Services != null && request.Services.Any())
+                {
+                    var serviceIds = request.Services.Select(s => s.ServiceId).ToList();
+                    var venueServices = await _unitOfWork.VenueServiceItems
+                        .FindAsync(s => serviceIds.Contains(s.Id) && s.VenueId == request.VenueId && !s.IsDeleted);
+
+                    var serviceDict = venueServices.ToDictionary(s => s.Id);
+
+                    foreach (var serviceRequest in request.Services)
+                    {
+                        if (!serviceDict.TryGetValue(serviceRequest.ServiceId, out var service))
+                        {
+                            throw new BadRequestException($"Dịch vụ ID {serviceRequest.ServiceId} không tồn tại hoặc không thuộc cơ sở này.");
+                        }
+
+                        if (serviceRequest.Quantity <= 0)
+                        {
+                            throw new BadRequestException($"Số lượng dịch vụ {service.Name} phải lớn hơn 0.");
+                        }
+
+                        var serviceItem = new BookingServiceItem
+                        {
+                            Booking = booking,
+                            VenueServiceItemId = service.Id,
+                            Quantity = serviceRequest.Quantity,
+                            Price = service.Price
+                        };
+
+                        _unitOfWork.BookingServiceItems.Add(serviceItem);
+                    }
+                }
+
                 var details = new List<BookingDetail>();
+                decimal slotsTotalPrice = 0;
 
                 foreach (var item in request.Details)
                 {
                     var slot = slotDict[item.SlotId];
 
-                    totalPrice += slot.Price;
+                    slotsTotalPrice += slot.Price;
 
                     details.Add(new BookingDetail
                     {
@@ -560,7 +634,7 @@ namespace Fiebo.Application.Services
                 }
 
                 _unitOfWork.BookingDetails.AddRange(details);
-                booking.TotalPrice = totalPrice;
+                booking.TotalPrice = slotsTotalPrice;
 
                 await _unitOfWork.SaveChangesAsync();
 
@@ -872,6 +946,12 @@ namespace Fiebo.Application.Services
                     StartTime = bd.TimeSlot?.StartTime ?? default,
                     EndTime = bd.TimeSlot?.EndTime ?? default,
                     Price = bd.Price
+                }).ToList(),
+                Services = booking.BookingServiceItems.Select(si => new BookingServiceItemResponse
+                {
+                    ServiceName = si.VenueServiceItem.Name,
+                    Quantity = si.Quantity,
+                    Price = si.Price
                 }).ToList()
             };
         }

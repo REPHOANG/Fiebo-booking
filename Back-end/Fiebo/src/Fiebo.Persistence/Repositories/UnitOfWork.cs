@@ -48,8 +48,8 @@ namespace Fiebo.Persistence.Repositories
         public IPayoutRepository Payouts { get; }
         public IAdminRepository Admins { get; }
         public IPayoutDetailRepository PayoutDetails { get; }
-
         public IPayoutBatchRepository PayoutBatches { get; }
+        public IBookingServiceItemRepository BookingServiceItems { get; }
 
         public UnitOfWork(FieboDbContext context,
             IAdminDashboardRepository adminDashboardRepository,
@@ -81,7 +81,8 @@ namespace Fiebo.Persistence.Repositories
             IPayoutRepository payoutRepository,
             IAdminRepository adminRepository,
             IPayoutBatchRepository payoutBatchRepository,
-            IPayoutDetailRepository payoutDetailRepository
+            IPayoutDetailRepository payoutDetailRepository,
+            IBookingServiceItemRepository bookingServiceItemRepository
             //IReportRepository reportRepository
             )
         {
@@ -117,6 +118,7 @@ namespace Fiebo.Persistence.Repositories
             Admins = adminRepository;
             PayoutBatches = payoutBatchRepository;
             PayoutDetails = payoutDetailRepository;
+            BookingServiceItems = bookingServiceItemRepository;
         }
 
 

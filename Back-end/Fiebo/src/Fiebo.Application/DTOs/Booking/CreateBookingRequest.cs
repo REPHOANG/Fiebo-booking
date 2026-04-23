@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,5 +18,6 @@ namespace Fiebo.Application.DTOs.Booking
         public string? BookingNote { get; set; }
 
         public List<CreateBookingDetailRequest> Details { get; set; } = [];
+        public List<CreateBookingServiceRequest> Services { get; set; } = [];
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +17,7 @@ namespace Fiebo.Application.DTOs.Booking
         public DateTime CreatedAt { get; set; }
 
         public List<DetailItemResponse> BookedItems { get; set; } = [];
+        public List<BookingServiceItemResponse> Services { get; set; } = [];
     }
 
     public class DetailItemResponse
