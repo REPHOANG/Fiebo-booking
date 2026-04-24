@@ -221,8 +221,9 @@ namespace Fiebo.Application.Services
             var now = DateTime.Now;
             var maxBookingDate = BookingDateValidator.GetMaxDate(now);
 
-            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
-            if (venue == null || venue.Status != VenueStatus.Active)
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở.");
+            var ownerPlan = (await _unitOfWork.OwnerPlans.FindAsync(p => p.OwnerId == venue.OwnerId && p.Status == OwnerPlanStatus.Active && p.EndDate > DateTime.Now)).Any();
+            if (venue.Status != VenueStatus.Active || !ownerPlan)
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
 
             if (request.BookingDate < DateOnly.FromDateTime(now))
@@ -496,8 +497,8 @@ namespace Fiebo.Application.Services
             }
             if(userRole == AppRoles.FieldStaff)
             {
-                var staff = await _unitOfWork.VenueStaffs.GetSingleAsync(s => s.StaffId == userId && s.VenueId == request.VenueId);
-                if (staff == null)
+                var staff = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == userId && s.VenueId == request.VenueId)).Any();
+                if (!staff)
                     throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
             if (request.BookingDate < DateOnly.FromDateTime(now))
@@ -817,18 +818,30 @@ namespace Fiebo.Application.Services
         //   UC-59: Owner Cancel Booking
         // ================================================================
 
-        public async Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason)
+        public async Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason, string? userRole)
         {
+            if(userRole == null)
+            {
+                throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
+            }
+            
             // 1. Load booking with details and venue
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
                 throw new NotFoundException("Không tìm thấy lịch đặt");
-
-            // BR-43: Only the owner of the venue can cancel
-            if (booking.Venue.OwnerId != ownerId)
-                throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
-
+            if (userRole == AppRoles.FieldStaff)
+            {
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
+                if(!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền để hủy lịch đặt này.");
+                }
+            } else if(userRole == AppRoles.FieldOwner)
+            {
+                if (booking.Venue.OwnerId != ownerId)
+                    throw new ForbiddenException("Bạn không có quyền để hủy lịch đặt này");
+            }
             // E1: Booking must be in Booked status
             if (booking.Status != BookingStatus.Booked)
                 throw new BadRequestException("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.");

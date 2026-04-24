@@ -179,17 +179,18 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-59: Field Owner cancels a customer's booking with 100% refund.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpPost("{id}/owner-cancel")]
         public async Task<IActionResult> OwnerCancelBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
         {
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrWhiteSpace(ownerId))
             {
                 throw new UnauthorizedAccessException("Cannot identify current user.");
             }
 
-            await _bookingService.OwnerCancelBookingAsync(id, ownerId, request.CancelReason);
+            await _bookingService.OwnerCancelBookingAsync(id, ownerId, request.CancelReason, role);
 
             return Ok(new ApiResponse<object>
             {

@@ -26,11 +26,16 @@ namespace Fiebo.Persistence.Repositories
                 (111.0 * Math.Cos(userLat * Math.PI / 180));
 
             const double R = 6371;
+            var now = DateTime.Now;
 
             var baseQuery = _context.Venues
                 .AsNoTracking()
                 .Where(v =>
                     v.Status == VenueStatus.Active &&
+                    _context.OwnerPlans.Any(p =>
+                    p.OwnerId == v.OwnerId &&
+                    p.Status == OwnerPlanStatus.Active &&
+                    p.EndDate >= now) &&
                     v.Latitude >= userLat - latRange &&
                     v.Latitude <= userLat + latRange &&
                     v.Longitude >= userLng - lngRange &&
@@ -79,10 +84,14 @@ namespace Fiebo.Persistence.Repositories
         }
         public async Task<List<Venue>> GetTopBookingVenuesAsync(int top)
         {
+            var now = DateTime.Now;
             return await _context.Venues
                 .AsNoTracking()
                 .AsSplitQuery()
-                .Where(v => v.Status == VenueStatus.Active)
+                .Where(v => v.Status == VenueStatus.Active && _context.OwnerPlans.Any(p =>
+                p.OwnerId == v.OwnerId &&
+                p.Status == OwnerPlanStatus.Active &&
+                p.EndDate >= now))
                 .OrderByDescending(v =>
                     v.Fields
                         .SelectMany(f => f.BookingDetails)
@@ -121,11 +130,14 @@ namespace Fiebo.Persistence.Repositories
         {
             if (page <= 0) page = 1;
             if (pageSize <= 0) pageSize = 10;
- 
+            var now = DateTime.Now;
             var query = _context.Venues
                 .AsNoTracking()
-                .Where(v => v.Status == VenueStatus.Active);
- 
+                .Where(v => v.Status == VenueStatus.Active && _context.OwnerPlans.Any(p =>
+                p.OwnerId == v.OwnerId &&
+                p.Status == OwnerPlanStatus.Active &&
+                p.EndDate >= now));
+
             query = ApplyAddressFilter(query, provinceId, wardId, name);
             query = ApplySportTypeFilter(query, sportTypeId);
             query = ApplyAvailabilityFilter(query, bookingDate, bookingTime, sportTypeId);

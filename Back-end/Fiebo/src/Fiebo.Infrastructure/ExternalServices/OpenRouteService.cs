@@ -1,5 +1,6 @@
 ﻿using Fiebo.Application.DTOs.Field;
 using Fiebo.Application.Interfaces;
+using Fiebo.Persistence.Helper;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -32,77 +33,98 @@ namespace Fiebo.Infrastructure.ExternalServices
         {
             if (!fields.Any())
                 return [];
+            try
+            {
 
-
-            const string url =
+                const string url =
                 "https://api.openrouteservice.org/v2/matrix/driving-car";
 
-            var locations = new List<double[]>
+                var locations = new List<double[]>
             {
                 // User = index 0
                 ([userLng, userLat])
             };
 
-            foreach (var f in fields)
-            {
-                locations.Add([f.Longitude, f.Latitude]);
+                foreach (var f in fields)
+                {
+                    locations.Add([f.Longitude, f.Latitude]);
+                }
+
+                var body = new
+                {
+                    locations,
+
+                    sources = new[] { 0 },
+
+                    destinations =
+                        Enumerable.Range(1, fields.Count).ToArray(),
+
+                    metrics = new[] { "distance" }
+                };
+
+                var request = new HttpRequestMessage(
+                    HttpMethod.Post, url);
+
+                request.Headers.Authorization =
+                    new AuthenticationHeaderValue(
+                        "Bearer", _apiKey);
+
+                request.Content = new StringContent(
+                    JsonSerializer.Serialize(body),
+                    Encoding.UTF8,
+                    "application/json");
+
+                var response = await _http.SendAsync(request);
+
+                var json =
+                    await response.Content.ReadAsStringAsync();
+
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"ORS Error: {json}");
+                }
+
+                var doc = JsonDocument.Parse(json);
+
+                var distArr =
+                    doc.RootElement
+                       .GetProperty("distances")[0];
+
+                var result =
+                    new Dictionary<int, double>();
+
+
+                for (int i = 0; i < fields.Count; i++)
+                {
+                    result[fields[i].VenueId] =
+                        Math.Round(
+                            distArr[i].GetDouble() / 1000,
+                            2);
+                }
+
+                return result;
             }
-
-            var body = new
+            catch (Exception ex) 
             {
-                locations,
+                Console.WriteLine($"ORS failed: {ex.Message}");
 
-                sources = new[] { 0 },
+                var fallback = new Dictionary<int, double>();
 
-                destinations =
-                    Enumerable.Range(1, fields.Count).ToArray(),
+                foreach (var f in fields)
+                {
+                    var distance = GeoHelper.Distance(
+                        userLat,
+                        userLng,
+                        f.Latitude,
+                        f.Longitude
+                    );
 
-                metrics = new[] { "distance" }
-            };
+                    fallback[f.VenueId] = Math.Round(distance, 2);
+                }
 
-            var request = new HttpRequestMessage(
-                HttpMethod.Post, url);
-
-            request.Headers.Authorization =
-                new AuthenticationHeaderValue(
-                    "Bearer", _apiKey);
-
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(body),
-                Encoding.UTF8,
-                "application/json");
-
-            var response = await _http.SendAsync(request);
-
-            var json =
-                await response.Content.ReadAsStringAsync();
-
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception(
-                    $"ORS Error: {json}");
+                return fallback;
             }
-
-            var doc = JsonDocument.Parse(json);
-
-            var distArr =
-                doc.RootElement
-                   .GetProperty("distances")[0];
-
-            var result =
-                new Dictionary<int, double>();
-
-
-            for (int i = 0; i < fields.Count; i++)
-            {
-                result[fields[i].VenueId] =
-                    Math.Round(
-                        distArr[i].GetDouble() / 1000,
-                        2);
-            }
-
-            return result;
         }
     }
 }
