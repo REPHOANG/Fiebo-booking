@@ -552,19 +552,18 @@ namespace Fiebo.Application.Services
 
             _unitOfWork.VenueDocuments.Add(businessDoc);
             await _unitOfWork.SaveChangesAsync();
-            var images = new List<VenueDocumentImage>();
-
-            await UploadDocumentImagesAsync(request.BusinessDocument.Images, businessDoc.Id, images);
+            var images = await UploadDocumentImagesAsync(request.BusinessDocument.Images, businessDoc.Id);
 
             _unitOfWork.VenueDocumentImages.AddRange(images);
             await _unitOfWork.SaveChangesAsync();
         }
 
-        private async Task UploadDocumentImagesAsync(
-            IEnumerable<IFormFile> files,
-            int documentId,
-            List<VenueDocumentImage> result)
+        private async Task<List<VenueDocumentImage>> UploadDocumentImagesAsync(
+    IEnumerable<IFormFile> files,
+    int documentId)
         {
+            var result = new List<VenueDocumentImage>();
+
             foreach (var file in files)
             {
                 try
@@ -583,6 +582,8 @@ namespace Fiebo.Application.Services
                     throw new BadRequestException("Upload ảnh thất bại");
                 }
             }
+
+            return result;
         }
 
 
@@ -661,9 +662,9 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedException("Bạn không có quyền gửi duyệt bản nháp của sân này");
             }
-            if (venue.Status != VenueStatus.Draft)
+            if (venue.Status != VenueStatus.Draft && venue.Status != VenueStatus.Rejected)
             {
-                throw new BadRequestException("Chỉ có thể gửi duyệt bản nháp của sân đang ở trạng thái Draft");
+                throw new BadRequestException("Chỉ có thể gửi duyệt khi sân ở trạng thái Draft hoặc Rejected");
             }
             if (venue.Documents.Count(d => d.DocumentType == DocumentType.BusinessLicense) == 0)
             {
@@ -1001,8 +1002,7 @@ namespace Fiebo.Application.Services
             }
             var deleteimages = await _unitOfWork.VenueDocumentImages.GetByIdsAsync(request.DeletedImageIds);
             _unitOfWork.VenueDocumentImages.RemoveRange(deleteimages);
-            var newImages = new List<VenueDocumentImage>();
-            await UploadDocumentImagesAsync(request.NewImages, documentId, newImages);
+            var newImages = await UploadDocumentImagesAsync(request.NewImages, documentId);
             _unitOfWork.VenueDocumentImages.AddRange(newImages);
             _unitOfWork.VenueDocuments.Update(document);
             await _unitOfWork.SaveChangesAsync();
