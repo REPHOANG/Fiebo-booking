@@ -5,6 +5,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
 import { ArrowLeft } from "lucide-react";
+import Swal from "sweetalert2";
 import {
   addVenueDocuments,
   createVenue,
@@ -454,21 +455,36 @@ const CreateVenue = () => {
       const existingId = createdVenue?.venueId ?? createdVenue?.VenueId ?? null;
 
       if (existingId) {
-        await updateOwnerVenueInfo(existingId, {
-          name: data.name,
-          description: data.description,
-          addressDetail: data.addressDetail,
-          provinceId: data.provinceId,
-          wardId: data.wardId,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          openTime: normalizeTimeForApi(data.openTime),
-          closeTime: normalizeTimeForApi(data.closeTime),
-          thumbnailFile: thumbnailFile || undefined,
+        Swal.fire({
+          title: "Đang cập nhật cơ sở...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+          showConfirmButton: false,
         });
-        toast.success(`Đã cập nhật cơ sở #${existingId}`);
-        if (thumbnailFile) setExistingThumbnailUrl("");
-        setActiveStep(1);
+        try {
+          await updateOwnerVenueInfo(existingId, {
+            name: data.name,
+            description: data.description,
+            addressDetail: data.addressDetail,
+            provinceId: data.provinceId,
+            wardId: data.wardId,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            openTime: normalizeTimeForApi(data.openTime),
+            closeTime: normalizeTimeForApi(data.closeTime),
+            thumbnailFile: thumbnailFile || undefined,
+          });
+          Swal.close();
+          await Swal.fire({ icon: "success", title: `Đã cập nhật cơ sở #${existingId}`, showConfirmButton: false, timer: 1400 });
+          if (thumbnailFile) setExistingThumbnailUrl("");
+          setActiveStep(1);
+        } catch (e) {
+          Swal.close();
+          const msg = e?.response?.data?.message || e?.message || "Không cập nhật được cơ sở.";
+          await Swal.fire({ icon: "error", title: msg });
+        }
         return;
       }
 
@@ -486,15 +502,35 @@ const CreateVenue = () => {
       form.append("Longitude", String(Number(data.longitude)));
       if (thumbnailFile) form.append("Thumbnail", thumbnailFile);
 
-      const result = await createVenue(form);
-      const id = result?.venueId ?? result?.VenueId;
-      const status = result?.status ?? result?.Status ?? "DRAFT";
-      if (id) {
-        toast.success(`Tạo cơ sở thành công  #${id}`);
-        setCreatedVenue({ venueId: id, status });
-        setActiveStep(1);
-      } else {
-        toast.error("Phản hồi API thiếu venueId.");
+      Swal.fire({
+        title: "Đang tạo cơ sở...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+        showConfirmButton: false,
+      });
+      try {
+        const result = await createVenue(form);
+        const id = result?.venueId ?? result?.VenueId;
+        const status = result?.status ?? result?.Status ?? "DRAFT";
+        if (id) {
+          Swal.close();
+          await Swal.fire({ icon: "success", title: `Tạo cơ sở thành công #${id}`, showConfirmButton: false, timer: 1400 });
+          setCreatedVenue({ venueId: id, status });
+          setActiveStep(1);
+        } else {
+          Swal.close();
+          await Swal.fire({ icon: "error", title: "Phản hồi API thiếu venueId." });
+        }
+      } catch (err) {
+        Swal.close();
+        const msg =
+          err?.response?.data?.message ||
+          err?.response?.data?.Message ||
+          err?.message ||
+          "Tạo cơ sở thất bại. Vui lòng thử lại.";
+        await Swal.fire({ icon: "error", title: msg });
       }
     } catch (err) {
       console.error("Create venue error:", err);
@@ -503,7 +539,8 @@ const CreateVenue = () => {
         err?.response?.data?.Message ||
         err?.message ||
         "Tạo cơ sở thất bại. Vui lòng thử lại.";
-      toast.error(msg);
+      Swal.close();
+      await Swal.fire({ icon: "error", title: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -548,6 +585,15 @@ const CreateVenue = () => {
 
       let hasError = false;
 
+      Swal.fire({
+        title: "Đang lưu giấy tờ...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+        showConfirmButton: false,
+      });
+
       for (const d of docsToUpdate) {
         const form = new FormData();
         form.append("IssueDate", d.issueDate);
@@ -563,7 +609,7 @@ const CreateVenue = () => {
           await updateOwnerDocument(d.documentId, form);
         } catch (e) {
           hasError = true;
-          toast.error(`Lỗi cập nhật "${d.label}": ${e?.response?.data?.message || e?.message}`);
+          await Swal.fire({ icon: "error", title: `Lỗi cập nhật "${d.label}": ${e?.response?.data?.message || e?.message}` });
         }
       }
 
@@ -585,10 +631,11 @@ const CreateVenue = () => {
             await addVenueDocuments(venueId, form);
           } catch (e) {
             hasError = true;
-            toast.error(`Lỗi tải lên giấy tờ: ${e?.response?.data?.message || e?.message}`);
+            await Swal.fire({ icon: "error", title: `Lỗi tải lên giấy tờ: ${e?.response?.data?.message || e?.message}` });
           }
         } else if (docsToUpdate.length === 0) {
-          toast.error("Vui lòng tải lên ảnh giấy tờ.");
+          Swal.close();
+          await Swal.fire({ icon: "error", title: "Vui lòng tải lên ảnh giấy tờ." });
           return;
         }
       }
@@ -601,13 +648,14 @@ const CreateVenue = () => {
       } catch {
         /* bước xác nhận vẫn dùng state hiện tại */
       }
-      toast.success("Đã lưu giấy tờ.");
+      Swal.close();
+      await Swal.fire({ icon: "success", title: "Đã lưu giấy tờ.", showConfirmButton: false, timer: 1400 });
 
       setActiveStep(2);
     } catch (e) {
-      toast.error(
-        e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không lưu được giấy tờ.",
-      );
+      Swal.close();
+      const msg = e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không lưu được giấy tờ.";
+      await Swal.fire({ icon: "error", title: msg });
     } finally {
       setIsSubmitting(false);
     }
@@ -617,13 +665,28 @@ const CreateVenue = () => {
     if (!venueId) return;
     setIsSubmitting(true);
     try {
-      await submitVenue(venueId);
-      toast.success("Đã gửi duyệt cơ sở.");
-      navigate("/owner/venues");
+      Swal.fire({
+        title: "Đang gửi duyệt...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+        showConfirmButton: false,
+      });
+      try {
+        await submitVenue(venueId);
+        Swal.close();
+        await Swal.fire({ icon: "success", title: "Đã gửi duyệt cơ sở.", showConfirmButton: false, timer: 1400 });
+        navigate("/owner/venues");
+      } catch (e) {
+        Swal.close();
+        const msg = e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được.";
+        await Swal.fire({ icon: "error", title: msg });
+      }
     } catch (e) {
-      toast.error(
-        e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được.",
-      );
+      Swal.close();
+      const msg = e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được.";
+      await Swal.fire({ icon: "error", title: msg });
     } finally {
       setIsSubmitting(false);
     }
