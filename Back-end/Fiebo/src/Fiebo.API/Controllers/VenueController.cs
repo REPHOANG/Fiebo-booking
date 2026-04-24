@@ -673,5 +673,17 @@ namespace Fiebo.API.Controllers
                 Data = [.. result]
             });
         }
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPut("/api/owner/document/{documentId}")]
+        public async Task<IActionResult> UpdateVenueDocument([FromRoute] int documentId, [FromForm] UpdateVenueDocumentRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.UpdateVenueDocumentAsync(documentId, ownerId, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật tài liệu sân thành công."
+            });
+        }
     }
 }
