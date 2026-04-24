@@ -1135,7 +1135,8 @@ select.bl-date-filter-select--placeholder {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+  /* Add header offset so popup content is not hidden under fixed header */
+  padding: calc(max(18px, env(safe-area-inset-top)) + 90px) max(18px, env(safe-area-inset-right))
     max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   z-index: 2000;
   box-sizing: border-box;
@@ -1550,7 +1551,9 @@ select.bl-date-filter-select--placeholder {
   .bl-popup-overlay {
     align-items: flex-end;
     justify-content: center;
-    padding: 12px;
+    /* mobile header is slightly smaller */
+    padding: calc(max(12px, env(safe-area-inset-top)) + 80px) max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 
@@ -1680,7 +1683,8 @@ select.bl-date-filter-select--placeholder {
 @media (max-height: 520px) and (max-width: 768px) {
   .bl-popup-overlay {
     align-items: center;
-    padding: 8px;
+    /* short viewport (keyboard open): keep popup visible below header */
+    padding: calc(8px + 80px) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
 
   .bl-popup {
