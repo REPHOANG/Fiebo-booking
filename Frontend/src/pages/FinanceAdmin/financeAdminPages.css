@@ -73,6 +73,135 @@
   margin: 0 0 10px;
 }
 
+/* Payout detail layout */
+.payout-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.payout-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.payout-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.payout-card .payout-card-inner {
+  display: flex;
+  gap: 18px;
+  align-items: start;
+  flex: 1;
+}
+
+.payout-info-left {
+  flex: 1 1 60%;
+}
+
+.payout-info-right {
+  flex: 1 1 40%;
+}
+
+.payout-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.payment-amount {
+  font-size: 32px;
+  font-weight: 900;
+  color: #059669;
+  margin: 6px 0 8px;
+}
+
+.payout-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.internal-note {
+  border: 1px dashed rgba(15,23,42,0.06);
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff, #fbfcfe);
+}
+
+.internal-note-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.internal-note-body {
+  color: #374151;
+  font-weight: 600;
+}
+
+.payout-receiver .payout-receiver-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.receiver-grid { display: grid; gap: 8px; }
+.receiver-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:6px 0; }
+.receiver-label { color:#6b7280; font-weight:700; font-size:13px; }
+.receiver-value { font-weight:800; color:#111827; }
+
+.receiver-footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.receiver-verified { color:#059669; font-weight:700; }
+.receiver-history { color:#10b981; text-decoration:none; font-weight:700; }
+
+.payout-booking-list { margin-top: 6px; }
+.payout-summary-row { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.payout-summary { font-weight:700; color:#374151; }
+
+@media (max-width: 1000px) {
+  .payout-top-grid { grid-template-columns: 1fr; }
+}
+
+/* Additional styles to match mock */
+.payout-small-label { font-size:12px; color:#6b7280; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; }
+.payout-top-labels { display:flex; align-items:center; justify-content:space-between; }
+.payout-source-icon { width:36px; height:26px; background: linear-gradient(180deg,#f8fafc,#ffffff); border-radius:6px; opacity:.9 }
+.payout-status-badge { display:inline-flex; align-items:center; gap:6px; background:#ecfdf5; color:#065f46; padding:6px 10px; border-radius:999px; font-weight:800; font-size:13px; }
+.payout-date { color:#6b7280; font-weight:700; margin-left:12px; }
+.finance-admin-link-btn { padding:8px 12px; border-radius:8px; border:1px solid rgba(15,23,42,0.06); background:#fff; color:#111827; font-weight:700 }
+
+.receiver-icon { width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; background:#f1f5f9; border-radius:8px; color:#0f172a }
+.receiver-footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.receiver-verified { color:#059669; font-weight:700; }
+
+.internal-note { border-radius:10px; padding:12px; background: #fff; border: 1px dashed rgba(15,23,42,0.04); }
+.internal-note-body { color:#374151; font-weight:600; font-style:italic }
+
+.finance-admin-table thead th { background:#f8fafc; font-weight:800; color:#6b7280; padding:12px 10px; }
+.finance-admin-table tbody td { padding:12px 10px; border-bottom:1px solid #f3f4f6 }
+.finance-admin-table .status-pill { padding:6px 10px; border-radius:999px; font-weight:800 }
+.status-pill.success { background:#ecfdf5; color:#065f46 }
+
+@media (max-width: 700px) {
+  .payout-card { padding:12px }
+  .payment-amount { font-size:28px }
+}
+
 .finance-admin-alert-list {
   margin: 0;
   padding-left: 18px;

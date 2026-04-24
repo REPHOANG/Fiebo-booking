@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { User, CreditCard, MapPin, CheckCircle2 } from "lucide-react";
 import { getPayoutDetail } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 
@@ -23,6 +24,25 @@ const FinanceAdminPayoutDetail = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const maskAccount = (num) => {
+    if (!num) return "—";
+    const s = String(num).replace(/\s+/g, "");
+    if (s.length <= 8) return s;
+    const first = s.slice(0, 4);
+    const last = s.slice(-4);
+    return `${first} **** ${last}`;
+  };
+
+  const formatPayoutDate = (p) => {
+    const d = p?.payoutDate || p?.date || p?.createdAt || p?.createdOn || p?.created;
+    if (!d) return "—";
+    try {
+      return new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    } catch (e) {
+      return String(d).slice(0, 10);
+    }
+  };
+
   if (loading) {
     return (
       <section className="finance-admin-page">
@@ -45,64 +65,93 @@ const FinanceAdminPayoutDetail = () => {
 
   return (
     <section className="finance-admin-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 className="finance-admin-title" style={{ margin: 0 }}>Chi tiết Payout #{payout.payoutId || payout.id}</h2>
-        <button onClick={() => window.history.back()} className="finance-admin-link-btn">
-          Quay lại
-        </button>
+      <div className="payout-header-row">
+        <div>
+          <h2 className="finance-admin-title" style={{ margin: 0 }}>Chi tiết Payout #{payout.payoutId || payout.id}</h2>
+          <p className="finance-admin-subtitle">Chi tiết thanh toán và danh sách booking liên quan</p>
+        </div>
+        <div>
+          <button onClick={() => window.history.back()} className="finance-admin-link-btn">Quay lại</button>
+        </div>
       </div>
 
-      <div className="finance-admin-card" style={{ padding: 24, backgroundColor: "#fff", borderRadius: 8, border: "1px solid #e5e7eb", marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-          <div>
-            <h3 style={{ fontSize: "16px", marginBottom: "12px", color: "#374151" }}>Thông tin thanh toán</h3>
-            <p><strong>Số tiền:</strong> <span style={{ color: "green", fontWeight: "bold" }}>{currency.format(payout.amount)}</span></p>
-            <p><strong>Trạng thái:</strong> {payout.status}</p>
-          </div>
-
-          <div>
-            <h3 style={{ fontSize: "16px", marginBottom: "12px", color: "#374151" }}>Chủ sân & Ngân hàng</h3>
-            <p><strong>Chủ sân:</strong> {payout.ownerName}</p>
-            <p><strong>Email:</strong> {payout.email}</p>
-            <p><strong>Số điện thoại:</strong> {payout.phoneNumber}</p>
-            <div style={{ marginTop: 12, padding: 12, backgroundColor: "#f9fafb", borderRadius: 6 }}>
-              <p style={{ margin: "0 0 8px 0" }}><strong>Tài khoản nhận tiền:</strong></p>
-              <p>Ngân hàng: {payout.bankAccountName}</p>
-              <p>Số tài khoản: {payout.bankAccountNumber}</p>
-              <p>Chủ tài khoản: {payout.bankAccountHolderName}</p>
+      <div className="payout-top-grid">
+        <div className="payout-card payout-payment">
+          <div className="payout-card-inner">
+            <div className="payout-info-left">
+              <div className="payout-top-labels">
+                <div className="payout-small-label">TOTAL AMOUNT</div>
+                <div className="payout-source-icon" aria-hidden />
+              </div>
+              <div className="payment-amount">{currency.format(payout.amount)}</div>
+              <div className="payout-meta">
+                <span className={`payout-status-badge`}> <CheckCircle2 size={14} style={{ marginRight: 6 }} /> {payout.status || "—"}</span>
+                <div className="payout-date">Payout date: <strong>{formatPayoutDate(payout)}</strong></div>
+              </div>
+              <div className="internal-note" style={{ marginTop: 12 }}>
+                <div className="internal-note-title">INTERNAL NOTE</div>
+                <div className="internal-note-body">{payout.internalNote || payout.note || "—"}</div>
+              </div>
             </div>
+            <div className="payout-info-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="finance-admin-link-btn">Xuất hóa đơn</button>
+                <button className="finance-admin-link-btn" style={{ background: '#10b981', color: '#fff', borderColor: '#10b981' }}>Tải báo cáo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="payout-card payout-receiver">
+          <h3 className="payout-receiver-title">Receiver Account</h3>
+          <div className="receiver-grid">
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><User size={14} /></div><div className="receiver-label">Account holder</div></div><div className="receiver-value">{payout.ownerName || "—"}</div></div>
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><CreditCard size={14} /></div><div className="receiver-label">Bank name</div></div><div className="receiver-value">{payout.bankAccountName || "—"}</div></div>
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><CreditCard size={14} /></div><div className="receiver-label">Account number</div></div><div className="receiver-value">{maskAccount(payout.bankAccountNumber)}</div></div>
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><MapPin size={14} /></div><div className="receiver-label">Branch</div></div><div className="receiver-value">{payout.bankBranch || payout.bankBranchName || "—"}</div></div>
+          </div>
+          <div className="receiver-footer">
+            <div className="receiver-verified">● Verified Destination</div>
+            <Link to="#" className="receiver-history">Xem lịch sử giao dịch người nhận</Link>
           </div>
         </div>
       </div>
 
-      <h3 className="finance-admin-title" style={{ fontSize: 18 }}>Danh sách Booking / Sự kiện trong Payout</h3>
-      <div className="finance-admin-table-wrap">
-        <table className="finance-admin-table">
-          <thead>
-            <tr>
-              <th>Cơ sở</th>
-              <th>Loại (Booking/Event)</th>
-              <th>Mã tham chiếu</th>
-              <th>Ngày</th>
-              <th>Số tiền</th>
-              <th>Trạng thái (Booking)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!payout.bookings || payout.bookings.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 24, color: "#6b7280" }}>Không có chi tiết đặt sân.</td></tr>
-            ) : payout.bookings.map((b, idx) => (
-              <tr key={idx}>
-                <td>{b.venueName}</td>
-                <td>{b.payoutDetailType}</td>
-                <td>{b.bookingId ? `Booking #${b.bookingId}` : (b.eventId ? `Event #${b.eventId}` : "—")}</td>
-                <td>{b.date ? new Date(b.date).toLocaleDateString("vi-VN") : "—"}</td>
-                <td>{currency.format(b.amount)}</td>
-                <td>{b.status}</td>
+      <div className="payout-booking-list">
+        <h3 className="finance-admin-title" style={{ fontSize: 18 }}>Booking List</h3>
+        <div className="finance-admin-table-wrap">
+          <table className="finance-admin-table">
+            <thead>
+              <tr>
+                <th>Cơ sở</th>
+                <th>Loại</th>
+                <th>Mã tham chiếu</th>
+                <th>Ngày</th>
+                <th style={{ textAlign: "right" }}>Số tiền</th>
+                <th>Trạng thái</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {!payout.bookings || payout.bookings.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: "center", padding: 24, color: "#6b7280" }}>Không có chi tiết đặt sân.</td></tr>
+              ) : payout.bookings.map((b, idx) => (
+                <tr key={idx}>
+                  <td>{b.venueName}</td>
+                  <td>{b.payoutDetailType}</td>
+                  <td>{b.bookingId ? `#BK-${b.bookingId}` : (b.eventId ? `#EV-${b.eventId}` : "—")}</td>
+                  <td>{b.date ? new Date(b.date).toLocaleDateString("vi-VN") : "—"}</td>
+                  <td style={{ textAlign: "right" }}>{currency.format(b.amount)}</td>
+                  <td><span className="finance-admin-status finance-admin-status-reconciled">{b.status || "Success"}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="payout-summary-row">
+          <div />
+          <div className="payout-summary">Tổng cộng cộng dồn: <strong style={{ color: "#059669" }}>{currency.format(payout.amount)}</strong></div>
+        </div>
       </div>
     </section>
   );
