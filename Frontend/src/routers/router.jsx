@@ -56,9 +56,11 @@ import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModer
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
 import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
-import FinanceAdminOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminOwnerPayouts";
-import FinanceAdminProcessOwnerPayouts from "../pages/FinanceAdmin/Payout/FinanceAdminProcessOwnerPayouts";
-import FinanceAdminOwnerSubscriptionTransactions from "../pages/FinanceAdmin/Subscription/FinanceAdminOwnerSubscriptionTransactions";
+import FinanceAdminPayoutBatches from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutBatches";
+import FinanceAdminPayoutsInBatch from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutsInBatch";
+import FinanceAdminPayoutDetail from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutDetail";
+import FinanceAdminTransactions from "../pages/FinanceAdmin/Subscription/FinanceAdminTransactions";
+import FinanceAdminTransactionDetail from "../pages/FinanceAdmin/Subscription/FinanceAdminTransactionDetail";
 import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdminRevenueReport";
 import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
 import FinanceAdminProcessWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminProcessWithdrawalRequests";
@@ -232,20 +234,17 @@ const routes = [
     ),
     children: [
       { index: true, element: <FinanceAdminHome /> },
-      { path: "owner-payouts", element: <FinanceAdminOwnerPayouts /> },
-      { path: "process-owner-payouts", element: <FinanceAdminProcessOwnerPayouts /> },
-      {
-        path: "owner-subscription-transactions",
-        element: <FinanceAdminOwnerSubscriptionTransactions />,
-      },
+      { path: "transactions", element: <FinanceAdminTransactions /> },
+      { path: "transactions/:id", element: <FinanceAdminTransactionDetail /> },
+      { path: "payout-batches", element: <FinanceAdminPayoutBatches /> },
+      { path: "payout-batches/:id/payouts", element: <FinanceAdminPayoutsInBatch /> },
+      { path: "payout/:id", element: <FinanceAdminPayoutDetail /> },
       { path: "revenue-reports", element: <FinanceAdminRevenueReport /> },
       { path: "withdrawal-requests", element: <FinanceAdminWithdrawalRequests /> },
       {
         path: "process-withdrawal-requests",
         element: <FinanceAdminProcessWithdrawalRequests />,
       },
-      { path: "transactions", element: <Navigate to="/finance-admin/owner-subscription-transactions" replace /> },
-      { path: "payout-reconciliation", element: <Navigate to="/finance-admin/process-owner-payouts" replace /> },
       { path: "reports", element: <Navigate to="/finance-admin/revenue-reports" replace /> },
     ],
   },

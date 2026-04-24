@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   CircleDollarSign,
@@ -18,9 +19,8 @@ import "./AdminLayout.css";
 
 const navItems = [
   { to: "/finance-admin", label: "Tổng quan", icon: LayoutDashboard, end: true },
-  { to: "/finance-admin/owner-payouts", label: "Thanh toán cho chủ sân", icon: CircleDollarSign },
-  { to: "/finance-admin/process-owner-payouts", label: "Xử lý thanh toán cho chủ sân", icon: Receipt },
-  { to: "/finance-admin/owner-subscription-transactions", label: "Giao dịch đăng ký của chủ sân", icon: FileText },
+  { to: "/finance-admin/transactions", label: "Danh sách giao dịch", icon: FileText },
+  { to: "/finance-admin/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
   { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
   { to: "/finance-admin/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
   { to: "/finance-admin/process-withdrawal-requests", label: "Xử lý yêu cầu rút tiền", icon: Receipt },
@@ -29,6 +29,7 @@ const navItems = [
 const FinanceAdminLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useSelector((state) => state.auth.user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -41,8 +42,16 @@ const FinanceAdminLayout = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      queryClient.clear();
+    } catch (e) {
+      // ignore
+    }
     navigate("/", { replace: true });
+    setSidebarOpen(false);
   };
 
   const closeSidebar = () => setSidebarOpen(false);
