@@ -11,6 +11,8 @@ import {
   Loader2,
   AlertCircle,
   X,
+  User,
+  Phone,
   CheckCircle2,
   XCircle,
   Clock3,
@@ -703,6 +705,84 @@ const BookingList = () => {
     };
   }, [detailPopupId]);
 
+  // Add/remove body class to blur global header when popup is open
+  useEffect(() => {
+    const openCls = "popup-open";
+    const mobileCls = "popup-mobile";
+
+    function updateBodyClass() {
+      try {
+        if (detailPopupId != null) {
+          document.body.classList.add(openCls);
+          document.body.style.overflow = "hidden";
+          if (window.innerWidth <= 768) {
+            document.body.classList.add(mobileCls);
+          } else {
+            document.body.classList.remove(mobileCls);
+          }
+        } else {
+          document.body.classList.remove(openCls);
+          document.body.classList.remove(mobileCls);
+          document.body.style.overflow = "";
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    updateBodyClass();
+
+    function onResize() {
+      try {
+        if (detailPopupId != null) {
+          if (window.innerWidth <= 768) document.body.classList.add(mobileCls);
+          else document.body.classList.remove(mobileCls);
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+      try {
+        document.body.classList.remove(openCls);
+        document.body.classList.remove(mobileCls);
+        document.body.style.overflow = "";
+      } catch (e) {}
+    };
+  }, [detailPopupId]);
+
+  // When popup opens on mobile, measure mobile bottom navigation height
+  // and expose it as a CSS variable so popup can sit above the nav.
+  useEffect(() => {
+    if (detailPopupId == null) {
+      try {
+        document.documentElement.style.removeProperty("--mobile-bottom-nav-height");
+      } catch (e) {}
+      return;
+    }
+
+    function updateNavHeight() {
+      try {
+        const nav = document.querySelector(".bottom-nav");
+        const h = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
+        document.documentElement.style.setProperty("--mobile-bottom-nav-height", `${h}px`);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    updateNavHeight();
+    window.addEventListener("resize", updateNavHeight);
+    return () => {
+      window.removeEventListener("resize", updateNavHeight);
+      try {
+        document.documentElement.style.removeProperty("--mobile-bottom-nav-height");
+      } catch (e) {}
+    };
+  }, [detailPopupId]);
+
   return (
     <motion.div
       className="bl-main"
@@ -1306,89 +1386,78 @@ const BookingList = () => {
                     null;
                   return (
                     <>
-                      <div className="bl-ticket-header">
+                      <div className="bl-detail-header">
                         <div>
-                          <h2 className="bl-ticket-title">Đơn ngày</h2>
-                          <span
-                            className="bl-badge"
-                            data-status={(
-                              popupBooking.status || ""
-                            ).toLowerCase()}
-                          >
+                          <div className="bl-popup-code">Mã đơn <strong>#{popupBooking.bookingId ?? popupBooking.id}</strong></div>
+                          <div className="bl-meta" style={{ marginTop: 6 }}>
+                            <span className="bl-meta-item">
+                              <Calendar size={14} /> {formatDate(popupBooking.date || popupBooking.bookingDate)}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
                             {translateStatus(popupBooking.status)}
                           </span>
                         </div>
-                        <div className="bl-ticket-top-actions"></div>
                       </div>
+
+                      <div className="bl-venue-card">
+                        <div className="bl-card-media bl-venue-thumb">
+                          <img
+                            src={popupBooking.thumbnailUrl || popupBooking.thumbnail || FALLBACK_VENUE_IMAGE}
+                            alt={popupBooking.venueName || "venue"}
+                            onError={handleImgError}
+                          />
+                        </div>
+                        <div className="bl-venue-card-body">
+                          <h3 className="bl-venue-name">{popupBooking.venueName || "—"}</h3>
+                          <div className="bl-meta">
+                            <span className="bl-meta-item">
+                              <Clock size={14} />
+                              {(Array.isArray(popupBooking.details) && popupBooking.details.length) ? (
+                                <span style={{ marginLeft: 6 }}>{popupBooking.details.map(s => `${formatTime(s.startTime)} - ${formatTime(s.endTime)}`).join(' • ')}</span>
+                              ) : (
+                                <span style={{ marginLeft: 6 }}>—</span>
+                              )}
+                            </span>
+                            <span className="bl-meta-item">
+                              <MapPin size={14} />
+                              <span className="bl-ellipsis" style={{ marginLeft: 6 }}>{popupBooking.address || popupBooking.city || popupBooking.province || popupBooking.ward || "—"}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="bl-ticket-body">
-                        <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">
-                            <Receipt size={16} /> Mã đơn
-                          </span>
-                          <strong className="bl-ticket-value">
-                            #{popupBooking.bookingId ?? popupBooking.id}
-                          </strong>
-                        </div>
-                        <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">
-                            <Calendar size={16} /> Ngày đặt
-                          </span>
-                          <strong className="bl-ticket-value">
-                            {formatDate(
-                              popupBooking.date || popupBooking.bookingDate,
-                            )}
-                          </strong>
-                        </div>
-                        <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">
-                            <MapPin size={16} /> Sân
-                          </span>
-                          <strong className="bl-ticket-value">
-                            {popupBooking.venueName || "—"}
-                          </strong>
-                        </div>
-                        <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">
-                            <Clock3 size={16} /> Khung giờ
-                          </span>
-                          <strong className="bl-ticket-value">
-                            {Array.isArray(popupBooking.details) &&
-                            popupBooking.details.length
-                              ? popupBooking.details
-                                  .map(
-                                    (slot) =>
-                                      `${slot.fieldName ?? "Sân"} ${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`,
-                                  )
-                                  .join(" | ")
-                              : "—"}
-                          </strong>
-                        </div>
                         <div className="bl-ticket-row bl-ticket-row--total">
                           <span className="bl-ticket-label">
-                            <Receipt size={16} /> Tổng tiền
+                            <Receipt size={16} /> Tổng thanh toán
                           </span>
                           <strong className="bl-ticket-value">
                             {formatVND(popupBooking.totalPrice)}
                           </strong>
                         </div>
                         <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">Người đặt</span>
-                          <strong className="bl-ticket-value">
-                            {popupBooking.fullName ??
-                              popupBooking.fullname ??
-                              popupBooking.customerName ??
-                              "—"}
-                          </strong>
+                          <span className="bl-ticket-label">Thông tin khách hàng</span>
+                          {/* <div className="bl-ticket-value bl-contact"> */}
+                            {/* <div className="bl-contact-card"> */}
+                              <div className="bl-contact-line bl-contact-name">
+                                <User size={14} className="bl-contact-icon" />
+                                <span className="bl-contact-text" title={popupBooking.fullName ?? popupBooking.fullname ?? popupBooking.customerName ?? ''}>
+                                  {popupBooking.fullName ?? popupBooking.fullname ?? popupBooking.customerName ?? '—'}
+                                </span>
+                              </div>
+                              <div className="bl-contact-line bl-contact-phone">
+                                <Phone size={14} className="bl-contact-icon" />
+                                <span className="bl-contact-text">
+                                  {popupBooking.phone ?? popupBooking.phoneNumber ?? popupBooking.customerPhone ?? '—'}
+                                </span>
+                              </div>
+                            {/* </div> */}
+                          {/* </div> */}
                         </div>
-                        <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">Số điện thoại</span>
-                          <strong className="bl-ticket-value">
-                            {popupBooking.phone ??
-                              popupBooking.phoneNumber ??
-                              popupBooking.customerPhone ??
-                              "—"}
-                          </strong>
-                        </div>
+                        {/* Removed duplicate phone row — phone already shown in customer info above */}
                         <div className="bl-ticket-row">
                           <span className="bl-ticket-label">Ghi chú</span>
                           <strong className="bl-ticket-value">
