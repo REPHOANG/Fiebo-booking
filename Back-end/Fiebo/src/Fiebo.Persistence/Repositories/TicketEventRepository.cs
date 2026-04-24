@@ -18,17 +18,15 @@ namespace Fiebo.Persistence.Repositories
             return await _context.TicketEvents
                 .AsNoTracking()
                 .AsSplitQuery()
+                .Include(te => te.Venue)
+                .ThenInclude(v => v.Province)
+                .Include(te => te.Venue)
+                .ThenInclude(v => v.Ward)
                 .Include(te => te.Details)
                 .ThenInclude(d => d.Field)
-                .ThenInclude(f => f.Venue)
-                .ThenInclude(v => v!.Province)
                 .Include(te => te.Details)
-                .ThenInclude(d => d.Field)
-                .ThenInclude(f => f.Venue)
-                .ThenInclude(v => v!.Ward)
-                .Include(te => te.Details)
-                .ThenInclude(d => d.Slot)
-                .FirstOrDefaultAsync(te => te.Id == eventId);
+           .ThenInclude(d => d.Slot)
+           .FirstOrDefaultAsync(te => te.Id == eventId);
         }
 
         public async Task<List<TicketEvent>> GetPendingEventsAsync()
