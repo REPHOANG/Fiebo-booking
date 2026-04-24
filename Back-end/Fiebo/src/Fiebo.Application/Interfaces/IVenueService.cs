@@ -34,7 +34,7 @@ namespace Fiebo.Application.Interfaces
         Task<VenueSlotsResponse> GetOwnerVenueScheduleAsync(int venueId, string ownerId, DateOnly date);
         Task<CreateVenueResponse> CreateVenueAsync(CreateVenueRequest request, string? ownerId);
         Task UploadVenueDocumentAsync(int venueId, string? ownerId, CreateVenueDocumentRequest document);
-        Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId);
+        Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId, string? role);
         Task SubmitVenueDraftAsync(int venueId, string? ownerId);
         Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId);
         Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request);

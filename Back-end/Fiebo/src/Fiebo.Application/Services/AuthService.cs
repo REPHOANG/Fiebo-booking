@@ -284,11 +284,8 @@ namespace Fiebo.Application.Services
                 hasSubscription = await _unitOfWork.OwnerPlans
                     .HasActivePlanAsync(userId, result.Roles);
             }
-            if(result.Roles == AppRoles.FieldOwner)
-            {
                 hasBankAccount = await _unitOfWork.UserBankAccounts
                     .GetSingleAsync(b => b.UserId == userId) != null;
-            }
             return new UserProfileServiceResponse
             {
                 Id = result.Id,

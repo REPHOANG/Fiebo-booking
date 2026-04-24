@@ -394,12 +394,13 @@ namespace Fiebo.API.Controllers
         /// </summary>
         /// <param name="venueId"></param>
         /// <returns></returns>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpGet("/api/owner/venues/{venueId}/detail")]
         public async Task<IActionResult> GetVenueDraft([FromRoute] int venueId)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var result = await _venueService.GetOwnerVenueDetailAsync(venueId, ownerId);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var result = await _venueService.GetOwnerVenueDetailAsync(venueId, ownerId, role);
             return Ok(new ApiResponse<OwnerVenueDetailResponse>
             {
                 StatusCode = StatusCodes.Status200OK,
@@ -644,12 +645,13 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpGet("/api/owner/field/{id}")]
         public async Task<IActionResult> GetOwnerFieldDetail([FromRoute] int id)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var result = await _fieldService.GetOwnerFieldDetailAsync(id, ownerId);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var result = await _fieldService.GetOwnerFieldDetailAsync(id, ownerId, role);
             return Ok(new ApiResponse<OwnerFieldDetailResponse>
             {
                 StatusCode = StatusCodes.Status200OK,

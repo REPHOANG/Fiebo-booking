@@ -13,9 +13,10 @@ using Fiebo.Persistence.BackgroundJobs;
 using Fiebo.Persistence.Data;
 using Fiebo.Persistence.Identity;
 using Fiebo.Persistence.Repositories;
+using Hangfire;
+using Hangfire.MySql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -81,26 +82,30 @@ builder.Services.AddAuthentication(opts =>
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("ActiveOwnerPlan", policy =>
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("ActiveOwnerPlan", policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireRole(AppRoles.FieldOwner);
         policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: false));
-    });
-
-    options.AddPolicy("ActiveOwnerOrStaffPlan", policy =>
+    })
+    .AddPolicy("ActiveOwnerOrStaffPlan", policy =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireRole(AppRoles.FieldOwner, AppRoles.FieldStaff);
         policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: true));
     });
-});
 
 builder.Services.AddScoped<IAuthorizationHandler, ActiveOwnerPlanHandler>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, OwnerPlanAuthorizationResultHandler>();
+builder.Services.AddHangfire(config =>
+    config.UseStorage(new MySqlStorage(
+        connectionString,
+        new MySqlStorageOptions()
+    )));
 
+builder.Services.AddHangfireServer();
+builder.Services.AddScoped<IPlanJob, PlanJob>();
 // Repository layer
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -305,8 +310,20 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseHangfireDashboard("/hangfire");
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+
+    recurringJobManager.AddOrUpdate<IPlanJob>(
+        "expire-owner-plans",
+        job => job.ExpireOwnerPlansAsync(),
+        "0 0 * * *"
+    );
+}
+
 
 app.Run();
 

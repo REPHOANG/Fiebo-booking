@@ -36,6 +36,11 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
             }
+            var ownerPlan = (await _unitOfWork.OwnerPlans.FindAsync(p => p.OwnerId == venue.OwnerId && p.Status == OwnerPlanStatus.Active && p.EndDate >= DateTime.Now)).Any();
+            if (!ownerPlan)
+            {
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+            }
             var fields = await _unitOfWork.Fields.GetFieldsByVenue(venueId, FieldStatus.Active, page, pageSize);
             var fieldIds = fields.Items.Select(f => f.Id).ToList();
 
@@ -235,7 +240,7 @@ namespace Fiebo.Application.Services
                 throw new ForbiddenException("Bạn không có quyền chỉnh sửa sân này.");
             }
             var images = await _unitOfWork.FieldImages.FindAsync(i => i.FieldId == fieldId);
-            if(images.Count() + files.Count > 10)
+            if (images.Count() + files.Count > 10)
             {
                 throw new BadRequestException("Mỗi sân chỉ được phép có tối đa 10 hình ảnh.");
             }
@@ -282,7 +287,7 @@ namespace Fiebo.Application.Services
             await _unitOfWork.SaveChangesAsync();
         }
 
-        public async Task<OwnerFieldDetailResponse> GetOwnerFieldDetailAsync(int id, string? ownerId)
+        public async Task<OwnerFieldDetailResponse> GetOwnerFieldDetailAsync(int id, string? ownerId, string? role)
         {
             if (ownerId == null)
             {
@@ -290,10 +295,23 @@ namespace Fiebo.Application.Services
             }
             var field = await _unitOfWork.Fields.GetOwnerFieldDetail(id) ?? throw new NotFoundException("Không tìm thấy sân.");
             var venue = await _unitOfWork.Venues.GetByIdAsync(field.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở của sân.");
-            if (venue.OwnerId != ownerId)
+            if (role == AppRoles.FieldStaff)
             {
-                throw new ForbiddenException("Bạn không có quyền truy cập sân này.");
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(v => v.StaffId == ownerId && v.VenueId == venue.Id)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền xem thông tin của sân này");
+                }
             }
+            else if (role == AppRoles.FieldOwner)
+            {
+                if (venue.OwnerId != ownerId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền truy cập sân này.");
+                }
+            }
+
+
             return new OwnerFieldDetailResponse
             {
                 Name = field.Name,

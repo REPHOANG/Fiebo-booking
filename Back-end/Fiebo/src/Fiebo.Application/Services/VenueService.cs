@@ -4,6 +4,7 @@ using Fiebo.Application.DTOs.Slot;
 using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Validators;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
@@ -73,22 +74,8 @@ namespace Fiebo.Application.Services
 
             Dictionary<int, double> distances;
 
-            try
-            {
                 distances = await _mapService
                     .GetDistancesAsync(userLat, userLng, locationList);
-            }
-            catch (Exception ex)
-            {
-                // Log lại để theo dõi
-                _logger.LogWarning(ex, "Map service failed, fallback to Haversine");
-
-                // Fallback: tự tính distance
-                distances = locationList.ToDictionary(
-                    x => x.VenueId,
-                    x => 0d
-                );
-            }
 
             var result = venues
                 .Select(v =>
@@ -188,8 +175,9 @@ namespace Fiebo.Application.Services
 
         public async Task<VenueDetailResponse?> GetVenueDetail(int venueId)
         {
-            var venue = await _unitOfWork.Venues.GetVenueDetailById(venueId);
-            if (venue == null || venue.Status != VenueStatus.Active)
+            var venue = await _unitOfWork.Venues.GetVenueDetailById(venueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
+            var ownerPlan = (await _unitOfWork.OwnerPlans.FindAsync(p => p.OwnerId == venue.OwnerId && p.Status == OwnerPlanStatus.Active && p.EndDate >= DateTime.Now)).Any();
+            if (venue.Status != VenueStatus.Active || !ownerPlan)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -343,7 +331,8 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if (venue.Status != VenueStatus.Active)
+            var ownerPlan = (await _unitOfWork.OwnerPlans.FindAsync(p => p.OwnerId == venue.OwnerId && p.Status == OwnerPlanStatus.Active && p.EndDate >= now)).Any();
+            if (venue.Status != VenueStatus.Active || !ownerPlan)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
@@ -490,7 +479,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException(
                     "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
             }
-            if(request.CloseTime.Minute % 30 != 0 || request.OpenTime.Minute % 30 != 0)
+            if (request.CloseTime.Minute % 30 != 0 || request.OpenTime.Minute % 30 != 0)
             {
                 throw new BadRequestException(
                     "Giờ mở cửa và đóng cửa phải là các khoảng thời gian chẵn 30 phút");
@@ -501,7 +490,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Tỉnh/Thành phố không hợp lệ");
             }
             var ward = await _unitOfWork.Wards.GetByIdAsync(request.WardId);
-            if(ward == null || ward.ProvinceId != request.ProvinceId)
+            if (ward == null || ward.ProvinceId != request.ProvinceId)
             {
                 throw new BadRequestException("Phường/Xã không hợp lệ hoặc không thuộc tỉnh/thành phố đã chọn");
             }
@@ -597,21 +586,36 @@ namespace Fiebo.Application.Services
         }
 
 
-        public async Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId)
+        public async Task<OwnerVenueDetailResponse> GetOwnerVenueDetailAsync(int venueId, string? ownerId, string? role)
         {
             if (ownerId == null)
             {
                 throw new UnauthorizedException("Bạn cần đăng nhập để xem bản nháp");
+            }
+            if (role == null)
+            {
+                throw new ForbiddenException("Bạn cần có vai trò để xem bản nháp");
             }
             var venue = await _unitOfWork.Venues.GetVenueWithDocumentsAsync(venueId);
             if (venue == null)
             {
                 throw new NotFoundException("Không tìm thấy cơ sở");
             }
-            if (venue.OwnerId != ownerId)
+            if (role == AppRoles.FieldStaff)
+            {
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(v => v.VenueId == venueId && v.StaffId == ownerId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền xem thông tin của sân này");
+                }
+            }
+            else if (role == AppRoles.FieldOwner && venue.OwnerId != ownerId)
             {
                 throw new UnauthorizedException("Bạn không có quyền xem bản nháp của sân này");
             }
+            bool canViewBusinessLicense = role == AppRoles.FieldOwner;
+            var businessLicense = canViewBusinessLicense
+                ? venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) : null;
             return new OwnerVenueDetailResponse
             {
                 Id = venue.Id,
@@ -628,14 +632,17 @@ namespace Fiebo.Application.Services
                 Longitude = venue.Longitude,
                 Latitude = venue.Latitude,
                 Status = venue.Status.ToString(),
-                BusinessLicense = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense) is VenueDocument bizDoc
-                    ? new VenueDocumentResponse
-                    {
-                        IssueDate = bizDoc.IssueDate,
-                        ExpiryDate = bizDoc.ExpiryDate,
-                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
-                    }
-                    : null
+                BusinessLicense = businessLicense is VenueDocument bizDoc
+                ? new VenueDocumentResponse
+                {
+                    DocumentId = bizDoc.Id,
+                    IssueDate = bizDoc.IssueDate,
+                    ExpiryDate = bizDoc.ExpiryDate,
+                    Images = [.. bizDoc.Images.Select(i => new DocumentImageDto {
+                        ImageId = i.Id,
+                        ImageUrl = i.ImageUrl
+                    })]
+                } : null
             };
         }
 
