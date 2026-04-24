@@ -44,5 +44,6 @@ namespace Fiebo.Application.Interfaces
         Task<List<OwnerVenueSelectOptionResponse>> GetOwnerVenueSelectOptionAsync(string? ownerId);
         Task<bool> ApproveVenueUpdateAsync(int updateRequestId, string adminId);
         Task<bool> RejectVenueUpdateAsync(int updateRequestId, string adminId, string adminNote);
+        Task UpdateVenueDocumentAsync(int documentId, string? ownerId, UpdateVenueDocumentRequest request);
     }
 }

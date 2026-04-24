@@ -11,8 +11,5 @@ namespace Fiebo.Application.DTOs.Venue
     {
         [Required]
         public VenueDocumentDto BusinessDocument { get; set; } = null!;
-
-        [Required]
-        public VenueDocumentDto LandUseDocument { get; set; } = null!;
     }
 }
