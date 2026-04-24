@@ -58,8 +58,8 @@ const formatTime = (t) => {
 
 const TABS = [
   { key: "all", label: "Tất cả" },
-  { key: "pending", label: "Chờ thanh toán", statuses: ["Pending"] },
-  { key: "upcoming", label: "Sắp tới", statuses: ["Booked"] },
+  { key: "pending", label: "Chờ thanh toán", statuses: ["Holding"] },
+  { key: "upcoming", label: "Sắp tới", statuses: ["Booked", "Pending"] },
   { key: "completed", label: "Hoàn thành", statuses: ["Completed"] },
   {
     key: "cancelled",
@@ -77,7 +77,7 @@ const TYPE_FILTERS = [
 // Icon cho trạng thái
 const statusIcon = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return <Clock3 size={16} className="bl-status-icon" />;
+  if (s === "pending" || s === "holding") return <Clock3 size={16} className="bl-status-icon" />;
   if (s === "booked")
     return <CreditCard size={16} className="bl-status-icon" />;
   if (s === "completed")
@@ -128,8 +128,8 @@ function groupHistoryByBooking(items) {
 
 function getTabForStatus(status) {
   const s = (status || "").toLowerCase();
-  if (s === "pending") return "pending";
-  if (s === "booked") return "upcoming";
+  if (s === "holding") return "pending";
+  if (s === "pending" || s === "booked") return "upcoming";
   if (s === "completed") return "completed";
   if (s === "customercancelled" || s === "ownercancelled") return "cancelled";
   return null;
@@ -161,6 +161,7 @@ function getEventHistoryTab(participantStatus, eventStatus) {
 
 function translateStatus(status) {
   const s = (status || "").toLowerCase();
+  if (s === "holding") return "Chờ thanh toán";
   if (s === "pending") return "Chờ xác nhận";
   if (s === "booked") return "Đã đặt";
   if (s === "completed") return "Hoàn thành";
@@ -1167,7 +1168,7 @@ const BookingList = () => {
                       )}
                     </div>
                     <div className="bl-list-actions">
-                      {(b.status || "").toLowerCase() === "pending" && (
+                      {(b.status || "").toLowerCase() === "holding" && (
                         <button
                           type="button"
                           className="bl-btn primary bl-btn-sm"
@@ -1409,6 +1410,20 @@ const BookingList = () => {
                         </div>
                       ) : null}
                       <div className="bl-actions">
+                        {(popupBooking.status || "").toLowerCase() === "holding" && (
+                          <button
+                            type="button"
+                            className="bl-btn primary"
+                            onClick={() =>
+                              handleContinuePaymentFromList(
+                                popupBooking.venueId,
+                                popupBooking.bookingId ?? popupBooking.id,
+                              )
+                            }
+                          >
+                            Tiếp tục thanh toán
+                          </button>
+                        )}
                         {["booked", "pending"].includes(
                           (popupBooking.status || "").toLowerCase(),
                         ) && (

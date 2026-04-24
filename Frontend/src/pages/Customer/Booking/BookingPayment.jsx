@@ -30,7 +30,7 @@ const formatPrice = (price) =>
 
 const HOLD_SECONDS = 5 * 60; // fallback for local slot cache only
 
-const PAID_STATUSES = new Set(["Booked", "Completed"]);
+const PAID_STATUSES = new Set(["Pending", "Booked", "Completed"]);
 const TERMINAL_UNPAID_STATUSES = new Set([
   "Expired",
   "OwnerCancelled",
@@ -124,11 +124,7 @@ export function BookingPaymentSuccess() {
         }
         const st = String(b.status ?? "");
         if (!PAID_STATUSES.has(st)) {
-          setError(
-            st === "Pending"
-              ? "Đơn chưa thanh toán."
-              : "Đơn không ở trạng thái đã thanh toán.",
-          );
+          setError("Đơn chưa thanh toán hoặc trạng thái không hợp lệ.");
         }
         setDetail(b);
       })
@@ -171,8 +167,12 @@ export function BookingPaymentSuccess() {
             <div className="bp-success-icon">
               <CheckCircle2 size={56} />
             </div>
-            <h2>Đặt sân thành công!</h2>
-            <p>Đơn đặt sân của bạn đã được xác nhận và thanh toán.</p>
+            <h2>{detail.status === "Pending" ? "Thanh toán thành công!" : "Đặt sân thành công!"}</h2>
+            <p>
+              {detail.status === "Pending"
+                ? "Đơn của bạn đã được thanh toán và đang chờ chủ sân xác nhận."
+                : "Đơn đặt sân của bạn đã được xác nhận và thanh toán thành công."}
+            </p>
             <div className="bp-success-details">
               <div className="bp-success-row">
                 <span>Sân</span>
