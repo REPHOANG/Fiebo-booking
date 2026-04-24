@@ -40,27 +40,35 @@ export const completePayout = async (id) => {
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
 
 const normalizeWithdrawal = (item) => ({
-  id: item?.id ?? item?.Id ?? '',
+  id: item?.transactionId ?? item?.TransactionId ?? item?.id ?? item?.Id ?? '',
+  customerId: item?.customerId ?? item?.CustomerId ?? '',
   customerName: item?.customerName ?? item?.CustomerName ?? item?.customer ?? '',
-  bankAccountNumber: item?.bankAccountNumber ?? item?.BankAccountNumber ?? '',
+  bankAccountNumber: item?.bankAccountNumber ?? item?.BankAccountNumber ?? item?.accountNumber ?? item?.AccountNumber ?? '',
   bankName: item?.bankName ?? item?.BankName ?? '',
+  accountHolderName: item?.accountHolderName ?? item?.AccountHolderName ?? '',
   walletBalance: Number(item?.walletBalance ?? item?.WalletBalance ?? 0),
   amount: Number(item?.amount ?? item?.Amount ?? 0),
   requestedAt: item?.requestedAt ?? item?.RequestedAt ?? item?.createdAt ?? '',
+  processedAt: item?.processedAt ?? item?.ProcessedAt ?? '',
+  processedBy: item?.processedBy ?? item?.ProcessedBy ?? '',
+  rejectionReason: item?.rejectionReason ?? item?.RejectionReason ?? '',
+  description: item?.description ?? item?.Description ?? '',
   status: item?.status ?? item?.Status ?? '',
 });
 
 /**
  * GET /api/admin/withdraw-requests
- * Filterable by status
+ * Filterable by status, supports pagination
  */
-export const getWithdrawalRequests = async ({ status } = {}) => {
-  const params = {};
+export const getWithdrawalRequests = async ({ status, page = 1, pageSize = 20 } = {}) => {
+  const params = { page, pageSize };
   if (status) params.status = status;
   const res = await api.get('/api/admin/withdraw-requests', { params });
-  const data = res.data?.data ?? res.data ?? [];
-  const items = Array.isArray(data) ? data : data?.items ?? [];
-  return items.map(normalizeWithdrawal);
+  const data = res.data?.data ?? res.data ?? {};
+  if (Array.isArray(data)) return { items: data.map(normalizeWithdrawal), totalItems: data.length };
+  const items = (data?.items ?? data?.Items ?? []).map(normalizeWithdrawal);
+  const totalItems = data?.totalItems ?? data?.TotalItems ?? items.length;
+  return { items, totalItems };
 };
 
 /**
@@ -86,7 +94,7 @@ export const completeWithdrawalRequest = async (id) => {
  * @param {string} reason — required
  */
 export const rejectWithdrawalRequest = async (id, reason) => {
-  const res = await api.patch(`/api/admin/withdraw-requests/${id}/reject`, { reason });
+  const res = await api.patch(`/api/admin/withdraw-requests/${id}/reject`, { rejectionReason: reason });
   return res.data;
 };
 

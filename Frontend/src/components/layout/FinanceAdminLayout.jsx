@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   CircleDollarSign,
@@ -28,6 +29,7 @@ const navItems = [
 const FinanceAdminLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const user = useSelector((state) => state.auth.user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -40,8 +42,16 @@ const FinanceAdminLayout = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    try {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      queryClient.clear();
+    } catch (e) {
+      // ignore
+    }
     navigate("/", { replace: true });
+    setSidebarOpen(false);
   };
 
   const closeSidebar = () => setSidebarOpen(false);
