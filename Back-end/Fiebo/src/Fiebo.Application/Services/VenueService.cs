@@ -988,23 +988,51 @@ namespace Fiebo.Application.Services
             {
                 throw new UnauthorizedAccessException("Bạn cần đăng nhập để cập nhật giấy tờ");
             }
-            var document = await _unitOfWork.VenueDocuments.GetByIdAsync(documentId) ?? throw new NotFoundException("Không tìm thấy giấy tờ");
+
+            var document = await _unitOfWork.VenueDocuments.GetByIdAsync(documentId)
+                ?? throw new NotFoundException("Không tìm thấy giấy tờ");
+
             document.IssueDate = request.IssueDate;
             document.ExpiryDate = request.ExpiryDate;
+
             ImageValidator.ValidateFiles(request.NewImages, 0, 5);
-            var images = (await _unitOfWork.VenueDocumentImages.FindAsync(i => i.DocumentId == documentId)).ToList();
-            var finalImageCount = images.Count
-                      - request.DeletedImageIds.Count
-                      + request.NewImages.Count;
+
+            var images = (await _unitOfWork.VenueDocumentImages
+                .FindAsync(i => i.DocumentId == documentId))
+                .ToList();
+
+            var deletedIds = request.DeletedImageIds ?? new List<int>();
+            var newCount = request.NewImages?.Count ?? 0;
+
+            var deleteimages = images
+                .Where(i => deletedIds.Contains(i.Id))
+                .ToList();
+
+            var actualDeletedCount = deleteimages.Count;
+
+            var finalImageCount = images.Count - actualDeletedCount + newCount;
+
             if (finalImageCount > 5)
             {
                 throw new BadRequestException("Số lượng hình ảnh không được vượt quá 5");
             }
-            var deleteimages = await _unitOfWork.VenueDocumentImages.GetByIdsAsync(request.DeletedImageIds);
-            _unitOfWork.VenueDocumentImages.RemoveRange(deleteimages);
-            var newImages = await UploadDocumentImagesAsync(request.NewImages, documentId);
-            _unitOfWork.VenueDocumentImages.AddRange(newImages);
+
+            if (deleteimages.Any())
+            {
+                _unitOfWork.VenueDocumentImages.RemoveRange(deleteimages);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            var newImages = await UploadDocumentImagesAsync(request?.NewImages ?? new List<IFormFile>(), documentId)
+                ?? [];
+
+            if (newImages.Any())
+            {
+                _unitOfWork.VenueDocumentImages.AddRange(newImages);
+            }
+
             _unitOfWork.VenueDocuments.Update(document);
+
             await _unitOfWork.SaveChangesAsync();
         }
     }

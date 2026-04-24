@@ -553,7 +553,7 @@ const CreateVenue = () => {
         form.append("IssueDate", d.issueDate);
         form.append("ExpiryDate", d.expiryDate);
         d.files.forEach((file) => {
-          if (file) form.append("Images", file);
+          if (file) form.append("NewImages", file);
         });
         d.deletedImageIds.forEach((id) => {
           if (id != null) form.append("DeletedImageIds", id);
