@@ -39,10 +39,14 @@ namespace Fiebo.Persistence.Repositories
                 .Where(te => te.Status == TicketEventStatus.Pending &&
                              te.Details.All(d => d.Field.Status == FieldStatus.Active &&
                                                  d.Field.Venue!.Status == VenueStatus.Active
-                                                 && !d.Slot.IsDeleted))
+                                                 && !d.Slot.IsDeleted) &&
+                                                 _context.OwnerPlans.Any(p =>
+                                                 p.OwnerId == te.Venue.OwnerId &&
+                                                 p.Status == OwnerPlanStatus.Active &&
+                                                 p.EndDate > DateTime.Now))
+                .Include(te => te.Venue)
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
-                        .ThenInclude(f => f.Venue)
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Slot)
                 .Include(te => te.Participants)
@@ -93,7 +97,12 @@ namespace Fiebo.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(te => te.Status == TicketEventStatus.Pending &&
-                             te.Details.Any(d => d.Field.VenueId == venueId))
+                             te.Details.Any(d => d.Field.VenueId == venueId) &&
+                             _context.OwnerPlans.Any(p =>
+                             p.OwnerId == te.Venue.OwnerId &&
+                             p.Status == OwnerPlanStatus.Active &&
+                             p.EndDate > DateTime.Now))
+                .Include(te => te.Venue)
                 .Include(te => te.Details)
                     .ThenInclude(d => d.Field)
                 .Include(te => te.Details)

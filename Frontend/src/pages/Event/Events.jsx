@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getEventList } from "../../services/eventService";
-import { searchVenues } from "../../services/fieldService";
 import "./Events.css";
 import { formatDate, formatPrice, formatTime } from "../../utils/helperFunction";
 
@@ -93,34 +92,9 @@ const Events = () => {
     };
   }, [query]);
 
-  const openVenueEvents = async (venueId, venueName) => {
-    if (venueId) {
-      navigate(`/venue/${venueId}/events`);
-      return;
-    }
-
-    // Fallback: API /api/Event có thể chưa trả venueId, nên tìm theo tên sân.
-    const keyword = String(venueName || "").trim();
-    if (!keyword) return;
-    try {
-      const res = await searchVenues({
-        location: keyword,
-        page: 1,
-        pageSize: 10,
-      });
-      const items = res?.items ?? res?.Items ?? [];
-      const match = (Array.isArray(items) ? items : []).find(
-        (it) => String(it?.name || it?.venueName || "").trim().toLowerCase() === keyword.toLowerCase(),
-      );
-      const resolvedVenueId = match?.id ?? match?.venueId ?? match?.VenueId;
-      if (resolvedVenueId) {
-        navigate(`/venue/${resolvedVenueId}/events`);
-        return;
-      }
-      window.alert("Không tìm thấy mã sân để mở danh sách sự kiện.");
-    } catch {
-      window.alert("Không mở được danh sách sự kiện của sân này. Vui lòng thử lại.");
-    }
+  const openVenueEvents = async (eventId) => {
+    if (!eventId) return;
+  navigate(`/event/${eventId}`);
   };
 
   return (
@@ -199,7 +173,7 @@ const Events = () => {
                       key={s.id}
                       type="button"
                       className="ev-session"
-                      onClick={() => openVenueEvents(v.venueId, v.name)}
+                      onClick={() => openVenueEvents(s.id)}
                     >
                       <div className="ev-session-left">
                         <div className="ev-session-title">{s.title}</div>
@@ -217,7 +191,7 @@ const Events = () => {
                   <button
                     type="button"
                     className="ev-expand"
-                    onClick={() => openVenueEvents(v.venueId, v.name)}
+                    onClick={() => navigate(`/venue/${v.venueId}/events`)}
                   >
                     {`Xem thêm ${(v.sessions || []).length - 3} sự kiện`}
                   </button>
@@ -226,7 +200,7 @@ const Events = () => {
                 <button
                   className="ev-book"
                   type="button"
-                  onClick={() => openVenueEvents(v.venueId, v.name)}
+                  onClick={() => navigate(`/venue/${v.venueId}/events`)}
                 >
                   ĐẶT LỊCH
                 </button>

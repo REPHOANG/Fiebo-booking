@@ -155,7 +155,6 @@ namespace Fiebo.Application.Services
 
             return events.Select(e =>
             {
-                var firstDetail = e.Details.FirstOrDefault();
                 var currentPlayer = e.Participants
                     .Sum(p => p.TicketQuantity);
 
@@ -163,7 +162,8 @@ namespace Fiebo.Application.Services
                 {
                     EventId = e.Id,
                     Name = e.Name,
-                    VenueName = firstDetail?.Field.Venue?.Name ?? "",
+                    VenueId = e.VenueId,
+                    VenueName = e.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
@@ -182,7 +182,15 @@ namespace Fiebo.Application.Services
         public async Task<List<DropInEventListItemResponse>> GetEventsByVenueIdAsync(int venueId)
         {
             var events = await _unitOfWork.TicketEvents.GetEventsByVenueIdAsync(venueId);
-
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId) ?? throw new NotFoundException("Cơ sở không tồn tại");
+            var ownerPlanActive = (await _unitOfWork.OwnerPlans
+                    .FindAsync(p => p.OwnerId == venue.OwnerId &&
+                    p.Status == OwnerPlanStatus.Active &&
+                    p.EndDate >= DateTime.Now)).Any();
+            if(!ownerPlanActive || venue.Status != VenueStatus.Active)
+            {
+                throw new BadRequestException("Cơ sở hiện không hoạt động");
+            }
             return events.Select(e =>
             {
                 var currentPlayer = e.Participants.Sum(p => p.TicketQuantity);
@@ -191,7 +199,8 @@ namespace Fiebo.Application.Services
                 {
                     EventId = e.Id,
                     Name = e.Name,
-                    VenueName = e.Details.FirstOrDefault()?.Field.Venue?.Name ?? "",
+                    VenueId = e.VenueId,
+                    VenueName = e.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
@@ -225,10 +234,15 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
             }
-            var firstDetail = eventDetail.Details.First();
-            var venue = firstDetail.Field.Venue;
+            var venue = await _unitOfWork.Venues.GetVenueDetailById(eventDetail.VenueId);
             if (venue == null || venue.Status != VenueStatus.Active)
                 throw new BadRequestException("Cơ sở hiện không hoạt động");
+            var ownerPlan = (await _unitOfWork.OwnerPlans
+                    .FindAsync(p => p.OwnerId == venue.OwnerId &&
+                    p.Status == OwnerPlanStatus.Active &&
+                    p.EndDate >= DateTime.Now)).Any();
+            if (!ownerPlan)
+                throw new BadRequestException("Chủ cơ sở không còn gói dịch vụ hoạt động");
             foreach (var d in eventDetail.Details)
             {
                 if (d.Field == null || d.Field.Status != FieldStatus.Active)
@@ -238,7 +252,7 @@ namespace Fiebo.Application.Services
                     throw new BadRequestException("Slot trong sự kiện không còn hợp lệ");
             }
 
-            var address = $"{firstDetail.Field.Venue?.AddressDetail}, {firstDetail.Field.Venue?.Ward?.Name}, {firstDetail.Field.Venue?.Province?.Name}";
+            var address = $"{venue.AddressDetail}, {venue.Ward?.Name}, {venue.Province?.Name}";
             var remainingTicketQuantity = eventDetail.MaxPlayer - (await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId));
 
             var slots = eventDetail.Details
@@ -255,7 +269,7 @@ namespace Fiebo.Application.Services
             {
                 EventId = eventDetail.Id,
                 Name = eventDetail.Name,
-                VenueName = firstDetail.Field.Venue?.Name ?? "",
+                VenueName = venue.Name ?? "",
                 VenueAddress = address,
                 EventDate = eventDetail.EventDate,
                 Description = eventDetail.Description,
@@ -336,19 +350,27 @@ namespace Fiebo.Application.Services
                 }
 
                 // Check Venue and Field active status
-                var firstDetail = dropInEvent.Details.FirstOrDefault();
-                if (firstDetail != null)
+                var fieldValid = dropInEvent.Details.All(d =>
+                    d.Field != null && d.Field.Status == FieldStatus.Active &&
+                    d.Slot != null && !d.Slot.IsDeleted);
+                
+                if (!fieldValid)
                 {
-                    if (firstDetail.Field.Status != FieldStatus.Active)
-                        throw new BadRequestException("Sân hiện tại không hoạt động.");
-                    if (firstDetail.Field.Venue?.Status != VenueStatus.Active)
-                        throw new BadRequestException("Cơ sở này hiện không hoạt động.");
+                    throw new BadRequestException("Các sân hoặc khung giờ không hợp lệ.");
                 }
+                var ownerPlan = (await _unitOfWork.OwnerPlans
+                    .FindAsync(p => p.OwnerId == dropInEvent.Venue.OwnerId &&
+                    p.Status == OwnerPlanStatus.Active &&
+                    p.EndDate >= DateTime.Now)).Any();
 
                 if (dropInEvent.Status != TicketEventStatus.Pending)
                 {
                     throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
                 }
+                if (!ownerPlan || dropInEvent.Venue.Status != VenueStatus.Active) {
+                    throw new BadRequestException("Cơ sở tổ chức sự kiện hiện không hoạt động");
+                }
+
 
                 // 3. Check slot capacity (fix bug quantity)
                 var currentPlayer = await _unitOfWork.TicketParticipants.GetCurrentPlayer(eventId);

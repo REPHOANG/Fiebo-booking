@@ -85,7 +85,7 @@ const OwnerSubscriptionOverview = () => {
                   </div>
                   <div className="op-sub-header-metric">
                     <span>Hết hạn</span>
-                    <strong>{formatDate(currentPlan?.endDate)}</strong>
+                    <strong>{formatDateTime(currentPlan?.endDate)}</strong>
                   </div>
                   <div className="op-sub-header-metric">
                     <span>Trạng thái</span>

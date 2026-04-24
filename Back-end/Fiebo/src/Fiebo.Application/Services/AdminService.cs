@@ -123,7 +123,11 @@ namespace Fiebo.Application.Services
                     {
                         IssueDate = bizDoc.IssueDate,
                         ExpiryDate = bizDoc.ExpiryDate,
-                        Images = [.. bizDoc.Images.Select(i => i.ImageUrl)]
+                        Images = [.. bizDoc.Images.Select(i => new DocumentImageDto
+                        {
+                            ImageId = i.Id,
+                            ImageUrl = i.ImageUrl ?? string.Empty
+                        })]
                     }
                     : null,
             };

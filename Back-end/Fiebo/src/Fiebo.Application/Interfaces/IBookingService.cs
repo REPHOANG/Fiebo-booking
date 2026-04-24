@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Auth;
 using Fiebo.Application.DTOs.Booking;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Shared;
 
 namespace Fiebo.Application.Interfaces
@@ -16,7 +17,7 @@ namespace Fiebo.Application.Interfaces
         Task<bool> CancelBookingAsync(int bookingId, string userId);
         Task<bool> CreateWalkInBookingAsync(CreateBookingRequest request, string? userId, string? userRole);
         Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);
-        Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason);
+        Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason, string? userRole);
         Task<bool> ConfirmBookingAsync(int bookingId, string ownerId);
         Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason);
         Task<PagedResult<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters);

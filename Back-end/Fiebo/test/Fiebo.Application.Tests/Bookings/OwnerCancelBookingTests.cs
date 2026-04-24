@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
+using Fiebo.Domain.Constants;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Exceptions;
@@ -112,7 +113,7 @@ namespace Fiebo.Application.Tests.Bookings
                 .ReturnsAsync((Booking?)null);
 
             await Assert.ThrowsAsync<NotFoundException>(() =>
-                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason));
+                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason, AppRoles.FieldOwner));
         }
 
         //[Fact]
@@ -141,7 +142,7 @@ namespace Fiebo.Application.Tests.Bookings
                 .ReturnsAsync(booking);
 
             var ex = await Assert.ThrowsAsync<BadRequestException>(() =>
-                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason));
+                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason, AppRoles.FieldOwner));
 
             Assert.Equal("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.", ex.Message);
         }
@@ -155,7 +156,7 @@ namespace Fiebo.Application.Tests.Bookings
                 .ReturnsAsync(booking);
 
             var ex = await Assert.ThrowsAsync<BadRequestException>(() =>
-                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason));
+                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason, AppRoles.FieldOwner));
 
             Assert.Equal("Không thể hủy lịch đặt này do trạng thái không còn hợp lệ.", ex.Message);
         }
@@ -230,7 +231,7 @@ namespace Fiebo.Application.Tests.Bookings
                 .ReturnsAsync(new List<Wallet>());
 
             var ex = await Assert.ThrowsAsync<BadRequestException>(() =>
-                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason));
+                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason, AppRoles.FieldOwner));
 
             Assert.Equal("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.", ex.Message);
             _unitOfWork.Verify(x => x.RollbackTransactionAsync(), Times.Once);
@@ -263,7 +264,7 @@ namespace Fiebo.Application.Tests.Bookings
                 .ThrowsAsync(new Exception("DB error"));
 
             var ex = await Assert.ThrowsAsync<BadRequestException>(() =>
-                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason));
+                _service.OwnerCancelBookingAsync(1, OwnerId, CancelReason, AppRoles.FieldOwner));
 
             Assert.Equal("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.", ex.Message);
             _unitOfWork.Verify(x => x.RollbackTransactionAsync(), Times.Once);
