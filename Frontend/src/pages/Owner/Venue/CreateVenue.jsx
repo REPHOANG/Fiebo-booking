@@ -463,7 +463,7 @@ const CreateVenue = () => {
           },
           showConfirmButton: false,
         });
-        try {
+          try {
           await updateOwnerVenueInfo(existingId, {
             name: data.name,
             description: data.description,
@@ -477,7 +477,7 @@ const CreateVenue = () => {
             thumbnailFile: thumbnailFile || undefined,
           });
           Swal.close();
-          await Swal.fire({ icon: "success", title: `Đã cập nhật cơ sở #${existingId}`, showConfirmButton: false, timer: 1400 });
+          toast.success(`Đã cập nhật cơ sở #${existingId}`);
           if (thumbnailFile) setExistingThumbnailUrl("");
           setActiveStep(1);
         } catch (e) {
@@ -510,12 +510,13 @@ const CreateVenue = () => {
         },
         showConfirmButton: false,
       });
-      try {
+        try {
         const result = await createVenue(form);
         const id = result?.venueId ?? result?.VenueId;
         const status = result?.status ?? result?.Status ?? "DRAFT";
         if (id) {
           Swal.close();
+          toast.success(`Tạo cơ sở thành công #${id}`);
           await Swal.fire({ icon: "success", title: `Tạo cơ sở thành công #${id}`, showConfirmButton: false, timer: 1400 });
           setCreatedVenue({ venueId: id, status });
           setActiveStep(1);
@@ -649,8 +650,7 @@ const CreateVenue = () => {
         /* bước xác nhận vẫn dùng state hiện tại */
       }
       Swal.close();
-      await Swal.fire({ icon: "success", title: "Đã lưu giấy tờ.", showConfirmButton: false, timer: 1400 });
-
+      toast.success("Đã lưu giấy tờ.");
       setActiveStep(2);
     } catch (e) {
       Swal.close();
@@ -676,7 +676,7 @@ const CreateVenue = () => {
       try {
         await submitVenue(venueId);
         Swal.close();
-        await Swal.fire({ icon: "success", title: "Đã gửi duyệt cơ sở.", showConfirmButton: false, timer: 1400 });
+        toast.success("Đã gửi duyệt cơ sở.");
         navigate("/owner/venues");
       } catch (e) {
         Swal.close();
