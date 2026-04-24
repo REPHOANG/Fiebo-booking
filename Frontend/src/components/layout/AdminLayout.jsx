@@ -89,14 +89,6 @@ const AdminLayout = () => {
             </NavLink>
           ))}
         </nav>
-
-        <div className="admin-shell__profile-card">
-          <div className="admin-shell__avatar">{initials || "AD"}</div>
-          <div>
-            <p className="admin-shell__profile-name">Quản trị viên</p>
-            <p className="admin-shell__profile-role">Điều hành hệ thống</p>
-          </div>
-        </div>
       </aside>
 
       <div className="admin-shell__main">

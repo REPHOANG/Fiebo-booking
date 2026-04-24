@@ -128,11 +128,27 @@ const OwnerBookings = ({
 
     if (result.isConfirmed) {
       try {
+        Swal.fire({
+          title: "Đang xác nhận...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+          showConfirmButton: false,
+        });
         await confirmBookingApi(bookingId);
-        toast.success("Đã xác nhận đơn hàng.");
+        Swal.close();
+        await Swal.fire({
+          icon: "success",
+          title: "Đã xác nhận đơn hàng.",
+          showConfirmButton: false,
+          timer: 1500,
+        });
         loadList();
       } catch (e) {
-        toast.error(e?.response?.data?.message || "Không thể xác nhận đơn hàng.");
+        Swal.close();
+        const msg = e?.response?.data?.message || "Không thể xác nhận đơn hàng.";
+        toast.error(msg);
       }
     }
   };
@@ -150,11 +166,27 @@ const OwnerBookings = ({
 
     if (result.isConfirmed) {
       try {
+        Swal.fire({
+          title: "Đang xử lý từ chối...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+          showConfirmButton: false,
+        });
         await rejectBookingApi(bookingId, "Chủ sân từ chối đơn đặt sân");
-        toast.success("Đã từ chối đơn hàng.");
+        Swal.close();
+        await Swal.fire({
+          icon: "success",
+          title: "Đã từ chối đơn hàng.",
+          showConfirmButton: false,
+          timer: 1500,
+        });
         loadList();
       } catch (e) {
-        toast.error(e?.response?.data?.message || "Không thể từ chối đơn hàng.");
+        Swal.close();
+        const msg = e?.response?.data?.message || "Không thể từ chối đơn hàng.";
+        toast.error(msg);
       }
     }
   };
@@ -178,11 +210,27 @@ const OwnerBookings = ({
 
     if (reason) {
       try {
+        Swal.fire({
+          title: "Đang hủy đơn...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+          showConfirmButton: false,
+        });
         await ownerCancelBookingApi(bookingId, reason);
-        toast.success("Đã hủy đơn hàng và hoàn tiền.");
+        Swal.close();
+        await Swal.fire({
+          icon: "success",
+          title: "Đã hủy đơn hàng và hoàn tiền.",
+          showConfirmButton: false,
+          timer: 1500,
+        });
         loadList();
       } catch (e) {
-        toast.error(e?.response?.data?.message || "Không thể hủy đơn hàng.");
+        Swal.close();
+        const msg = e?.response?.data?.message || "Không thể hủy đơn hàng.";
+        toast.error(msg);
       }
     }
   };

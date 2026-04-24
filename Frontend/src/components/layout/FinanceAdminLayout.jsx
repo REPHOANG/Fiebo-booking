@@ -21,7 +21,7 @@ const navItems = [
   { to: "/finance-admin", label: "Tổng quan", icon: LayoutDashboard, end: true },
   { to: "/finance-admin/transactions", label: "Danh sách giao dịch", icon: FileText },
   { to: "/finance-admin/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
-  { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
+  // { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
   { to: "/finance-admin/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
   { to: "/finance-admin/process-withdrawal-requests", label: "Xử lý yêu cầu rút tiền", icon: Receipt },
 ];
@@ -85,14 +85,6 @@ const FinanceAdminLayout = () => {
             </NavLink>
           ))}
         </nav>
-
-        <div className="admin-shell__profile-card">
-          <div className="admin-shell__avatar">{initials || "FA"}</div>
-          <div>
-            <p className="admin-shell__profile-name">Finance Admin</p>
-            <p className="admin-shell__profile-role">{user?.email || "finance@fiebo.com"}</p>
-          </div>
-        </div>
       </aside>
 
       <div className="admin-shell__main">

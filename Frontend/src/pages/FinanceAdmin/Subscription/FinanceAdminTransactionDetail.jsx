@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getTransactionDetail } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
+import { User, CreditCard, MapPin, CheckCircle2 } from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -86,45 +87,71 @@ const FinanceAdminTransactionDetail = () => {
 
   return (
     <section className="finance-admin-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div className="payout-header-row" style={{ marginBottom: 18 }}>
         <h2 className="finance-admin-title" style={{ margin: 0 }}>Chi tiết giao dịch #{transaction.id}</h2>
         <Link to="/finance-admin/transactions" className="finance-admin-link-btn">
           Quay lại danh sách
         </Link>
       </div>
 
-      <div className="finance-admin-card" style={{ padding: 24, backgroundColor: "#fff", borderRadius: 8, border: "1px solid #e5e7eb" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-          <div>
-            <h3 style={{ fontSize: "16px", marginBottom: "12px", color: "#374151" }}>Thông tin giao dịch</h3>
-            <p><strong>Loại giao dịch:</strong> {translateTransactionType(transaction.transactionType)}</p>
-            <p><strong>Chiều giao dịch:</strong> {translateDirection(transaction.direction)}</p>
-            <p><strong>Số tiền:</strong> <span style={{ color: normalizeDirectionIsIncoming(transaction.direction) ? "green" : "red", fontWeight: "bold" }}>
-              {normalizeDirectionIsIncoming(transaction.direction) ? "+" : "-"}{currency.format(transaction.amount)}
-            </span></p>
-            <p><strong>Trạng thái:</strong> {translateStatus(transaction.status)}</p>
-            <p><strong>Ngày tạo:</strong> {new Date(transaction.createdAt).toLocaleString("vi-VN")}</p>
-            <p><strong>Mô tả:</strong> {transaction.description || "Không có"}</p>
-            {transaction.referenceId && <p><strong>Mã tham chiếu (Reference ID):</strong> {transaction.referenceId}</p>}
-          </div>
+      <div className="payout-top-grid">
+        <div className="payout-card payout-payment">
+          <div className="payout-card-inner">
+            <div className="payout-info-left">
+              <div className="payout-small-label">Thông tin giao dịch</div>
+              <div className="payment-amount" style={{ color: normalizeDirectionIsIncoming(transaction.direction) ? undefined : '#ef4444' }}>
+                {normalizeDirectionIsIncoming(transaction.direction) ? "+" : "-"}{currency.format(transaction.amount)}
+              </div>
 
-          <div>
-            <h3 style={{ fontSize: "16px", marginBottom: "12px", color: "#374151" }}>Thông tin người dùng & Ngân hàng</h3>
-            <p><strong>Họ tên:</strong> {transaction.fullname}</p>
-            <p><strong>Email:</strong> {transaction.email}</p>
-            <p><strong>Số điện thoại:</strong> {transaction.phoneNumber}</p>
-            <div style={{ marginTop: 12, padding: 12, backgroundColor: "#f9fafb", borderRadius: 6 }}>
-              <p style={{ margin: "0 0 8px 0" }}><strong>Thông tin ngân hàng:</strong></p>
+              <div className="payout-meta">
+                <span className="payout-status-badge"><CheckCircle2 size={14} style={{ marginRight: 6 }} />{translateStatus(transaction.status)}</span>
+                <div className="payout-date">Ngày tạo: <strong>{new Date(transaction.createdAt).toLocaleString("vi-VN")}</strong></div>
+              </div>
+
+              <div className="internal-note" style={{ marginTop: 12 }}>
+                <div className="internal-note-title">Chi tiết</div>
+                <div className="internal-note-body">
+                  <div><strong>Loại giao dịch:</strong> {translateTransactionType(transaction.transactionType)}</div>
+                  <div><strong>Chiều giao dịch:</strong> {translateDirection(transaction.direction)}</div>
+                  <div><strong>Mô tả:</strong> {transaction.description || "Không có"}</div>
+                  {transaction.referenceId && <div><strong>Mã tham chiếu:</strong> {transaction.referenceId}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div className="payout-info-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Link to={`/finance-admin/transactions/${transaction.id}/edit`} className="finance-admin-link-btn">Chỉnh sửa</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="payout-card payout-receiver">
+          <h3 className="payout-receiver-title">Thông tin người dùng & Ngân hàng</h3>
+          <div className="receiver-grid">
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><User size={14} /></div><div className="receiver-label">Họ tên</div></div><div className="receiver-value">{transaction.fullname || '—'}</div></div>
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><CreditCard size={14} /></div><div className="receiver-label">Email</div></div><div className="receiver-value">{transaction.email || '—'}</div></div>
+            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><MapPin size={14} /></div><div className="receiver-label">Số điện thoại</div></div><div className="receiver-value">{transaction.phoneNumber || '—'}</div></div>
+            <div style={{ marginTop: 8, paddingTop: 8 }} />
+            <div style={{ paddingTop: 6 }} className="receiver-bank">
+              <div style={{ margin: '8px 0 6px 0', color: '#6b7280', fontWeight: 800 }}>Thông tin ngân hàng:</div>
               {transaction.bankAccountNumber ? (
-                <>
-                  <p>Ngân hàng: {transaction.bankName}</p>
-                  <p>Số tài khoản: {transaction.bankAccountNumber}</p>
-                  <p>Chủ tài khoản: {transaction.bankaccountHolder}</p>
-                </>
+                <div className="internal-note-body">
+                  <div><strong>Ngân hàng:</strong> {transaction.bankName}</div>
+                  <div><strong>Số tài khoản:</strong> {transaction.bankAccountNumber}</div>
+                  <div><strong>Chủ tài khoản:</strong> {transaction.bankaccountHolder}</div>
+                </div>
               ) : (
-                <p style={{ color: "#6b7280" }}>Không có thông tin ngân hàng</p>
+                <div className="internal-note" style={{ marginTop: 6 }}>
+                  <div style={{ color: '#6b7280' }}>Không có thông tin ngân hàng</div>
+                </div>
               )}
             </div>
+          </div>
+          <div className="receiver-footer">
+            <div className="receiver-verified">● Verified Destination</div>
+            <Link to="#" className="receiver-history">Xem lịch sử giao dịch người nhận</Link>
           </div>
         </div>
       </div>
