@@ -31,7 +31,8 @@ export const getStaffBookingDetail = async (id) => {
 export const getStaffEvents = async (params) => {
   const response = await api.get("/api/Staff/events", { params });
   const data = unwrap(response);
-  return Array.isArray(data) ? data : [];
+  const items = data?.items ?? data?.Items ?? data;
+  return Array.isArray(items) ? items : [];
 };
 
 export const getStaffEventDetail = async (id) => {

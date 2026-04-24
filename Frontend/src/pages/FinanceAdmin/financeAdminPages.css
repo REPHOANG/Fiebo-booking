@@ -112,9 +112,19 @@
 .finance-admin-table th,
 .finance-admin-table td {
   text-align: left;
-  padding: 12px;
-  border-bottom: 1px solid #f0f2f5;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
   white-space: nowrap;
+}
+
+.finance-admin-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.finance-admin-table tbody tr:hover {
+  background-color: #f9fafb;
 }
 
 .finance-admin-card-list {
@@ -170,6 +180,11 @@
 .finance-admin-status-reconciled {
   background: #d1fae5;
   color: #065f46;
+}
+
+.finance-admin-status-failed {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .finance-admin-report-header {

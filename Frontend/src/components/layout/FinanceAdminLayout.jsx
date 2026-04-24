@@ -18,9 +18,8 @@ import "./AdminLayout.css";
 
 const navItems = [
   { to: "/finance-admin", label: "Tổng quan", icon: LayoutDashboard, end: true },
-  { to: "/finance-admin/owner-payouts", label: "Thanh toán cho chủ sân", icon: CircleDollarSign },
-  { to: "/finance-admin/process-owner-payouts", label: "Xử lý thanh toán cho chủ sân", icon: Receipt },
-  { to: "/finance-admin/owner-subscription-transactions", label: "Giao dịch đăng ký của chủ sân", icon: FileText },
+  { to: "/finance-admin/transactions", label: "Danh sách giao dịch", icon: FileText },
+  { to: "/finance-admin/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
   { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
   { to: "/finance-admin/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
   { to: "/finance-admin/process-withdrawal-requests", label: "Xử lý yêu cầu rút tiền", icon: Receipt },

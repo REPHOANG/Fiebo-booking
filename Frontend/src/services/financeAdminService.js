@@ -89,3 +89,30 @@ export const rejectWithdrawalRequest = async (id, reason) => {
   const res = await api.patch(`/api/admin/withdraw-requests/${id}/reject`, { reason });
   return res.data;
 };
+
+// ─── Finance Transactions & Payout Batches (New API) ──────────
+
+export const getTransactions = async (params) => {
+  const res = await api.get('/api/admin/finance/transactions', { params });
+  return res.data?.data ?? res.data;
+};
+
+export const getTransactionDetail = async (id) => {
+  const res = await api.get(`/api/admin/finance/transaction/${id}`);
+  return res.data?.data ?? res.data;
+};
+
+export const getPayoutBatches = async (params) => {
+  const res = await api.get('/api/admin/finance/payout-batches', { params });
+  return res.data?.data ?? res.data;
+};
+
+export const getPayoutsInBatch = async (batchId, params) => {
+  const res = await api.get(`/api/admin/finance/payout-batch/${batchId}/payouts`, { params });
+  return res.data?.data ?? res.data;
+};
+
+export const getPayoutDetail = async (payoutId) => {
+  const res = await api.get(`/api/admin/finance/payout/${payoutId}`);
+  return res.data?.data ?? res.data;
+};
