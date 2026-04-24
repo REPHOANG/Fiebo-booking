@@ -26,6 +26,7 @@ const navItems = [
   { to: "/admin/customers", label: "Khách hàng", icon: Users },
   { to: "/admin/owners", label: "Hồ sơ chủ sở hữu", icon: Users },
   { to: "/admin/venue-registrations", label: "Duyệt đăng ký cơ sở", icon: ScrollText },
+  { to: "/admin/reports", label: "Quản lý báo cáo", icon: ClipboardList },
   { to: "/admin/finance-admins", label: "Quản lý tài chính", icon: BadgeDollarSign },
   { to: "/admin/subscriptions", label: "Quản lý gói dịch vụ", icon: PackageOpen },
   { to: "/admin/sports", label: "Danh mục thể thao", icon: Trophy },

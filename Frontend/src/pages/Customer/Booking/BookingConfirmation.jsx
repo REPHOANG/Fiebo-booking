@@ -166,7 +166,7 @@ const BookingConfirmation = () => {
   React.useEffect(() => {
     if (!user) return;
     if (!isWalkInBooking && !didEditNameRef.current) setGuestName(user?.fullName || user?.name || "");
-    if (!didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(user?.phone || user?.phoneNumber || ""));
+    if (!isWalkInBooking && !didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(user?.phone || user?.phoneNumber || ""));
   }, [user, isWalkInBooking]);
 
   // Prefill từ profile API khi đã đăng nhập — auth.user có thể thiếu phone (vd: đăng nhập Google).
@@ -185,8 +185,8 @@ const BookingConfirmation = () => {
           setNameError("");
         }
         if (phone) {
-          if (!didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(phone));
-          setPhoneError(getPhoneValidationError(phone));
+          if (!isWalkInBooking && !didEditPhoneRef.current) setGuestPhone(normalizePhoneNumber(phone));
+          if (!isWalkInBooking) setPhoneError(getPhoneValidationError(phone));
         }
       } catch (_) {
         // ignore (e.g. 401, network)
@@ -753,7 +753,7 @@ const BookingConfirmation = () => {
                 <input
                   className={`bc-field-input${phoneError ? " error" : ""}`}
                   type="tel"
-                  placeholder="0912 345 678"
+                  placeholder="Nhập số điện thoại"
                   value={guestPhone}
                   onChange={(e) => {
                     didEditPhoneRef.current = true;

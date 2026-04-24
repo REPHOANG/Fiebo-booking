@@ -25,7 +25,7 @@
 //        public UpdateVenueTests()
 //        {
 //            _unitOfWork.Setup(x => x.Venues).Returns(_venueRepo.Object);
-//            _service = new VenueService(_unitOfWork.Object, null!, null!, null!, null!);
+//            _service = new VenueService(_unitOfWork.Object, null!, null!, null!, null!, null!);
 //        }
 
 //        private static UpdateVenueRequest ValidRequest() => new()

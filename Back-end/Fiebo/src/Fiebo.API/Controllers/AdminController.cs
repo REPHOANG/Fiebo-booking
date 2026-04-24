@@ -9,6 +9,7 @@ using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 namespace Fiebo.API.Controllers
 {
     [Route("api/[controller]")]
@@ -21,19 +22,22 @@ namespace Fiebo.API.Controllers
         private readonly IAdminService _adminService;
         private readonly IAdminVenueService _adminVenueService;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IVenueService _venueService;
 
         public AdminController(
             IFinanceAdminService financeAdminService,
             IAdminDashboardService adminDashboardService,
             IAdminService adminService,
             IAdminVenueService adminVenueService,
-            ISubscriptionService subscriptionService)
+            ISubscriptionService subscriptionService,
+            IVenueService venueService)
         {
             _financeAdminService = financeAdminService;
             _adminDashboardService = adminDashboardService;
             _adminService = adminService;
             _adminVenueService = adminVenueService;
             _subscriptionService = subscriptionService;
+            _venueService = venueService;
         }
         /// <summary>
         /// Lấy danh sách tài khoản Finance Admin
@@ -306,6 +310,36 @@ namespace Fiebo.API.Controllers
             {
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Cập nhật trạng thái cơ sở thành công."
+            });
+        }
+
+        /// <summary>
+        /// Admin duyệt yêu cầu cập nhật địa chỉ / giấy tờ của cơ sở.
+        /// </summary>
+        [HttpPost("venue-updates/{id}/approve")]
+        public async Task<IActionResult> ApproveVenueUpdate([FromRoute] int id)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _venueService.ApproveVenueUpdateAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã duyệt yêu cầu cập nhật cơ sở."
+            });
+        }
+
+        /// <summary>
+        /// Admin từ chối yêu cầu cập nhật địa chỉ / giấy tờ của cơ sở + gửi email thông báo.
+        /// </summary>
+        [HttpPost("venue-updates/{id}/reject")]
+        public async Task<IActionResult> RejectVenueUpdate([FromRoute] int id, [FromBody] RejectVenueRequest request)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _venueService.RejectVenueUpdateAsync(id, adminId, request.RejectionReason);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã từ chối yêu cầu cập nhật cơ sở và thông báo cho chủ sân."
             });
         }
     }

@@ -133,8 +133,17 @@ const Venues = () => {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [inputValue, setInputValue] = useState(initialSearch);
   const [, setTotalItems] = useState(0);
-  /** Đọc vị trí đã lưu ngay khi khởi tạo để tránh hai lần đổi `filtersKey` → hai request chồng chéo, response cũ ghi đè danh sách. */
+  /** Read initial location: prefer URL search params (`lat`/`lng`), fallback to localStorage. */
   const [userGeo, setUserGeo] = useState(() => {
+    try {
+      const latParam = searchParams.get("lat");
+      const lngParam = searchParams.get("lng");
+      if (latParam != null && lngParam != null) {
+        const lat = parseFloat(latParam);
+        const lng = parseFloat(lngParam);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { userLat: lat, userLng: lng };
+      }
+    } catch { }
     try {
       const stored = localStorage.getItem("userLocation");
       if (stored) {
@@ -149,6 +158,15 @@ const Venues = () => {
 
   /** Vị trí người dùng đã click trên bản đồ (dùng để hiển thị marker + badge). */
   const [mapPickedLocation, setMapPickedLocation] = useState(() => {
+    try {
+      const latParam = searchParams.get("lat");
+      const lngParam = searchParams.get("lng");
+      if (latParam != null && lngParam != null) {
+        const lat = parseFloat(latParam);
+        const lng = parseFloat(lngParam);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng, label: null };
+      }
+    } catch { }
     try {
       const stored = localStorage.getItem("userLocation");
       if (stored) {
@@ -203,17 +221,25 @@ const Venues = () => {
     const lng = parseFloat(result.lon);
     const label = result.display_name;
     const shortLabel = label.split(",")[0].trim();
+    // Show the picked location on the map (transient)
     setMapPickedLocation({ lat, lng, label: shortLabel });
-    setUserGeo({ userLat: lat, userLng: lng });
     setFlyToTarget({ lat, lng });
     setFilterMode("khoang-cach");
     setMapSearchQuery(shortLabel);
     setMapSearchOpen(false);
+
+    // Store coordinates in the URL search params only (do not overwrite localStorage).
     try {
-      localStorage.setItem("userLocation", JSON.stringify({ latitude: lat, longitude: lng }));
+      setUserGeo({ userLat: lat, userLng: lng });
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.set("lat", String(lat));
+        p.set("lng", String(lng));
+        return p;
+      }, { replace: true });
     } catch { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setSearchParams]);
 
   // Add filter panel state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -657,14 +683,40 @@ const Venues = () => {
     setMapSearchQuery("");
     setMapSearchResults([]);
     setMapSearchOpen(false);
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        p.delete("sport");
-        return p;
-      },
-      { replace: true },
-    );
+
+    // Remove temporary search params (sport + lat/lng)
+    try {
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete("sport");
+          p.delete("lat");
+          p.delete("lng");
+          return p;
+        },
+        { replace: true },
+      );
+    } catch { }
+
+    // Restore saved location from localStorage (if present), otherwise clear geo state
+    try {
+      const stored = localStorage.getItem("userLocation");
+      if (stored) {
+        const c = JSON.parse(stored);
+        if (c?.latitude != null && c?.longitude != null) {
+          const lat = Number(c.latitude);
+          const lng = Number(c.longitude);
+          setUserGeo({ userLat: lat, userLng: lng });
+          setMapPickedLocation({ lat, lng, label: null });
+          setFlyToTarget({ lat, lng });
+          setShowFilterPanel(false);
+          return;
+        }
+      }
+    } catch { }
+
+    setUserGeo({ userLat: null, userLng: null });
+    setMapPickedLocation(null);
     setShowFilterPanel(false);
   };
 
@@ -788,10 +840,44 @@ const Venues = () => {
                           type="button"
                           className="venues-map-badge-clear"
                           onClick={() => {
+                            // Remove temporary coords from URL and clear transient marker.
+                            try {
+                              setSearchParams((prev) => {
+                                const p = new URLSearchParams(prev);
+                                p.delete("lat");
+                                p.delete("lng");
+                                return p;
+                              }, { replace: true });
+                            } catch { }
                             setMapPickedLocation(null);
-                            setUserGeo({ userLat: null, userLng: null });
                             setMapSearchQuery("");
-                            try { localStorage.removeItem("userLocation"); } catch { }
+
+                            // Restore saved localStorage location to userGeo if present.
+                            try {
+                              const stored = localStorage.getItem("userLocation");
+                              if (stored) {
+                                const c = JSON.parse(stored);
+                                if (c?.latitude != null && c?.longitude != null) {
+                                  const lat = Number(c.latitude);
+                                  const lng = Number(c.longitude);
+                                  // update URL so restored location is reflected there
+                                  try {
+                                    setSearchParams((prev) => {
+                                      const p = new URLSearchParams(prev);
+                                      p.set("lat", String(lat));
+                                      p.set("lng", String(lng));
+                                      return p;
+                                    }, { replace: true });
+                                  } catch { }
+                                  setUserGeo({ userLat: lat, userLng: lng });
+                                  setMapPickedLocation({ lat, lng, label: null });
+                                  setFlyToTarget({ lat, lng });
+                                  return;
+                                }
+                              }
+                            } catch { }
+
+                            setUserGeo({ userLat: null, userLng: null });
                           }}
                           aria-label="Xóa vị trí"
                         >
@@ -822,11 +908,14 @@ const Venues = () => {
                             setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
                             setFilterMode("khoang-cach");
                             setMapSearchQuery("");
+                            // Write coordinates to URL params only; do not overwrite localStorage
                             try {
-                              localStorage.setItem(
-                                "userLocation",
-                                JSON.stringify({ latitude: latlng.lat, longitude: latlng.lng })
-                              );
+                              setSearchParams((prev) => {
+                                const p = new URLSearchParams(prev);
+                                p.set("lat", String(latlng.lat));
+                                p.set("lng", String(latlng.lng));
+                                return p;
+                              }, { replace: true });
                             } catch { }
                           }}
                         />

@@ -112,3 +112,45 @@ export const ownerCancelBookingApi = async (id, cancelReason) => {
   });
   return response.data?.data ?? response.data ?? response;
 };
+
+/**
+ * Owner confirms a pending booking.
+ */
+export const confirmBookingApi = async (id) => {
+  const response = await api.post(`/api/Booking/${id}/confirm`);
+  return response.data?.data ?? response.data ?? response;
+};
+
+/**
+ * Owner rejects a pending booking.
+ */
+export const rejectBookingApi = async (id, cancelReason) => {
+  const response = await api.post(`/api/Booking/${id}/reject`, {
+    cancelReason: String(cancelReason || ""),
+  });
+  return response.data?.data ?? response.data ?? response;
+};
+
+// ─── Customer Report APIs ──────────────────────────────────────────────────────
+
+/**
+ * POST /api/Report/send-booking-report
+ * Customer sends a report for a completed booking.
+ * @param {{ bookingId: number, title: string, content: string }} payload
+ */
+export const sendBookingReport = async (payload) => {
+  const response = await api.post('/api/Report/send-booking-report', payload);
+  return response.data;
+};
+
+/**
+ * GET /api/Report/my-reports/{id}
+ * Customer views detail of a specific report (including admin response).
+ * @param {number} reportId
+ */
+export const getMyReportDetail = async (reportId) => {
+  const response = await api.get(`/api/Report/my-reports/${reportId}`);
+  const data = response.data?.data ?? response.data;
+  return data;
+};
+

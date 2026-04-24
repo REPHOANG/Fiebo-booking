@@ -26,7 +26,7 @@ namespace Fiebo.Domain.Repositories
         ITimeSlotRepository TimeSlots { get; }
         ITopUpRequestRepository TopUpRequests { get; }
 
-        //IReportRepository Reports { get; }
+        IReportRepository Reports { get; }
         IWalletTransactionRepository WalletTransactions { get; }
         ITicketEventRepository TicketEvents { get; }
         ITicketParticipantRepository TicketParticipants { get; }
@@ -48,6 +48,7 @@ namespace Fiebo.Domain.Repositories
         IPayoutBatchRepository PayoutBatches { get; }
         IPayoutDetailRepository PayoutDetails { get; }
         IBookingServiceItemRepository BookingServiceItems { get; }
+        IVenueUpdateRequestRepository VenueUpdateRequests { get; }
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();

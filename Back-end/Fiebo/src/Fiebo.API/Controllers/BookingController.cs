@@ -199,7 +199,47 @@ namespace Fiebo.API.Controllers
             });
         }
 
-        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+        /// <summary>
+        /// Owner xác nhận lịch đặt sân (chuyển Pending → Booked).
+        /// </summary>
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPost("{id}/confirm")]
+        public async Task<IActionResult> ConfirmBooking([FromRoute] int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+
+            await _bookingService.ConfirmBookingAsync(id, ownerId);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Xác nhận lịch đặt thành công."
+            });
+        }
+
+        /// <summary>
+        /// Owner từ chối lịch đặt sân (chuyển Pending → Rejected + hoàn tiền).
+        /// </summary>
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPost("{id}/reject")]
+        public async Task<IActionResult> RejectBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(ownerId))
+                throw new UnauthorizedAccessException("Cannot identify current user.");
+
+            await _bookingService.RejectBookingAsync(id, ownerId, request.CancelReason);
+
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã từ chối lịch đặt và hoàn tiền cho khách hàng."
+            });
+        }
+
+        [Authorize(Policy = "ActiveOwnerOrStaffPlan")]
         [HttpPost("walk-in")]
         public async Task<IActionResult> CreateWalkInBooking(CreateBookingRequest request)
         {

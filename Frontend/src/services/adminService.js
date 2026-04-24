@@ -177,3 +177,16 @@ export const getAdminDashboard = async (params = {}) => {
 
   return response.data.data ?? response.data;
 };
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export const getAllReportsAdmin = async () => {
+  const response = await api.get('/api/Report/admin-get-all');
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
+};
+
+export const respondToReport = async (reportId, responseContent) => {
+  const response = await api.patch('/api/Report/admin-respond', { reportId, responseContent });
+  return response.data;
+};

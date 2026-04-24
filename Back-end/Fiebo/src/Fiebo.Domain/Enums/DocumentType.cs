@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,6 @@ namespace Fiebo.Domain.Enums
 {
     public enum DocumentType
     {
-        LandUse = 0,
         BusinessLicense = 1,
     }
 }
