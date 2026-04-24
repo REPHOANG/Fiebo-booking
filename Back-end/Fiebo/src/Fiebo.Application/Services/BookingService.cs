@@ -794,7 +794,7 @@ namespace Fiebo.Application.Services
             if (booking.Status == BookingStatus.Booked)
             {
                 refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
-            } else if(booking.Status == BookingStatus.Booked)
+            } else if(booking.Status == BookingStatus.Pending)
             {
                 refundPercentage = 100;
             }

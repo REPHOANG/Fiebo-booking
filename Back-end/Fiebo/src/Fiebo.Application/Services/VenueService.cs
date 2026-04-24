@@ -981,5 +981,31 @@ namespace Fiebo.Application.Services
                 Name = v.Name
             })];
         }
+        public async Task UpdateVenueDocumentAsync(int documentId, string? ownerId, UpdateVenueDocumentRequest request)
+        {
+            if (string.IsNullOrEmpty(ownerId))
+            {
+                throw new UnauthorizedAccessException("Bạn cần đăng nhập để cập nhật giấy tờ");
+            }
+            var document = await _unitOfWork.VenueDocuments.GetByIdAsync(documentId) ?? throw new NotFoundException("Không tìm thấy giấy tờ");
+            document.IssueDate = request.IssueDate;
+            document.ExpiryDate = request.ExpiryDate;
+            ImageValidator.ValidateFiles(request.NewImages, 0, 5);
+            var images = (await _unitOfWork.VenueDocumentImages.FindAsync(i => i.DocumentId == documentId)).ToList();
+            var finalImageCount = images.Count
+                      - request.DeletedImageIds.Count
+                      + request.NewImages.Count;
+            if (finalImageCount > 5)
+            {
+                throw new BadRequestException("Số lượng hình ảnh không được vượt quá 5");
+            }
+            var deleteimages = await _unitOfWork.VenueDocumentImages.GetByIdsAsync(request.DeletedImageIds);
+            _unitOfWork.VenueDocumentImages.RemoveRange(deleteimages);
+            var newImages = new List<VenueDocumentImage>();
+            await UploadDocumentImagesAsync(request.NewImages, documentId, newImages);
+            _unitOfWork.VenueDocumentImages.AddRange(newImages);
+            _unitOfWork.VenueDocuments.Update(document);
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 }
