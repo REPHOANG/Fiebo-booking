@@ -183,8 +183,7 @@ const AdminReports = () => {
           <thead>
             <tr>
               <th style={{ textAlign: "center", width: 70, borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>ID</th>
-              <th style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Tiêu đề</th>
-              <th style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Nội dung</th>
+              <th style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Tên sân</th>
               <th style={{ textAlign: "center", width: 100, borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Booking</th>
               <th style={{ textAlign: "center", width: 170, borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Ngày gửi</th>
               <th style={{ textAlign: "center", width: 150, borderBottom: "2px solid #e5e7eb", background: "#f9fafb", borderRight: "1px solid #e5e7eb" }}>Trạng thái</th>
@@ -204,22 +203,17 @@ const AdminReports = () => {
               </tr>
             ) : filtered.map((item) => {
               const statusInfo = STATUS_MAP[item.status] ?? { label: String(item.status), cls: "" };
-              const isExpanded = expanded === item.id;
+              const isExpanded = expanded === item.venueId;
               return (
                 <React.Fragment key={item.id}>
                   <tr
                     style={{ cursor: "pointer", backgroundColor: isExpanded ? "#f0fdf4" : undefined }}
-                    onClick={() => setExpanded(isExpanded ? null : item.id)}
+                    onClick={() => setExpanded(isExpanded ? null : item.venueId)}
                   >
                     <td style={{ textAlign: "center", fontWeight: 600, border: "1px solid #f0f0f0" }}>{item.id}</td>
                     <td style={{ border: "1px solid #f0f0f0", fontWeight: 500, maxWidth: 200 }}>
                       <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.title || "—"}
-                      </span>
-                    </td>
-                    <td style={{ border: "1px solid #f0f0f0", maxWidth: 280 }}>
-                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#6b7280", fontSize: 13 }}>
-                        {item.content || "—"}
+                        {item.venueName || "—"}
                       </span>
                     </td>
                     <td style={{ textAlign: "center", border: "1px solid #f0f0f0" }}>
@@ -237,7 +231,7 @@ const AdminReports = () => {
                           type="button"
                           className="admin-btn"
                           style={{ padding: "4px 10px", fontSize: 12, borderRadius: 8 }}
-                          onClick={() => setExpanded(isExpanded ? null : item.id)}
+                          onClick={() => setExpanded(isExpanded ? null : item.venueId)}
                         >
                           {isExpanded ? "Thu gọn" : "Xem"}
                         </button>
