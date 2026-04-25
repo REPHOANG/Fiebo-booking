@@ -181,6 +181,7 @@ builder.Services.AddScoped<IFinanceAdminService, FinanceAdminService>();
 builder.Services.AddScoped<IAdminVenueService, AdminVenueService>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IWeeklyPayoutJob, WeeklyPayoutJob>();
 
 builder.Services.AddHttpClient();
 
@@ -317,10 +318,35 @@ using (var scope = app.Services.CreateScope())
 {
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
 
+    TimeZoneInfo timeZone;
+
+    try
+    {
+        timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+    }
+    catch
+    {
+        timeZone = TimeZoneInfo.Local; // fallback
+    }
+
     recurringJobManager.AddOrUpdate<IPlanJob>(
         "expire-owner-plans",
         job => job.ExpireOwnerPlansAsync(),
-        "0 0 * * *"
+        "0 0 * * *",
+        new RecurringJobOptions
+        {
+            TimeZone = timeZone
+        }
+    );
+
+    recurringJobManager.AddOrUpdate<IWeeklyPayoutJob>(
+        "weekly-payout",
+        job => job.Run(),
+        "0 0 * * 1",
+        new RecurringJobOptions
+        {
+            TimeZone = timeZone
+        }
     );
 }
 

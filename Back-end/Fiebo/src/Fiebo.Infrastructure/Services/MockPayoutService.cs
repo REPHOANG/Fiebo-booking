@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Fiebo.Infrastructure.Services
 {
-    public class MockPayoutService : IPayoutService
+    public class MockPayoutService 
     {
         private readonly ILogger<MockPayoutService> _logger;
 

@@ -21,5 +21,7 @@ namespace Fiebo.Application.Interfaces
         Task<AdminWithdrawRequestDetail> GetAdminWithdrawRequestDetailAsync(int transactionId);
         Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId);
         Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason);
+        Task<List<PayoutItemDto>> GetBookingPayouts(DateTime from, DateTime to);
+        Task<List<PayoutItemDto>> GetEventPayouts(DateTime from, DateTime to);
     }
 }

@@ -21,5 +21,6 @@ namespace Fiebo.Application.Interfaces
         Task<bool> ConfirmBookingAsync(int bookingId, string ownerId);
         Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason);
         Task<PagedResult<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters);
+        Task FinalizeBookingsAsync(DateTime now);
     }
 }
