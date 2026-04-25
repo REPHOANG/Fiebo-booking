@@ -13,6 +13,8 @@ namespace Fiebo.Application.DTOs.Report
         public string Content { get; set; } = string.Empty;
         public int Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public int VenueId { get; set; }
+        public string VenueName { get; set; } = string.Empty;
         public int BookingId { get; set; }
         public string CustomerId { get; set; } = string.Empty; 
     }

@@ -32,6 +32,8 @@ namespace Fiebo.Application.Services
                 Content = request.Content,
                 BookingId = request.BookingId,
                 UserId = userId,
+                VenueId = booking.VenueId,
+                VenueName = booking.Venue?.Name ?? "N/A",
                 Status = 0, 
                 CreatedAt = DateTime.Now 
             };
@@ -70,6 +72,8 @@ namespace Fiebo.Application.Services
                 Content = r.Content,
                 Status = r.Status,
                 CreatedAt = r.CreatedAt,
+                VenueId = r.VenueId,                  
+                VenueName = r.Venue?.Name ?? "N/A",
                 BookingId = r.BookingId,
                 CustomerId = r.UserId
             });

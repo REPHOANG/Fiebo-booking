@@ -449,11 +449,20 @@ namespace Fiebo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("varchar(255)");
 
+                    b.Property<int>("VenueId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VenueName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("VenueId");
 
                     b.ToTable("Reports");
                 });
@@ -1581,7 +1590,15 @@ namespace Fiebo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Fiebo.Domain.Entities.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Booking");
+
+                    b.Navigation("Venue");
                 });
 
             modelBuilder.Entity("Fiebo.Domain.Entities.Review", b =>

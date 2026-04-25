@@ -362,6 +362,10 @@ namespace Fiebo.Persistence.Data
                 entity.Property(r => r.AdminId)
                       .HasMaxLength(450)
                       .IsRequired(false);
+                entity.HasOne(r => r.Venue)
+                       .WithMany()
+                       .HasForeignKey(r => r.VenueId)
+                       .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne<ApplicationUser>()
                       .WithMany()
                       .HasForeignKey(r => r.UserId)
