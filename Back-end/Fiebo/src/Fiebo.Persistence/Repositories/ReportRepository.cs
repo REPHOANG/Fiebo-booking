@@ -18,6 +18,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.Reports
                 .Include(r => r.Booking)
+                .Include(r => r.Venue)
                 .OrderByDescending(r => r.CreatedAt) 
                 .ToListAsync();
         }

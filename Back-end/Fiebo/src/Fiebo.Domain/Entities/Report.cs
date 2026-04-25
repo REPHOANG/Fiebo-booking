@@ -20,5 +20,8 @@ namespace Fiebo.Domain.Entities
         public virtual Booking? Booking { get; set; }
 
         public string UserId { get; set; } = string.Empty;
+        public int VenueId { get; set; }
+        public string VenueName { get; set; } 
+        public virtual Venue Venue { get; set; }
     }
 }
