@@ -1,8 +1,8 @@
 .mapx-page {
-  /* account for fixed header height so the map doesn't go under it */
   height: calc(100vh - 90px);
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   gap: 0;
 }
 
@@ -29,6 +29,48 @@
   outline: none;
   width: 100%;
   font-size: 14px;
+}
+
+.mapx-locate-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  color: #374151;
+}
+
+.mapx-address-search {
+  margin: 0 12px 12px 12px;
+  position: relative;
+}
+
+.mapx-address-search input {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.mapx-address-results {
+  position: relative;
+  max-height: 220px;
+  overflow: auto;
+  margin-top: 6px;
+}
+
+.mapx-address-item {
+  padding: 8px 10px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.mapx-address-item:hover {
+  background: #f8fafc;
 }
 
 .mapx-chips {
@@ -80,6 +122,12 @@
   margin-top: 4px;
 }
 
+.mapx-item-distance {
+  font-weight: 700;
+  margin-left: 6px;
+  color: #374151;
+}
+
 .mapx-empty {
   color: #64748b;
   font-size: 13px;
@@ -89,6 +137,217 @@
 
 .mapx-map {
   min-width: 0;
+  height: 100%;
+  position: relative;
+}
+
+.mapx-search-dropdown {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Push Leaflet default zoom control away from topbar */
+.leaflet-top.leaflet-left {
+  top: unset;
+  bottom: 80px;
+}
+
+.mapx-topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 900;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.mapx-top-search {
+  position: static;
+  top: unset;
+  left: unset;
+  z-index: unset;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: clamp(220px, 30vw, 420px);
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.mapx-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapx-search-input {
+  flex: 1 1 auto;
+  padding: 12px 16px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+.mapx-search-submit {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: none;
+  background: #fff;
+  box-shadow: 0 6px 12px rgba(16,24,40,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.mapx-search-submit:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.mapx-search-panel {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.08);
+}
+
+.mapx-search-results {
+  max-height: 320px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.mapx-nearest-title {
+  font-weight: 900;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.mapx-search-venue {
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #f1f5f9;
+}
+
+.mapx-search-venue:hover { background: #f8fafc; }
+
+.mapx-search-venue-name { font-weight: 800; font-size: 13px; }
+.mapx-search-venue-meta { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+.mapx-map {
+  position: relative;
+  height: 100%;
+}
+
+.mapx-top-chips {
+  position: static;
+  top: unset;
+  left: unset;
+  transform: none;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  z-index: unset;
+  align-items: center;
+  pointer-events: auto;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mapx-top-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.mapx-top-chips .mapx-chip {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.97);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  color: #1e293b;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.mapx-top-chips .mapx-chip:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.13);
+  transform: translateY(-1px);
+}
+
+.mapx-top-chips .mapx-chip.active {
+  border-color: rgba(0,0,0,0.18);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.14);
+}
+
+.mapx-chip-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mapx-map-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 700;
+}
+
+.mapx-control {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  box-shadow: 0 6px 12px rgba(16,24,40,0.08);
+  cursor: pointer;
+  color: #065f46;
+}
+
+.mapx-control:hover {
+  transform: translateY(-2px);
 }
 
 .mapx-leaflet {
@@ -96,10 +355,15 @@
   height: 100%;
 }
 
+body.map-page-active .mapx-page {
+  height: 100%;
+  grid-template-rows: 1fr;
+}
+
 @media (max-width: 900px) {
   .mapx-page {
     grid-template-columns: 1fr;
-    grid-template-rows: 320px 1fr;
+    grid-template-rows: 1fr;
     height: auto;
     min-height: calc(100vh - 80px);
   }
@@ -111,6 +375,75 @@
 
   .mapx-map {
     min-height: 420px;
+  }
+}
+
+/* Ensure height chain works for map page */
+body.map-page-active,
+body.map-page-active #root,
+body.map-page-active .layout {
+  height: 100%;
+}
+
+body.map-page-active .layout {
+  display: flex;
+  flex-direction: column;
+}
+
+body.map-page-active .main {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  /* hide site header on map page, map fills full viewport */
+  body.map-page-active .main {
+    height: calc(100dvh - 56px);
+    overflow: hidden;
+  }
+  body.map-page-active .header {
+    display: none;
+  }
+
+  body.map-page-active .header-spacer {
+    display: none;
+  }
+
+  /* map fills screen minus bottom-nav on mobile */
+  body.map-page-active .mapx-page {
+    height: calc(100dvh - 56px);
+    grid-template-rows: 1fr;
+  }
+
+  body.map-page-active .mapx-map {
+    min-height: 0;
+  }
+
+  .mapx-map-controls {
+    bottom: 70px;
+  }
+
+  /* keep zoom out of topbar on mobile */
+  .leaflet-top.leaflet-left {
+    bottom: 120px;
+  }
+
+  /* topbar stacks vertically on mobile */
+  .mapx-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .mapx-top-search {
+    width: 100%;
+    flex-shrink: unset;
+  }
+
+  .mapx-top-chips {
+    flex: none;
+    width: 100%;
   }
 }
 

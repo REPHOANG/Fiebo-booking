@@ -11,6 +11,7 @@ const Layout = () => {
   const isBookingPage = location.pathname.includes("/booking");
   const isVenuesPage = location.pathname === "/venues";
   const isVenueDetailPage = /^\/venue\/[0-9]+$/.test(location.pathname);
+  const isMapPage = location.pathname.startsWith("/map");
   const user = useSelector((state) => state.auth.user);
   if (hasRole(user, "fieldowner")) {
     return <Navigate to="/owner" replace />
@@ -27,7 +28,7 @@ const Layout = () => {
         <Outlet />
       </main>
       <BottomNav />
-      {!isBookingPage && !isVenuesPage && !isVenueDetailPage && <Footer />}
+      {!isBookingPage && !isVenuesPage && !isVenueDetailPage && !isMapPage && <Footer />}
     </div>
   );
 };
