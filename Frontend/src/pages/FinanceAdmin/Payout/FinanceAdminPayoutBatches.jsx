@@ -3,15 +3,12 @@ import { Link } from "react-router-dom";
 import { getPayoutBatches } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 import { 
-  Search, 
   ChevronLeft, 
   ChevronRight, 
   Eye, 
   CheckCircle2, 
   Clock, 
-  Wallet, 
   CalendarDays,
-  LayoutDashboard,
   ArrowUpRight,
   Filter
 } from "lucide-react";
@@ -159,7 +156,7 @@ const FinanceAdminPayoutBatches = () => {
                   </div>
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance-admin/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
+                  <Link to={`/finance/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
                     <Eye size={18} />
                   </Link>
                 </td>

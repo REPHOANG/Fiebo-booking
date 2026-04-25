@@ -19,6 +19,8 @@ const Layout = () => {
     return <Navigate to="/admin" replace />
   } else if (hasRole(user, "staff")) {
     return <Navigate to="/staff" replace />
+  } else if (hasRole(user, "financeadmin")) {
+    return <Navigate to="/finance" replace />
   }
   return (
     <div className="layout">

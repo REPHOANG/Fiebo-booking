@@ -9,9 +9,7 @@ import {
   Clock,
   ArrowUpRight,
   Eye,
-  Users,
   CheckCircle2,
-  Wallet,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
@@ -77,9 +75,6 @@ const FinanceAdminPayoutsInBatch = () => {
 
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-  // Calculate total amount for the current page as a simple KPI
-  const pageTotalAmount = payouts.reduce((sum, p) => sum + (p.amount || 0), 0);
-
   return (
     <div className="payout-detail-container">
       {/* Header Row */}
@@ -88,7 +83,7 @@ const FinanceAdminPayoutsInBatch = () => {
           <h2 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: 0 }}>Danh sách Payout trong Đợt #{batchId}</h2>
           <p style={{ color: '#64748b', marginTop: 4, fontSize: 15 }}>Chi tiết thanh toán cho chủ sân trong kỳ này</p>
         </div>
-        <Link to="/finance-admin/payout-batches" className="btn-action outline" style={{ background: '#fff', padding: '10px 20px', fontWeight: 600, textDecoration: 'none' }}>
+        <Link to="/finance/payout-batches" className="btn-action outline" style={{ background: '#fff', padding: '10px 20px', fontWeight: 600, textDecoration: 'none' }}>
           <ArrowLeft size={18} /> Quay lại
         </Link>
       </div>
@@ -170,7 +165,7 @@ const FinanceAdminPayoutsInBatch = () => {
                   )}
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance-admin/payout-batches/${batchId}/payouts/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
+                  <Link to={`/finance/payout/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
                     <Eye size={18} />
                   </Link>
                 </td>

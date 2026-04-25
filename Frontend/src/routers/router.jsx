@@ -59,8 +59,8 @@ import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 import FinanceAdminPayoutBatches from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutBatches";
 import FinanceAdminPayoutsInBatch from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutsInBatch";
 import FinanceAdminPayoutDetail from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutDetail";
-import FinanceAdminTransactions from "../pages/FinanceAdmin/Subscription/FinanceAdminTransactions";
-import FinanceAdminTransactionDetail from "../pages/FinanceAdmin/Subscription/FinanceAdminTransactionDetail";
+import FinanceAdminTransactions from "../pages/FinanceAdmin/Transactions/FinanceAdminTransactions";
+import FinanceAdminTransactionDetail from "../pages/FinanceAdmin/Transactions/FinanceAdminTransactionDetail";
 import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdminRevenueReport";
 import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
@@ -224,7 +224,7 @@ const routes = [
     ],
   },
   {
-    path: "/finance-admin",
+    path: "/finance",
     element: (
       <ProtectedRoute
         element={<FinanceAdminLayout />}
@@ -232,7 +232,7 @@ const routes = [
       />
     ),
     children: [
-      { index: true, element: <Navigate to="/finance-admin/transactions" /> },
+      { index: true, element: <Navigate to="/finance/transactions" /> },
       { path: "transactions", element: <FinanceAdminTransactions /> },
       { path: "transactions/:id", element: <FinanceAdminTransactionDetail /> },
       { path: "payout-batches", element: <FinanceAdminPayoutBatches /> },
@@ -242,9 +242,9 @@ const routes = [
       { path: "withdrawal-requests", element: <FinanceAdminWithdrawalRequests /> },
       {
         path: "process-withdrawal-requests",
-        element: <Navigate to="/finance-admin/withdrawal-requests" replace />,
+        element: <Navigate to="/finance/withdrawal-requests" replace />,
       },
-      { path: "reports", element: <Navigate to="/finance-admin/revenue-reports" replace /> },
+      { path: "reports", element: <Navigate to="/finance/revenue-reports" replace /> },
     ],
   },
   {

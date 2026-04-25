@@ -15,10 +15,10 @@ import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
 import "./AdminLayout.css";
 
 const navItems = [
-  { to: "/finance-admin/transactions", label: "Danh sách giao dịch", icon: FileText },
-  { to: "/finance-admin/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
-  // { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
-  { to: "/finance-admin/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
+  { to: "/finance/transactions", label: "Danh sách giao dịch", icon: FileText },
+  { to: "/finance/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
+  // { to: "/finance/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
+  { to: "/finance/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
 ];
 
 const FinanceAdminLayout = () => {
@@ -35,12 +35,12 @@ const FinanceAdminLayout = () => {
   );
 
   // If no exact match (e.g. detail page), try to find a parent match
-  const fallbackNavItem = !currentNavItem 
-    ? navItems.slice(1).find(item => location.pathname.startsWith(item.to)) 
+  const fallbackNavItem = !currentNavItem
+    ? navItems.slice(1).find(item => location.pathname.startsWith(item.to))
     : null;
 
-  const pageTitle = currentNavItem 
-    ? currentNavItem.label 
+  const pageTitle = currentNavItem
+    ? currentNavItem.label
     : fallbackNavItem ? fallbackNavItem.label
       : "Finance Admin";
 
@@ -70,7 +70,7 @@ const FinanceAdminLayout = () => {
 
       <aside className={`admin-shell__sidebar${sidebarOpen ? " admin-shell__sidebar--open" : ""}`}>
         <div className="admin-shell__sidebar-header">
-          <Link to="/finance-admin" className="admin-shell__brand" onClick={closeSidebar}>
+          <Link to="/finance" className="admin-shell__brand" onClick={closeSidebar}>
             <img src={fieboLogo} alt="Fiebo" className="admin-shell__brand-logo" />
             <span>Finance Admin</span>
           </Link>
