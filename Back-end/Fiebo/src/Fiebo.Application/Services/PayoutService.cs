@@ -277,5 +277,99 @@ namespace Fiebo.Application.Services
 
             return true;
         }
+
+        public async Task<List<PayoutItemDto>> GetBookingPayouts(DateTime from, DateTime to)
+        {
+            var fromDate = DateOnly.FromDateTime(from);
+            var toDate = DateOnly.FromDateTime(to);
+
+            var bookings = await _unitOfWork.Bookings
+                .FindAsync(b =>
+                    b.BookingType == BookingType.Online &&
+                    b.BookingDate >= fromDate &&
+                    b.BookingDate < toDate);
+
+            var result = new List<PayoutItemDto>();
+
+            foreach (var b in bookings)
+            {
+                decimal amount = 0;
+
+                if (b.Status == BookingStatus.Completed)
+                {
+                    amount = b.TotalPrice;
+                }
+                else if (b.Status == BookingStatus.CustomerCancelled)
+                {
+                    var cancel = (await _unitOfWork.CancelBooking
+                        .FindAsync(x => x.BookingId == b.Id)).FirstOrDefault();
+
+                    var refund = cancel?.RefundAmount ?? 0;
+                    amount = b.TotalPrice - refund;
+                }
+                else continue;
+
+                if (amount <= 0) continue;
+
+                var existed = (await _unitOfWork.PayoutDetails
+                    .FindAsync(x => x.BookingId == b.Id)).Any();
+
+                if (existed) continue;
+
+                var venue = await _unitOfWork.Venues.GetByIdAsync(b.VenueId);
+
+                result.Add(new PayoutItemDto
+                {
+                    RefId = b.Id,
+                    OwnerId = venue.OwnerId,
+                    Amount = amount,
+                    Type = PayoutDetailType.Booking
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<List<PayoutItemDto>> GetEventPayouts(DateTime from, DateTime to)
+        {
+            var fromDate = DateOnly.FromDateTime(from);
+            var toDate = DateOnly.FromDateTime(to);
+
+            var events = await _unitOfWork.TicketEvents
+                .FindAsync(e =>
+                    e.Status == TicketEventStatus.Completed &&
+                    e.EventDate >= fromDate &&
+                    e.EventDate < toDate);
+
+            var result = new List<PayoutItemDto>();
+
+            foreach (var e in events)
+            {
+                var total = (await _unitOfWork.TicketParticipants
+                    .FindAsync(x =>
+                        x.EventId == e.Id &&
+                        x.Status == TicketParticipantStatus.Joined))
+                    .Sum(x => x.TotalPrice);
+
+                if (total <= 0) continue;
+
+                var existed = (await _unitOfWork.PayoutDetails
+                    .FindAsync(x => x.EventId == e.Id)).Any();
+
+                if (existed) continue;
+
+                var venue = await _unitOfWork.Venues.GetByIdAsync(e.VenueId);
+
+                result.Add(new PayoutItemDto
+                {
+                    RefId = e.Id,
+                    OwnerId = venue.OwnerId,
+                    Amount = total,
+                    Type = PayoutDetailType.Event
+                });
+            }
+
+            return result;
+        }
     }
 }

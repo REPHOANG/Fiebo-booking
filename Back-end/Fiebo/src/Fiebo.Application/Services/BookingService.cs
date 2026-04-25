@@ -547,12 +547,12 @@ namespace Fiebo.Application.Services
             if (duplicates.Any())
                 throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
 
-            if(userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            if (userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
             if (userRole == null)
             {
                 throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
-           
+
             var now = DateTime.Now;
             var maxBookingDate = BookingDateValidator.GetMaxDate(now);
             var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId);
@@ -562,7 +562,7 @@ namespace Fiebo.Application.Services
             {
                 throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
-            if(userRole == AppRoles.FieldStaff)
+            if (userRole == AppRoles.FieldStaff)
             {
                 var staff = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == userId && s.VenueId == request.VenueId)).Any();
                 if (!staff)
@@ -748,7 +748,7 @@ namespace Fiebo.Application.Services
             var refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
 
-            if(booking.Status == BookingStatus.Pending)
+            if (booking.Status == BookingStatus.Pending)
             {
                 return "Lịch đặt này vẫn chưa được chủ sân xác nhận, nếu huỷ bạn sẽ được hoàn lại số tiền đã thanh toán vào ví.";
             }
@@ -794,7 +794,8 @@ namespace Fiebo.Application.Services
             if (booking.Status == BookingStatus.Booked)
             {
                 refundPercentage = CalculateRefundPercentage(hoursBeforeStart);
-            } else if(booking.Status == BookingStatus.Pending)
+            }
+            else if (booking.Status == BookingStatus.Pending)
             {
                 refundPercentage = 100;
             }
@@ -888,11 +889,11 @@ namespace Fiebo.Application.Services
 
         public async Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason, string? userRole)
         {
-            if(userRole == null)
+            if (userRole == null)
             {
                 throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");
             }
-            
+
             // 1. Load booking with details and venue
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
@@ -901,11 +902,12 @@ namespace Fiebo.Application.Services
             if (userRole == AppRoles.FieldStaff)
             {
                 var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
-                if(!permission)
+                if (!permission)
                 {
                     throw new ForbiddenException("Bạn không có quyền để hủy lịch đặt này.");
                 }
-            } else if(userRole == AppRoles.FieldOwner)
+            }
+            else if (userRole == AppRoles.FieldOwner)
             {
                 if (booking.Venue.OwnerId != ownerId)
                     throw new ForbiddenException("Bạn không có quyền để hủy lịch đặt này");
@@ -1006,7 +1008,7 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Không tìm thấy lịch đặt");
             }
-            if(booking.Venue.OwnerId != ownerId)
+            if (booking.Venue.OwnerId != ownerId)
             {
                 throw new ForbiddenException("Bạn không có quyền để xem lịch đặt này");
             }
@@ -1189,5 +1191,38 @@ namespace Fiebo.Application.Services
             return true;
         }
 
+        public async Task FinalizeBookingsAsync(DateTime now)
+        {
+            var bookings = await _unitOfWork.Bookings
+                .FindAsync(b => b.Status == BookingStatus.Booked);
+
+            foreach (var booking in bookings)
+            {
+                var details = await _unitOfWork.BookingDetails
+                    .FindAsync(x => x.BookingId == booking.Id);
+
+                bool allFinished = true;
+
+                foreach (var d in details)
+                {
+                    var slot = await _unitOfWork.TimeSlots.GetByIdAsync(d.SlotId);
+
+                    var slotEnd = booking.BookingDate.ToDateTime(slot.EndTime);
+
+                    if (slotEnd > now)
+                    {
+                        allFinished = false;
+                        break;
+                    }
+                }
+
+                if (allFinished)
+                {
+                    booking.Status = BookingStatus.Completed;
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
     }
 }

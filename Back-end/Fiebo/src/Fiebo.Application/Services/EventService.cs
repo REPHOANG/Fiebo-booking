@@ -187,7 +187,7 @@ namespace Fiebo.Application.Services
                     .FindAsync(p => p.OwnerId == venue.OwnerId &&
                     p.Status == OwnerPlanStatus.Active &&
                     p.EndDate >= DateTime.Now)).Any();
-            if(!ownerPlanActive || venue.Status != VenueStatus.Active)
+            if (!ownerPlanActive || venue.Status != VenueStatus.Active)
             {
                 throw new BadRequestException("Cơ sở hiện không hoạt động");
             }
@@ -353,7 +353,7 @@ namespace Fiebo.Application.Services
                 var fieldValid = dropInEvent.Details.All(d =>
                     d.Field != null && d.Field.Status == FieldStatus.Active &&
                     d.Slot != null && !d.Slot.IsDeleted);
-                
+
                 if (!fieldValid)
                 {
                     throw new BadRequestException("Các sân hoặc khung giờ không hợp lệ.");
@@ -367,7 +367,8 @@ namespace Fiebo.Application.Services
                 {
                     throw new BadRequestException("Sự kiện này hiện tại không có sẵn");
                 }
-                if (!ownerPlan || dropInEvent.Venue.Status != VenueStatus.Active) {
+                if (!ownerPlan || dropInEvent.Venue.Status != VenueStatus.Active)
+                {
                     throw new BadRequestException("Cơ sở tổ chức sự kiện hiện không hoạt động");
                 }
 
@@ -476,7 +477,7 @@ namespace Fiebo.Application.Services
             {
                 throw new NotFoundException("Sự kiện này không tồn tại");
             }
-            if(ticketEvent.Venue.OwnerId != ownerId)
+            if (ticketEvent.Venue.OwnerId != ownerId)
             {
                 throw new BadRequestException("Bạn không có quyền xem sự kiện này");
             }
@@ -640,7 +641,7 @@ namespace Fiebo.Application.Services
             if (ticketEvent.Status != TicketEventStatus.Pending)
                 throw new BadRequestException("Chỉ sự kiện đang chờ mới có thể hủy.");
 
-            
+
             // 5. Load all paid (Joined) participants
             var joinedParticipants = await _unitOfWork.TicketParticipants.GetJoinedParticipantsByEventIdAsync(eventId);
             int refundedCount = joinedParticipants.Count;
@@ -776,6 +777,40 @@ namespace Fiebo.Application.Services
                 _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
                 throw;
             }
+        }
+
+        public async Task FinalizeEventsAsync(DateTime now)
+        {
+            var events = await _unitOfWork.TicketEvents
+                .FindAsync(e => e.Status == TicketEventStatus.Ongoing);
+
+            foreach (var e in events)
+            {
+                var details = await _unitOfWork.TicketEventsDetails
+                    .FindAsync(x => x.EventId == e.Id);
+
+                bool allFinished = true;
+
+                foreach (var d in details)
+                {
+                    var slot = await _unitOfWork.TimeSlots.GetByIdAsync(d.SlotId);
+
+                    var slotEnd = e.EventDate.ToDateTime(slot.EndTime);
+
+                    if (slotEnd > now)
+                    {
+                        allFinished = false;
+                        break;
+                    }
+                }
+
+                if (allFinished)
+                {
+                    e.Status = TicketEventStatus.Completed;
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
         }
 
     }

@@ -45,5 +45,6 @@ namespace Fiebo.Application.Interfaces
         Task<bool> ApproveVenueUpdateAsync(int updateRequestId, string adminId);
         Task<bool> RejectVenueUpdateAsync(int updateRequestId, string adminId, string adminNote);
         Task UpdateVenueDocumentAsync(int documentId, string? ownerId, UpdateVenueDocumentRequest request);
+        Task<List<VenueMapResponse>> GetVenueMapAsync(int? sportTypeId);
     }
 }

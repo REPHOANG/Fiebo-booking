@@ -233,3 +233,11 @@ export const deleteVenueService = async (serviceId) => {
   const response = await api.delete(`/api/owner/service/${serviceId}`);
   return response.data?.data ?? response.data ?? response;
 }
+
+export const getVenueMap = async (sportTypeId) => {
+  const res = await api.get("/api/venue/map", {
+    params: { sportTypeId },
+  });
+
+  return res.data.data; // luôn trả về array
+};

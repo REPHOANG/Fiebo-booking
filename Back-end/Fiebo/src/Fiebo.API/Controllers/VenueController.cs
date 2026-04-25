@@ -685,5 +685,17 @@ namespace Fiebo.API.Controllers
                 Message = "Cập nhật tài liệu sân thành công."
             });
         }
+
+        [HttpGet("map")]
+        public async Task<IActionResult> GetVenueMap([FromQuery] int? sportTypeId)
+        {
+            var result = await _venueService.GetVenueMapAsync(sportTypeId);
+            return Ok(new ApiResponse<List<VenueMapResponse>>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Lấy bản đồ cơ sở thành công",
+                Data = result
+            });
+        }
     }
 }

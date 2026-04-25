@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { Search } from "lucide-react";
-import { searchVenues } from "../services/fieldService";
 import { getSportTypes, normalizeSportTypeList } from "../services/sportTypeService";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
@@ -54,46 +53,7 @@ const MapExplore = () => {
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    const t = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const data = await searchVenues({
-          location: searchValue || undefined,
-          sportTypeId: activeSport ?? undefined,
-          page: 1,
-          pageSize: 100,
-          userLat: DEFAULT_CENTER.lat,
-          userLng: DEFAULT_CENTER.lng,
-        });
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const normalized = items
-          .map((v) => ({
-            id: v?.venueId,
-            name: v?.venueName,
-            ward: v?.ward,
-            province: v?.province,
-            openTime: v?.openTime,
-            closeTime: v?.closeTime,
-            lat: Number(v?.latitude ?? v?.Latitude),
-            lng: Number(v?.longitude ?? v?.Longitude),
-          }))
-          .filter((x) => x.id && Number.isFinite(x.lat) && Number.isFinite(x.lng));
-        if (mounted) setVenues(normalized);
-      } catch {
-        if (mounted) setVenues([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      mounted = false;
-      clearTimeout(t);
-    };
-  }, [searchValue, activeSport]);
-
+  
   const list = useMemo(() => venues.slice(0, 50), [venues]);
 
   return (

@@ -385,5 +385,19 @@ namespace Fiebo.Persistence.Repositories
                 Items = items
             };
         }
+        public async Task<List<Venue>> GetVenueWithFieldsAsync(int? sportTypeId)
+        {
+            var query = _context.Venues
+                .Include(v => v.Fields)
+                    .ThenInclude(f => f.SportType)
+                .AsQueryable();
+            if (sportTypeId.HasValue)
+            {
+                query = query.Where(v =>
+                    v.Fields.Any(f => f.SportTypeId == sportTypeId.Value));
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }
