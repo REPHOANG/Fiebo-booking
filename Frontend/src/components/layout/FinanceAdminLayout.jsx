@@ -1,15 +1,12 @@
 import React, { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate, useLocation, matchPath } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  BarChart3,
   CircleDollarSign,
   FileText,
-  LayoutDashboard,
   LogOut,
   Menu,
-  Receipt,
   Wallet,
   X,
 } from "lucide-react";
@@ -18,12 +15,10 @@ import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
 import "./AdminLayout.css";
 
 const navItems = [
-  { to: "/finance-admin", label: "Tổng quan", icon: LayoutDashboard, end: true },
   { to: "/finance-admin/transactions", label: "Danh sách giao dịch", icon: FileText },
   { to: "/finance-admin/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
   // { to: "/finance-admin/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
   { to: "/finance-admin/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
-  { to: "/finance-admin/process-withdrawal-requests", label: "Xử lý yêu cầu rút tiền", icon: Receipt },
 ];
 
 const FinanceAdminLayout = () => {
@@ -32,13 +27,24 @@ const FinanceAdminLayout = () => {
   const queryClient = useQueryClient();
   const user = useSelector((state) => state.auth.user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
-  const initials = String(user?.name || user?.email || "FA")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("");
+  // Find current page title based on navItems
+  const currentNavItem = navItems.find((item) =>
+    matchPath({ path: item.to, end: item.end }, location.pathname)
+  );
+
+  // If no exact match (e.g. detail page), try to find a parent match
+  const fallbackNavItem = !currentNavItem 
+    ? navItems.slice(1).find(item => location.pathname.startsWith(item.to)) 
+    : null;
+
+  const pageTitle = currentNavItem 
+    ? currentNavItem.label 
+    : fallbackNavItem ? fallbackNavItem.label
+      : "Finance Admin";
+
+
 
   const handleLogout = () => {
     dispatch(logout());
@@ -97,6 +103,9 @@ const FinanceAdminLayout = () => {
           >
             <Menu size={20} />
           </button>
+          <div className="admin-shell__header-title">
+            {pageTitle}
+          </div>
           <div className="admin-shell__header-actions">
             <div className="admin-shell__account-meta">
               <span>Đăng nhập bằng</span>

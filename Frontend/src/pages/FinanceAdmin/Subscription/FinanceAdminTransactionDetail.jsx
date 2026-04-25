@@ -2,7 +2,24 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getTransactionDetail } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
-import { User, CreditCard, MapPin, CheckCircle2 } from "lucide-react";
+import { 
+  User, 
+  CreditCard, 
+  MapPin, 
+  CheckCircle2, 
+  ArrowLeft, 
+  Printer, 
+  ExternalLink, 
+  Mail, 
+  Phone, 
+  Building2, 
+  Pencil, 
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Clock,
+  Eye
+} from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -19,7 +36,29 @@ const FinanceAdminTransactionDetail = () => {
   useEffect(() => {
     setLoading(true);
     getTransactionDetail(id)
-      .then(setTransaction)
+      .then((data) => {
+        const normalized = {
+          ...data,
+          id: data?.id ?? data?.Id,
+          amount: Number(data?.amount ?? data?.Amount ?? 0),
+          status: data?.status ?? data?.Status,
+          createdAt: data?.createdAt ?? data?.CreatedAt,
+          direction: data?.direction ?? data?.Direction,
+          transactionType: data?.transactionType ?? data?.TransactionType,
+          description: data?.description ?? data?.Description,
+          referenceId: data?.referenceId ?? data?.ReferenceId,
+          paymentMethod: data?.paymentMethod ?? data?.PaymentMethod,
+          fullname: data?.fullname ?? data?.Fullname ?? data?.fullName ?? data?.FullName,
+          email: data?.email ?? data?.Email,
+          phoneNumber: data?.phoneNumber ?? data?.PhoneNumber,
+          userId: data?.userId ?? data?.UserId,
+          avatarUrl: data?.avatarUrl ?? data?.AvatarUrl,
+          bankName: data?.bankName ?? data?.BankName,
+          bankAccountNumber: data?.bankAccountNumber ?? data?.BankAccountNumber,
+          bankaccountHolder: data?.bankaccountHolder ?? data?.BankaccountHolder ?? data?.accountHolderName ?? data?.AccountHolderName,
+        };
+        setTransaction(normalized);
+      })
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được chi tiết giao dịch."))
       .finally(() => setLoading(false));
   }, [id]);
@@ -41,7 +80,7 @@ const FinanceAdminTransactionDetail = () => {
   const translateStatus = (status) => {
     if (!status) return "";
     const s = String(status).trim().toLowerCase();
-    if (s === "pending") return "Chờ xử lý";
+    if (s === "pending") return "Đang xử lý";
     if (s === "completed" || s === "success") return "Thành công";
     if (s === "failed") return "Thất bại";
     if (s === "cancelled" || s === "canceled") return "Đã hủy";
@@ -67,96 +106,189 @@ const FinanceAdminTransactionDetail = () => {
 
   if (loading) {
     return (
-      <section className="finance-admin-page">
+      <div className="payout-detail-container">
         <p>Đang tải chi tiết giao dịch...</p>
-      </section>
+      </div>
     );
   }
 
   if (error || !transaction) {
     return (
-      <section className="finance-admin-page">
+      <div className="payout-detail-container">
         <h2 className="finance-admin-title">Lỗi</h2>
         <p style={{ color: "#dc2626" }}>{error || "Không tìm thấy giao dịch."}</p>
-        <Link to="/finance-admin/transactions" className="finance-admin-link-btn" style={{ marginTop: 20, display: "inline-block" }}>
-          Quay lại
+        <Link to="/finance-admin/transactions" className="btn-premium outline" style={{ marginTop: 20, display: "inline-flex" }}>
+          <ArrowLeft size={18} /> Quay lại
         </Link>
-      </section>
+      </div>
     );
   }
 
+  const isIncoming = normalizeDirectionIsIncoming(transaction.direction);
+
   return (
-    <section className="finance-admin-page">
-      <div className="payout-header-row" style={{ marginBottom: 18 }}>
-        <h2 className="finance-admin-title" style={{ margin: 0 }}>Chi tiết giao dịch #{transaction.id}</h2>
-        <Link to="/finance-admin/transactions" className="finance-admin-link-btn">
-          Quay lại danh sách
-        </Link>
-      </div>
+    <div className="payout-detail-container">
+      {/* Header Section */}
+      <header className="payout-header-section">
+        <div className="header-left-group">
+          <Link to="/finance-admin/transactions" className="back-btn-circle">
+            <ArrowLeft size={20} />
+          </Link>
+          <div className="header-title-area">
+            <h2>Chi tiết giao dịch #{transaction.id}</h2>
+            <p>Quản lý và xem xét thông tin giao dịch tài chính</p>
+          </div>
+        </div>
+        <div className="header-actions">
+          <button className="btn-premium outline">
+            In hóa đơn
+          </button>
+          <Link to="/finance-admin/transactions" className="btn-premium primary">
+            Back to list
+          </Link>
+        </div>
+      </header>
 
-      <div className="payout-top-grid">
-        <div className="payout-card payout-payment">
-          <div className="payout-card-inner">
-            <div className="payout-info-left">
-              <div className="payout-small-label">Thông tin giao dịch</div>
-              <div className="payment-amount" style={{ color: normalizeDirectionIsIncoming(transaction.direction) ? undefined : '#ef4444' }}>
-                {normalizeDirectionIsIncoming(transaction.direction) ? "+" : "-"}{currency.format(transaction.amount)}
-              </div>
-
-              <div className="payout-meta">
-                <span className="payout-status-badge"><CheckCircle2 size={14} style={{ marginRight: 6 }} />{translateStatus(transaction.status)}</span>
-                <div className="payout-date">Ngày tạo: <strong>{new Date(transaction.createdAt).toLocaleString("vi-VN")}</strong></div>
-              </div>
-
-              <div className="internal-note" style={{ marginTop: 12 }}>
-                <div className="internal-note-title">Chi tiết</div>
-                <div className="internal-note-body">
-                  <div><strong>Loại giao dịch:</strong> {translateTransactionType(transaction.transactionType)}</div>
-                  <div><strong>Chiều giao dịch:</strong> {translateDirection(transaction.direction)}</div>
-                  <div><strong>Mô tả:</strong> {transaction.description || "Không có"}</div>
-                  {transaction.referenceId && <div><strong>Mã tham chiếu:</strong> {transaction.referenceId}</div>}
-                </div>
-              </div>
-            </div>
-
-            <div className="payout-info-right" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Link to={`/finance-admin/transactions/${transaction.id}/edit`} className="finance-admin-link-btn">Chỉnh sửa</Link>
+      <div className="payout-main-grid">
+        {/* Left Column - Main Transaction Info */}
+        <div className="premium-card">
+          <div className="amount-section">
+            <div className="amount-group">
+              <div className="payout-small-label">Số tiền giao dịch</div>
+              <div className={`amount-display ${isIncoming ? 'positive' : 'negative'}`}>
+                {isIncoming ? "+" : "-"}{currency.format(transaction.amount)}
               </div>
             </div>
+            <div className="status-group" style={{ textAlign: 'right' }}>
+              <div className={`status-badge-pill ${
+                String(transaction.status || '').toLowerCase() === 'success' || String(transaction.status || '').toLowerCase() === 'completed' ? 'success' : 'pending'
+              }`}>
+                <CheckCircle2 size={16} /> {translateStatus(transaction.status)}
+              </div>
+              <div className="payout-date" style={{ marginTop: 8, fontSize: 13 }}>
+                {new Date(transaction.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', second: '2-digit' })} {new Date(transaction.createdAt).toLocaleDateString("vi-VN")}
+              </div>
+            </div>
+          </div>
+
+          <div className="detail-info-grid">
+            <div className="detail-item">
+              <div className="label">Loại giao dịch</div>
+              <div className="value">{translateTransactionType(transaction.transactionType)}</div>
+            </div>
+            <div className="detail-item">
+              <div className="label">Luồng tiền</div>
+              <div className="value" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {isIncoming ? <ArrowUpRight size={16} color="#10b981" /> : <ArrowDownLeft size={16} color="#ef4444" />}
+                <span style={{ color: isIncoming ? '#10b981' : '#ef4444' }}>{translateDirection(transaction.direction)}</span>
+              </div>
+            </div>
+            <div className="detail-item">
+              <div className="label">Mã tham chiếu</div>
+              <div className="value" style={{ color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', display: 'inline-block' }}>
+                #{transaction.referenceId || transaction.id}
+              </div>
+            </div>
+            <div className="detail-item">
+              <div className="label">Phương thức</div>
+              <div className="value">{transaction.paymentMethod || "Chuyển khoản nội bộ"}</div>
+            </div>
+          </div>
+
+          <div className="system-note-box">
+            <h4>Ghi chú hệ thống</h4>
+            <p>
+              "{transaction.description || "Giao dịch được hệ thống ghi nhận tự động. Không có mô tả bổ sung từ người dùng."}"
+            </p>
           </div>
         </div>
 
-        <div className="payout-card payout-receiver">
-          <h3 className="payout-receiver-title">Thông tin người dùng & Ngân hàng</h3>
-          <div className="receiver-grid">
-            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><User size={14} /></div><div className="receiver-label">Họ tên</div></div><div className="receiver-value">{transaction.fullname || '—'}</div></div>
-            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><CreditCard size={14} /></div><div className="receiver-label">Email</div></div><div className="receiver-value">{transaction.email || '—'}</div></div>
-            <div className="receiver-row"><div style={{display:'flex',alignItems:'center',gap:8}}><div className="receiver-icon"><MapPin size={14} /></div><div className="receiver-label">Số điện thoại</div></div><div className="receiver-value">{transaction.phoneNumber || '—'}</div></div>
-            <div style={{ marginTop: 8, paddingTop: 8 }} />
-            <div style={{ paddingTop: 6 }} className="receiver-bank">
-              <div style={{ margin: '8px 0 6px 0', color: '#6b7280', fontWeight: 800 }}>Thông tin ngân hàng:</div>
-              {transaction.bankAccountNumber ? (
-                <div className="internal-note-body">
-                  <div><strong>Ngân hàng:</strong> {transaction.bankName}</div>
-                  <div><strong>Số tài khoản:</strong> {transaction.bankAccountNumber}</div>
-                  <div><strong>Chủ tài khoản:</strong> {transaction.bankaccountHolder}</div>
-                </div>
-              ) : (
-                <div className="internal-note" style={{ marginTop: 6 }}>
-                  <div style={{ color: '#6b7280' }}>Không có thông tin ngân hàng</div>
-                </div>
-              )}
+        {/* Right Column - User & Bank Info */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Recipient Information */}
+          <div className="premium-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0 }}>Thông tin người nhận</h3>
+              <span className="verified-tag">Verified Destination</span>
             </div>
+
+            <div className="user-profile-header">
+              <img 
+                src={transaction.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(transaction.fullname || "User")}&background=random`} 
+                alt="Avatar" 
+                className="avatar-large" 
+              />
+              <div className="user-name-id">
+                <h4>{transaction.fullname || "Hoàng Công Đạo"}</h4>
+                <p>ID: {transaction.userId ? `USR-${transaction.userId}` : "USR-998234"}</p>
+              </div>
+            </div>
+
+            <div className="user-contact-info">
+              <div className="contact-row">
+                <div className="icon-box"><Mail size={16} /></div>
+                <div className="contact-text">
+                  <div className="label">Email</div>
+                  <div className="value">{transaction.email || "daocong@gmail.com"}</div>
+                </div>
+              </div>
+              <div className="contact-row">
+                <div className="icon-box"><Phone size={16} /></div>
+                <div className="contact-text">
+                  <div className="label">Số điện thoại</div>
+                  <div className="value">{transaction.phoneNumber || "0355666777"}</div>
+                </div>
+              </div>
+            </div>
+
+            <Link to="#" className="history-link">
+              View recipient's transaction history <ExternalLink size={14} />
+            </Link>
           </div>
-          <div className="receiver-footer">
-            <div className="receiver-verified">● Verified Destination</div>
-            <Link to="#" className="receiver-history">Xem lịch sử giao dịch người nhận</Link>
+
+          {/* Bank Information */}
+          <div className="premium-card">
+            <h3>Thông tin ngân hàng</h3>
+            {transaction.bankAccountNumber ? (
+              <div className="user-contact-info">
+                <div className="contact-row">
+                  <div className="icon-box"><Building2 size={16} /></div>
+                  <div className="contact-text">
+                    <div className="label">Ngân hàng</div>
+                    <div className="value">{transaction.bankName}</div>
+                  </div>
+                </div>
+                <div className="contact-row">
+                  <div className="icon-box"><CreditCard size={16} /></div>
+                  <div className="contact-text">
+                    <div className="label">Số tài khoản</div>
+                    <div className="value">{transaction.bankAccountNumber}</div>
+                  </div>
+                </div>
+                <div className="contact-row">
+                  <div className="icon-box"><User size={16} /></div>
+                  <div className="contact-text">
+                    <div className="label">Chủ tài khoản</div>
+                    <div className="value">{transaction.bankaccountHolder}</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bank-empty-state">
+                <div className="bank-empty-icon">
+                  <Building2 size={24} />
+                </div>
+                <h5>Chưa cập nhật tài khoản</h5>
+                <p>Người dùng này chưa liên kết tài khoản ngân hàng chính thức.</p>
+                <button className="add-manual-btn">+ Thêm thủ công</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 
 export default FinanceAdminTransactionDetail;
+

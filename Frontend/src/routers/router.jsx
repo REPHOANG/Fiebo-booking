@@ -55,7 +55,7 @@ import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
 import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
 import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
-import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
+// import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
 import FinanceAdminPayoutBatches from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutBatches";
 import FinanceAdminPayoutsInBatch from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutsInBatch";
 import FinanceAdminPayoutDetail from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutDetail";
@@ -63,7 +63,6 @@ import FinanceAdminTransactions from "../pages/FinanceAdmin/Subscription/Finance
 import FinanceAdminTransactionDetail from "../pages/FinanceAdmin/Subscription/FinanceAdminTransactionDetail";
 import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdminRevenueReport";
 import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
-import FinanceAdminProcessWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminProcessWithdrawalRequests";
 import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import StaffOfflineBooking from "../pages/Staff/Booking/StaffOfflineBooking";
 import StaffBookings from "../pages/Staff/Booking/StaffBookings";
@@ -233,7 +232,7 @@ const routes = [
       />
     ),
     children: [
-      { index: true, element: <FinanceAdminHome /> },
+      { index: true, element: <Navigate to="/finance-admin/transactions" /> },
       { path: "transactions", element: <FinanceAdminTransactions /> },
       { path: "transactions/:id", element: <FinanceAdminTransactionDetail /> },
       { path: "payout-batches", element: <FinanceAdminPayoutBatches /> },
@@ -243,7 +242,7 @@ const routes = [
       { path: "withdrawal-requests", element: <FinanceAdminWithdrawalRequests /> },
       {
         path: "process-withdrawal-requests",
-        element: <FinanceAdminProcessWithdrawalRequests />,
+        element: <Navigate to="/finance-admin/withdrawal-requests" replace />,
       },
       { path: "reports", element: <Navigate to="/finance-admin/revenue-reports" replace /> },
     ],

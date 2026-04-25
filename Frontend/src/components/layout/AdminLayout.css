@@ -145,6 +145,16 @@
   border-bottom: 1px solid rgba(203, 213, 225, 0.55);
 }
 
+.admin-shell__header-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .admin-shell__search {
   flex: 1;
   max-width: 440px;

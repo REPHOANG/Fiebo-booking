@@ -2,6 +2,19 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getPayoutBatches } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
+import { 
+  Search, 
+  ChevronLeft, 
+  ChevronRight, 
+  Eye, 
+  CheckCircle2, 
+  Clock, 
+  Wallet, 
+  CalendarDays,
+  LayoutDashboard,
+  ArrowUpRight,
+  Filter
+} from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -9,17 +22,22 @@ const currency = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 0,
 });
 
-const STATUSES = ["", "Pending", "Processing", "Completed"];
+const STATUSES = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "Pending", label: "Chờ xử lý" },
+  { value: "Processing", label: "Đang xử lý" },
+  { value: "Completed", label: "Hoàn tất" }
+];
 
-  const renderStatusBadge = (status) => {
-    if (!status) return null;
-    const s = String(status).trim().toLowerCase();
-    if (s === "pending") return <span className="finance-admin-status finance-admin-status-pending">Chờ xử lý</span>;
-    if (s === "processing") return <span className="finance-admin-status finance-admin-status-pending" style={{ background: "#e0e7ff", color: "#3730a3" }}>Đang xử lý</span>;
-    if (s === "completed" || s === "success") return <span className="finance-admin-status finance-admin-status-reconciled">Thành công</span>;
-    if (s === "failed") return <span className="finance-admin-status finance-admin-status-failed">Thất bại</span>;
-    return <span className="finance-admin-status">{String(status)}</span>;
-  };
+const renderStatusBadge = (status) => {
+  if (!status) return null;
+  const s = String(status).trim().toLowerCase();
+  if (s === "pending") return <span className="status-badge-pill pending" style={{ fontSize: '11px', padding: '4px 10px' }}><Clock size={12} /> Chờ xử lý</span>;
+  if (s === "processing") return <span className="status-badge-pill" style={{ background: "#e0e7ff", color: "#3730a3", fontSize: '11px', padding: '4px 10px' }}><Clock size={12} /> Đang xử lý</span>;
+  if (s === "completed" || s === "success") return <span className="status-badge-pill success" style={{ fontSize: '11px', padding: '4px 10px' }}><CheckCircle2 size={12} /> Thành công</span>;
+  if (s === "failed") return <span className="status-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c', fontSize: '11px', padding: '4px 10px' }}>Thất bại</span>;
+  return <span className="status-badge-pill" style={{ fontSize: '11px', padding: '4px 10px' }}>{String(status)}</span>;
+};
 
 const FinanceAdminPayoutBatches = () => {
   const now = new Date();
@@ -54,58 +72,95 @@ const FinanceAdminPayoutBatches = () => {
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
   return (
-    <section className="finance-admin-page">
-      <h2 className="finance-admin-title">Quản lý đợt thanh toán (Payout Batches)</h2>
-
-      <div className="finance-admin-filters">
-        <div />
-        <select className="finance-admin-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-          <option value="">Tất cả trạng thái</option>
-          {STATUSES.filter(Boolean).map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <div style={{ display: "flex", gap: 8 }}>
-          <select className="finance-admin-select" value={month} onChange={(e) => { setMonth(e.target.value); setPage(1); }}>
-            <option value="">Tất cả tháng</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
+    <div className="payout-detail-container">
+      {/* Filter Bar */}
+      <div className="filter-bar-premium">
+        <div style={{ position: 'relative', flex: 0.3 }}>
+          <Filter size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
+          <select 
+            className="select-premium" 
+            style={{ width: '100%', paddingLeft: 40 }} 
+            value={status} 
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          >
+            {STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
-          <input className="finance-admin-input" type="number" placeholder="Năm" value={year}
-            onChange={(e) => { setYear(e.target.value); setPage(1); }} style={{ width: 90 }} />
+        </div>
+        
+        <div style={{ display: "flex", gap: 12, flex: 1, justifyContent: 'flex-end' }}>
+          <div style={{ position: 'relative' }}>
+            <CalendarDays size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
+            <select className="select-premium" style={{ paddingLeft: 40 }} value={month} onChange={(e) => { setMonth(e.target.value); setPage(1); }}>
+              <option value="">Tất cả tháng</option>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>Tháng {String(m).padStart(2, "0")}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <CalendarDays size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
+            <input 
+              className="select-premium" 
+              type="number" 
+              placeholder="Năm" 
+              value={year}
+              onChange={(e) => { setYear(e.target.value); setPage(1); }} 
+              style={{ width: 140, paddingLeft: 40 }} 
+            />
+          </div>
         </div>
       </div>
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#991b1b', borderRadius: '12px', marginBottom: 16, fontWeight: 600 }}>{error}</div>}
 
-      <div className="finance-admin-table-wrap">
-        <table className="finance-admin-table">
+      {/* Table Section */}
+      <div className="table-card-premium">
+        <table className="table-premium">
           <thead>
             <tr>
-              <th style={{ textAlign: "center", width: "80px" }}>Batch ID</th>
-              <th style={{ textAlign: "center", width: "220px" }}>Chu kỳ thanh toán</th>
-              <th style={{ textAlign: "right", width: "150px" }}>Tổng tiền</th>
-              <th style={{ textAlign: "center", width: "140px" }}>Trạng thái</th>
+              <th style={{ textAlign: "center", width: "100px" }}>ID Đợt</th>
+              <th style={{ textAlign: "center" }}>Chu kỳ thanh toán</th>
+              <th style={{ textAlign: "right", width: "200px" }}>Tổng tiền chi trả</th>
+              <th style={{ textAlign: "center", width: "160px" }}>Trạng thái</th>
               <th style={{ textAlign: "center", width: "180px" }}>Ngày tạo</th>
-              <th style={{ textAlign: "center", width: "120px" }}>Thao tác</th>
+              <th style={{ textAlign: "center", width: "100px" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 24 }}>Đang tải...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", padding: 60, color: '#94a3b8' }}>Đang tải dữ liệu...</td></tr>
             ) : batches.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: "center", padding: 24, color: "#6b7280" }}>Không có dữ liệu</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: "center", padding: 60, color: '#94a3b8' }}>Không tìm thấy đợt thanh toán nào.</td></tr>
             ) : batches.map((item) => (
               <tr key={item.id}>
-                <td style={{ textAlign: "center", fontWeight: "500" }}>{item.id}</td>
+                <td style={{ textAlign: "center", fontWeight: "800", color: '#94a3b8' }}>#{item.id}</td>
                 <td style={{ textAlign: "center" }}>
-                  {new Date(item.fromDate).toLocaleDateString("vi-VN")} - {new Date(item.toDate).toLocaleDateString("vi-VN")}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{new Date(item.fromDate).toLocaleDateString("vi-VN")}</span>
+                    <span style={{ color: '#94a3b8' }}>→</span>
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{new Date(item.toDate).toLocaleDateString("vi-VN")}</span>
+                  </div>
                 </td>
-                <td style={{ textAlign: "right", color: "#16a34a", fontWeight: "600" }}>{currency.format(item.totalAmount)}</td>
+                <td style={{ textAlign: "right" }}>
+                  <div className="amount-cell-premium positive" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                    <ArrowUpRight size={14} />
+                    {currency.format(item.totalAmount)}
+                  </div>
+                </td>
                 <td style={{ textAlign: "center" }}>{renderStatusBadge(item.status)}</td>
-                <td style={{ textAlign: "center" }}>{new Date(item.createdAt).toLocaleString("vi-VN")}</td>
                 <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance-admin/payout-batches/${item.id}/payouts`} className="finance-admin-link-btn" style={{ padding: "4px 10px", fontSize: "13px" }}>
-                    Xem chi tiết
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                    {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    {new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </td>
+                <td style={{ textAlign: "center" }}>
+                  <Link to={`/finance-admin/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
+                    <Eye size={18} />
                   </Link>
                 </td>
               </tr>
@@ -114,32 +169,34 @@ const FinanceAdminPayoutBatches = () => {
         </table>
       </div>
 
+      {/* Pagination Bar */}
       {totalItems > 0 && (
-        <div className="finance-admin-pagination" style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Tổng số: {totalItems}</span>
-          <div style={{ display: "flex", gap: "10px" }}>
+        <div className="pagination-bar-premium">
+          <div className="pagination-info">
+            Hiển thị <strong>{(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalItems)}</strong> trong số <strong>{totalItems}</strong> đợt thanh toán
+          </div>
+          <div className="pagination-actions">
             <button
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
-              className="finance-admin-link-btn"
-              style={{ opacity: page <= 1 ? 0.5 : 1 }}
+              className="pagination-btn"
             >
-              Trang trước
+              <ChevronLeft size={20} />
             </button>
-            <span style={{ padding: "8px" }}>Trang {page} / {totalPages}</span>
+            <span className="pagination-page-indicator">Trang {page} / {totalPages}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="finance-admin-link-btn"
-              style={{ opacity: page >= totalPages ? 0.5 : 1 }}
+              className="pagination-btn"
             >
-              Trang sau
+              <ChevronRight size={20} />
             </button>
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 };
 
 export default FinanceAdminPayoutBatches;
+

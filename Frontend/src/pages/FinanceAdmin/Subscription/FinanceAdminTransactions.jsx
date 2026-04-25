@@ -2,6 +2,20 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getTransactions } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
+import { 
+  Search, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight, 
+  Eye, 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  Wallet, 
+  CheckCircle2, 
+  Clock,
+  LayoutDashboard,
+  CalendarDays
+} from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -26,7 +40,18 @@ const FinanceAdminTransactions = () => {
     setError(null);
     getTransactions({ page, pageSize, status: status || undefined, type: type || undefined, name: name || undefined })
       .then((data) => {
-        setTransactions(data?.items ?? data?.Items ?? []);
+        const rawItems = data?.items ?? data?.Items ?? [];
+        const normalized = rawItems.map(item => ({
+          ...item,
+          id: item?.id ?? item?.Id,
+          amount: Number(item?.amount ?? item?.Amount ?? 0),
+          status: item?.status ?? item?.Status,
+          createdAt: item?.createdAt ?? item?.CreatedAt,
+          direction: item?.direction ?? item?.Direction,
+          transactionType: item?.transactionType ?? item?.TransactionType,
+          fullname: item?.fullname ?? item?.Fullname ?? item?.fullName ?? item?.FullName,
+        }));
+        setTransactions(normalized);
         setTotalItems(data?.totalItems ?? data?.TotalItems ?? 0);
       })
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được dữ liệu giao dịch."))
@@ -62,11 +87,11 @@ const FinanceAdminTransactions = () => {
   const renderStatusBadge = (status) => {
     if (!status) return null;
     const s = String(status).trim().toLowerCase();
-    if (s === "pending") return <span className="finance-admin-status finance-admin-status-pending">Chờ xử lý</span>;
-    if (s === "completed" || s === "success") return <span className="finance-admin-status finance-admin-status-reconciled">Thành công</span>;
-    if (s === "failed") return <span className="finance-admin-status finance-admin-status-failed">Thất bại</span>;
-    if (s === "cancelled" || s === "canceled") return <span className="finance-admin-status finance-admin-status-failed">Đã hủy</span>;
-    return <span className="finance-admin-status">{String(status)}</span>;
+    if (s === "pending") return <span className="status-badge-pill pending" style={{ fontSize: '11px', padding: '4px 10px' }}><Clock size={12} /> Chờ xử lý</span>;
+    if (s === "completed" || s === "success") return <span className="status-badge-pill success" style={{ fontSize: '11px', padding: '4px 10px' }}><CheckCircle2 size={12} /> Thành công</span>;
+    if (s === "failed") return <span className="status-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c', fontSize: '11px', padding: '4px 10px' }}>Thất bại</span>;
+    if (s === "cancelled" || s === "canceled") return <span className="status-badge-pill" style={{ background: '#f1f5f9', color: '#64748b', fontSize: '11px', padding: '4px 10px' }}>Đã hủy</span>;
+    return <span className="status-badge-pill" style={{ fontSize: '11px', padding: '4px 10px' }}>{String(status)}</span>;
   };
 
   const translateTransactionType = (type) => {
@@ -82,40 +107,41 @@ const FinanceAdminTransactions = () => {
       withdraw: "Rút tiền",
       withdrawal: "Rút tiền",
       subscription: "Gói đăng ký",
-      payout: "Thanh toán chủ sân",
-      payoutowner: "Thanh toán chủ sân",
-      payout_owner: "Thanh toán chủ sân",
+      payout: "Thanh toán",
+      payoutowner: "Thanh toán",
+      payout_owner: "Thanh toán",
     };
     return map[k] || String(type);
   };
 
   return (
-    <section className="finance-admin-page">
-      <h2 className="finance-admin-title">Danh sách giao dịch</h2>
+    <div className="payout-detail-container">
 
-      <div className="finance-admin-filters" style={{ gridTemplateColumns: "1fr 200px 200px" }}>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <input
-            type="text"
-            className="finance-admin-input"
-            placeholder="Tìm kiếm theo tên..."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <button type="submit" className="finance-admin-link-btn" style={{ padding: "8px 16px", backgroundColor: "#f3f4f6" }}>
-            Tìm
-          </button>
-        </form>
-        <select className="finance-admin-select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
-          <option value="">Tất cả loại giao dịch</option>
+      {/* Filter Bar */}
+      <div className="filter-bar-premium">
+        <div className="search-box-premium">
+          <Search className="search-icon" size={18} />
+          <form onSubmit={handleSearch}>
+            <input
+              type="text"
+              placeholder="Tìm kiếm người dùng..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </form>
+        </div>
+        
+        <select className="select-premium" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
+          <option value="">Tất cả loại</option>
           <option value="Deposit">Nạp tiền</option>
           <option value="Withdrawal">Rút tiền</option>
           <option value="Subscription">Gói đăng ký</option>
           <option value="Booking">Đặt sân</option>
           <option value="Refund">Hoàn tiền</option>
-          <option value="Payout">Thanh toán chủ sân</option>
+          <option value="Payout">Thanh toán</option>
         </select>
-        <select className="finance-admin-select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+
+        <select className="select-premium" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           <option value="">Tất cả trạng thái</option>
           <option value="Pending">Chờ xử lý</option>
           <option value="Success">Thành công</option>
@@ -123,75 +149,105 @@ const FinanceAdminTransactions = () => {
         </select>
       </div>
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#991b1b', borderRadius: '12px', marginBottom: 16, fontWeight: 600 }}>{error}</div>}
 
-      <div className="finance-admin-table-wrap">
-        <table className="finance-admin-table">
+      {/* Table Section */}
+      <div className="table-card-premium">
+        <table className="table-premium">
           <thead>
             <tr>
-              <th style={{ textAlign: "center", width: "60px" }}>ID</th>
+              <th style={{ width: '80px', textAlign: 'center' }}>ID</th>
               <th>Người dùng</th>
-              <th style={{ textAlign: "right", width: "130px" }}>Số tiền</th>
-              <th style={{ textAlign: "center", width: "160px" }}>Loại giao dịch</th>
-              <th style={{ textAlign: "center", width: "120px" }}>Chiều</th>
-              <th style={{ textAlign: "center", width: "160px" }}>Ngày tạo</th>
-              <th style={{ textAlign: "center", width: "140px" }}>Trạng thái</th>
-              <th style={{ textAlign: "center", width: "100px" }}>Thao tác</th>
+              <th style={{ textAlign: 'right' }}>Số tiền</th>
+              <th style={{ textAlign: 'center' }}>Loại</th>
+              <th style={{ textAlign: 'center' }}>Ngày tạo</th>
+              <th style={{ textAlign: 'center' }}>Trạng thái</th>
+              <th style={{ width: '80px', textAlign: 'center' }}></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} style={{ textAlign: "center", padding: 24 }}>Đang tải...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", padding: 60, color: '#94a3b8' }}>Đang tải dữ liệu...</td></tr>
             ) : transactions.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign: "center", padding: 24, color: "#6b7280" }}>Không có giao dịch nào.</td></tr>
-            ) : transactions.map((item) => (
-              <tr key={item.id}>
-                <td style={{ textAlign: "center", fontWeight: "500" }}>{item.id}</td>
-                <td>{item.fullname}</td>
-                <td style={{ textAlign: "right", color: normalizeDirectionIsIncoming(item.direction) ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
-                  {normalizeDirectionIsIncoming(item.direction) ? "+" : "-"}{currency.format(item.amount)}
-                </td>
-                <td style={{ textAlign: "center" }}>{translateTransactionType(item.transactionType)}</td>
-                <td style={{ textAlign: "center" }}>{translateDirection(item.direction)}</td>
-                <td style={{ textAlign: "center" }}>{new Date(item.createdAt).toLocaleString("vi-VN")}</td>
-                <td style={{ textAlign: "center" }}>{renderStatusBadge(item.status)}</td>
-                <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance-admin/transactions/${item.id}`} className="finance-admin-link-btn" style={{ padding: "4px 10px", fontSize: "13px" }}>
-                    Chi tiết
-                  </Link>
-                </td>
-              </tr>
-            ))}
+              <tr><td colSpan={7} style={{ textAlign: "center", padding: 60, color: '#94a3b8' }}>Không tìm thấy giao dịch nào.</td></tr>
+            ) : transactions.map((item) => {
+              const isIn = normalizeDirectionIsIncoming(item.direction);
+              return (
+                <tr key={item.id}>
+                  <td style={{ textAlign: 'center', fontWeight: '800', color: '#94a3b8' }}>#{item.id}</td>
+                  <td>
+                    <div className="user-cell-premium">
+                      <img 
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.fullname || "User")}&background=random&size=64`} 
+                        alt="Avatar" 
+                        className="user-avatar-small" 
+                      />
+                      <div className="user-info-text">
+                        <span className="name">{item.fullname}</span>
+                        <span className="sub">{item.email || 'Hệ thống'}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div className={`amount-cell-premium ${isIn ? 'positive' : 'negative'}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                      {isIn ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+                      {isIn ? "+" : "-"}{currency.format(item.amount)}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span style={{ fontWeight: 700, color: '#475569' }}>{translateTransactionType(item.transactionType)}</span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                      {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      {new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {renderStatusBadge(item.status)}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <Link to={`/finance-admin/transactions/${item.id}`} className="btn-view-detail">
+                      <Eye size={18} />
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
+      {/* Pagination Bar */}
       {totalItems > 0 && (
-        <div className="finance-admin-pagination" style={{ marginTop: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Tổng số: {totalItems}</span>
-          <div style={{ display: "flex", gap: "10px" }}>
+        <div className="pagination-bar-premium">
+          <div className="pagination-info">
+            Hiển thị <strong>{(page - 1) * pageSize + 1} - {Math.min(page * pageSize, totalItems)}</strong> trong số <strong>{totalItems}</strong> giao dịch
+          </div>
+          <div className="pagination-actions">
             <button
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
-              className="finance-admin-link-btn"
-              style={{ opacity: page <= 1 ? 0.5 : 1 }}
+              className="pagination-btn"
             >
-              Trang trước
+              <ChevronLeft size={20} />
             </button>
-            <span style={{ padding: "8px" }}>Trang {page} / {totalPages}</span>
+            <span className="pagination-page-indicator">Trang {page} / {totalPages}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(page + 1)}
-              className="finance-admin-link-btn"
-              style={{ opacity: page >= totalPages ? 0.5 : 1 }}
+              className="pagination-btn"
             >
-              Trang sau
+              <ChevronRight size={20} />
             </button>
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 };
 
 export default FinanceAdminTransactions;
+
