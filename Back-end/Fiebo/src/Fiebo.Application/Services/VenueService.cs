@@ -1035,5 +1035,48 @@ namespace Fiebo.Application.Services
 
             await _unitOfWork.SaveChangesAsync();
         }
+
+        public async Task<List<VenueMapResponse>> GetVenueMapAsync(int? sportTypeId)
+        {
+            var venues = await _unitOfWork.Venues
+                .GetVenueWithFieldsAsync(sportTypeId);
+
+            var result = venues.Select(v =>
+            {
+                var sportTypes = v.Fields
+                    .Where(f => f.SportType != null)
+                    .Select(f => f.SportTypeId)
+                    .Distinct()
+                    .ToList();
+
+                string sportTypeName;
+
+                if (sportTypes.Count == 0)
+                {
+                    sportTypeName = "Không xác định";
+                }
+                else if (sportTypes.Count == 1)
+                {
+                    sportTypeName = v.Fields
+                .First(f => f.SportTypeId == sportTypes[0])
+                .SportType!.Name;
+                }
+                else
+                {
+                    sportTypeName = "Mixed";
+                }
+
+                return new VenueMapResponse
+                {
+                    VenueId = v.Id,
+                    VenueName = v.Name,
+                    Latitude = v.Latitude,
+                    Longitude = v.Longitude,
+                    SportType = sportTypeName
+                };
+            }).ToList();
+
+            return result;
+        }
     }
 }
