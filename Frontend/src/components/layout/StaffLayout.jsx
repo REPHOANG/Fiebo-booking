@@ -31,7 +31,10 @@ const StaffLayout = () => {
 
   const activePath = location?.pathname || "";
   const breadcrumbItems = useMemo(() => {
-    if (activePath === "/staff") return ["Tổng quan"];
+    if (activePath === "/staff") return ["Cơ sở của tôi"];
+    if (activePath.includes("/time-slot")) return ["Cơ sở của tôi", "Chi tiết cơ sở", "Khung giờ"];
+    if (activePath.includes("/services")) return ["Cơ sở của tôi", "Chi tiết cơ sở", "Dịch vụ"];
+    if (activePath.startsWith("/staff/venues/")) return ["Cơ sở của tôi", "Chi tiết cơ sở"];
     if (activePath.startsWith("/staff/profile")) return ["Hồ sơ cá nhân"];
     if (activePath.startsWith("/staff/offline-booking") || activePath.includes("/offline-booking")) return ["Đặt sân offline"];
     if (activePath.startsWith("/staff/bookings")) return ["Đơn đặt sân"];
@@ -88,8 +91,8 @@ const StaffLayout = () => {
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) => `owner-sidebar-link ${isActive ? "active" : ""}`}
           >
-            <LayoutDashboard size={16} />
-            Tổng quan
+            <Volleyball size={16} />
+            Cơ sở của tôi
           </NavLink>
           <NavLink
             to="/staff/offline-booking"

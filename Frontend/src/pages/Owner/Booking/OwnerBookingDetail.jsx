@@ -205,7 +205,7 @@ const OwnerBookingDetail = ({
             <span>Đặt lúc: {d.createdAt ? new Date(d.createdAt).toLocaleString("vi-VN") : "—"}</span>
 
             <div className="obd-action-group">
-              {!isStaff && statusKey === "pending" && (
+              {statusKey === "pending" && (
                 <>
                   <button
                     type="button"
@@ -225,7 +225,7 @@ const OwnerBookingDetail = ({
                   </button>
                 </>
               )}
-              {!isStaff && statusKey === "booked" && (
+              {statusKey === "booked" && (
                 <button
                   type="button"
                   className="obd-cancel-btn"

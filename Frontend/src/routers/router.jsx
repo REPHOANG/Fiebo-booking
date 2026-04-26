@@ -69,6 +69,10 @@ import StaffBookings from "../pages/Staff/Booking/StaffBookings";
 import StaffBookingDetail from "../pages/Staff/Booking/StaffBookingDetail";
 import StaffEvents from "../pages/Staff/Event/StaffEvents";
 import StaffEventDetail from "../pages/Staff/Event/StaffEventDetail";
+import StaffVenues from "../pages/Staff/Venue/StaffVenues";
+import StaffVenueDetail from "../pages/Staff/Venue/StaffVenueDetail";
+import StaffTimeSlot from "../pages/Staff/Venue/StaffTimeSlot";
+import StaffServiceManagement from "../pages/Staff/Venue/StaffServiceManagement";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -251,7 +255,10 @@ const routes = [
     path: "/staff",
     element: <ProtectedRoute element={<StaffLayout />} requiredRole="Staff" />,
     children: [
-      { index: true, element: <StaffHome /> },
+      { index: true, element: <StaffVenues /> },
+      { path: "venues/:id", element: <StaffVenueDetail /> },
+      { path: "venues/:id/time-slot", element: <StaffTimeSlot /> },
+      { path: "venues/:id/services", element: <StaffServiceManagement /> },
       { path: "profile", element: <Profile /> },
       { path: "offline-booking", element: <StaffOfflineBooking /> },
       { path: "venues/:id/offline-booking", element: <BookingSchedule /> },

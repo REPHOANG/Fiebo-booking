@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 import {
   ArrowLeft,
   Building2,
+  Ban,
+  CheckCircle,
   CircleAlert,
   CreditCard,
   Hash,
@@ -19,9 +21,10 @@ import {
   ScrollText,
   UserRound,
 } from "lucide-react";
-import { getAdminVenueById, toggleLockVenue } from "../../../services/adminService";
+import { approveVenue, getAdminVenueById, rejectVenue, toggleLockVenue } from "../../../services/adminService";
 import ReviewDocImageCarousel from "../../Owner/CreateVenueSteps/ReviewDocImageCarousel";
 import LoadingPage from "../../../components/ui/Loading/LoadingPage";
+import Swal from "sweetalert2";
 import "../VenueRegistration/VenueDetailPage.css";
 
 const venueStatusStyle = {
@@ -93,6 +96,55 @@ export const AdminOwnerVenueDetail = () => {
       toast.error("Thao tác thất bại. Vui lòng thử lại.");
     },
   });
+ 
+  const { mutate: handleApprove, isPending: isApproving } = useMutation({
+    mutationFn: () => approveVenue(venueId),
+    onSuccess: () => {
+      setCurrentStatus("Active");
+      toast.success("Đã duyệt cơ sở thành công");
+      queryClient.invalidateQueries({ queryKey: ["adminVenueDetail", venueId] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message ?? "Duyệt cơ sở thất bại");
+    },
+  });
+ 
+  const { mutate: handleReject, isPending: isRejecting } = useMutation({
+    mutationFn: (reason) => rejectVenue({ id: venueId, reason }),
+    onSuccess: () => {
+      setCurrentStatus("Rejected");
+      toast.success(" Đã từ chối cơ sở thành công");
+      queryClient.invalidateQueries({ queryKey: ["adminVenueDetail", venueId] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message ?? "Từ chối cơ sở thất bại");
+    },
+  });
+ 
+  const onRejectClick = async () => {
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: "Từ chối cơ sở?",
+      input: "textarea",
+      inputLabel: "Lý do từ chối",
+      inputPlaceholder: "Nhập lý do từ chối...",
+      inputAttributes: {
+        "aria-label": "Lý do từ chối",
+      },
+      showCancelButton: true,
+      confirmButtonText: "Từ chối",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#dc2626",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Bạn phải nhập lý do từ chối!";
+        }
+      },
+    });
+ 
+    if (isConfirmed && reason) {
+      handleReject(reason);
+    }
+  };
 
   if (isLoading) return <LoadingPage />;
 
@@ -104,6 +156,7 @@ export const AdminOwnerVenueDetail = () => {
   const closeTime = formatTime(data?.closeTime);
   const fieldCount = stateVenue?.numberOfFields ?? stateVenue?.fieldCount ?? 0;
   const isLocked = currentStatus === "Locked";
+  const isPendingStatus = currentStatus === "Pending";
   const vSt = venueStatusStyle[currentStatus] ?? { label: currentStatus || "Không rõ", bg: "#f1f5f9", color: "#475569" };
 
   const ownerName = data?.ownerName || owner?.name || "-";
@@ -140,9 +193,11 @@ export const AdminOwnerVenueDetail = () => {
           <div className="avr-alert" role="status">
             <CircleAlert size={18} strokeWidth={2} aria-hidden />
             <span>
-              {isLocked
-                ? <>Cơ sở này đang bị khoá. Nhấn <strong>Mở khoá</strong> để cho phép cơ sở hoạt động trở lại.</>
-                : <>Cơ sở đang hoạt động. Nhấn <strong>Khoá sân</strong> để tạm dừng hoạt động của cơ sở này.</>}
+              {isPendingStatus
+                ? <>Cơ sở này đang <strong>Chờ duyệt</strong>. Hãy kiểm tra thông tin và tài liệu pháp lý trước khi Duyệt hoặc Từ chối.</>
+                : isLocked
+                  ? <>Cơ sở này đang bị khoá. Nhấn <strong>Mở khoá</strong> để cho phép cơ sở hoạt động trở lại.</>
+                  : <>Cơ sở đang hoạt động. Nhấn <strong>Khoá sân</strong> để tạm dừng hoạt động của cơ sở này.</>}
             </span>
           </div>
         </header>
@@ -319,7 +374,28 @@ export const AdminOwnerVenueDetail = () => {
 
         {/* Actions */}
         <div className="avr-actions">
-          {isLocked ? (
+          {isPendingStatus ? (
+            <>
+              <button
+                type="button"
+                className="avr-action-btn avr-action-btn--approve"
+                onClick={() => handleApprove()}
+                disabled={isApproving || isRejecting}
+              >
+                <CheckCircle size={18} strokeWidth={2.2} aria-hidden />
+                <span>{isApproving ? "Đang xử lý..." : "Duyệt cơ sở"}</span>
+              </button>
+              <button
+                type="button"
+                className="avr-action-btn avr-action-btn--reject"
+                onClick={onRejectClick}
+                disabled={isApproving || isRejecting}
+              >
+                <Ban size={18} strokeWidth={2.2} aria-hidden />
+                <span>{isRejecting ? "Đang xử lý..." : "Từ chối"}</span>
+              </button>
+            </>
+          ) : isLocked ? (
             <button
               type="button"
               className="avr-action-btn avr-action-btn--approve"
