@@ -163,7 +163,7 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
 
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
-      const forceDashboard = homePath === "/admin" || homePath === "/finance-admin";
+      const forceDashboard = homePath === "/admin" || homePath === "/finance";
       const nextPath = forceDashboard ? homePath : (returnPath || homePath);
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });
@@ -220,7 +220,7 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
       });
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
-      const forceDashboard = homePath === "/admin" || homePath === "/finance-admin";
+      const forceDashboard = homePath === "/admin" || homePath === "/finance";
       const nextPath = forceDashboard ? homePath : (returnPath || homePath);
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });

@@ -1,96 +1,74 @@
 import React, { useDeferredValue, useMemo, useState } from "react";
 import {
-  Alert,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  Chip,
-  CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
-  IconButton,
-  InputAdornment,
-  Stack,
+  CircularProgress,
   Switch,
-  TextField,
-  Tooltip,
-  Typography,
+  IconButton
 } from "@mui/material";
-import { Select as AntdSelect } from "antd";
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Download, 
+  Pencil, 
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  UserPlus,
+  X,
+  Key,
+  Copy,
+  Users
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import FilterListRoundedIcon from "@mui/icons-material/FilterListRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import SortRoundedIcon from "@mui/icons-material/SortRounded";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
-import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
-import LockResetRoundedIcon from "@mui/icons-material/LockResetRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CreateFinanceAdminForm from "./CreateFinanceAdminForm";
 import { createFinanceAdmin, getFinanceAdmins, resetFinanceAdminPassword } from "../../../services/adminService";
 import { formatDateTime } from "../../../utils/helperFunction";
 import "./FinanceAdminManagement.css";
 
-const statusStyle = {
-  active: { label: "Đang hoạt động", bg: "#dcfce7", color: "#166534" },
-  inactive: { label: "Vô hiệu hóa", bg: "#fee2e2", color: "#991b1b" },
+const AVATAR_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#8b5cf6"];
+
+const getAvatarColor = (id) => {
+  const index = typeof id === "number" ? id % AVATAR_COLORS.length : (id?.length || 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
 };
 
-
-
 const getInitials = (name) =>
-  name
+  (name || "")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
 
-const toDate = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? new Date(0) : date;
-};
-
 const FinanceAdminManagement = () => {
   const queryClient = useQueryClient();
-  const [statusOverrides, setStatusOverrides] = useState({});
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("createdDesc");
   const [openCreate, setOpenCreate] = useState(false);
+  const [statusOverrides, setStatusOverrides] = useState({});
   const [resetPasswordResult, setResetPasswordResult] = useState(null);
 
   const {
-    data: apiAccounts = [],
+    data: accounts = [],
     isLoading: loading,
     isError,
-    error: queryError,
   } = useQuery({
     queryKey: ["financeAdmins"],
     queryFn: getFinanceAdmins,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
     select: (list) => {
-      const createdAt = new Date().toISOString();
       return (Array.isArray(list) ? list : []).map((item) => ({
         id: item?.id ?? item?.Id ?? "",
         name: item?.fullName || item?.FullName || "Chưa có tên",
         email: item?.username || item?.Username || "-",
-        phone: "-",
-        createdAt,
-        status:
-          String(item?.status || item?.Status || "")
-            .trim()
-            .toLowerCase() === "active"
-            ? "active"
-            : "inactive",
+        createdAt: item?.createdAt || new Date().toISOString(),
+        status: String(item?.status || item?.Status || "").toLowerCase() === "active" ? "active" : "inactive",
       }));
     },
   });
@@ -98,7 +76,7 @@ const FinanceAdminManagement = () => {
   const createMutation = useMutation({
     mutationFn: createFinanceAdmin,
     onSuccess: async () => {
-      toast.success("Tạo tài khoản Finance Admin thành công!");
+      toast.success("Tạo tài khoản thành công!");
       setOpenCreate(false);
       await queryClient.invalidateQueries({ queryKey: ["financeAdmins"] });
     },
@@ -108,408 +86,282 @@ const FinanceAdminManagement = () => {
     mutationFn: (id) => resetFinanceAdminPassword(id),
     onSuccess: (data) => {
       setResetPasswordResult(data?.TempPassword ?? data?.tempPassword ?? "");
+      toast.success("Reset mật khẩu thành công!");
     },
     onError: (err) => {
-      toast.error(
-        err?.response?.data?.message || err?.message || "Reset mật khẩu thất bại."
-      );
+      toast.error(err?.response?.data?.message || err?.message || "Reset mật khẩu thất bại.");
     },
   });
 
-  const accounts = useMemo(() => {
-    return apiAccounts.map((item) => {
-      const overriddenStatus = statusOverrides[item.id];
-      return overriddenStatus ? { ...item, status: overriddenStatus } : item;
+  const toggleAccountStatus = (id) => {
+    setStatusOverrides((prev) => {
+      const current = prev[id] || accounts.find(a => a.id === id)?.status;
+      return { ...prev, [id]: current === "active" ? "inactive" : "active" };
     });
-  }, [apiAccounts, statusOverrides]);
+  };
+
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   const filteredAccounts = useMemo(() => {
     const q = deferredSearch.trim().toLowerCase();
-
-    let next = accounts.filter((item) => {
-      const matchesSearch =
-        q.length === 0 ||
-        item.name.toLowerCase().includes(q) ||
-        item.email.toLowerCase().includes(q);
-
-      const matchesStatus =
-        statusFilter === "all" ? true : item.status === statusFilter;
-
-      const createdTime = toDate(item.createdAt).getTime();
-      const now = Date.now();
-      const day = 24 * 60 * 60 * 1000;
-      const matchesDate =
-        dateFilter === "all"
-          ? true
-          : dateFilter === "30d"
-            ? now - createdTime <= 30 * day
-            : now - createdTime <= 90 * day;
-
-      return matchesSearch && matchesStatus && matchesDate;
+    return accounts.filter((item) => {
+      const currentStatus = statusOverrides[item.id] || item.status;
+      const matchesSearch = !q || item.name.toLowerCase().includes(q) || item.email.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" || currentStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    }).sort((a, b) => {
+      if (sortBy === "createdDesc") return new Date(b.createdAt) - new Date(a.createdAt);
+      return a.name.localeCompare(b.name);
     });
+  }, [accounts, deferredSearch, statusFilter, sortBy, statusOverrides]);
 
-    next = [...next].sort((a, b) => {
-      if (sortBy === "nameAsc") return a.name.localeCompare(b.name);
-      if (sortBy === "nameDesc") return b.name.localeCompare(a.name);
-      if (sortBy === "createdAsc")
-        return toDate(a.createdAt) - toDate(b.createdAt);
-      return toDate(b.createdAt) - toDate(a.createdAt);
-    });
+  const totalItems = filteredAccounts.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const currentItems = filteredAccounts.slice((page - 1) * pageSize, page * pageSize);
+  const activeCount = filteredAccounts.filter(a => (statusOverrides[a.id] || a.status) === 'active').length;
 
-    return next;
-  }, [accounts, dateFilter, deferredSearch, sortBy, statusFilter]);
-
-  const toggleAccountStatus = (id) => {
-    setStatusOverrides((prev) => {
-      const target = accounts.find((item) => item.id === id);
-      if (!target) return prev;
-
-      const currentStatus = prev[id] || target.status;
-      const nextStatus = currentStatus === "active" ? "inactive" : "active";
-      return { ...prev, [id]: nextStatus };
-    });
-  };
-
-  const handleCreate = (payload) => {
-    createMutation.mutate(payload);
-  };
+  const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalItems);
 
   return (
-    <Box
-      className="finance-admin-page"
-      sx={{
-        px: { xs: 2, md: 3 },
-        pb: 12,
-        minHeight: "100vh",
-        backgroundColor: "#f8f9fa",
-        fontFamily: "Be Vietnam Pro, sans-serif",
-        "&, & *": {
-          fontFamily: "Be Vietnam Pro, sans-serif",
-        },
-      }}
-    >
-      <Box>
-        <Box sx={{ mb: 2.5 }}>
-          <Typography
-            sx={{
-              fontSize: { xs: 26, md: 34 },
-              fontWeight: 800,
-              color: "#191c1d",
-              letterSpacing: -0.6,
-            }}
+    <div className="finance-admin-container">
+      {/* Header Section */}
+      <div className="finance-header">
+        <div className="finance-title">
+          <h2>Quản lý tài chính</h2>
+          <p>Quản lý nhân viên tài chính</p>
+        </div>
+        <button className="btn-add-new" onClick={() => setOpenCreate(true)}>
+          <Plus size={18} />
+          Thêm mới
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="filter-bar">
+        <div className="filter-item">
+          <label className="filter-label">TRẠNG THÁI:</label>
+          <select 
+            className="filter-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            Quản lý nhân viên tài chính
-          </Typography>
-        </Box>
+            <option value="all">Tất cả</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Ngừng hoạt động</option>
+          </select>
+        </div>
+        
+        <div className="filter-item">
+          <label className="filter-label">NGÀY TẠO:</label>
+          <select 
+            className="filter-select"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <option value="all">Tất cả</option>
+            <option value="today">Hôm nay</option>
+            <option value="month">Tháng này</option>
+          </select>
+        </div>
 
-        <Stack spacing={1.75} sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Tìm theo tên hoặc email..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon sx={{ color: "#7b7487" }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 3,
-                backgroundColor: "#e1e3e4",
-              },
-            }}
-          />
+        <div className="filter-item">
+          <label className="filter-label">SẮP XẾP:</label>
+          <select 
+            className="filter-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="createdDesc">Mới nhất</option>
+            <option value="nameAsc">Tên A-Z</option>
+          </select>
+        </div>
+      </div>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{ width: "100%" }}
-            >
-              <FilterListRoundedIcon sx={{ color: "#7b7487" }} />
-              <AntdSelect
-                className="finance-admin-select"
-                popupClassName="finance-admin-select-dropdown"
-                value={statusFilter}
-                onChange={setStatusFilter}
-                style={{ width: "100%" }}
-                options={[
-                  { value: "all", label: "Trạng thái: Tất cả" },
-                  { value: "active", label: "Trạng thái: Đang hoạt động" },
-                  { value: "inactive", label: "Trạng thái: Ngừng hoạt động" },
-                ]}
-              />
-            </Stack>
-
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{ width: "100%" }}
-            >
-              <CalendarTodayRoundedIcon sx={{ color: "#7b7487" }} />
-              <AntdSelect
-                className="finance-admin-select"
-                popupClassName="finance-admin-select-dropdown"
-                value={dateFilter}
-                onChange={setDateFilter}
-                style={{ width: "100%" }}
-                options={[
-                  { value: "all", label: "Ngày tạo: Tất cả" },
-                  { value: "30d", label: "Ngày tạo: 30 ngày gần đây" },
-                  { value: "90d", label: "Ngày tạo: 90 ngày gần đây" },
-                ]}
-              />
-            </Stack>
-
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1}
-              sx={{ width: "100%" }}
-            >
-              <SortRoundedIcon sx={{ color: "#7b7487" }} />
-              <AntdSelect
-                className="finance-admin-select"
-                popupClassName="finance-admin-select-dropdown"
-                value={sortBy}
-                onChange={setSortBy}
-                style={{ width: "100%" }}
-                options={[
-                  { value: "createdDesc", label: "Sắp xếp: Mới nhất" },
-                  { value: "createdAsc", label: "Sắp xếp: Cũ nhất" },
-                  { value: "nameAsc", label: "Sắp xếp: Tên A-Z" },
-                  { value: "nameDesc", label: "Sắp xếp: Tên Z-A" },
-                ]}
-              />
-            </Stack>
-          </Stack>
-        </Stack>
-
-        {isError ? (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {queryError?.response?.data?.message ||
-              queryError?.message ||
-              "Không thể tải danh sách Finance Admin. Vui lòng thử lại sau."}
-          </Alert>
-        ) : null}
-
-        {createMutation.isError ? (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {createMutation.error?.response?.data?.message ||
-              createMutation.error?.message ||
-              "Không thể tạo Finance Admin. Vui lòng kiểm tra dữ liệu và thử lại."}
-          </Alert>
-        ) : null}
-
+      {/* Staff Grid */}
+      <div className="staff-grid">
         {loading ? (
-          <Card sx={{ p: 3, borderRadius: 3 }}>
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <CircularProgress size={18} />
-              <Typography sx={{ color: "#4a4455" }}>
-                Đang tải danh sách Finance Admin...
-              </Typography>
-            </Stack>
-          </Card>
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>
+            <CircularProgress size={32} />
+          </div>
         ) : (
-        <Stack spacing={2}>
-          {filteredAccounts.map((item) => {
-            const style = statusStyle[item.status] || statusStyle.inactive;
-            const muted = item.status === "inactive";
+          <>
+            {currentItems.map((item) => {
+              const currentStatus = statusOverrides[item.id] || item.status;
+              const initials = getInitials(item.name);
+              const avatarColor = getAvatarColor(item.id);
 
-            return (
-              <Card
-                key={item.id}
-                sx={{
-                  p: { xs: 2, sm: 2.5 },
-                  borderRadius: 3,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
-                  opacity: muted ? 0.75 : 1,
-                  position: "relative",
-                  overflow: "visible",
-                }}
-              >
-                <Chip
-                  label={style.label}
-                  size="small"
-                  sx={{
-                    position: "absolute",
-                    top: 14,
-                    right: 14,
-                    fontWeight: 700,
-                    color: style.color,
-                    backgroundColor: style.bg,
-                  }}
-                />
-
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  alignItems="center"
-                  sx={{ pr: 11 }}
-                >
-                  <Avatar
-                    sx={{
-                      width: 46,
-                      height: 46,
-                      fontWeight: 800,
-                      color: "#630ed4",
-                      backgroundColor: "#ede0ff",
-                    }}
-                  >
-                    {getInitials(item.name)}
-                  </Avatar>
-                  <Box>
-                    <Typography
-                      sx={{ fontWeight: 800, color: "#191c1d", fontSize: 18 }}
-                    >
-                      {item.name}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Stack
-                  spacing={1.15}
-                  sx={{ mt: 2.2, pt: 1.4, borderTop: "1px solid #e1e3e4" }}
-                >
-                  <Stack direction="row" spacing={1.1} alignItems="center">
-                    <MailOutlineRoundedIcon
-                      sx={{ color: "#7b7487", fontSize: 18 }}
+              return (
+                <div className="staff-card" key={item.id}>
+                  <div className="staff-card__toggle">
+                    <Switch 
+                      size="small" 
+                      checked={currentStatus === 'active'}
+                      onChange={() => toggleAccountStatus(item.id)}
+                      color="success"
                     />
-                    <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                      {item.email}
-                    </Typography>
-                  </Stack>
+                  </div>
+                  
+                  <div className="staff-card__header">
+                    <div className="staff-avatar" style={{ backgroundColor: avatarColor }}>
+                      <div className="avatar-placeholder">{initials}</div>
+                    </div>
+                    <div className="staff-info">
+                      <h3>{item.name}</h3>
+                      <p>{item.email}</p>
+                    </div>
+                  </div>
 
-                  <Stack
-                    direction={"row"}
-                    sx={{
-                      width: "100%",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.1} alignItems="center">
-                      <HistoryRoundedIcon
-                        sx={{ color: "#7b7487", fontSize: 18 }}
-                      />
-                      <Typography sx={{ color: "#4a4455", fontSize: 12 }}>
-                        Tạo lúc: {formatDateTime(item.createdAt)}
-                      </Typography>
-                    </Stack>
+                  <div className="staff-details">
+                    <div className="detail-row">
+                      <label>Mã nhân viên</label>
+                      <span>#STF-{String(item.id).slice(-4).toUpperCase()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <label>Ngày tạo</label>
+                      <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <div className="detail-row">
+                      <label>Trạng thái</label>
+                      <span className={`status-badge ${currentStatus}`}>
+                        {currentStatus === 'active' ? 'ĐANG HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
+                      </span>
+                    </div>
+                  </div>
 
-                    <Stack direction="row" alignItems="center" spacing={0.5}>
-                      <Tooltip title="Reset mật khẩu">
-                        <span>
-                          <IconButton
-                            size="small"
-                            disabled={resetPasswordMutation.isPending}
-                            onClick={() => resetPasswordMutation.mutate(item.id)}
-                            sx={{ color: "#7b7487" }}
-                          >
-                            <LockResetRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      <Switch
-                        checked={item.status === "active"}
-                        onChange={() => toggleAccountStatus(item.id)}
-                        color="success"
-                      />
-                    </Stack>
-                  </Stack>
-                </Stack>
-              </Card>
-            );
-          })}
+                  <div className="staff-card__actions">
+                    <button className="btn-view-profile">Xem hồ sơ</button>
+                    <button 
+                      className="btn-edit-icon" 
+                      title="Reset mật khẩu"
+                      onClick={() => resetPasswordMutation.mutate(item.id)}
+                      disabled={resetPasswordMutation.isPending}
+                    >
+                      {resetPasswordMutation.isPending && resetPasswordMutation.variables === item.id ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <Key size={16} />
+                      )}
+                    </button>
+                    <button className="btn-edit-icon" title="Chỉnh sửa">
+                      <Pencil size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
 
-          {filteredAccounts.length === 0 ? (
-            <Card sx={{ p: 3, borderRadius: 3 }}>
-              <Typography sx={{ color: "#4a4455" }}>
-                Không tìm thấy tài khoản phù hợp bộ lọc đã chọn.
-              </Typography>
-            </Card>
-          ) : null}
-        </Stack>
+            {currentItems.length === 0 && (
+              <div className="empty-state-container">
+                <div className="empty-state-icon">
+                  <Users size={48} />
+                </div>
+                <h3>Không có nhân viên nào</h3>
+                <p>Hiện tại chưa có nhân viên tài chính nào trong danh sách hoặc không khớp với bộ lọc.</p>
+                <button className="btn-add-new" style={{ marginTop: '20px' }} onClick={() => setOpenCreate(true)}>
+                  <Plus size={18} />
+                  Thêm nhân viên ngay
+                </button>
+              </div>
+            )}
+          </>
         )}
-      </Box>
+      </div>
 
-      <Button
-        variant="contained"
-        onClick={() => setOpenCreate(true)}
-        startIcon={<PersonAddAlt1RoundedIcon />}
-        sx={{
-          position: "fixed",
-          right: { xs: 16, sm: 24 },
-          bottom: { xs: 16, sm: 24 },
-          borderRadius: 999,
-          px: 2.4,
-          py: 1.25,
-          textTransform: "none",
-          fontWeight: 700,
-          fontSize: 15,
-          fontFamily: "Be Vietnam Pro, sans-serif",
-          background: "linear-gradient(135deg, #630ed4 0%, #7c3aed 100%)",
-          boxShadow: "0 14px 30px rgba(99,14,212,0.3)",
-          zIndex: 20,
-        }}
+      {/* Pagination Footer */}
+      <div className="pagination-footer">
+        <div className="pagination-text">
+          Hiển thị {startItem}-{endItem} trong tổng số {totalItems} nhân viên
+        </div>
+        <div className="pagination-controls">
+          <button 
+            className="btn-page" 
+            disabled={page === 1}
+            onClick={() => setPage(p => p - 1)}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          
+          {[...Array(totalPages)].map((_, i) => (
+            <button 
+              key={i + 1}
+              className={`btn-page ${page === i + 1 ? "active" : ""}`}
+              onClick={() => setPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button 
+            className="btn-page"
+            disabled={page === totalPages}
+            onClick={() => setPage(p => p + 1)}
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button className="btn-add-floating" onClick={() => setOpenCreate(true)}>
+            <UserPlus size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Reset Password Result Modal */}
+      <Dialog 
+        open={!!resetPasswordResult} 
+        onClose={() => setResetPasswordResult(null)}
+        PaperProps={{ sx: { borderRadius: 4, p: 2 } }}
       >
-        Thêm mới
-      </Button>
+        <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', color: '#1e293b' }}>
+          Mật khẩu mới đã được tạo
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <p style={{ color: '#64748b', marginBottom: '20px' }}>
+            Vui lòng cung cấp mật khẩu tạm thời này cho nhân viên. Họ nên đổi mật khẩu ngay sau khi đăng nhập.
+          </p>
+          <div style={{ 
+            backgroundColor: '#f1f5f9', 
+            padding: '16px', 
+            borderRadius: '12px',
+            fontSize: '20px',
+            fontWeight: 800,
+            color: '#1e56d9',
+            letterSpacing: '0.1em',
+            marginBottom: '20px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            {resetPasswordResult}
+            <IconButton 
+              size="small" 
+              onClick={() => {
+                navigator.clipboard.writeText(resetPasswordResult);
+                toast.success("Đã sao chép mật khẩu!");
+              }}
+            >
+              <Copy size={18} />
+            </IconButton>
+          </div>
+          <button 
+            className="btn-add-new" 
+            style={{ width: '100%', justifyContent: 'center' }}
+            onClick={() => setResetPasswordResult(null)}
+          >
+            Đã hiểu
+          </button>
+        </DialogContent>
+      </Dialog>
 
+      {/* Create Modal */}
       <CreateFinanceAdminForm
         open={openCreate}
         onClose={() => setOpenCreate(false)}
-        onSubmit={handleCreate}
+        onSubmit={(data) => createMutation.mutate(data)}
         loading={createMutation.isPending}
       />
-
-      <Dialog
-        open={resetPasswordResult !== null}
-        onClose={() => setResetPasswordResult(null)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 800, pr: 6 }}>
-          Mật khẩu mới
-          <IconButton
-            size="small"
-            onClick={() => setResetPasswordResult(null)}
-            sx={{ position: "absolute", right: 12, top: 12 }}
-          >
-            <CloseRoundedIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 1.5, color: "#4a4455" }}>
-            Mật khẩu tạm thời đã được tạo. Vui lòng gửi cho nhân viên và yêu cầu đổi mật khẩu sau khi đăng nhập.
-          </Typography>
-          <Stack direction="row" spacing={1} alignItems="center"
-            sx={{ backgroundColor: "#f3f4f6", borderRadius: 2, px: 2, py: 1.5 }}
-          >
-            <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 18, flex: 1 }}>
-              {resetPasswordResult}
-            </Typography>
-            <Tooltip title="Sao chép">
-              <IconButton
-                size="small"
-                onClick={() => {
-                  navigator.clipboard.writeText(resetPasswordResult ?? "");
-                  toast.success("Đã sao chép mật khẩu!");
-                }}
-              >
-                <ContentCopyRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        </DialogContent>
-      </Dialog>
-    </Box>
+    </div>
   );
 };
 

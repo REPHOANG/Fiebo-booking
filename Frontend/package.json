@@ -22,6 +22,7 @@
     "axios": "^1.13.6",
     "bootstrap": "^5.3.8",
     "classnames": "^2.5.1",
+    "esbuild": "^0.28.0",
     "framer-motion": "^12.34.3",
     "leaflet": "^1.9.4",
     "localforage": "^1.10.0",

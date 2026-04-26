@@ -1,5 +1,4 @@
 import React from "react";
-import { financeAdminRevenueReport } from "../financeAdminData";
 import "../financeAdminPages.css";
 
 const currency = new Intl.NumberFormat("vi-VN", {

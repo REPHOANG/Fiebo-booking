@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   BadgeDollarSign,
@@ -35,15 +35,16 @@ const navItems = [
 const AdminLayout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector((state) => state.auth.user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const queryClient = useQueryClient();
-  const initials = String(user?.name || user?.email || "AD")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("");
+
+  // Tìm navItem hiện tại để lấy label hiển thị lên header
+  const activeNavItem = navItems.find(item => 
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+  );
+  const pageTitle = activeNavItem ? activeNavItem.label : "";
 
   const handleLogout = () => {
     dispatch(logout());
@@ -93,14 +94,20 @@ const AdminLayout = () => {
 
       <div className="admin-shell__main">
         <header className="admin-shell__header">
-          <button
-            type="button"
-            className="admin-shell__menu-btn"
-            onClick={() => setSidebarOpen((v) => !v)}
-            aria-label="Mở menu"
-          >
-            <Menu size={20} />
-          </button>
+          <div className="admin-shell__header-left">
+            <button
+              type="button"
+              className="admin-shell__menu-btn"
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Mở menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="admin-shell__page-info">
+              <h2 className="admin-shell__page-title">{pageTitle}</h2>
+            </div>
+          </div>
+
           <div className="admin-shell__header-actions">
             <div className="admin-shell__account-meta">
               <span>Đăng nhập bằng</span>
@@ -121,4 +128,3 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout;
-

@@ -1,1 +1,0 @@
-C:/Users/Admin/Desktop/Fiebo/Frontend/src/components/common/SvgIcon/icons/03.svg.jsx

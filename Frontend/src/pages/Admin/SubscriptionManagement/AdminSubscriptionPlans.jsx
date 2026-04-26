@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Card,
   CircularProgress,
   Dialog,
   DialogContent,
@@ -13,7 +11,6 @@ import {
   InputAdornment,
   Stack,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,30 +18,32 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  X, 
+  Send, 
+  Sparkles, 
+  Diamond, 
+  BarChart3, 
+  TrendingUp, 
+  TrendingDown,
+  Settings,
+  DollarSign,
+  Calendar,
+  Package
+} from "lucide-react";
 import {
   createAdminSubscriptionPlan,
   deleteAdminSubscriptionPlan,
   getAdminSubscriptionPlans,
   updateAdminSubscriptionPlan,
 } from "../../../services/adminService";
-import "../FinanceAdminManagement/FinanceAdminManagement.css";
+import "./AdminSubscriptionPlans.css";
 
 const formatPrice = (price) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-
-const PLAN_COLORS = [
-  { bg: "#ede0ff", color: "#630ed4" },
-  { bg: "#dbeafe", color: "#1d4ed8" },
-  { bg: "#dcfce7", color: "#166534" },
-  { bg: "#fef9c3", color: "#854d0e" },
-  { bg: "#fee2e2", color: "#991b1b" },
-];
+  new Intl.NumberFormat("vi-VN").format(price) + " đ";
 
 const planSchema = yup.object({
   name: yup.string().trim().max(100, "Tối đa 100 ký tự").required("Vui lòng nhập tên gói"),
@@ -87,63 +86,87 @@ const PlanFormDialog = ({ open, onClose, onSubmit, loading, editPlan }) => {
       open={open}
       onClose={handleClose}
       fullWidth
-      maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: 3 } }}
+      maxWidth="xs"
+      PaperProps={{ 
+        sx: { 
+          borderRadius: 4,
+          "&, & *": { fontFamily: "'Be Vietnam Pro', sans-serif !important" }
+        } 
+      }}
     >
-      <DialogTitle sx={{ fontWeight: 800, pr: 6 }}>
-        {isEdit ? "Chỉnh sửa gói đăng ký" : "Tạo gói đăng ký mới"}
+      <DialogTitle sx={{ borderBottom: '1px solid #f1f5f9', px: 3, py: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: '#1e293b' }}>
+          {isEdit ? "Chỉnh sửa gói đăng ký" : "Tạo gói đăng ký mới"}
+        </Typography>
         <IconButton
           size="small"
           onClick={handleClose}
           disabled={loading}
-          sx={{ position: "absolute", right: 12, top: 12 }}
+          sx={{ position: "absolute", right: 16, top: 16, color: '#94a3b8' }}
         >
-          <CloseRoundedIcon fontSize="small" />
+          <X size={20} />
         </IconButton>
       </DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ pt: 0.5 }}>
+      <DialogContent sx={{ p: 3, pt: 0 }}>
+        <Stack spacing={3} sx={{ pt: "25px" }}>
           <TextField
-            label="Tên gói"
+            label="Tên gói dịch vụ"
             fullWidth
+            placeholder="Ví dụ: Gói Cơ Bản (1 Tháng)"
             {...register("name")}
             error={Boolean(errors.name)}
             helperText={errors.name?.message}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><Package size={18} color="#94a3b8" /></InputAdornment>,
+            }}
+            sx={{ 
+              "& .MuiOutlinedInput-root": { borderRadius: 3 } 
+            }}
           />
           <TextField
             label="Số ngày hiệu lực"
             fullWidth
             type="number"
+            placeholder="30"
             InputProps={{
+              startAdornment: <InputAdornment position="start"><Calendar size={18} color="#94a3b8" /></InputAdornment>,
               endAdornment: <InputAdornment position="end">ngày</InputAdornment>,
             }}
             {...register("durationDays")}
             error={Boolean(errors.durationDays)}
             helperText={errors.durationDays?.message}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
           />
           <TextField
-            label="Giá"
+            label="Giá niêm yết"
             fullWidth
             type="number"
+            placeholder="200000"
             InputProps={{
+              startAdornment: <InputAdornment position="start"><DollarSign size={18} color="#94a3b8" /></InputAdornment>,
               endAdornment: <InputAdornment position="end">VNĐ</InputAdornment>,
             }}
             {...register("price")}
             error={Boolean(errors.price)}
             helperText={errors.price?.message}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
           />
           <Button
             variant="contained"
             disabled={!isValid || loading}
             onClick={handleSubmit(onSubmit)}
+            fullWidth
             sx={{
-              borderRadius: 2,
+              borderRadius: 3,
+              py: 1.5,
               textTransform: "none",
               fontWeight: 700,
-              background: "linear-gradient(135deg, #630ed4 0%, #7c3aed 100%)",
+              backgroundColor: "#1e56d9",
+              boxShadow: "0 10px 20px rgba(30,86,217,0.2)",
+              "&:hover": { backgroundColor: "#1a4bc4" }
             }}
           >
-            {loading ? <CircularProgress size={18} color="inherit" /> : isEdit ? "Lưu thay đổi" : "Tạo gói"}
+            {loading ? <CircularProgress size={20} color="inherit" /> : isEdit ? "Lưu thay đổi" : "Tạo gói ngay"}
           </Button>
         </Stack>
       </DialogContent>
@@ -161,7 +184,6 @@ const AdminSubscriptionPlans = () => {
     queryKey: ["adminSubscriptionPlans"],
     queryFn: getAdminSubscriptionPlans,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
@@ -170,9 +192,6 @@ const AdminSubscriptionPlans = () => {
       toast.success("Tạo gói thành công!");
       setOpenForm(false);
       queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
-    },
-    onError: (err) => {
-      toast.error(err?.response?.data?.message || err?.message || "Tạo gói thất bại.");
     },
   });
 
@@ -183,9 +202,6 @@ const AdminSubscriptionPlans = () => {
       setEditPlan(null);
       queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
     },
-    onError: (err) => {
-      toast.error(err?.response?.data?.message || err?.message || "Cập nhật gói thất bại.");
-    },
   });
 
   const deleteMutation = useMutation({
@@ -194,9 +210,6 @@ const AdminSubscriptionPlans = () => {
       toast.success("Xóa gói thành công!");
       setDeleteConfirm(null);
       queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
-    },
-    onError: (err) => {
-      toast.error(err?.response?.data?.message || err?.message || "Xóa gói thất bại.");
     },
   });
 
@@ -215,156 +228,114 @@ const AdminSubscriptionPlans = () => {
 
   const formLoading = createMutation.isPending || updateMutation.isPending;
 
+  const totalPlans = plans.length;
+  const avgPrice = totalPlans > 0 ? plans.reduce((acc, p) => acc + p.price, 0) / totalPlans : 0;
+  const maxPrice = totalPlans > 0 ? Math.max(...plans.map(p => p.price)) : 0;
+  const maxDuration = totalPlans > 0 ? Math.max(...plans.map(p => p.durationDays)) : 0;
+
   return (
-    <Box
-      className="finance-admin-page"
-      sx={{
-        px: { xs: 2, md: 3 },
-        pb: 12,
-        minHeight: "100vh",
-        backgroundColor: "#f8f9fa",
-        fontFamily: "Be Vietnam Pro, sans-serif",
-        "&, & *": { fontFamily: "Be Vietnam Pro, sans-serif" },
-      }}
-    >
-      <Box sx={{ mb: 3 }}>
-        <Typography
-          sx={{
-            fontSize: { xs: 26, md: 34 },
-            fontWeight: 800,
-            color: "#191c1d",
-            letterSpacing: -0.6,
-          }}
-        >
-          Quản lý gói đăng ký
-        </Typography>
-        {!isLoading && (
-          <Typography sx={{ color: "#7b7487", fontSize: 14 }}>
-            {plans.length} gói
-          </Typography>
+    <div className="subs-container">
+      {/* Header */}
+      <div className="subs-header">
+        <div className="subs-title">
+          <h2>Quản lý gói đăng ký</h2>
+          <p>Hệ thống hiện có <span>{totalPlans} gói</span> dịch vụ đang hoạt động.</p>
+        </div>
+        <button className="btn-add-plan" onClick={() => setOpenForm(true)}>
+          <Plus size={20} />
+          Thêm gói dịch vụ
+        </button>
+      </div>
+
+      {/* Plans Grid */}
+      <div className="plans-grid">
+        {isLoading ? (
+          <Box sx={{ gridColumn: '1/-1', textAlign: 'center', py: 8 }}>
+            <CircularProgress size={40} thickness={4} />
+          </Box>
+        ) : (
+          <>
+            {plans.map((plan, index) => {
+              const types = ['basic', 'popular', 'premium'];
+              const type = types[index % 3];
+              const Icons = [Send, Sparkles, Diamond];
+              const PlanIcon = Icons[index % 3];
+
+              return (
+                <div key={plan.id} className={`plan-card ${type}`}>
+                  <div className="plan-card__header">
+                    <div className="plan-icon-wrapper">
+                      <PlanIcon size={24} />
+                    </div>
+                    <div className="plan-actions">
+                      <button className="btn-plan-action" onClick={() => setEditPlan(plan)}>
+                        <Pencil size={18} />
+                      </button>
+                      <button className="btn-plan-action" onClick={() => setDeleteConfirm(plan)}>
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {type === 'popular' && <div className="plan-popular-badge">PHỔ BIẾN</div>}
+                  <div className="plan-id-label">ID: {plan.id}</div>
+                  <h3>{plan.name}</h3>
+
+                  <div className="plan-metric">
+                    <label>Giá niêm yết</label>
+                    <span className="price">{formatPrice(plan.price)}</span>
+                  </div>
+                  <div className="plan-metric">
+                    <label>Thời hạn</label>
+                    <span className="duration">{plan.durationDays} ngày</span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {totalPlans === 0 && (
+              <Box sx={{ gridColumn: '1/-1', textAlign: 'center', py: 8, background: 'white', borderRadius: 5, border: '2px dashed #e2e8f0' }}>
+                <Typography sx={{ color: '#64748b' }}>Chưa có gói đăng ký nào. Hãy thêm gói đầu tiên!</Typography>
+              </Box>
+            )}
+          </>
         )}
-      </Box>
+      </div>
 
-      {isError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error?.response?.data?.message || error?.message || "Không thể tải danh sách gói."}
-        </Alert>
-      )}
+      {/* Statistics Section */}
+      {/* <div className="stats-container">
+        <div className="stats-header">
+          <div className="stats-icon-wrapper">
+            <BarChart3 size={20} />
+          </div>
+          <h3>Thống kê cấu hình gói</h3>
+        </div>
 
-      {isLoading ? (
-        <Card sx={{ p: 3, borderRadius: 3 }}>
-          <Stack direction="row" spacing={1.2} alignItems="center">
-            <CircularProgress size={18} />
-            <Typography sx={{ color: "#4a4455" }}>Đang tải danh sách gói...</Typography>
-          </Stack>
-        </Card>
-      ) : (
-        <Stack spacing={2}>
-          {plans.map((plan, index) => {
-            const palette = PLAN_COLORS[index % PLAN_COLORS.length];
-            return (
-              <Card
-                key={plan.id}
-                sx={{
-                  p: { xs: 2, sm: 2.5 },
-                  borderRadius: 3,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
-                  position: "relative",
-                }}
-              >
-                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pr: 10 }}>
-                  <Avatar
-                    sx={{
-                      width: 46,
-                      height: 46,
-                      fontWeight: 800,
-                      color: palette.color,
-                      backgroundColor: palette.bg,
-                      fontSize: 18,
-                    }}
-                  >
-                    {String(plan.name || "").charAt(0).toUpperCase() || "G"}
-                  </Avatar>
-                  <Box>
-                    <Typography sx={{ fontWeight: 800, color: "#191c1d", fontSize: 18 }}>
-                      {plan.name}
-                    </Typography>
-                    <Typography sx={{ color: "#7b7487", fontSize: 12 }}>ID: {plan.id}</Typography>
-                  </Box>
-                </Stack>
+        <div className="stats-grid">
+          <div className="stat-box">
+            <label>SỐ GÓI ĐANG CHẠY</label>
+            <div className="stat-value">{totalPlans}</div>
+            <div className="stat-subtext">Gói dịch vụ khả dụng</div>
+          </div>
+          <div className="stat-box">
+            <label>GIÁ TRUNG BÌNH</label>
+            <div className="stat-value">{formatPrice(avgPrice)}</div>
+            <div className="stat-subtext">Trên toàn bộ hệ thống</div>
+          </div>
+          <div className="stat-box">
+            <label>GÓI CAO NHẤT</label>
+            <div className="stat-value">{formatPrice(maxPrice)}</div>
+            <div className="stat-subtext">Giá trị gói Premium</div>
+          </div>
+          <div className="stat-box">
+            <label>THỜI HẠN TỐI ĐA</label>
+            <div className="stat-value">{maxDuration} Ngày</div>
+            <div className="stat-subtext">Thời gian đăng ký dài nhất</div>
+          </div>
+        </div>
+      </div> */}
 
-                <Stack direction="row" spacing={0.5} sx={{ position: "absolute", top: 14, right: 14 }}>
-                  <Tooltip title="Chỉnh sửa">
-                    <IconButton size="small" onClick={() => setEditPlan(plan)} sx={{ color: "#630ed4" }}>
-                      <EditRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Xóa gói">
-                    <IconButton
-                      size="small"
-                      onClick={() => setDeleteConfirm(plan)}
-                      sx={{ color: "#dc2626" }}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <DeleteRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={{ xs: 0.8, sm: 3 }}
-                  sx={{ mt: 2.2, pt: 1.4, borderTop: "1px solid #e1e3e4" }}
-                >
-                  <Stack direction="row" spacing={1.1} alignItems="center">
-                    <PaidRoundedIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                    <Typography sx={{ color: "#4a4455", fontSize: 14, fontWeight: 600 }}>
-                      {formatPrice(plan.price)}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1.1} alignItems="center">
-                    <CalendarMonthRoundedIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                    <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                      {plan.durationDays} ngày
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </Card>
-            );
-          })}
-
-          {plans.length === 0 && (
-            <Card sx={{ p: 3, borderRadius: 3 }}>
-              <Typography sx={{ color: "#4a4455" }}>Chưa có gói đăng ký nào.</Typography>
-            </Card>
-          )}
-        </Stack>
-      )}
-
-      {/* FAB */}
-      <Button
-        variant="contained"
-        onClick={() => setOpenForm(true)}
-        startIcon={<AddRoundedIcon />}
-        sx={{
-          position: "fixed",
-          right: { xs: 16, sm: 24 },
-          bottom: { xs: 16, sm: 24 },
-          borderRadius: 999,
-          px: 2.4,
-          py: 1.25,
-          textTransform: "none",
-          fontWeight: 700,
-          fontSize: 15,
-          background: "linear-gradient(135deg, #630ed4 0%, #7c3aed 100%)",
-          boxShadow: "0 14px 30px rgba(99,14,212,0.3)",
-          zIndex: 20,
-        }}
-      >
-        Thêm gói
-      </Button>
-
-      {/* Create form */}
+      {/* Dialogs */}
       <PlanFormDialog
         open={openForm}
         onClose={() => setOpenForm(false)}
@@ -373,7 +344,6 @@ const AdminSubscriptionPlans = () => {
         editPlan={null}
       />
 
-      {/* Edit form */}
       <PlanFormDialog
         open={Boolean(editPlan)}
         onClose={() => setEditPlan(null)}
@@ -382,27 +352,30 @@ const AdminSubscriptionPlans = () => {
         editPlan={editPlan}
       />
 
-      {/* Delete confirm dialog */}
       <Dialog
         open={Boolean(deleteConfirm)}
         onClose={() => !deleteMutation.isPending && setDeleteConfirm(null)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ 
+          sx: { 
+            borderRadius: 4,
+            "&, & *": { fontFamily: "'Be Vietnam Pro', sans-serif !important" }
+          } 
+        }}
       >
         <DialogTitle sx={{ fontWeight: 800 }}>Xác nhận xóa gói</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2, color: "#4a4455" }}>
-            Bạn có chắc muốn xóa gói{" "}
-            <strong>{deleteConfirm?.name}</strong>? Gói sẽ không hiển thị cho chủ sân nhưng vẫn được lưu lại vì lý do lịch sử.
+        <DialogContent sx={{ p: 3, pt: 1 }}>
+          <Typography sx={{ mb: 3, color: "#64748b" }}>
+            Bạn có chắc muốn xóa gói <strong>{deleteConfirm?.name}</strong>? Hành động này không thể hoàn tác.
           </Typography>
-          <Stack direction="row" spacing={1.5}>
+          <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
               fullWidth
               disabled={deleteMutation.isPending}
               onClick={() => setDeleteConfirm(null)}
-              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              sx={{ borderRadius: 3, textTransform: "none", fontWeight: 600, py: 1.2 }}
             >
               Hủy
             </Button>
@@ -412,14 +385,14 @@ const AdminSubscriptionPlans = () => {
               fullWidth
               disabled={deleteMutation.isPending}
               onClick={() => deleteMutation.mutate(deleteConfirm.id)}
-              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+              sx={{ borderRadius: 3, textTransform: "none", fontWeight: 700, py: 1.2 }}
             >
-              {deleteMutation.isPending ? <CircularProgress size={18} color="inherit" /> : "Xóa gói"}
+              {deleteMutation.isPending ? <CircularProgress size={20} color="inherit" /> : "Xác nhận xóa"}
             </Button>
           </Stack>
         </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 
