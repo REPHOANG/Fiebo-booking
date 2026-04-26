@@ -12,6 +12,14 @@ export const completePayout = async (id) => {
   return res.data;
 };
 
+/**
+ * PATCH /api/admin/finance/payout-batch/{id}/complete
+ */
+export const completePayoutBatch = async (id) => {
+  const res = await api.patch(`/api/admin/finance/payout-batch/${id}/complete`);
+  return res.data;
+};
+
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
 
 const normalizeWithdrawal = (item) => ({

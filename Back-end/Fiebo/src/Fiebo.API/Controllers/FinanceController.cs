@@ -1,4 +1,4 @@
-﻿using Fiebo.API.Wrappers;
+using Fiebo.API.Wrappers;
 using Fiebo.Application.DTOs.FinanceAdmin;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -114,6 +114,20 @@ namespace Fiebo.API.Controllers
                 StatusCode = StatusCodes.Status200OK,
                 Message = "Lấy thông tin thanh toán thành công",
                 Data = payout
+            });
+        }
+        
+        [HttpPatch("payout-batch/{id}/complete")]
+        public async Task<IActionResult> CompletePayoutBatch([FromRoute] int id)
+        {
+            var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _financeAdminService.CompletePayoutBatchAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật trạng thái batch và các payout thành công.",
             });
         }
     }

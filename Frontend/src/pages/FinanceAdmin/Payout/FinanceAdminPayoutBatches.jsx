@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
-import { getPayoutBatches } from "../../../services/financeAdminService";
+import { getPayoutBatches, completePayoutBatch } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 import { 
   ChevronLeft, 
@@ -60,6 +61,39 @@ const FinanceAdminPayoutBatches = () => {
       })
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được danh sách đợt thanh toán."))
       .finally(() => setLoading(false));
+  };
+
+  const handleCompleteBatch = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận hoàn tất đợt',
+      text: `Xác nhận hoàn tất toàn bộ đợt thanh toán #${id}? Tất cả các yêu cầu thanh toán trong đợt này sẽ được đánh dấu là Thành công.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await completePayoutBatch(id);
+      Swal.fire({
+        title: 'Thành công!',
+        text: 'Đợt thanh toán đã được hoàn tất.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setBatches(prev => prev.map(b => b.id === id ? { ...b, status: 'Completed' } : b));
+    } catch (err) {
+      Swal.fire({
+        title: 'Lỗi!',
+        text: err?.response?.data?.message ?? "Xử lý thất bại.",
+        icon: 'error'
+      });
+    }
   };
 
   useEffect(() => {
@@ -155,10 +189,22 @@ const FinanceAdminPayoutBatches = () => {
                     {new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </td>
-                <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
-                    <Eye size={18} />
-                  </Link>
+                 <td style={{ textAlign: "center" }}>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <Link to={`/finance/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
+                      <Eye size={18} />
+                    </Link>
+                    {(item.status === 'Pending' || item.status === 'Processing') && (
+                      <button 
+                        onClick={() => handleCompleteBatch(item.id)} 
+                        className="btn-view-detail" 
+                        style={{ color: '#10b981', borderColor: '#10b981' }}
+                        title="Hoàn tất đợt"
+                      >
+                        <CheckCircle2 size={18} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

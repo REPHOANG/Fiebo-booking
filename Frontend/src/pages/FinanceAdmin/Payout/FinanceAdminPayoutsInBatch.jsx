@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { useParams, Link } from "react-router-dom";
-import { getPayoutsInBatch } from "../../../services/financeAdminService";
+import { getPayoutsInBatch, completePayout } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 import {
   Search,
@@ -61,6 +62,39 @@ const FinanceAdminPayoutsInBatch = () => {
       })
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được danh sách Payout."))
       .finally(() => setLoading(false));
+  };
+
+  const handleCompletePayout = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận hoàn tất',
+      text: `Bạn có chắc chắn muốn hoàn tất thanh toán #${id}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await completePayout(id);
+      Swal.fire({
+        title: 'Thành công!',
+        text: 'Thanh toán đã được đánh dấu là hoàn tất.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: 'Completed', processedAt: new Date().toISOString() } : p));
+    } catch (err) {
+      Swal.fire({
+        title: 'Lỗi!',
+        text: err?.response?.data?.message ?? "Xử lý thất bại.",
+        icon: 'error'
+      });
+    }
   };
 
   useEffect(() => {
@@ -164,10 +198,22 @@ const FinanceAdminPayoutsInBatch = () => {
                     </div>
                   )}
                 </td>
-                <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance/payout/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
-                    <Eye size={18} />
-                  </Link>
+                 <td style={{ textAlign: "center" }}>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <Link to={`/finance/payout/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
+                      <Eye size={18} />
+                    </Link>
+                    {(String(item.status).toLowerCase() === 'pending' || String(item.status).toLowerCase() === 'processing') && (
+                      <button 
+                        onClick={() => handleCompletePayout(item.id)} 
+                        className="btn-view-detail" 
+                        style={{ color: '#10b981', borderColor: '#10b981' }}
+                        title="Hoàn tất payout"
+                      >
+                        <CheckCircle2 size={18} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
