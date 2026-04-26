@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  Avatar,
-  Box,
-  Card,
-  CircularProgress,
-  Pagination,
-  Stack,  Typography,
-} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
-import PhoneRoundedIcon from "@mui/icons-material/PhoneRounded";
-import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import { 
+  Mail, 
+  Phone, 
+  ChevronRight, 
+  Search,
+  User,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { Pagination } from "@mui/material";
 import { getOwners } from "../../../services/adminService";
-import "../FinanceAdminManagement/FinanceAdminManagement.css";
-import StadiumIcon from '@mui/icons-material/Stadium';
+import "./AdminOwner.css";
 
-
+const AVATAR_COLORS = [
+  "#2563eb", // blue
+  "#d97706", // amber
+  "#059669", // emerald
+  "#7c3aed", // violet
+  "#db2777", // pink
+  "#4b5563", // gray
+];
 
 const getInitials = (name) =>
   (name || "")
@@ -27,7 +31,12 @@ const getInitials = (name) =>
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
 
-const PAGE_SIZE = 10;
+const getAvatarColor = (id) => {
+  const index = typeof id === "number" ? id % AVATAR_COLORS.length : (id?.length || 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const PAGE_SIZE = 9;
 
 const AdminOwners = () => {
   const navigate = useNavigate();
@@ -36,7 +45,10 @@ const AdminOwners = () => {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 2000);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 800);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -56,140 +68,127 @@ const AdminOwners = () => {
 
   const owners = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
-  const totalItems = data?.totalItems ?? 0;
 
-
+  // Mock status mapping for design purposes (since it might not be in the API yet)
+  const getStatus = (item) => {
+    if (item.status === 0 || item.isLocked === false) return { label: "ACTIVE", class: "active" };
+    if (item.status === 1) return { label: "PENDING", class: "pending" };
+    if (item.isLocked === true) return { label: "SUSPENDED", class: "suspended" };
+    return { label: "ACTIVE", class: "active" };
+  };
 
   return (
-    <Box
-      className="finance-admin-page"
-      sx={{
-        px: { xs: 2, md: 3 },
-        pb: 6,
-        minHeight: "100vh",
-        fontFamily: "Be Vietnam Pro, sans-serif",
-        "&, & *": { fontFamily: "Be Vietnam Pro, sans-serif" },
-      }}
-    >
-      <Box sx={{ mb: 2.5 }}>
-        <Typography
-          sx={{
-            fontSize: { xs: 26, md: 34 },
-            fontWeight: 800,
-            color: "#191c1d",
-            letterSpacing: -0.6,
-          }}
-        >
-          Hồ sơ chủ sân
-        </Typography>
-      </Box>
+    <div className="admin-owners-container">
+      <header className="owners-header">
+        <div style={{ maxWidth: 400}}>
+          <div className="search-wrapper" style={{ position: "relative" }}>
+            <Search 
+              style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} 
+              size={18} 
+            />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm chủ sân..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 12px 12px 40px",
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                fontSize: 14,
+                outline: "none"
+              }}
+            />
+          </div>
+        </div>
+      </header>
 
       {isError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div className="error-container" style={{ color: "#ef4444", background: "#fef2f2", padding: 16, borderRadius: 12, marginBottom: 24 }}>
+          <AlertCircle size={20} style={{ verticalAlign: "middle", marginRight: 8 }} />
           {error?.response?.data?.message || error?.message || "Không thể tải danh sách chủ sân."}
-        </Alert>
+        </div>
       )}
 
       {isLoading ? (
-        <Card sx={{ p: 3, borderRadius: 3 }}>
-          <Stack direction="row" spacing={1.2} alignItems="center">
-            <CircularProgress size={18} />
-            <Typography sx={{ color: "#4a4455" }}>Đang tải danh sách chủ sân...</Typography>
-          </Stack>
-        </Card>
+        <div className="loading-container">
+          <Loader2 className="animate-spin" size={40} color="#2563eb" />
+          <p style={{ marginTop: 16, color: "#64748b" }}>Đang tải danh sách chủ sân...</p>
+        </div>
       ) : (
         <>
-          <Stack spacing={2}>
+          <div className="owners-grid">
             {owners.map((item) => {
-              const name = item.fullName ?? item.name ?? item.ownerName ?? "";
-              const venueCount = item.totalVenues ?? 0;
-              const fieldCount = item.totalFields ?? 0;
+              const name = item.fullName ?? item.name ?? item.ownerName ?? "Chưa có tên";
+              const id = item.id ?? item.ownerId;
+              const status = getStatus(item);
+              const initials = getInitials(name);
+              const avatarColor = getAvatarColor(id);
 
               return (
-                <Card
-                  key={item.id ?? item.ownerId}
-                  onClick={() => navigate(`/admin/owners/${item.id ?? item.ownerId}`)}
-                  sx={{
-                    p: { xs: 2, sm: 2.5 },
-                    borderRadius: 3,
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
-                    position: "relative",
-                    overflow: "visible",
-                    cursor: "pointer",
-                    transition: "box-shadow 0.18s ease, transform 0.18s ease",
-                    "&:hover": {
-                      boxShadow: "0 12px 32px rgba(59,130,246,0.14)",
-                      transform: "translateY(-2px)",
-                    },
-                  }}
+                <div 
+                  key={id} 
+                  className="owner-card"
+                  onClick={() => navigate(`/admin/owners/${id}`)}
                 >
-                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pr: 14 }}>
-                    <Avatar
-                      sx={{
-                        width: 46,
-                        height: 46,
-                        fontWeight: 800,
-                        color: "#0f5132",
-                        backgroundColor: "#d1fae5",
-                      }}
-                    >
-                      {getInitials(name)}
-                    </Avatar>
-                    <Box>
-                      <Typography sx={{ fontWeight: 800, color: "#191c1d", fontSize: 18 }}>
-                        {name || "Chưa có tên"}
-                      </Typography>
-                      {(item.id ?? item.ownerId) && (
-                        <Typography sx={{ fontSize: 12, color: "#7b7487" }}>
-                          {item.id ?? item.ownerId}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Stack>
+                  <div className="owner-card-header">
+                    <div className="owner-avatar" style={{ backgroundColor: avatarColor }}>
+                      {initials}
+                    </div>
+                    <div className="owner-info">
+                      <h3 className="owner-name">{name}</h3>
+                      <span className="owner-username">u-{id.toString().slice(0, 8)}</span>
+                    </div>
+                    <span className={`owner-card__status ${status.class}`}>
+                      {status.label}
+                    </span>
+                  </div>
 
-                  <Stack spacing={1.15} sx={{ mt: 2.2, pt: 1.4, borderTop: "1px solid #e1e3e4" }}>
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 0.8, sm: 3 }}>
-                      <Stack direction="row" spacing={1.1} alignItems="center">
-                        <MailOutlineRoundedIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                        <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                          {item.email || "-"}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1.1} alignItems="center">
-                        <PhoneRoundedIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                        <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                          {item.phoneNumber ?? item.phone ?? "-"}
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1.1} alignItems="center">
-                        <StorefrontRoundedIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                        <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                          {venueCount} cơ sở
-                        </Typography>
-                      </Stack>
-                      <Stack direction="row" spacing={1.1} alignItems="center">
-                        <StadiumIcon sx={{ color: "#7b7487", fontSize: 18 }} />
-                        <Typography sx={{ color: "#4a4455", fontSize: 14 }}>
-                          {fieldCount} sân 
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                  </Stack>
-                </Card>
+                  <div className="owner-card-content">
+                    <div className="contact-item">
+                      <span className="contact-icon"><Mail size={16} /></span>
+                      {item.email || "Email chưa cập nhật"}
+                    </div>
+                    <div className="contact-item">
+                      <span className="contact-icon"><Phone size={16} /></span>
+                      {item.phoneNumber ?? item.phone ?? "SĐT chưa cập nhật"}
+                    </div>
+
+                    <div className="owner-stats-row">
+                      <div className="stat-box">
+                        <span className="stat-value">{item.totalVenues ?? 0}</span>
+                        <span className="stat-label">Cơ sở</span>
+                      </div>
+                      <div className="stat-box">
+                        <span className="stat-value">{item.totalFields ?? 0}</span>
+                        <span className="stat-label">Sân bóng</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="owner-card-footer">
+                    <span className="update-time">
+                      Cập nhật {item.updatedAt ? "vừa xong" : "hôm qua"}
+                    </span>
+                    <button className="btn-details">
+                      CHI TIẾT <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
               );
             })}
+          </div>
 
-            {owners.length === 0 && (
-              <Card sx={{ p: 3, borderRadius: 3 }}>
-                <Typography sx={{ color: "#4a4455" }}>
-                  Không tìm thấy chủ sân phù hợp bộ lọc đã chọn.
-                </Typography>
-              </Card>
-            )}
-          </Stack>
+          {owners.length === 0 && (
+            <div className="empty-container">
+              <User size={48} color="#cbd5e1" style={{ marginBottom: 16 }} />
+              <p style={{ color: "#64748b" }}>Không tìm thấy chủ sân phù hợp bộ lọc đã chọn.</p>
+            </div>
+          )}
 
           {totalPages > 1 && (
-            <Stack alignItems="center" sx={{ mt: 4 }}>
+            <div className="pagination-wrapper">
               <Pagination
                 count={totalPages}
                 page={page}
@@ -197,11 +196,11 @@ const AdminOwners = () => {
                 color="primary"
                 shape="rounded"
               />
-            </Stack>
+            </div>
           )}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

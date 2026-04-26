@@ -145,11 +145,23 @@
   border-bottom: 1px solid rgba(203, 213, 225, 0.55);
 }
 
-.admin-shell__header-title {
+.admin-shell__header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-shell__page-info {
+  min-width: 0;
+}
+
+.admin-shell__page-title {
   font-size: 18px;
   font-weight: 800;
   color: #0f172a;
-  margin-right: auto;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -41,6 +41,7 @@ const AdminReports = () => {
   // Reply modal state
   const [replyState, setReplyState] = useState(null); // { id, response }
   const [replySubmitting, setReplySubmitting] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -95,6 +96,38 @@ const AdminReports = () => {
 
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
   const currentReports = filteredReports.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleExport = () => {
+    if (filteredReports.length === 0) {
+      alert("Không có dữ liệu để xuất.");
+      return;
+    }
+
+    const headers = ["ID", "Tên sân", "Mã Booking", "Ngày gửi", "Trạng thái", "Nội dung"];
+    const csvRows = [
+      headers.join(","),
+      ...filteredReports.map(r => [
+        `RP-${r.id}`,
+        `"${(r.venueName || "").replace(/"/g, '""')}"`,
+        `BK-${r.bookingId}`,
+        new Date(r.createdAt).toLocaleString("vi-VN"),
+        STATUS_MAP[r.status]?.label || "N/A",
+        `"${(r.content || "").replace(/"/g, '""')}"`
+      ].join(","))
+    ];
+
+    const csvString = "\ufeff" + csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Bao-cao-Fiebo-${new Date().toLocaleDateString("vi-VN")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const pendingCount = reports.filter((r) => r.status === 0).length;
   const respondedCount = reports.filter((r) => r.status === 1).length;
@@ -238,10 +271,6 @@ const AdminReports = () => {
 
       {/* ── Header ── */}
       <header className="reports-header">
-        <div className="header-left">
-          <h1 className="page-title">Danh sách báo cáo</h1>
-          <p className="page-subtitle">Quản lý và phản hồi các báo cáo từ khách hàng</p>
-        </div>
         <div className="pending-alert-card">
           <div className="alert-icon">
             <AlertTriangle color="#f97316" size={24} />
@@ -281,11 +310,43 @@ const AdminReports = () => {
             </button>
           </div>
           <div className="header-buttons">
-            <button className="btn-filter">
-              <Filter size={18} />
-              Bộ lọc nâng cao
-            </button>
-            <button className="btn-export">
+            <div className="filter-group">
+              <button 
+                className={`btn-filter ${isFilterOpen ? "active" : ""}`}
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <Filter size={18} />
+                Bộ lọc nâng cao
+              </button>
+
+              {isFilterOpen && (
+                <>
+                  <div className="filter-overlay" onClick={() => setIsFilterOpen(false)} />
+                  <div className="filter-dropdown">
+                    <div className="dropdown-label">TRẠNG THÁI</div>
+                    <div 
+                      className={`filter-option ${filterStatus === "all" ? "active" : ""}`}
+                      onClick={() => { setFilterStatus("all"); setIsFilterOpen(false); setCurrentPage(1); }}
+                    >
+                      <span className="dot all"></span> Tất cả
+                    </div>
+                    <div 
+                      className={`filter-option ${filterStatus === "0" ? "active" : ""}`}
+                      onClick={() => { setFilterStatus("0"); setIsFilterOpen(false); setCurrentPage(1); }}
+                    >
+                      <span className="dot pending"></span> Chờ xử lý
+                    </div>
+                    <div 
+                      className={`filter-option ${filterStatus === "1" ? "active" : ""}`}
+                      onClick={() => { setFilterStatus("1"); setIsFilterOpen(false); setCurrentPage(1); }}
+                    >
+                      <span className="dot success"></span> Đã phản hồi
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <button className="btn-export" onClick={handleExport}>
               <Download size={18} />
               Xuất báo cáo
             </button>
