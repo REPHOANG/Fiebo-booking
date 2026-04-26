@@ -83,17 +83,8 @@ const Header = () => {
                 </NavLink>
                 <VenuesMegaMenu align="start" active={venuesMegaActive} />
               </div>
-
-              <NavLink to="/featured">Nổi bật</NavLink>
               <NavLink to="/events">Sự kiện</NavLink>
               <NavLink to="/map">Bản đồ</NavLink>
-              <button
-                type="button"
-                className="become-owner-nav-btn"
-                onClick={() => openRegister({ accountRole: "FieldOwner" })}
-              >
-                Trở thành chủ sân
-              </button>
             </nav>
           </div>
 
