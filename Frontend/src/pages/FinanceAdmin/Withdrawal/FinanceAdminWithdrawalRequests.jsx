@@ -4,6 +4,7 @@ import {
   getWithdrawalRequestDetail,
   completeWithdrawalRequest,
   rejectWithdrawalRequest,
+  startProcessingWithdraw,
 } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 import { 
@@ -29,6 +30,7 @@ const currency = new Intl.NumberFormat("vi-VN", {
 const STATUSES = [
   { value: "", label: "Tất cả trạng thái" },
   { value: "Pending", label: "Chờ xử lý" },
+  { value: "Processing", label: "Đang xử lý" },
   { value: "Success", label: "Thành công" },
   { value: "Failed", label: "Thất bại" },
   { value: "Rejected", label: "Từ chối" },
@@ -38,6 +40,7 @@ const renderStatusBadge = (status) => {
   if (!status) return null;
   const s = String(status).trim().toLowerCase();
   if (s === "pending") return <span className="status-badge-pill pending" style={{ fontSize: '11px', padding: '4px 10px' }}><Clock size={12} /> Chờ xử lý</span>;
+  if (s === "processing") return <span className="status-badge-pill" style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '11px', padding: '4px 10px' }}><Clock size={12} /> Đang xử lý</span>;
   if (s === "success" || s === "completed") return <span className="status-badge-pill success" style={{ fontSize: '11px', padding: '4px 10px' }}><CheckCircle2 size={12} /> Thành công</span>;
   if (s === "failed" || s === "rejected") return <span className="status-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c', fontSize: '11px', padding: '4px 10px' }}><XCircle size={12} /> {s === "rejected" ? "Từ chối" : "Thất bại"}</span>;
   return <span className="status-badge-pill" style={{ fontSize: '11px', padding: '4px 10px' }}>{String(status)}</span>;
@@ -83,6 +86,22 @@ const FinanceAdminWithdrawalRequests = () => {
 
   const handleViewDetail = async (id) => {
     await fetchDetail(id);
+  };
+
+  const handleProcess = async (id) => {
+    if (!window.confirm("Xác nhận bắt đầu xử lý yêu cầu rút tiền này?")) return;
+    setProcessing(id + ":process");
+    try {
+      await startProcessingWithdraw(id);
+      setRequests((prev) =>
+        prev.map((item) => item.id === id ? { ...item, status: "Processing" } : item)
+      );
+      if (detail?.id === id) setDetail((d) => ({ ...d, status: "Processing" }));
+    } catch (err) {
+      alert(err?.response?.data?.message ?? "Xử lý thất bại.");
+    } finally {
+      setProcessing(null);
+    }
   };
 
   const handleComplete = async (id) => {
@@ -304,6 +323,16 @@ const FinanceAdminWithdrawalRequests = () => {
                 Đóng
               </button>
               {String(detail.status).toLowerCase() === 'pending' && (
+                <button
+                  type="button"
+                  className="btn-action dark"
+                  style={{ padding: '10px 24px', background: '#6366f1' }}
+                  onClick={() => { handleProcess(detail.id); setDetail(null); }}
+                >
+                  Bắt đầu xử lý
+                </button>
+              )}
+              {String(detail.status).toLowerCase() === 'processing' && (
                 <>
                   <button
                     type="button"
@@ -394,6 +423,27 @@ const FinanceAdminWithdrawalRequests = () => {
                         <Eye size={18} />
                       </button>
                       {isPending && (
+                        <button
+                          type="button"
+                          className="btn-action dark"
+                          style={{ 
+                            padding: '0 16px', 
+                            fontSize: 12, 
+                            background: '#6366f1', 
+                            height: 36, 
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: 0
+                          }}
+                          disabled={processing === item.id + ":process"}
+                          onClick={() => handleProcess(item.id)}
+                        >
+                          {processing === item.id + ":process" ? "..." : "Bắt đầu"}
+                        </button>
+                      )}
+                      {String(item.status).toLowerCase() === "processing" && (
                         <>
                           <button
                             type="button"

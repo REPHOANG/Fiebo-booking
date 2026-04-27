@@ -84,7 +84,7 @@ namespace Fiebo.Persistence.Repositories
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
         }
 
-        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        public async Task<bool> StartProcessingWithdrawAsync(int transactionId, string adminId)
         {
             var transaction = await _context.WalletTransactions
                 .FirstOrDefaultAsync(t =>
@@ -92,6 +92,24 @@ namespace Fiebo.Persistence.Repositories
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
 
             if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+                return false;
+
+            transaction.Status = Domain.Enums.TransactionStatus.Processing;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _context.WalletTransactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Processing)
                 return false;
 
             transaction.Status = Domain.Enums.TransactionStatus.Success;
@@ -111,7 +129,7 @@ namespace Fiebo.Persistence.Repositories
                     t.Id == transactionId &&
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
 
-            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Processing)
                 return false;
 
             // Mark as rejected with audit info

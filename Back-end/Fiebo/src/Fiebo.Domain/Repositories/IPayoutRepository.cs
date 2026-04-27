@@ -15,7 +15,9 @@ namespace Fiebo.Domain.Repositories
         Task<decimal> GetPendingPayoutAmountAsync(string ownerId);
         Task<Payout?> GetPayoutWithDetailsAsync(int payoutId);
         Task<PagedResult<Payout>> GetAdminPayoutsAsync(int page, int pageSize, PayoutStatus? status, int? year, int? month);
+        Task<bool> StartProcessingPayoutAsync(int payoutId, string processedBy);
         Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string processedBy);
+        Task<bool> MarkPayoutAsFailedAsync(int payoutId, string processedBy, string failureReason);
         Task<PagedResult<PayoutResponse>> GetPayoutsByBatchIdAsync(int batchId, int page, int pageSize, string? name, PayoutStatus? status);
     }
 }
