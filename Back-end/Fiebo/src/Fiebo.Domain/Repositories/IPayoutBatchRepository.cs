@@ -12,6 +12,7 @@ namespace Fiebo.Domain.Repositories
     public interface IPayoutBatchRepository : IRepository<PayoutBatch>
     {
         Task<PagedResult<PayoutBatch>> GetPayoutBatchesAsync(int page, int pageSize, int? year, int? month, PayoutStatus? status);
+        Task<bool> StartProcessingBatchAsync(int batchId, string processedBy);
         Task<bool> MarkBatchAsCompletedAsync(int batchId, string processedBy);
     }
 }

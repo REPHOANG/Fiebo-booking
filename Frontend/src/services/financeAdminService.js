@@ -38,6 +38,11 @@ export const completePayoutBatch = async (id) => {
   return res.data;
 };
 
+export const processPayoutBatch = async (id) => {
+  const res = await api.patch(`/api/admin/finance/payout-batch/${id}/process`);
+  return res.data;
+};
+
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
 
 const normalizeWithdrawal = (item) => ({

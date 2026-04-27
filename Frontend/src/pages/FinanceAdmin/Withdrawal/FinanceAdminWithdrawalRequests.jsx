@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import {
   getWithdrawalRequests,
   getWithdrawalRequestDetail,
@@ -89,53 +90,93 @@ const FinanceAdminWithdrawalRequests = () => {
   };
 
   const handleProcess = async (id) => {
-    if (!window.confirm("Xác nhận bắt đầu xử lý yêu cầu rút tiền này?")) return;
+    const result = await Swal.fire({
+      title: 'Bắt đầu xử lý',
+      text: `Xác nhận bắt đầu xử lý yêu cầu rút tiền #${id}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
     setProcessing(id + ":process");
     try {
       await startProcessingWithdraw(id);
+      Swal.fire({ title: 'Thành công!', text: 'Đã cập nhật trạng thái thành Đang xử lý.', icon: 'success', timer: 1500, showConfirmButton: false });
       setRequests((prev) =>
         prev.map((item) => item.id === id ? { ...item, status: "Processing" } : item)
       );
       if (detail?.id === id) setDetail((d) => ({ ...d, status: "Processing" }));
     } catch (err) {
-      alert(err?.response?.data?.message ?? "Xử lý thất bại.");
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
     } finally {
       setProcessing(null);
     }
   };
 
   const handleComplete = async (id) => {
-    if (!window.confirm("Xác nhận đã hoàn tất chuyển khoản cho khách hàng?")) return;
+    const result = await Swal.fire({
+      title: 'Hoàn tất rút tiền',
+      text: `Xác nhận đã hoàn tất chuyển khoản cho yêu cầu #${id}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
     setProcessing(id + ":complete");
     try {
       await completeWithdrawalRequest(id);
+      Swal.fire({ title: 'Thành công!', text: 'Giao dịch rút tiền hoàn tất.', icon: 'success', timer: 1500, showConfirmButton: false });
       setRequests((prev) =>
         prev.map((item) => item.id === id ? { ...item, status: "Success" } : item)
       );
       if (detail?.id === id) setDetail((d) => ({ ...d, status: "Success" }));
     } catch (err) {
-      alert(err?.response?.data?.message ?? "Xử lý thất bại.");
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
     } finally {
       setProcessing(null);
     }
   };
 
-  const handleRejectConfirm = async () => {
-    if (!rejectState?.reason?.trim()) {
-      alert("Vui lòng nhập lý do từ chối.");
-      return;
-    }
-    const { id, reason } = rejectState;
+  const handleReject = async (id) => {
+    const { value: reason } = await Swal.fire({
+      title: 'Từ chối yêu cầu rút tiền',
+      input: 'textarea',
+      inputLabel: 'Lý do từ chối',
+      inputPlaceholder: 'Nhập lý do từ chối tại đây...',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return 'Vui lòng nhập lý do từ chối!';
+        }
+      }
+    });
+
+    if (!reason) return;
+
     setProcessing(id + ":reject");
-    setRejectState(null);
     try {
       await rejectWithdrawalRequest(id, reason);
+      Swal.fire({ title: 'Thành công!', text: 'Đã từ chối yêu cầu và hoàn lại tiền.', icon: 'success', timer: 1500, showConfirmButton: false });
       setRequests((prev) =>
         prev.map((item) => item.id === id ? { ...item, status: "Rejected" } : item)
       );
       if (detail?.id === id) setDetail((d) => ({ ...d, status: "Rejected", rejectionReason: reason }));
     } catch (err) {
-      alert(err?.response?.data?.message ?? "Từ chối thất bại.");
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Từ chối thất bại.", icon: 'error' });
     } finally {
       setProcessing(null);
     }
@@ -166,60 +207,7 @@ const FinanceAdminWithdrawalRequests = () => {
         </div>
       </div>
 
-      {/* Reject Modal */}
-      {rejectState && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-          backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            background: "#fff", borderRadius: 20, padding: 32, width: 480,
-            display: "flex", flexDirection: "column", gap: 20,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ background: '#fee2e2', color: '#ef4444', padding: 10, borderRadius: 12 }}>
-                <AlertCircle size={24} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Từ chối yêu cầu rút tiền</h3>
-            </div>
-            <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
-              Vui lòng cung cấp lý do từ chối. Khách hàng sẽ nhận được thông báo này và số tiền sẽ được hoàn trả vào ví của họ.
-            </p>
-            <textarea
-              style={{
-                width: "100%", minHeight: 120, borderRadius: 12,
-                border: "1px solid #e2e8f0", padding: "12px 16px",
-                fontFamily: "inherit", fontSize: 14, resize: "none", boxSizing: "border-box",
-                background: '#f8fafc'
-              }}
-              placeholder="Ví dụ: Thông tin tài khoản ngân hàng không chính xác..."
-              value={rejectState.reason}
-              onChange={(e) => setRejectState((s) => ({ ...s, reason: e.target.value }))}
-              autoFocus
-            />
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
-              <button 
-                type="button" 
-                className="btn-action outline" 
-                style={{ padding: '10px 20px' }}
-                onClick={() => setRejectState(null)}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                className="btn-action dark"
-                style={{ background: "#ef4444", color: "#fff", padding: '10px 20px' }}
-                onClick={handleRejectConfirm}
-              >
-                Xác nhận từ chối
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Detail Modal */}
       {detail && (
@@ -338,7 +326,7 @@ const FinanceAdminWithdrawalRequests = () => {
                     type="button"
                     className="btn-action outline-danger"
                     style={{ padding: '10px 24px' }}
-                    onClick={() => { setRejectState({ id: detail.id, reason: "" }); setDetail(null); }}
+                    onClick={() => { handleReject(detail.id); setDetail(null); }}
                   >
                     Từ chối
                   </button>
@@ -478,7 +466,7 @@ const FinanceAdminWithdrawalRequests = () => {
                               margin: 0
                             }}
                             disabled={processing === item.id + ":reject"}
-                            onClick={() => setRejectState({ id: item.id, reason: "" })}
+                            onClick={() => handleReject(item.id)}
                           >
                             Từ chối
                           </button>

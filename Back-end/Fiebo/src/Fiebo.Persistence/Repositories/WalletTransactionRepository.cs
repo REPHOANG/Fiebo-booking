@@ -96,7 +96,7 @@ namespace Fiebo.Persistence.Repositories
 
             transaction.Status = Domain.Enums.TransactionStatus.Processing;
             transaction.ProcessedBy = adminId;
-            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.ProcessedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -114,7 +114,7 @@ namespace Fiebo.Persistence.Repositories
 
             transaction.Status = Domain.Enums.TransactionStatus.Success;
             transaction.ProcessedBy = adminId;
-            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.ProcessedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -135,11 +135,28 @@ namespace Fiebo.Persistence.Repositories
             // Mark as rejected with audit info
             transaction.Status = Domain.Enums.TransactionStatus.Rejected;
             transaction.ProcessedBy = adminId;
-            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.ProcessedAt = DateTime.Now;
             transaction.RejectionReason = rejectionReason;
 
             // Refund the deducted amount back to the customer's wallet
             transaction.Wallet.Balance += transaction.Amount;
+
+            // Create a separate Refund transaction for financial audit trail (Option 1)
+            var refundTransaction = new WalletTransaction
+            {
+                WalletId = transaction.WalletId,
+                Amount = transaction.Amount,
+                Direction = Domain.Enums.TransactionDirection.Credit,
+                TransactionType = Domain.Enums.TransactionType.Refund,
+                ReferenceId = transaction.Id,
+                Status = Domain.Enums.TransactionStatus.Success,
+                Description = $"Hoàn tiền cho yêu cầu rút tiền #{transaction.Id} bị từ chối. Lý do: {rejectionReason}",
+                CreatedAt = DateTime.Now,
+                ProcessedBy = adminId,
+                ProcessedAt = DateTime.Now
+            };
+
+            _context.WalletTransactions.Add(refundTransaction);
 
             await _context.SaveChangesAsync();
             return true;

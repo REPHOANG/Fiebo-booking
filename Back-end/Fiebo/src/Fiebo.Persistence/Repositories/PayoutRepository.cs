@@ -120,7 +120,7 @@ namespace Fiebo.Persistence.Repositories
 
             payout.Status = PayoutStatus.Processing;
             payout.ProcessedBy = processedBy;
-            payout.UpdatedAt = DateTime.UtcNow;
+            payout.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -138,8 +138,8 @@ namespace Fiebo.Persistence.Repositories
 
             payout.Status = PayoutStatus.Completed;
             payout.ProcessedBy = processedBy;
-            payout.ProcessedAt = DateTime.UtcNow;
-            payout.UpdatedAt = DateTime.UtcNow;
+            payout.ProcessedAt = DateTime.Now;
+            payout.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -157,8 +157,8 @@ namespace Fiebo.Persistence.Repositories
 
             payout.Status = PayoutStatus.Failed;
             payout.ProcessedBy = processedBy;
-            payout.ProcessedAt = DateTime.UtcNow;
-            payout.UpdatedAt = DateTime.UtcNow;
+            payout.ProcessedAt = DateTime.Now;
+            payout.UpdatedAt = DateTime.Now;
             payout.FailureReason = failureReason;
 
             await _context.SaveChangesAsync();
