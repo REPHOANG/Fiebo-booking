@@ -49,12 +49,10 @@ import OwnerEventDetail from "../pages/Owner/Event/OwnerEventDetail";
 import ServiceManagement from "../pages/Owner/VenueService/ServiceManagement";
 import PayoutList from "../pages/Owner/Payout/PayoutList";
 import AdminHome from "../pages/Admin/Dashboard/AdminDashboard";
-import AdminAuditLog from "../pages/Admin/AuditLog/AdminAuditLog";
 import AdminReports from "../pages/Admin/Reports/AdminReports";
 import AdminCustomers from "../pages/Admin/CustomerManagement/AdminCustomers";
 import AdminVenueModeration from "../pages/Admin/VenueManagement/AdminVenueModeration";
 import AdminOwners from "../pages/Admin/OwnerManagement/AdminOwners";
-import AdminPolicies from "../pages/Admin/Policy/AdminPolicies";
 // import FinanceAdminHome from "../pages/FinanceAdmin/Dashboard/FinanceAdminHome";
 import FinanceAdminPayoutBatches from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutBatches";
 import FinanceAdminPayoutsInBatch from "../pages/FinanceAdmin/Payout/FinanceAdminPayoutsInBatch";
@@ -63,7 +61,6 @@ import FinanceAdminTransactions from "../pages/FinanceAdmin/Transactions/Finance
 import FinanceAdminTransactionDetail from "../pages/FinanceAdmin/Transactions/FinanceAdminTransactionDetail";
 import FinanceAdminRevenueReport from "../pages/FinanceAdmin/Revenue/FinanceAdminRevenueReport";
 import FinanceAdminWithdrawalRequests from "../pages/FinanceAdmin/Withdrawal/FinanceAdminWithdrawalRequests";
-import StaffHome from "../pages/Staff/Dashboard/StaffHome";
 import StaffOfflineBooking from "../pages/Staff/Booking/StaffOfflineBooking";
 import StaffBookings from "../pages/Staff/Booking/StaffBookings";
 import StaffBookingDetail from "../pages/Staff/Booking/StaffBookingDetail";
@@ -210,7 +207,6 @@ const routes = [
     element: <ProtectedRoute element={<AdminLayout />} requiredRole="Admin" />,
     children: [
       { index: true, element: <AdminHome /> },
-      { path: "audit-logs", element: <AdminAuditLog /> },
       { path: "reports", element: <AdminReports /> },
       { path: "customers", element: <AdminCustomers /> },
       { path: "venues", element: <AdminVenueModeration /> },
@@ -223,7 +219,6 @@ const routes = [
       { path: "finance-admins", element: <FinanceAdminManagement /> },
       { path: "sports", element: <SportCatalog /> },
       { path: "subscriptions", element: <AdminSubscriptionPlans /> },
-      { path: "policies", element: <AdminPolicies /> },
       { path: "users", element: <AdminCustomers /> },
     ],
   },

@@ -13,7 +13,6 @@ import {
   Goal,
   Dumbbell,
 } from "lucide-react";
-import { adminVenues } from "../adminData";
 import "../adminPages.css";
 
 const venueMetaById = {
@@ -75,7 +74,7 @@ const sportIcons = {
 };
 
 const AdminVenueModeration = () => {
-  const [venues, setVenues] = useState(adminVenues);
+  const [venues, setVenues] = useState();
   const [activeSport, setActiveSport] = useState("Tất cả sân");
 
   const enrichedVenues = useMemo(
