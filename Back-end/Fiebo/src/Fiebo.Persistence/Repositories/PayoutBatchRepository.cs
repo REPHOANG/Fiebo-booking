@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Entities;
+using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
@@ -41,6 +41,30 @@ namespace Fiebo.Persistence.Repositories
                 TotalItems = await query.CountAsync(),
                 Items = items
             };
+        }
+        public async Task<bool> MarkBatchAsCompletedAsync(int batchId, string processedBy)
+        {
+            var batch = await _context.PayoutBatches.FindAsync(batchId);
+            if (batch == null) return false;
+
+            batch.Status = PayoutStatus.Completed;
+            batch.UpdatedAt = DateTime.UtcNow;
+
+            // Update all payouts in this batch that are not already completed
+            var payouts = await _context.Payouts
+                .Where(p => p.BatchId == batchId && p.Status != PayoutStatus.Completed)
+                .ToListAsync();
+
+            foreach (var p in payouts)
+            {
+                p.Status = PayoutStatus.Completed;
+                p.ProcessedBy = processedBy;
+                p.ProcessedAt = DateTime.UtcNow;
+                p.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

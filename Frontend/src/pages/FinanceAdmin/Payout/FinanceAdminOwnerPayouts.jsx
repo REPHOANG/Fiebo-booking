@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getOwnerPayouts } from "../../../services/financeAdminService";
+import Swal from "sweetalert2";
+import { getOwnerPayouts, completePayout } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 
 const currency = new Intl.NumberFormat("vi-VN", {
@@ -18,6 +19,39 @@ const FinanceAdminOwnerPayouts = () => {
   const [status, setStatus] = useState("");
   const [year, setYear] = useState(String(now.getFullYear()));
   const [month, setMonth] = useState(String(now.getMonth() + 1));
+
+  const handleComplete = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận hoàn tất',
+      text: `Bạn có chắc chắn muốn hoàn tất thanh toán #${id}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await completePayout(id);
+      Swal.fire({
+        title: 'Thành công!',
+        text: 'Thanh toán đã được đánh dấu là hoàn tất.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: 'Completed' } : p));
+    } catch (err) {
+      Swal.fire({
+        title: 'Lỗi!',
+        text: err?.response?.data?.message ?? "Xử lý thất bại.",
+        icon: 'error'
+      });
+    }
+  };
 
   const fetchData = () => {
     setLoading(true);
@@ -64,6 +98,7 @@ const FinanceAdminOwnerPayouts = () => {
               <th>Tháng/Năm</th>
               <th>Số tiền</th>
               <th>Trạng thái</th>
+              <th style={{ textAlign: "center" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -76,9 +111,20 @@ const FinanceAdminOwnerPayouts = () => {
                 <td>{item.id}</td>
                 <td>{item.ownerName}</td>
                 <td>{item.venueName}</td>
-                <td>{item.month && item.year ? `${String(item.month).padStart(2,"0")}/${item.year}` : "—"}</td>
+                <td>{item.month && item.year ? `${String(item.month).padStart(2, "0")}/${item.year}` : "—"}</td>
                 <td>{currency.format(item.amount)}</td>
                 <td>{item.status}</td>
+                <td style={{ textAlign: "center" }}>
+                  {String(item.status).toLowerCase() === 'pending' && (
+                    <button
+                      className="btn-action dark"
+                      style={{ padding: '4px 12px', fontSize: 12, background: '#10b981' }}
+                      onClick={() => handleComplete(item.id)}
+                    >
+                      Hoàn tất
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

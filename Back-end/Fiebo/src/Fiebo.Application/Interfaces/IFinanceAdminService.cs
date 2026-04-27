@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.FinanceAdmin;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Shared;
@@ -19,5 +19,6 @@ namespace Fiebo.Application.Interfaces
         Task<PagedResult<PayoutBatchResponse>> GetPayoutBatchesAsync(int page, int pageSize, int? year, int? month, string? status);
         Task<PagedResult<PayoutResponse>> GetPayoutsByBatchIdAsync(int batchId, int page, int pageSize, string? name, string? status);
         Task<PayoutDetailResponse> GetPayoutDetailAsync(int payoutId);
+        Task<bool> CompletePayoutBatchAsync(int batchId, string adminId);
     }
 }
