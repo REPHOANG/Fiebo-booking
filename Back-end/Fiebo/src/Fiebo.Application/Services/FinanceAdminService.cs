@@ -29,8 +29,9 @@ namespace Fiebo.Application.Services
             {
                 Id = u.Id,
                 FullName = u.FullName ?? "",
-                Username = u.Email?.Replace("@fiebo.com", "") ?? "",
-                Status = u.Status ?? ""
+                Email = u.Email ?? "",
+                Status = u.Status ?? "",
+                CreatedAt = u.CreatedAt
             }).ToList();
 
             return response;

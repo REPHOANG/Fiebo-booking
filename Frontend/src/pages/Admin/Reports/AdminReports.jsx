@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import "../adminPages.css";
 import "./AdminReports.css";
+import { formatDateTime } from './../../../utils/helperFunction';
 
 const STATUS_MAP = {
   0: { label: "Chờ xử lý", color: "#f59e0b", bgColor: "#fef3c7", icon: <Clock size={14} /> },
@@ -143,6 +144,8 @@ const AdminReports = () => {
             exit={{ opacity: 0 }}
             className="modal-overlay"
             onClick={() => setReportDetail(null)}
+            style={{overflowY:"scroll",
+            }}
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
@@ -196,7 +199,7 @@ const AdminReports = () => {
                       <p>{reportDetail.responseContent}</p>
                       <span className="response-time">
                         <Clock size={12} />
-                        Phản hồi lúc: {new Date(reportDetail.respondedAt).toLocaleString("vi-VN")}
+                        Phản hồi lúc: {formatDateTime(reportDetail.respondedAt)}
                       </span>
                     </div>
                   </div>
@@ -269,22 +272,6 @@ const AdminReports = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Header ── */}
-      <header className="reports-header">
-        <div className="pending-alert-card">
-          <div className="alert-icon">
-            <AlertTriangle color="#f97316" size={24} />
-          </div>
-          <div className="alert-info">
-            <span className="alert-label">CHỜ PHẢN HỒI</span>
-            <div className="alert-value">
-              <span className="count">{pendingCount}</span>
-              <span className="text">Báo cáo mới</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* ── Main Content Card ── */}
       <div className="main-content-card">
         {/* Tabs & Top Actions */}
@@ -346,10 +333,6 @@ const AdminReports = () => {
                 </>
               )}
             </div>
-            <button className="btn-export" onClick={handleExport}>
-              <Download size={18} />
-              Xuất báo cáo
-            </button>
           </div>
         </div>
 

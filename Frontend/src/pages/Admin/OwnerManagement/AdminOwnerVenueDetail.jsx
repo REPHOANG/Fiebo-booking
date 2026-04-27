@@ -136,15 +136,6 @@ export const AdminOwnerVenueDetail = () => {
               Quay lại hồ sơ chủ sân
             </button>
           </div>
-
-          <div className="avr-alert" role="status">
-            <CircleAlert size={18} strokeWidth={2} aria-hidden />
-            <span>
-              {isLocked
-                ? <>Cơ sở này đang bị khoá. Nhấn <strong>Mở khoá</strong> để cho phép cơ sở hoạt động trở lại.</>
-                : <>Cơ sở đang hoạt động. Nhấn <strong>Khoá sân</strong> để tạm dừng hoạt động của cơ sở này.</>}
-            </span>
-          </div>
         </header>
 
         {/* Hero */}
@@ -174,9 +165,10 @@ export const AdminOwnerVenueDetail = () => {
 
           <div className="avr-hero-media">
             <div className="avr-hero-placeholder" role="img" aria-label="Cơ sở">
-              <Building2 size={40} strokeWidth={1.4} aria-hidden />
-              <span>{venueName}</span>
-              <small>{address}</small>
+              <img style={{
+                width:"100%",
+                height:"100%"
+              }} src={data?.thumbnailUrl} alt="" />
             </div>
           </div>
         </div>
@@ -306,7 +298,7 @@ export const AdminOwnerVenueDetail = () => {
                   </div>
                   <div className="avr-legal-images">
                     <ReviewDocImageCarousel
-                      images={doc.images}
+                      images={doc.images.map(img => img.imageUrl)}
                       title={doc.label}
                       emptyHint="Chưa có ảnh đính kèm"
                     />

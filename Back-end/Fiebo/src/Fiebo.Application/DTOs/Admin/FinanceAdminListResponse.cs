@@ -10,7 +10,8 @@ namespace Fiebo.Application.DTOs.Admin
     {
         public required string Id { get; set; }
         public required string FullName { get; set; }
-        public required string Username { get; set; }
+        public required string Email { get; set; }
         public required string Status { get; set; }
+        public DateTime? CreatedAt { get; set; }
     }
 }
