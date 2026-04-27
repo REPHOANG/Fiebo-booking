@@ -85,7 +85,7 @@ namespace Fiebo.Application.Services
             var topUpRequest = await _unitOfWork.TopUpRequests.GetByIdAsync(topUpId);
             if (topUpRequest == null)
             {
-                throw new NotFoundException("Không có dữ liệu hợp lệ.");
+                throw new BadRequestException("Không có dữ liệu hợp lệ.");
             }
             var wallet = await _unitOfWork.Wallets.GetByIdAsync(topUpRequest.WalletId);
             if (wallet == null)

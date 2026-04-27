@@ -326,8 +326,12 @@ namespace Fiebo.Application.Services
         /// <returns></returns>
         /// <exception cref="NotFoundException"></exception>
         /// <exception cref="BadRequestException"></exception>
-        public async Task<int> JoinDropInEventAsync(JoinEventRequest request, int eventId, string userId)
+        public async Task<int> JoinDropInEventAsync(JoinEventRequest request, int eventId, string? userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
             var lockKey = $"event:lock:{eventId}";
             string? lockValue = null;
 
@@ -350,13 +354,16 @@ namespace Fiebo.Application.Services
                 }
 
                 // Check Venue and Field active status
-                var fieldValid = dropInEvent.Details.All(d =>
-                    d.Field != null && d.Field.Status == FieldStatus.Active &&
-                    d.Slot != null && !d.Slot.IsDeleted);
-
-                if (!fieldValid)
+                var allFieldsActive = dropInEvent.Details.All(d => d.Field != null && d.Field.Status == FieldStatus.Active);
+                if (!allFieldsActive)
                 {
-                    throw new BadRequestException("Các sân hoặc khung giờ không hợp lệ.");
+                    throw new BadRequestException("Sân hiện tại không hoạt động.");
+                }
+
+                var allSlotsValid = dropInEvent.Details.All(d => d.Slot != null && !d.Slot.IsDeleted);
+                if (!allSlotsValid)
+                {
+                    throw new BadRequestException("Các khung giờ không hợp lệ.");
                 }
                 var ownerPlan = (await _unitOfWork.OwnerPlans
                     .FindAsync(p => p.OwnerId == dropInEvent.Venue.OwnerId &&
@@ -369,7 +376,7 @@ namespace Fiebo.Application.Services
                 }
                 if (!ownerPlan || dropInEvent.Venue.Status != VenueStatus.Active)
                 {
-                    throw new BadRequestException("Cơ sở tổ chức sự kiện hiện không hoạt động");
+                    throw new BadRequestException("Cơ sở này hiện không hoạt động.");
                 }
 
 
@@ -517,12 +524,16 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string ownerId)
+        public async Task UpdateDropInEventAsync(int eventId, UpdateEventRequest request, string? ownerId)
         {
+            if (string.IsNullOrEmpty(ownerId))
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập để thực hiện hành động này.");
+            }
             var dropInEvent = await _unitOfWork.TicketEvents.GetByIdAsync(eventId);
             if (dropInEvent == null)
             {
-                throw new NotFoundException("Sự kiện này không tồn tại");
+                throw new NotFoundException("Sự kiện không tồn tại");
             }
             var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(eventId);
             if (earliestSlot == null)
@@ -532,7 +543,7 @@ namespace Fiebo.Application.Services
             var venue = await _unitOfWork.Venues.GetByIdAsync(dropInEvent.VenueId) ?? throw new NotFoundException("Cơ sở của sự kiện không tồn tại");
             if (venue.OwnerId != ownerId)
             {
-                throw new BadRequestException("Bạn không có quyền chỉnh sửa sự kiện này");
+                throw new ForbiddenException("Chủ sở hữu không khớp");
             }
             if (dropInEvent.Status != TicketEventStatus.Pending)
             {

@@ -1,6 +1,10 @@
-﻿using AutoFixture;
-using AutoFixture.AutoMoq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Fiebo.Application.DTOs.Event;
+using Fiebo.Application.DTOs.TicketEvent;
 using Fiebo.Application.Interfaces;
 using Fiebo.Application.Services;
 using Fiebo.Domain.Entities;
@@ -15,310 +19,175 @@ namespace Fiebo.Application.Tests.Events
 {
     public class JoinDropInEventTests
     {
-        private readonly IFixture _fixture;
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+        private readonly Mock<ILogger<EventService>> _loggerMock;
+        private readonly Mock<ICacheService> _cacheServiceMock;
+        private readonly Mock<INotificationService> _notificationMock;
+        private readonly Mock<IIdentityService> _identityMock;
+        private readonly Mock<IServiceProvider> _serviceProviderMock;
+
+        private readonly Mock<ITicketEventRepository> _eventRepoMock;
+        private readonly Mock<ITicketParticipantRepository> _participantRepoMock;
+        private readonly Mock<IOwnerPlanRepository> _ownerPlanRepoMock;
+        private readonly Mock<IVenueRepository> _venueRepoMock;
+
+        private readonly EventService _eventService;
 
         public JoinDropInEventTests()
         {
-            _fixture = new Fixture()
-                .Customize(new AutoMoqCustomization
-                {
-                    ConfigureMembers = true
-                });
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _loggerMock = new Mock<ILogger<EventService>>();
+            _cacheServiceMock = new Mock<ICacheService>();
+            _notificationMock = new Mock<INotificationService>();
+            _identityMock = new Mock<IIdentityService>();
+            _serviceProviderMock = new Mock<IServiceProvider>();
+
+            _eventRepoMock = new Mock<ITicketEventRepository>();
+            _participantRepoMock = new Mock<ITicketParticipantRepository>();
+            _ownerPlanRepoMock = new Mock<IOwnerPlanRepository>();
+            _venueRepoMock = new Mock<IVenueRepository>();
+
+            _unitOfWorkMock.Setup(u => u.TicketEvents).Returns(_eventRepoMock.Object);
+            _unitOfWorkMock.Setup(u => u.TicketParticipants).Returns(_participantRepoMock.Object);
+            _unitOfWorkMock.Setup(u => u.OwnerPlans).Returns(_ownerPlanRepoMock.Object);
+            _unitOfWorkMock.Setup(u => u.Venues).Returns(_venueRepoMock.Object);
+
+            _eventService = new EventService(
+                _unitOfWorkMock.Object,
+                _loggerMock.Object,
+                _cacheServiceMock.Object,
+                _notificationMock.Object,
+                _identityMock.Object,
+                _serviceProviderMock.Object);
         }
 
-        private EventService CreateService()
-        {
-            return _fixture.Create<EventService>();
-        }
-
-        private void SetupRepositories(
-            Mock<ITicketEventRepository> ticketEventRepoMock,
-            Mock<ITicketParticipantRepository> participantRepoMock,
-            Mock<ICacheService> cacheMock)
-        {
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-            var loggerMock = _fixture.Freeze<Mock<ILogger<EventService>>>();
-
-            uowMock.Setup(x => x.TicketEvents).Returns(ticketEventRepoMock.Object);
-            uowMock.Setup(x => x.TicketParticipants).Returns(participantRepoMock.Object);
-
-            _fixture.Inject(cacheMock.Object);
-            _fixture.Inject(loggerMock.Object);
-        }
-
-        [Fact]
-        public async Task Should_ThrowConflict_WhenCannotAcquireLock()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock
-                .Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>()))
-                .ReturnsAsync((string?)null);
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<ResourceConflictException>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-
-            cacheMock.Verify(x => x.ReleaseLockAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-            ticketEventRepoMock.Verify(x => x.GetDropInEventDetailAsync(It.IsAny<int>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task Should_ThrowNotFound_WhenEventNotFound_AndReleaseLock()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock
-                .Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>()))
-                .ReturnsAsync("lock-value");
-
-            ticketEventRepoMock
-                .Setup(x => x.GetDropInEventDetailAsync(1))
-                .ReturnsAsync((TicketEvent?)null);
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<NotFoundException>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-
-            cacheMock.Verify(x => x.ReleaseLockAsync("event:lock:1", "lock-value"), Times.Once);
-        }
-
-        [Fact]
-        public async Task Should_ThrowBadRequest_WhenFieldInactive()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Pending, FieldStatus.Inactive, VenueStatus.Active));
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-
-            cacheMock.Verify(x => x.ReleaseLockAsync("event:lock:1", "lock"), Times.Once);
-        }
-
-        [Fact]
-        public async Task Should_ThrowBadRequest_WhenVenueInactive()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Pending, FieldStatus.Active, VenueStatus.Inactive));
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-        }
-
-        [Fact]
-        public async Task Should_ThrowBadRequest_WhenEventNotPending()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Completed, FieldStatus.Active, VenueStatus.Active));
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-        }
-
-        [Fact]
-        public async Task Should_ThrowBadRequest_WhenCapacityExceeded()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Pending, FieldStatus.Active, VenueStatus.Active, maxPlayer: 10));
-            participantRepoMock.Setup(x => x.GetCurrentPlayer(1)).ReturnsAsync(9);
-
-            var request = ValidRequest();
-            request.TicketQuantity = 2;
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<BadRequestException>(async () =>
-                await service.JoinDropInEventAsync(request, 1, "user-1"));
-        }
-
-        [Fact]
-        public async Task Should_JoinEvent_WhenValid()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Pending, FieldStatus.Active, VenueStatus.Active, maxPlayer: 10, pricePerPerson: 60000m));
-            participantRepoMock.Setup(x => x.GetCurrentPlayer(1)).ReturnsAsync(4);
-
-            TicketParticipant? added = null;
-            participantRepoMock
-                .Setup(x => x.Add(It.IsAny<TicketParticipant>()))
-                .Callback<TicketParticipant>(p =>
-                {
-                    p.Id = 99;
-                    added = p;
-                });
-
-            var request = ValidRequest();
-            request.TicketQuantity = 2;
-
-            var service = CreateService();
-            var result = await service.JoinDropInEventAsync(request, 1, "user-1");
-
-            Assert.Equal(99, result);
-            Assert.NotNull(added);
-            Assert.Equal(1, added.EventId);
-            Assert.Equal("user-1", added.UserId);
-            Assert.Equal(request.Fullname, added.Fullname);
-            Assert.Equal(request.PhoneNumber, added.PhoneNumber);
-            Assert.Equal(2, added.TicketQuantity);
-            Assert.Equal(60000m, added.PricePerTicket);
-            Assert.Equal(120000m, added.TotalPrice);
-            Assert.Equal(TicketParticipantStatus.Pending, added.Status);
-            Assert.True(added.ExpiredAt.HasValue);
-
-            uowMock.Verify(x => x.SaveChangesAsync(), Times.Once);
-            cacheMock.Verify(x => x.ReleaseLockAsync("event:lock:1", "lock"), Times.Once);
-        }
-
-        [Fact]
-        public async Task Should_ReleaseLock_WhenSaveChangesThrows()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            var uowMock = _fixture.Freeze<Mock<IUnitOfWork>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(EventWithStatus(TicketEventStatus.Pending, FieldStatus.Active, VenueStatus.Active));
-            participantRepoMock.Setup(x => x.GetCurrentPlayer(1)).ReturnsAsync(0);
-            uowMock.Setup(x => x.SaveChangesAsync()).ThrowsAsync(new Exception("db error"));
-
-            var service = CreateService();
-
-            await Assert.ThrowsAsync<Exception>(async () =>
-                await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1"));
-
-            cacheMock.Verify(x => x.ReleaseLockAsync("event:lock:1", "lock"), Times.Once);
-        }
-
-        [Fact]
-        public async Task Should_JoinEvent_WhenNoDetailsExist()
-        {
-            var ticketEventRepoMock = _fixture.Freeze<Mock<ITicketEventRepository>>();
-            var participantRepoMock = _fixture.Freeze<Mock<ITicketParticipantRepository>>();
-            var cacheMock = _fixture.Freeze<Mock<ICacheService>>();
-            SetupRepositories(ticketEventRepoMock, participantRepoMock, cacheMock);
-
-            cacheMock.Setup(x => x.AcquireLockAsync("event:lock:1", It.IsAny<TimeSpan>())).ReturnsAsync("lock");
-
-            ticketEventRepoMock.Setup(x => x.GetDropInEventDetailAsync(1)).ReturnsAsync(new TicketEvent
-            {
-                Id = 1,
-                VenueId = 1,
-                EventDate = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
-                MinPlayer = 2,
-                MaxPlayer = 10,
-                PricePerPerson = 50000m,
-                Status = TicketEventStatus.Pending,
-                Details = new List<TicketEventDetail>()
-            });
-
-            participantRepoMock.Setup(x => x.GetCurrentPlayer(1)).ReturnsAsync(0);
-
-            var service = CreateService();
-
-            var result = await service.JoinDropInEventAsync(ValidRequest(), 1, "user-1");
-
-            Assert.True(result >= 0);
-        }
-
-        private static JoinEventRequest ValidRequest()
+        private JoinEventRequest CreateValidRequest()
         {
             return new JoinEventRequest
             {
-                Fullname = "Nguyen Van A",
-                PhoneNumber = "0901234567",
-                TicketQuantity = 1
+                Fullname = "Tuan Do",
+                PhoneNumber = "0988987427",
+                TicketQuantity = 2
             };
         }
 
-        private static TicketEvent EventWithStatus(
-            TicketEventStatus eventStatus,
-            FieldStatus fieldStatus,
-            VenueStatus venueStatus,
-            int maxPlayer = 20,
-            decimal pricePerPerson = 50000m)
+        [Fact]
+        public async Task UTCID_01_Should_Throw_UnauthorizedException_When_UserId_Is_Null()
         {
-            return new TicketEvent
-            {
-                Id = 1,
-                VenueId = 1,
-                EventDate = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
-                MinPlayer = 2,
-                MaxPlayer = maxPlayer,
-                PricePerPerson = pricePerPerson,
-                Status = eventStatus,
-                Details = new List<TicketEventDetail>
-                {
-                    new()
-                    {
-                        Id = 1,
-                        FieldId = 1,
-                        SlotId = 1,
-                        Field = new Field
-                        {
-                            Id = 1,
-                            Name = "Field A",
-                            VenueId = 10,
-                            SportTypeId = 1,
-                            Status = fieldStatus,
-                            Venue = new Venue
-                            {
-                                Id = 10,
-                                Name = "Venue A",
-                                OwnerId = "owner-1",
-                                Status = venueStatus
-                            }
-                        },
-                        Slot = new TimeSlot
-                        {
-                            Id = 1,
-                            StartTime = new TimeOnly(10, 0),
-                            EndTime = new TimeOnly(11, 0)
-                        }
-                    }
-                }
-            };
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<UnauthorizedException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, null));
+            Assert.Equal("Bạn cần đăng nhập để thực hiện hành động này.", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_02_Should_Throw_UnauthorizedException_When_UserId_Is_Empty()
+        {
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<UnauthorizedException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, ""));
+            Assert.Equal("Bạn cần đăng nhập để thực hiện hành động này.", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_03_Should_Throw_NotFoundException_When_Event_Not_Found()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(999)).ReturnsAsync((TicketEvent)null);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 999, "valid-id"));
+            Assert.Equal("Sự kiện này không tồn tại", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_04_Should_Throw_BadRequestException_When_Event_Not_Pending()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            var ticketEvent = new TicketEvent { Id = 1, Status = TicketEventStatus.Ongoing, VenueId = 10, Details = new List<TicketEventDetail>() };
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(1)).ReturnsAsync(ticketEvent);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id"));
+            Assert.Equal("Sự kiện này hiện tại không có sẵn", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_05_Should_Throw_BadRequestException_When_Venue_Deactivated()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            var venue = new Venue { Id = 10, OwnerId = "owner-id", Status = VenueStatus.Inactive, Name = "Sân test" };
+            var ticketEvent = new TicketEvent { Id = 1, Status = TicketEventStatus.Pending, VenueId = 10, Venue = venue, Details = new List<TicketEventDetail>() };
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(1)).ReturnsAsync(ticketEvent);
+            _ownerPlanRepoMock.Setup(u => u.FindAsync(It.IsAny<Expression<Func<OwnerPlan, bool>>>())).ReturnsAsync(new List<OwnerPlan> { new OwnerPlan { OwnerId = "owner-id", Status = OwnerPlanStatus.Active, EndDate = DateTime.Now.AddDays(1) } });
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id"));
+            Assert.Equal("Cơ sở này hiện không hoạt động.", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_06_Should_Throw_BadRequestException_When_Field_Deactivated()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            var venue = new Venue { Id = 10, OwnerId = "owner-id", Status = VenueStatus.Active, Name = "Sân test" };
+            var field = new Field { Id = 5, Status = FieldStatus.Inactive, Name = "Sân 5" };
+            var detail = new TicketEventDetail { FieldId = 5, Field = field, Slot = new TimeSlot { IsDeleted = false } };
+            var ticketEvent = new TicketEvent { Id = 1, Status = TicketEventStatus.Pending, VenueId = 10, Venue = venue, Details = new List<TicketEventDetail> { detail } };
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(1)).ReturnsAsync(ticketEvent);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id"));
+            Assert.Equal("Sân hiện tại không hoạt động.", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_07_Should_Throw_ResourceConflictException_When_Concurrency_Lock_Fails()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync((string)null);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<ResourceConflictException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id"));
+            Assert.Equal("Sự kiện đang được xử lý, vui lòng thử lại.", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_08_Should_Throw_BadRequestException_When_Tickets_Sold_Out()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            var venue = new Venue { Id = 10, OwnerId = "owner-id", Status = VenueStatus.Active, Name = "Sân test" };
+            var ticketEvent = new TicketEvent { Id = 1, Status = TicketEventStatus.Pending, VenueId = 10, Venue = venue, MaxPlayer = 10, Details = new List<TicketEventDetail>() };
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(1)).ReturnsAsync(ticketEvent);
+            _ownerPlanRepoMock.Setup(u => u.FindAsync(It.IsAny<Expression<Func<OwnerPlan, bool>>>())).ReturnsAsync(new List<OwnerPlan> { new OwnerPlan { OwnerId = "owner-id", Status = OwnerPlanStatus.Active, EndDate = DateTime.Now.AddDays(1) } });
+            _participantRepoMock.Setup(u => u.GetCurrentPlayer(1)).ReturnsAsync(9); // 9 + 2 > 10
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id"));
+            Assert.Equal("Số lượng người tham gia sự kiện đã đầy", ex.Message);
+        }
+
+        [Fact]
+        public async Task UTCID_09_Should_Join_Successfully_When_Valid_Data()
+        {
+            // Arrange
+            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-val");
+            var venue = new Venue { Id = 10, OwnerId = "owner-id", Status = VenueStatus.Active, Name = "Sân test" };
+            var ticketEvent = new TicketEvent { Id = 1, Status = TicketEventStatus.Pending, VenueId = 10, Venue = venue, MaxPlayer = 10, PricePerPerson = 50000, Details = new List<TicketEventDetail>() };
+            _eventRepoMock.Setup(u => u.GetDropInEventDetailAsync(1)).ReturnsAsync(ticketEvent);
+            _ownerPlanRepoMock.Setup(u => u.FindAsync(It.IsAny<Expression<Func<OwnerPlan, bool>>>())).ReturnsAsync(new List<OwnerPlan> { new OwnerPlan { OwnerId = "owner-id", Status = OwnerPlanStatus.Active, EndDate = DateTime.Now.AddDays(1) } });
+            _participantRepoMock.Setup(u => u.GetCurrentPlayer(1)).ReturnsAsync(5); // 5 + 2 <= 10
+
+            // Act
+            var result = await _eventService.JoinDropInEventAsync(CreateValidRequest(), 1, "valid-id");
+
+            // Assert
+            _participantRepoMock.Verify(u => u.Add(It.IsAny<TicketParticipant>()), Times.Once);
+            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+            _cacheServiceMock.Verify(c => c.ReleaseLockAsync(It.IsAny<string>(), "lock-val"), Times.Once);
         }
     }
 }

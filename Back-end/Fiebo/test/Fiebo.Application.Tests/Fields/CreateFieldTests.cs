@@ -1,177 +1,175 @@
-//using Fiebo.Application.DTOs.Field;
-//using Fiebo.Application.Services;
-//using Fiebo.Domain.Constants;
-//using Fiebo.Domain.Entities;
-//using Fiebo.Domain.Enums;
-//using Fiebo.Domain.Exceptions;
-//using Fiebo.Domain.Repositories;
-//using Moq;
-//using Xunit;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Fiebo.Application.DTOs.Common;
+using Fiebo.Application.DTOs.Field;
+using Fiebo.Application.Interfaces;
+using Fiebo.Application.Services;
+using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
+using Fiebo.Domain.Exceptions;
+using Fiebo.Domain.Repositories;
+using Microsoft.AspNetCore.Http;
+using Moq;
+using Xunit;
 
-//namespace Fiebo.Application.Tests.Fields
-//{
-//    public class CreateFieldTests
-//    {
-//        private readonly Mock<IUnitOfWork> _unitOfWork = new();
-//        private readonly Mock<IVenueRepository> _venueRepo = new();
-//        private readonly Mock<IFieldRepository> _fieldRepo = new();
+namespace Fiebo.Application.Tests.Fields
+{
+    public class CreateFieldTests
+    {
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+        private readonly Mock<ICloudinaryService> _cloudinaryServiceMock;
+        private readonly Mock<IVenueRepository> _venueRepoMock;
+        private readonly Mock<IFieldRepository> _fieldRepoMock;
 
-//        private readonly FieldService _service;
+        private readonly FieldService _fieldService;
 
-//        private const int VenueId = 1;
-//        private const string OwnerId = "owner-123";
-//        private const string AdminId = "admin-456";
+        public CreateFieldTests()
+        {
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _cloudinaryServiceMock = new Mock<ICloudinaryService>();
+            _venueRepoMock = new Mock<IVenueRepository>();
+            _fieldRepoMock = new Mock<IFieldRepository>();
 
-//        public CreateFieldTests()
-//        {
-//            _unitOfWork.Setup(x => x.Venues).Returns(_venueRepo.Object);
-//            _unitOfWork.Setup(x => x.Fields).Returns(_fieldRepo.Object);
+            _unitOfWorkMock.Setup(u => u.Venues).Returns(_venueRepoMock.Object);
+            _unitOfWorkMock.Setup(u => u.Fields).Returns(_fieldRepoMock.Object);
 
-//            _service = new FieldService(_unitOfWork.Object);
-//        }
+            _fieldService = new FieldService(_unitOfWorkMock.Object, _cloudinaryServiceMock.Object);
+        }
 
-//        private static CreateFieldRequest ValidRequest() => new()
-//        {
-//            Name = "Sân 5 Người A",
-//            Description = "Sân cỏ nhân tạo",
-//            SportTypeId = 1
-//        };
+        private CreateFieldRequest CreateValidRequest()
+        {
+            return new CreateFieldRequest
+            {
+                Name = "Sân bóng đá 5 người",
+                SportTypeId = 1,
+                Description = "Mô tả test",
+                Images = new List<IFormFile>()
+            };
+        }
 
-//        private static Venue OwnerVenue() => new()
-//        {
-//            Id = VenueId,
-//            Name = "Venue A",
-//            OwnerId = OwnerId,
-//            Status = VenueStatus.Active
-//        };
+        private Mock<IFormFile> CreateMockFile(string fileName, long length, string contentType)
+        {
+            var fileMock = new Mock<IFormFile>();
+            fileMock.Setup(_ => _.FileName).Returns(fileName);
+            fileMock.Setup(_ => _.Length).Returns(length);
+            fileMock.Setup(_ => _.ContentType).Returns(contentType);
+            return fileMock;
+        }
 
-//        // ================================================================
-//        //   BR-69: Venue not found → NotFoundException
-//        // ================================================================
+        [Fact]
+        public async Task UTCID_01_Should_Throw_NotFoundException_When_Venue_Not_Found()
+        {
+            // Arrange
+            _venueRepoMock.Setup(u => u.GetByIdAsync(999)).ReturnsAsync((Venue)null);
 
-//        [Fact]
-//        public async Task Should_ThrowNotFound_WhenVenueNotFound()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync((Venue?)null);
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _fieldService.CreateFieldAsync(999, CreateValidRequest(), "valid-id"));
+            Assert.Equal("Không tìm thấy cơ sở sân.", ex.Message);
+        }
 
-//            await Assert.ThrowsAsync<NotFoundException>(
-//                () => _service.CreateFieldAsync(VenueId, ValidRequest(), [], OwnerId, AppRoles.FieldOwner));
-//        }
+        [Fact]
+        public async Task UTCID_02_Should_Throw_UnauthorizedException_When_User_Is_Not_Owner()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "real-owner", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
 
-//        // ================================================================
-//        //   Authorization: Owner cannot create in another owner's venue
-//        // ================================================================
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<UnauthorizedException>(() => _fieldService.CreateFieldAsync(1, CreateValidRequest(), "invalid-owner"));
+            Assert.Equal("Bạn không có quyền tạo sân cho cơ sở này", ex.Message);
+        }
 
-//        [Fact]
-//        public async Task Should_ThrowUnauthorized_WhenOwnerCreatesInOtherVenue()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
+        [Fact]
+        public async Task UTCID_03_Should_Throw_ResourceConflictException_When_Name_Exists()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "valid-id", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
+            _fieldRepoMock.Setup(u => u.IsFieldNameExistsInVenueAsync(1, "Sân bóng đá 5 người", 1)).ReturnsAsync(true);
 
-//            var ex = await Assert.ThrowsAsync<UnauthorizedException>(
-//                () => _service.CreateFieldAsync(VenueId, ValidRequest(), [], "other-owner", AppRoles.FieldOwner));
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<ResourceConflictException>(() => _fieldService.CreateFieldAsync(1, CreateValidRequest(), "valid-id"));
+            Assert.Equal("Tên sân và loại sân này đã tồn tại trong cơ sở. Vui lòng chọn một tên khác.", ex.Message);
+        }
 
-//            Assert.Contains("quyền", ex.Message);
-//        }
+        [Fact]
+        public async Task UTCID_04_Should_Throw_BadRequestException_When_Too_Many_Images()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "valid-id", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
+            _fieldRepoMock.Setup(u => u.IsFieldNameExistsInVenueAsync(1, "Sân bóng đá 5 người", 1)).ReturnsAsync(false);
 
-//        // ================================================================
-//        //   Authorization: Admin can create in any venue
-//        // ================================================================
+            var request = CreateValidRequest();
+            var images = new List<IFormFile>();
+            for (int i = 0; i < 11; i++) images.Add(CreateMockFile($"img{i}.png", 1024, "image/png").Object);
+            request.Images = images;
 
-//        [Fact]
-//        public async Task Should_AllowAdmin_ToCreateInAnyVenue()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
-//            _fieldRepo.Setup(x => x.IsFieldNameExistsInVenueAsync(VenueId, "Sân 5 Người A")).ReturnsAsync(false);
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _fieldService.CreateFieldAsync(1, request, "valid-id"));
+            // Message from ImageValidator for max:10
+            Assert.Contains("Tối đa 10 ảnh", ex.Message);
+        }
 
-//            var result = await _service.CreateFieldAsync(VenueId, ValidRequest(), [], AdminId, AppRoles.Admin);
+        [Fact]
+        public async Task UTCID_05_Should_Throw_BadRequestException_When_Upload_Fails()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "valid-id", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
+            _fieldRepoMock.Setup(u => u.IsFieldNameExistsInVenueAsync(1, "Sân bóng đá 5 người", 1)).ReturnsAsync(false);
 
-//            _unitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
-//        }
+            var request = CreateValidRequest();
+            request.Images = new List<IFormFile> { CreateMockFile("img.png", 1024, "image/png").Object };
 
-//        // ================================================================
-//        //   BR-71 / E2: Duplicate field name → ResourceConflictException (MSG69)
-//        // ================================================================
+            _cloudinaryServiceMock.Setup(u => u.UploadImageAsync(It.IsAny<IFormFile>())).ReturnsAsync((UploadImageResultDto)null);
 
-//        [Fact]
-//        public async Task Should_ThrowConflict_WhenFieldNameAlreadyExists()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
-//            _fieldRepo.Setup(x => x.IsFieldNameExistsInVenueAsync(VenueId, "Sân 5 Người A")).ReturnsAsync(true);
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _fieldService.CreateFieldAsync(1, request, "valid-id"));
+            Assert.Equal("Có lỗi xảy ra khi tải lên hình ảnh lên hệ thống.", ex.Message);
+        }
 
-//            var ex = await Assert.ThrowsAsync<ResourceConflictException>(
-//                () => _service.CreateFieldAsync(VenueId, ValidRequest(), [], OwnerId, AppRoles.FieldOwner));
+        [Fact]
+        public async Task UTCID_06_Should_Create_Successfully_Without_Images()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "valid-id", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
+            _fieldRepoMock.Setup(u => u.IsFieldNameExistsInVenueAsync(1, "Sân bóng đá 5 người", 1)).ReturnsAsync(false);
 
-//            Assert.Contains("đã tồn tại", ex.Message);
-//        }
+            var request = CreateValidRequest();
+            request.Images = new List<IFormFile>();
 
-//        // ================================================================
-//        //   Normal flow: creates field with Active status (BR-70)
-//        // ================================================================
+            // Act
+            var result = await _fieldService.CreateFieldAsync(1, request, "valid-id");
 
-//        [Fact]
-//        public async Task Should_CreateField_WithActiveStatus()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
-//            _fieldRepo.Setup(x => x.IsFieldNameExistsInVenueAsync(VenueId, "Sân 5 Người A")).ReturnsAsync(false);
+            // Assert
+            _fieldRepoMock.Verify(u => u.Add(It.IsAny<Field>()), Times.Once);
+            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
 
-//            Field? capturedField = null;
-//            _fieldRepo.Setup(x => x.Add(It.IsAny<Field>()))
-//                .Callback<Field>(f => capturedField = f);
+        [Fact]
+        public async Task UTCID_07_Should_Create_Successfully_With_Images()
+        {
+            // Arrange
+            var venue = new Venue { Id = 1, OwnerId = "valid-id", Name = "Sân test" };
+            _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
+            _fieldRepoMock.Setup(u => u.IsFieldNameExistsInVenueAsync(1, "Sân bóng đá 5 người", 1)).ReturnsAsync(false);
 
-//            await _service.CreateFieldAsync(VenueId, ValidRequest(), [], OwnerId, AppRoles.FieldOwner);
+            var request = CreateValidRequest();
+            request.Images = new List<IFormFile> { CreateMockFile("img.png", 1024, "image/png").Object };
 
-//            Assert.NotNull(capturedField);
-//            Assert.Equal("Sân 5 Người A", capturedField.Name);
-//            Assert.Equal("Sân cỏ nhân tạo", capturedField.Description);
-//            Assert.Equal(1, capturedField.SportTypeId);
-//            Assert.Equal(VenueId, capturedField.VenueId);
-//            Assert.Equal(FieldStatus.Active, capturedField.Status);
-//            _unitOfWork.Verify(x => x.SaveChangesAsync(), Times.Once);
-//        }
+            _cloudinaryServiceMock.Setup(u => u.UploadImageAsync(It.IsAny<IFormFile>()))
+                .ReturnsAsync(new UploadImageResultDto { PublicId = "p1", Url = "http://test.com/img.png" });
 
-//        // ================================================================
-//        //   Normal flow: creates field with images
-//        // ================================================================
+            // Act
+            var result = await _fieldService.CreateFieldAsync(1, request, "valid-id");
 
-//        [Fact]
-//        public async Task Should_CreateField_WithImages()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
-//            _fieldRepo.Setup(x => x.IsFieldNameExistsInVenueAsync(VenueId, "Sân 5 Người A")).ReturnsAsync(false);
-
-//            Field? capturedField = null;
-//            _fieldRepo.Setup(x => x.Add(It.IsAny<Field>()))
-//                .Callback<Field>(f => capturedField = f);
-
-//            var imageUrls = new List<string> { "img1.jpg", "img2.jpg", "img3.jpg" };
-
-//            await _service.CreateFieldAsync(VenueId, ValidRequest(), imageUrls, OwnerId, AppRoles.FieldOwner);
-
-//            Assert.NotNull(capturedField);
-//            Assert.Equal(3, capturedField.Images.Count);
-//            Assert.Contains(capturedField.Images, i => i.ImageUrl == "img1.jpg");
-//            Assert.Contains(capturedField.Images, i => i.ImageUrl == "img2.jpg");
-//            Assert.Contains(capturedField.Images, i => i.ImageUrl == "img3.jpg");
-//        }
-
-//        // ================================================================
-//        //   Normal flow: creates field without images
-//        // ================================================================
-
-//        [Fact]
-//        public async Task Should_CreateField_WithoutImages()
-//        {
-//            _venueRepo.Setup(x => x.GetByIdAsync(VenueId)).ReturnsAsync(OwnerVenue());
-//            _fieldRepo.Setup(x => x.IsFieldNameExistsInVenueAsync(VenueId, "Sân 5 Người A")).ReturnsAsync(false);
-
-//            Field? capturedField = null;
-//            _fieldRepo.Setup(x => x.Add(It.IsAny<Field>()))
-//                .Callback<Field>(f => capturedField = f);
-
-//            await _service.CreateFieldAsync(VenueId, ValidRequest(), [], OwnerId, AppRoles.FieldOwner);
-
-//            Assert.NotNull(capturedField);
-//            Assert.Empty(capturedField.Images);
-//        }
-//    }
-//}
+            // Assert
+            _fieldRepoMock.Verify(u => u.Add(It.Is<Field>(f => f.Images.Count == 1)), Times.Once);
+            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+        }
+    }
+}
