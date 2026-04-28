@@ -15,7 +15,7 @@ namespace Fiebo.Application.DTOs.Auth
         public DateOnly? DateOfBirth { get; set; }
         public string? Roles { get; set; }
         public string? Status { get; set; }
-        public bool? HasSubscription { get; set; }
+        public string? HasSubscription { get; set; }
         public bool? HasBankAccount { get; set; }
     }
 }

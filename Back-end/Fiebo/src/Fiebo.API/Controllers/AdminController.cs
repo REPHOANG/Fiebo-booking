@@ -312,35 +312,5 @@ namespace Fiebo.API.Controllers
                 Message = "Cập nhật trạng thái cơ sở thành công."
             });
         }
-
-        /// <summary>
-        /// Admin duyệt yêu cầu cập nhật địa chỉ / giấy tờ của cơ sở.
-        /// </summary>
-        [HttpPost("venue-updates/{id}/approve")]
-        public async Task<IActionResult> ApproveVenueUpdate([FromRoute] int id)
-        {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            await _venueService.ApproveVenueUpdateAsync(id, adminId);
-            return Ok(new ApiResponse<object>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Đã duyệt yêu cầu cập nhật cơ sở."
-            });
-        }
-
-        /// <summary>
-        /// Admin từ chối yêu cầu cập nhật địa chỉ / giấy tờ của cơ sở + gửi email thông báo.
-        /// </summary>
-        [HttpPost("venue-updates/{id}/reject")]
-        public async Task<IActionResult> RejectVenueUpdate([FromRoute] int id, [FromBody] RejectVenueRequest request)
-        {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            await _venueService.RejectVenueUpdateAsync(id, adminId, request.RejectionReason);
-            return Ok(new ApiResponse<object>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Đã từ chối yêu cầu cập nhật cơ sở và thông báo cho chủ sân."
-            });
-        }
     }
 }

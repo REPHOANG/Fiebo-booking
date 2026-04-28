@@ -12,8 +12,7 @@ using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-
-using Fiebo.Application.Validators;
+using System.Reflection.Metadata;
 
 namespace Fiebo.Application.Services
 {
@@ -681,14 +680,12 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy cơ sở.");
 
             if (venue.OwnerId != ownerId)
-                throw new UnauthorizedException("Bạn không có quyền cập nhật cơ sở này.");
+                throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
 
             if (request.CloseTime <= request.OpenTime)
                 throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
-            // Kiểm tra conflict giờ hoạt động
-            if (venue.Status == VenueStatus.Active)
-            {
+
                 bool isHoursShortened = request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime;
                 if (isHoursShortened)
                 {
@@ -698,9 +695,7 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException(
                             "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
                 }
-            }
 
-            // PHẦN 1: Các trường được cập nhật ngay lập tức
             venue.Name = request.Name;
             venue.Description = request.Description;
             venue.OpenTime = request.OpenTime;
@@ -716,127 +711,8 @@ namespace Fiebo.Application.Services
 
             venue.UpdatedAt = DateTime.Now;
 
-            //Thay đổi địa chỉ hoặc giấy tờ → staging table
-            bool addressChanged = venue.ProvinceId != request.ProvinceId
-                               || venue.WardId != request.WardId
-                               || venue.AddressDetail != request.AddressDetail
-                               || Math.Abs(venue.Longitude - request.Longitude) > 0.00001
-                               || Math.Abs(venue.Latitude - request.Latitude) > 0.00001;
-
-            bool documentChanged = request.BusinessDocument != null;
-
-            if (addressChanged || documentChanged)
-            {
-                var stagingRequest = new VenueUpdateRequest
-                {
-                    VenueId = venueId,
-                    Status = "Pending"
-                };
-
-                if (addressChanged)
-                {
-                    stagingRequest.NewAddressDetail = request.AddressDetail;
-                    stagingRequest.NewProvinceId = request.ProvinceId;
-                    stagingRequest.NewWardId = request.WardId;
-                    stagingRequest.NewLatitude = request.Latitude;
-                    stagingRequest.NewLongitude = request.Longitude;
-                }
-
-                if (request.BusinessDocument != null)
-                {
-                    stagingRequest.NewBusinessLicenseIssueDate = request.BusinessDocument.IssueDate;
-                    stagingRequest.NewBusinessLicenseExpiryDate = request.BusinessDocument.ExpiryDate;
-                }
-
-                _unitOfWork.VenueUpdateRequests.Add(stagingRequest);
-            }
-
             _unitOfWork.Venues.Update(venue);
             await _unitOfWork.SaveChangesAsync();
-        }
-
-        // ================================================================
-        //   Admin: Approve Venue Update
-        // ================================================================
-        public async Task<bool> ApproveVenueUpdateAsync(int updateRequestId, string adminId)
-        {
-            var updateRequest = await _unitOfWork.VenueUpdateRequests.GetByIdWithVenueAsync(updateRequestId);
-            if (updateRequest == null)
-                throw new NotFoundException("Không tìm thấy yêu cầu cập nhật.");
-
-            if (updateRequest.Status != "Pending")
-                throw new BadRequestException("Yêu cầu này đã được xử lý.");
-
-            var venue = updateRequest.Venue;
-
-            // Áp dụng thay đổi địa chỉ
-            if (updateRequest.NewProvinceId.HasValue) venue.ProvinceId = updateRequest.NewProvinceId.Value;
-            if (updateRequest.NewWardId.HasValue) venue.WardId = updateRequest.NewWardId.Value;
-            if (updateRequest.NewAddressDetail != null) venue.AddressDetail = updateRequest.NewAddressDetail;
-            if (updateRequest.NewLatitude.HasValue) venue.Latitude = updateRequest.NewLatitude.Value;
-            if (updateRequest.NewLongitude.HasValue) venue.Longitude = updateRequest.NewLongitude.Value;
-
-            // Áp dụng thay đổi giấy tờ
-            if (updateRequest.NewBusinessLicenseIssueDate.HasValue || updateRequest.NewBusinessLicenseExpiryDate.HasValue)
-            {
-                var bizDoc = venue.Documents.FirstOrDefault(d => d.DocumentType == DocumentType.BusinessLicense);
-                if (bizDoc != null)
-                {
-                    if (updateRequest.NewBusinessLicenseIssueDate.HasValue)
-                        bizDoc.IssueDate = updateRequest.NewBusinessLicenseIssueDate.Value;
-                    if (updateRequest.NewBusinessLicenseExpiryDate.HasValue)
-                        bizDoc.ExpiryDate = updateRequest.NewBusinessLicenseExpiryDate.Value;
-                }
-            }
-
-            venue.Status = VenueStatus.Active;
-            venue.UpdatedAt = DateTime.Now;
-
-            updateRequest.Status = "Approved";
-            updateRequest.ReviewedAt = DateTime.Now;
-            updateRequest.ReviewedByAdminId = adminId;
-
-            _unitOfWork.Venues.Update(venue);
-            _unitOfWork.VenueUpdateRequests.Update(updateRequest);
-            await _unitOfWork.SaveChangesAsync();
-
-            return true;
-        }
-
-        // ================================================================
-        //   Admin: Reject Venue Update
-        // ================================================================
-        public async Task<bool> RejectVenueUpdateAsync(int updateRequestId, string adminId, string adminNote)
-        {
-            var updateRequest = await _unitOfWork.VenueUpdateRequests.GetByIdWithVenueAsync(updateRequestId);
-            if (updateRequest == null)
-                throw new NotFoundException("Không tìm thấy yêu cầu cập nhật.");
-
-            if (updateRequest.Status != "Pending")
-                throw new BadRequestException("Yêu cầu này đã được xử lý.");
-
-            updateRequest.Status = "Rejected";
-            updateRequest.AdminNote = adminNote;
-            updateRequest.ReviewedAt = DateTime.Now;
-            updateRequest.ReviewedByAdminId = adminId;
-
-            _unitOfWork.VenueUpdateRequests.Update(updateRequest);
-            await _unitOfWork.SaveChangesAsync();
-
-            try
-            {
-                await _notificationService.NotifyVenueUpdateRejectedAsync(
-                    updateRequest.Venue.OwnerId,
-                    updateRequest.VenueId,
-                    updateRequest.Venue.Name,
-                    adminNote);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send venue update rejection notification for request {Id}", updateRequestId);
-            }
-
-            return true;
         }
 
         public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
@@ -1076,6 +952,96 @@ namespace Fiebo.Application.Services
             }).ToList();
 
             return result;
+        }
+
+        public async Task ResubmitVenueAsync(int venueId, string? ownerId, ResubmitVenueRequest request)
+        {
+            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsTrackedAsync(venueId);
+            if (venue == null)
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+
+            if (venue.OwnerId != ownerId)
+                throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
+
+            if (request.CloseTime <= request.OpenTime)
+                throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+
+
+            bool isHoursShortened = request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime;
+            if (isHoursShortened)
+            {
+                var hasConflict = await _unitOfWork.TimeSlots
+                    .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
+                if (hasConflict)
+                    throw new BadRequestException(
+                        "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
+            }
+
+            venue.Name = request.Name;
+            venue.Description = request.Description;
+            venue.OpenTime = request.OpenTime;
+            venue.CloseTime = request.CloseTime;
+            venue.ProvinceId = request.ProvinceId;
+            venue.WardId = request.WardId;
+            venue.Longitude = request.Longitude;
+            venue.Latitude = request.Latitude;
+            if (request.ThumbnailDeleted)
+            {
+                venue.ThumbnailUrl = null;
+            }
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                var fileList = new List<IFormFile> { request.ThumbnailImage };
+                ImageValidator.ValidateFiles(fileList, 1, 1);
+                var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+                venue.ThumbnailUrl = uploadResult.Url;
+            }
+            var document = (await _unitOfWork.VenueDocuments.FindAsync(v => v.VenueId == venueId)).FirstOrDefault()
+                ?? throw new NotFoundException("Không tìm thấy giấy tờ");
+
+            document.IssueDate = request.Document.IssueDate;
+            document.ExpiryDate = request.Document.ExpiryDate;
+
+            ImageValidator.ValidateFiles(request.Document.NewImages, 0, 5);
+
+            var images = (await _unitOfWork.VenueDocumentImages
+                .FindAsync(i => i.DocumentId == document.Id))
+                .ToList();
+
+            var deletedIds = request.Document.DeletedImageIds ?? new List<int>();
+            var newCount = request.Document.NewImages?.Count ?? 0;
+
+            var deleteimages = images
+                .Where(i => deletedIds.Contains(i.Id))
+                .ToList();
+
+            var actualDeletedCount = deleteimages.Count;
+
+            var finalImageCount = images.Count - actualDeletedCount + newCount;
+
+            if (finalImageCount > 5)
+            {
+                throw new BadRequestException("Số lượng hình ảnh không được vượt quá 5");
+            }
+
+            if (deleteimages.Any())
+            {
+                _unitOfWork.VenueDocumentImages.RemoveRange(deleteimages);
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            var newImages = await UploadDocumentImagesAsync(request?.Document.NewImages ?? new List<IFormFile>(), document.Id)
+                ?? [];
+
+            if (newImages.Any())
+            {
+                _unitOfWork.VenueDocumentImages.AddRange(newImages);
+            }
+            venue.Status = VenueStatus.Pending;
+            venue.UpdatedAt = DateTime.Now;
+            _unitOfWork.VenueDocuments.Update(document);
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }
