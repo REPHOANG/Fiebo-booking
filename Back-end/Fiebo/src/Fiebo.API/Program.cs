@@ -141,7 +141,6 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IPayoutBatchRepository, PayoutBatchRepository>();
 builder.Services.AddScoped<IPayoutDetailRepository, PayoutDetailRepository>();
 builder.Services.AddScoped<IBookingServiceItemRepository, BookingServiceItemRepository>();
-builder.Services.AddScoped<IVenueUpdateRequestRepository, VenueUpdateRequestRepository>();
 // Service layer
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
