@@ -207,7 +207,7 @@ const mergeServerRowsWithLocalDrafts = (serverRows, localRows) => {
 };
 
 /** Quản lý time slot theo loại sân (môn) — route `/owner/venues/:id/time-slot` */
-const OwnerTimeSlot = () => {
+const OwnerTimeSlot = ({ isStaff = false }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [sportTypes, setSportTypes] = useState([]);
@@ -1161,7 +1161,7 @@ const OwnerTimeSlot = () => {
 
   return (
     <div className="ots-page" ref={otsPageRef}>
-      <Link to={`/owner/venues/${id}`} className="ots-back-link">
+      <Link to={isStaff ? `/staff/venues/${id}` : `/owner/venues/${id}`} className="ots-back-link">
         <ArrowLeft size={16} /> Quay lại chi tiết cơ sở
       </Link>
 
@@ -1197,16 +1197,18 @@ const OwnerTimeSlot = () => {
             </div>
           ) : null}
         </div>
-        <div className="ots-top-actions">
-          <button
-            type="button"
-            className="ots-btn-save"
-            disabled={saveWeekDisabled}
-            onClick={saveWeekSlots}
-          >
-            {saving ? "Đang lưu…" : "LƯU CẢ TUẦN"}
-          </button>
-        </div>
+        {!isStaff && (
+          <div className="ots-top-actions">
+            <button
+              type="button"
+              className="ots-btn-save"
+              disabled={saveWeekDisabled}
+              onClick={saveWeekSlots}
+            >
+              {saving ? "Đang lưu…" : "LƯU CẢ TUẦN"}
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="ots-hero">
@@ -1311,64 +1313,70 @@ const OwnerTimeSlot = () => {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className="ots-apply-days"
-              disabled={applyPriceDisabled}
-              onClick={applyCurrentDayToAllOtherDays}
-            >
-              <Sparkles size={15} /> ÁP DỤNG GIÁ CHO CÁC NGÀY CÒN LẠI
-            </button>
+            {!isStaff && (
+              <button
+                type="button"
+                className="ots-apply-days"
+                disabled={applyPriceDisabled}
+                onClick={applyCurrentDayToAllOtherDays}
+              >
+                <Sparkles size={15} /> ÁP DỤNG GIÁ CHO CÁC NGÀY CÒN LẠI
+              </button>
+            )}
           </div>
 
           <div className="ots-slot-toolbar">
             <span className="ots-slot-toolbar-day">{weekDayLabels[activeDayIndex]}</span>
-            <label
-              className={`ots-slot-duration${canUseDurationTemplate ? "" : " is-disabled"}`}
-              title={
-                activeDayHasPersistedSlot
-                  ? "Ngày này đã có slot trên máy chủ, không đổi mẫu tạo khung giờ tự động."
-                  : "Chọn độ dài khung khi tạo mới"
-              }
-            >
-              Tạo khung theo:
-              <select
-                value={slotDuration}
-                disabled={!canUseDurationTemplate}
-                onChange={(e) => setSlotDuration(Number(e.target.value))}
-              >
-                <option value={30}>30 phút</option>
-                <option value={60}>1 giờ</option>
-                <option value={90}>1 giờ 30 phút</option>
-                <option value={120}>2 giờ</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              className="ots-auto-generate-btn"
-              disabled={!canUseDurationTemplate}
-              onClick={autoGenerateSlotsForActiveDay}
-              title={
-                activeDayHasPersistedSlot
-                  ? "Ngày này đã có slot trên máy chủ nên không tạo tự động."
-                  : activeDayHasDraftSlot
-                    ? "Xóa các slot nháp của ngày này và tạo lại theo mẫu đã chọn"
-                    : "Tạo tự động từ giờ mở đến giờ đóng"
-              }
-            >
-              <Calendar size={14} /> {activeDayHasDraftSlot ? "Tạo lại theo mẫu" : "Tạo tự động cả ngày"}
-            </button>
-            {activeDayHasDraftSlot ? (
-              <button
-                type="button"
-                className="ots-reset-draft-btn"
-                disabled={!canUseDurationTemplate}
-                onClick={replaceDraftSlotsForActiveDay}
-                title="Xóa toàn bộ slot nháp của ngày đang chọn để chọn mẫu khác hoặc thêm tay"
-              >
-                Xóa khung nháp
-              </button>
-            ) : null}
+            {!isStaff && (
+              <>
+                <label
+                  className={`ots-slot-duration${canUseDurationTemplate ? "" : " is-disabled"}`}
+                  title={
+                    activeDayHasPersistedSlot
+                      ? "Ngày này đã có slot trên máy chủ, không đổi mẫu tạo khung giờ tự động."
+                      : "Chọn độ dài khung khi tạo mới"
+                  }
+                >
+                  Tạo khung theo:
+                  <select
+                    value={slotDuration}
+                    disabled={!canUseDurationTemplate}
+                    onChange={(e) => setSlotDuration(Number(e.target.value))}
+                  >
+                    <option value={30}>30 phút</option>
+                    <option value={60}>1 giờ</option>
+                    <option value={90}>1 giờ 30 phút</option>
+                    <option value={120}>2 giờ</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="ots-auto-generate-btn"
+                  disabled={!canUseDurationTemplate}
+                  onClick={autoGenerateSlotsForActiveDay}
+                  title={
+                    activeDayHasPersistedSlot
+                      ? "Ngày này đã có slot trên máy chủ nên không tạo tự động."
+                      : activeDayHasDraftSlot
+                        ? "Xóa các slot nháp của ngày này và tạo lại theo mẫu đã chọn"
+                        : "Tạo tự động từ giờ mở đến giờ đóng"
+                  }
+                >
+                  <Calendar size={14} /> {activeDayHasDraftSlot ? "Tạo lại theo mẫu" : "Tạo tự động cả ngày"}
+                </button>
+                {activeDayHasDraftSlot ? (
+                  <button
+                    type="button"
+                    className="ots-reset-draft-btn"
+                    disabled={!canUseDurationTemplate}
+                    onClick={replaceDraftSlotsForActiveDay}
+                    title="Xóa toàn bộ slot nháp của ngày đang chọn để chọn mẫu khác hoặc thêm tay"
+                  >
+                    Xóa khung nháp
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
 
           {loadingSlots ? (
@@ -1399,7 +1407,7 @@ const OwnerTimeSlot = () => {
               <div className="ots-table-head">
                 <span>KHUNG GIỜ</span>
                 <span>GIÁ NIÊM YẾT (đ)</span>
-                <span className="ots-table-head-actions">THAO TÁC</span>
+                {!isStaff && <span className="ots-table-head-actions">THAO TÁC</span>}
               </div>
               <div className="ots-slot-rows">
                 {rowsForActiveDay.map(({ row, idx: originalIdx }, visIdx) => {
@@ -1409,8 +1417,9 @@ const OwnerTimeSlot = () => {
                     timeToMinutes(venueCloseTime ? formatTime(venueCloseTime) : null) ?? 23 * 60;
                   const hasOverlap = (startM, endM) =>
                     activeDayTimeRanges.some((r) => startM < r.end && endM > r.start);
-                  const renderInsertOptions = (startMin, keySeed) => {
-                    if (startMin == null || !Number.isFinite(startMin)) return null;
+                    const renderInsertOptions = (startMin, keySeed) => {
+                      if (isStaff) return null;
+                      if (startMin == null || !Number.isFinite(startMin)) return null;
                     const options = INSERT_DURATION_OPTIONS
                       .map((duration) => {
                         const endMin = startMin + duration;
@@ -1473,7 +1482,7 @@ const OwnerTimeSlot = () => {
                   const persistedSlotId = row.slotIds?.[activeDayKey];
                   const hasPersistedSlot =
                     persistedSlotId != null && String(persistedSlotId).trim() !== "";
-                  const rowInputsLocked = saving || (hasPersistedSlot && editingRowIdx !== originalIdx);
+                  const rowInputsLocked = isStaff || saving || (hasPersistedSlot && editingRowIdx !== originalIdx);
                   return (
                     <React.Fragment key={`${activeDayKey}-${row.id ?? originalIdx}-${originalIdx}`}>
                       {insertBefore}
@@ -1583,61 +1592,63 @@ const OwnerTimeSlot = () => {
                           <span className="ots-price-suffix">đ</span>
                         </div>
                       </div>
-                      <div className="ots-slot-col ots-slot-col--actions">
-                        <div className="ots-row-actions">
-                          {hasPersistedSlot ? (
-                            editingRowIdx === originalIdx ? (
-                              <>
+                      {!isStaff && (
+                        <div className="ots-slot-col ots-slot-col--actions">
+                          <div className="ots-row-actions">
+                            {hasPersistedSlot ? (
+                              editingRowIdx === originalIdx ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="ots-row-text-btn ots-row-text-btn--save"
+                                    disabled={saving || Boolean(rowValidation?.messages?.length)}
+                                    onClick={() => saveSingleRow(originalIdx)}
+                                  >
+                                    Lưu
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="ots-row-text-btn ots-row-text-btn--ghost"
+                                    disabled={saving}
+                                    onClick={cancelRowEdit}
+                                  >
+                                    Hủy
+                                  </button>
+                                </>
+                              ) : (
                                 <button
                                   type="button"
-                                  className="ots-row-text-btn ots-row-text-btn--save"
-                                  disabled={saving || Boolean(rowValidation?.messages?.length)}
-                                  onClick={() => saveSingleRow(originalIdx)}
-                                >
-                                  Lưu
-                                </button>
-                                <button
-                                  type="button"
-                                  className="ots-row-text-btn ots-row-text-btn--ghost"
+                                  className="ots-edit-btn"
                                   disabled={saving}
-                                  onClick={cancelRowEdit}
+                                  title="Chỉnh khung giờ rồi bấm Lưu (PUT /api/owner/time-slots/{id})"
+                                  onClick={() => beginEditRow(originalIdx)}
                                 >
-                                  Hủy
+                                  <Pencil size={17} strokeWidth={2.2} />
                                 </button>
-                              </>
+                              )
                             ) : (
                               <button
                                 type="button"
-                                className="ots-edit-btn"
-                                disabled={saving}
-                                title="Chỉnh khung giờ rồi bấm Lưu (PUT /api/owner/time-slots/{id})"
-                                onClick={() => beginEditRow(originalIdx)}
+                                className="ots-row-text-btn ots-row-text-btn--save"
+                                disabled={saving || Boolean(rowValidation?.messages?.length)}
+                                title="Tạo slot cho ngày này trên máy chủ"
+                                onClick={() => saveSingleRow(originalIdx)}
                               >
-                                <Pencil size={17} strokeWidth={2.2} />
+                                Lưu dòng
                               </button>
-                            )
-                          ) : (
+                            )}
                             <button
                               type="button"
-                              className="ots-row-text-btn ots-row-text-btn--save"
-                              disabled={saving || Boolean(rowValidation?.messages?.length)}
-                              title="Tạo slot cho ngày này trên máy chủ"
-                              onClick={() => saveSingleRow(originalIdx)}
+                              className="ots-del-btn"
+                              disabled={saving}
+                              title={`Xóa slot ngày ${weekDayLabels[activeDayIndex]} (một slot id)`}
+                              onClick={() => removeRow(originalIdx)}
                             >
-                              Lưu dòng
+                              <Trash2 size={18} />
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            className="ots-del-btn"
-                            disabled={saving}
-                            title={`Xóa slot ngày ${weekDayLabels[activeDayIndex]} (một slot id)`}
-                            onClick={() => removeRow(originalIdx)}
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       {rowValidation?.messages?.length ? (
                         <div className="ots-slot-errors" role="alert">
                           {rowValidation.messages.map((message) => (
@@ -1655,47 +1666,51 @@ const OwnerTimeSlot = () => {
                 </>
               ) : null}
 
-              <div className="ots-add-row">
-                <button
-                  type="button"
-                  disabled={saving || !sportTypeId}
-                  onClick={() => {
-                    const step = MANUAL_INSERT_STEP_MINUTES;
-                    const visibleEnds = rowsForActiveDay.map(({ row }) => timeToMinutes(row.end) ?? 0);
-                    const lastInDay =
-                      rowsForActiveDay.length > 0
-                        ? Math.max(...visibleEnds)
-                        : null;
-                    const fallbackStart = venueOpenTime ? formatTime(venueOpenTime) : "06:00";
-                    const baseMin =
-                      lastInDay != null && Number.isFinite(lastInDay)
-                        ? lastInDay
-                        : (timeToMinutes(fallbackStart) ?? 360);
-                    const nextStartMin = baseMin;
-                    const nextEndMin = nextStartMin + step;
-                    const start = minutesToHHMM(nextStartMin);
-                    const end = minutesToHHMM(nextEndMin);
-                    addSlotForActiveDay(start, end);
-                  }}
-                >
-                  <Plus size={16} />{" "}
-                  {`Thêm khung (30p · chỉ ${weekDayLabels[activeDayIndex]})`}
-                </button>
-              </div>
+              {!isStaff && (
+                <div className="ots-add-row">
+                  <button
+                    type="button"
+                    disabled={saving || !sportTypeId}
+                    onClick={() => {
+                      const step = MANUAL_INSERT_STEP_MINUTES;
+                      const visibleEnds = rowsForActiveDay.map(({ row }) => timeToMinutes(row.end) ?? 0);
+                      const lastInDay =
+                        rowsForActiveDay.length > 0
+                          ? Math.max(...visibleEnds)
+                          : null;
+                      const fallbackStart = venueOpenTime ? formatTime(venueOpenTime) : "06:00";
+                      const baseMin =
+                        lastInDay != null && Number.isFinite(lastInDay)
+                          ? lastInDay
+                          : (timeToMinutes(fallbackStart) ?? 360);
+                      const nextStartMin = baseMin;
+                      const nextEndMin = nextStartMin + step;
+                      const start = minutesToHHMM(nextStartMin);
+                      const end = minutesToHHMM(nextEndMin);
+                      addSlotForActiveDay(start, end);
+                    }}
+                  >
+                    <Plus size={16} />{" "}
+                    {`Thêm khung (30p · chỉ ${weekDayLabels[activeDayIndex]})`}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </section>
       </div>
 
-      <button
-        type="button"
-        className="ots-fab"
-        disabled={saveDisabled}
-        title={`Lưu khung giờ — chỉ ${weekDayLabels[activeDayIndex]}`}
-        onClick={() => saveSlots()}
-      >
-        <Save size={22} strokeWidth={2.2} />
-      </button>
+      {!isStaff && (
+        <button
+          type="button"
+          className="ots-fab"
+          disabled={saveDisabled}
+          title={`Lưu khung giờ — chỉ ${weekDayLabels[activeDayIndex]}`}
+          onClick={() => saveSlots()}
+        >
+          <Save size={22} strokeWidth={2.2} />
+        </button>
+      )}
     </div>
   );
 };

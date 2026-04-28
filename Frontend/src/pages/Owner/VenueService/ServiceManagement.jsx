@@ -40,7 +40,7 @@ import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 
 const toastId = "service-toast";
-export default function ServiceManagement() {
+export default function ServiceManagement({ isStaff = false }) {
   const { venueId } = useParams();
   const queryClient = useQueryClient();
 
@@ -194,24 +194,26 @@ export default function ServiceManagement() {
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddClick}
-              sx={{
-                backgroundColor: "white",
-                color: "#16a34a",
-                fontWeight: 600,
-                px: 3,
-                "&:hover": {
-                  backgroundColor: "#f0fdf4",
-                },
-                borderRadius: 50,
-                textTransform: "none",
-              }}
-            >
-              Thêm dịch vụ
-            </Button>
+            {!isStaff && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddClick}
+                sx={{
+                  backgroundColor: "white",
+                  color: "#16a34a",
+                  fontWeight: 600,
+                  px: 3,
+                  "&:hover": {
+                    backgroundColor: "#f0fdf4",
+                  },
+                  borderRadius: 50,
+                  textTransform: "none",
+                }}
+              >
+                Thêm dịch vụ
+              </Button>
+            )}
           </Box>
         </Paper>
 
@@ -259,12 +261,14 @@ export default function ServiceManagement() {
                   >
                     Giá
                   </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: 600, color: "#475569", width: 100 }}
-                    align="center"
-                  >
-                    Thao tác
-                  </TableCell>
+                    {!isStaff && (
+                      <TableCell
+                        sx={{ fontWeight: 600, color: "#475569", width: 100 }}
+                        align="center"
+                      >
+                        Thao tác
+                      </TableCell>
+                    )}
                 </TableRow>
               </TableHead>
 
@@ -320,35 +324,37 @@ export default function ServiceManagement() {
                         </Typography>
                       </TableCell>
 
-                      <TableCell align="center">
-                        <Box display="flex" justifyContent="center" gap={0.5}>
-                          <Tooltip title="Chỉnh sửa">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(service)}
-                              sx={{
-                                color: "#0ea5e9",
-                                "&:hover": { backgroundColor: "#e0f2fe" },
-                              }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                      {!isStaff && (
+                        <TableCell align="center">
+                          <Box display="flex" justifyContent="center" gap={0.5}>
+                            <Tooltip title="Chỉnh sửa">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditClick(service)}
+                                sx={{
+                                  color: "#0ea5e9",
+                                  "&:hover": { backgroundColor: "#e0f2fe" },
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
 
-                          <Tooltip title="Xóa">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(service)}
-                              sx={{
-                                color: "#ef4444",
-                                "&:hover": { backgroundColor: "#fee2e2" },
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
+                            <Tooltip title="Xóa">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteClick(service)}
+                                sx={{
+                                  color: "#ef4444",
+                                  "&:hover": { backgroundColor: "#fee2e2" },
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
