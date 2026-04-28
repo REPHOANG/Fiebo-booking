@@ -65,7 +65,7 @@
 
 .menu-desktop {
   display: grid;
-  grid-template-columns: repeat(6, 0.8fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0;
   width: auto;
 }
@@ -83,7 +83,7 @@
   justify-content: center;
   height: 70px;
   text-align: center;
-  border-left:2px solid rgba(6, 10, 19, 0.04);
+  border-left:1px solid rgba(6, 10, 19, 0.04);
 }
 
 .menu-desktop a::after {
@@ -98,38 +98,6 @@
   transform: translateX(-50%);
   pointer-events: none;
 }
-.become-owner-nav-btn {
-  border: none;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.03);
-  border-left: 1px solid rgba(33, 149, 76, 0.1);
-  font-weight: 600;
-  transition: background-color 0.25s ease, transform 0.25s ease;
-}
-
-.become-owner-nav-btn:hover {
-  background: rgba(33, 149, 76, 0.1);
-  transform: translateY(-1px);
-}
-.become-owner-nav-btn::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 0;
-  height: 2px;
-  background: #111;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.become-owner-nav-btn:hover::after,
-.become-owner-nav-btn.active::after {
-  width: 60%;
-  
-}
-
 
 .menu-desktop a:hover::after,
 .menu-desktop a.active::after {

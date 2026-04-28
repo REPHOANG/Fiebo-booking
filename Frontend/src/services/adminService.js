@@ -39,6 +39,7 @@ const normalizeVenueDetail = (payload) => {
     businessLicense: normalizeVenueDocument(data.businessLicense),
     landUseDocument: normalizeVenueDocument(data.landUseDocument),
     thumbnailUrl: data?.thumbnailUrl ?? "",
+    status: data?.status ?? "",
   };
 };
 

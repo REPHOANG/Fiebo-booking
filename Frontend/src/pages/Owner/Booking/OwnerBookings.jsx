@@ -606,7 +606,7 @@ const OwnerBookings = ({
                     </div>
 
                     <div className="ob-item-actions">
-                      {!isStaff && String(status || "").toLowerCase() === "pending" && (
+                      {String(status || "").toLowerCase() === "pending" && (
                         <>
                           <button
                             type="button"
@@ -624,7 +624,7 @@ const OwnerBookings = ({
                           </button>
                         </>
                       )}
-                      {!isStaff && String(status || "").toLowerCase() === "booked" && (
+                      {String(status || "").toLowerCase() === "booked" && (
                         <button
                           type="button"
                           className="ob-action-btn ob-btn-reject"
