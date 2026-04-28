@@ -229,7 +229,6 @@ const OwnerBookingDetail = ({
                 <button
                   type="button"
                   className="obd-cancel-btn"
-                  onClick={openCancelModal}
                   disabled={cancelling}
                 >
                   Hủy đặt sân
@@ -308,7 +307,6 @@ const OwnerBookingDetail = ({
           }}
           errorMessage={cancelReasonError}
           isSubmitting={cancelling}
-          onClose={closeCancelModal}
           onConfirm={handleConfirmCancel}
           cancelText="Hủy"
           confirmText="Xác nhận"
