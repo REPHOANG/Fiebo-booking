@@ -41,6 +41,7 @@ export default function GiveRating({ open, handleClose, bookingId  }) {
     mutationFn: giveRatingApi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookingHistory"] });
+      
       toast.success("Gửi đánh giá thành công!");
       setRating(0);
       setImages([]);

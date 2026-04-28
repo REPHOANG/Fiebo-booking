@@ -184,7 +184,6 @@ const FinanceAdminTransactions = () => {
                       />
                       <div className="user-info-text">
                         <span className="name">{item.fullname}</span>
-                        <span className="sub">{item.email || 'Hệ thống'}</span>
                       </div>
                     </div>
                   </td>

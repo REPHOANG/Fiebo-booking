@@ -644,7 +644,7 @@ namespace Fiebo.Application.Services
                     BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.WalkIn,
-                    Status = BookingStatus.Pending // WalkIn cũng cần chủ sân confirm
+                    Status = BookingStatus.Booked 
                 };
 
                 _unitOfWork.Bookings.Add(booking);
