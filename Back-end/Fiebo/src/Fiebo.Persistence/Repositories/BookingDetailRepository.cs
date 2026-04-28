@@ -113,7 +113,10 @@ namespace Fiebo.Persistence.Repositories
                     slotIds.Contains(bd.SlotId) &&
                     fieldIds.Contains(bd.FieldId) &&
                     bd.Booking.BookingDate == bookingDate &&
-                    (bd.Booking.Status == BookingStatus.Booked || bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Holding)
+                    (bd.Booking.Status == BookingStatus.Booked 
+                    || bd.Booking.Status == BookingStatus.Pending 
+                    || bd.Booking.Status == BookingStatus.Holding
+                    || bd.Booking.Status == BookingStatus.Completed)
                 )
                 .Select(bd => new ValueTuple<int, int>(bd.SlotId, bd.FieldId))
                 .Distinct()
