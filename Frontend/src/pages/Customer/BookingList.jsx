@@ -1154,9 +1154,9 @@ const BookingList = () => {
                             Thanh toán
                           </button>
                         )}
-                        {["joined", "pending"].includes(
+                        {(["joined"].includes(
                           String(ev.participantStatus || "").toLowerCase(),
-                        ) && (
+                        ) && (ev.eventStatus.toLowerCase() === "pending")) && (
                           <button
                             type="button"
                             className="bl-btn danger bl-btn-sm"

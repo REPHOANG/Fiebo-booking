@@ -5,20 +5,13 @@ import "../financeAdminPages.css";
 import { 
   User, 
   CreditCard, 
-  MapPin, 
   CheckCircle2, 
   ArrowLeft, 
-  Printer, 
-  ExternalLink, 
   Mail, 
   Phone, 
   Building2, 
-  Pencil, 
-  AlertTriangle,
   ArrowUpRight,
   ArrowDownLeft,
-  Clock,
-  Eye
 } from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
@@ -117,7 +110,7 @@ const FinanceAdminTransactionDetail = () => {
       <div className="payout-detail-container">
         <h2 className="finance-admin-title">Lỗi</h2>
         <p style={{ color: "#dc2626" }}>{error || "Không tìm thấy giao dịch."}</p>
-        <Link to="/finance-admin/transactions" className="btn-premium outline" style={{ marginTop: 20, display: "inline-flex" }}>
+        <Link to="/finance/transactions" className="btn-premium outline" style={{ marginTop: 20, display: "inline-flex" }}>
           <ArrowLeft size={18} /> Quay lại
         </Link>
       </div>
@@ -131,21 +124,12 @@ const FinanceAdminTransactionDetail = () => {
       {/* Header Section */}
       <header className="payout-header-section">
         <div className="header-left-group">
-          <Link to="/finance-admin/transactions" className="back-btn-circle">
+          <Link to="/finance/transactions" className="back-btn-circle">
             <ArrowLeft size={20} />
           </Link>
           <div className="header-title-area">
             <h2>Chi tiết giao dịch #{transaction.id}</h2>
-            <p>Quản lý và xem xét thông tin giao dịch tài chính</p>
           </div>
-        </div>
-        <div className="header-actions">
-          <button className="btn-premium outline">
-            In hóa đơn
-          </button>
-          <Link to="/finance-admin/transactions" className="btn-premium primary">
-            Back to list
-          </Link>
         </div>
       </header>
 
@@ -185,7 +169,7 @@ const FinanceAdminTransactionDetail = () => {
             </div>
             <div className="detail-item">
               <div className="label">Mã tham chiếu</div>
-              <div className="value" style={{ color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', display: 'inline-block' }}>
+              <div className="value" style={{ color: '#64748b',  padding: '2px 8px', borderRadius: '4px', display: 'inline-block' }}>
                 #{transaction.referenceId || transaction.id}
               </div>
             </div>
@@ -209,7 +193,6 @@ const FinanceAdminTransactionDetail = () => {
           <div className="premium-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ margin: 0 }}>Thông tin người nhận</h3>
-              <span className="verified-tag">Verified Destination</span>
             </div>
 
             <div className="user-profile-header">
@@ -220,7 +203,6 @@ const FinanceAdminTransactionDetail = () => {
               />
               <div className="user-name-id">
                 <h4>{transaction.fullname || "Hoàng Công Đạo"}</h4>
-                <p>ID: {transaction.userId ? `USR-${transaction.userId}` : "USR-998234"}</p>
               </div>
             </div>
 
@@ -240,10 +222,6 @@ const FinanceAdminTransactionDetail = () => {
                 </div>
               </div>
             </div>
-
-            <Link to="#" className="history-link">
-              View recipient's transaction history <ExternalLink size={14} />
-            </Link>
           </div>
 
           {/* Bank Information */}
@@ -280,7 +258,6 @@ const FinanceAdminTransactionDetail = () => {
                 </div>
                 <h5>Chưa cập nhật tài khoản</h5>
                 <p>Người dùng này chưa liên kết tài khoản ngân hàng chính thức.</p>
-                <button className="add-manual-btn">+ Thêm thủ công</button>
               </div>
             )}
           </div>

@@ -133,12 +133,12 @@ const FinanceAdminTransactions = () => {
         
         <select className="select-premium" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }}>
           <option value="">Tất cả loại</option>
-          <option value="Deposit">Nạp tiền</option>
-          <option value="Withdrawal">Rút tiền</option>
+          <option value="TopUp">Nạp tiền</option>
+          <option value="Withdraw">Rút tiền</option>
           <option value="Subscription">Gói đăng ký</option>
           <option value="Booking">Đặt sân</option>
           <option value="Refund">Hoàn tiền</option>
-          <option value="Payout">Thanh toán</option>
+          <option value="EventBooking">Mua vé sự kiện</option>
         </select>
 
         <select className="select-premium" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
@@ -184,7 +184,6 @@ const FinanceAdminTransactions = () => {
                       />
                       <div className="user-info-text">
                         <span className="name">{item.fullname}</span>
-                        <span className="sub">{item.email || 'Hệ thống'}</span>
                       </div>
                     </div>
                   </td>

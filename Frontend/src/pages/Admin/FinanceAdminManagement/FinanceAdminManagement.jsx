@@ -9,15 +9,10 @@ import {
 } from "@mui/material";
 import { 
   Plus, 
-  Search, 
-  Filter, 
-  Download, 
   Pencil, 
-  ArrowRight,
   ChevronLeft,
   ChevronRight,
   UserPlus,
-  X,
   Key,
   Copy,
   Users
@@ -26,8 +21,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import CreateFinanceAdminForm from "./CreateFinanceAdminForm";
 import { createFinanceAdmin, getFinanceAdmins, resetFinanceAdminPassword } from "../../../services/adminService";
-import { formatDateTime } from "../../../utils/helperFunction";
+import {  formatDateTime } from "../../../utils/helperFunction";
 import "./FinanceAdminManagement.css";
+import ErrorPage from "../../../components/ui/Error/ErrorPage";
 
 const AVATAR_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#8b5cf6"];
 
@@ -66,8 +62,8 @@ const FinanceAdminManagement = () => {
       return (Array.isArray(list) ? list : []).map((item) => ({
         id: item?.id ?? item?.Id ?? "",
         name: item?.fullName || item?.FullName || "Chưa có tên",
-        email: item?.username || item?.Username || "-",
-        createdAt: item?.createdAt || new Date().toISOString(),
+        email: item?.email ||  "-",
+        createdAt: item?.createdAt || "-",
         status: String(item?.status || item?.Status || "").toLowerCase() === "active" ? "active" : "inactive",
       }));
     },
@@ -124,6 +120,9 @@ const FinanceAdminManagement = () => {
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
 
+  if(isError){
+    return (<ErrorPage/>);
+  }
   return (
     <div className="finance-admin-container">
       {/* Header Section */}
@@ -214,13 +213,13 @@ const FinanceAdminManagement = () => {
                   </div>
 
                   <div className="staff-details">
-                    <div className="detail-row">
+                    <div className="detail-row" style={{backgroundColor:"none"}}>
                       <label>Mã nhân viên</label>
-                      <span>#STF-{String(item.id).slice(-4).toUpperCase()}</span>
+                      <span>{item.id}</span>
                     </div>
                     <div className="detail-row">
                       <label>Ngày tạo</label>
-                      <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <span>{formatDateTime(item.createdAt)}</span>
                     </div>
                     <div className="detail-row">
                       <label>Trạng thái</label>
@@ -231,7 +230,6 @@ const FinanceAdminManagement = () => {
                   </div>
 
                   <div className="staff-card__actions">
-                    <button className="btn-view-profile">Xem hồ sơ</button>
                     <button 
                       className="btn-edit-icon" 
                       title="Reset mật khẩu"
@@ -243,9 +241,6 @@ const FinanceAdminManagement = () => {
                       ) : (
                         <Key size={16} />
                       )}
-                    </button>
-                    <button className="btn-edit-icon" title="Chỉnh sửa">
-                      <Pencil size={16} />
                     </button>
                   </div>
                 </div>
@@ -312,7 +307,7 @@ const FinanceAdminManagement = () => {
         onClose={() => setResetPasswordResult(null)}
         PaperProps={{ sx: { borderRadius: 4, p: 2 } }}
       >
-        <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', color: '#1e293b' }}>
+        <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', color: '#1e293b', fontFamily:"Be Vietnam Pro" }}>
           Mật khẩu mới đã được tạo
         </DialogTitle>
         <DialogContent sx={{ textAlign: 'center' }}>

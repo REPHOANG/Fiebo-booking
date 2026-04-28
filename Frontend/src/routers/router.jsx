@@ -210,7 +210,6 @@ const routes = [
       { path: "reports", element: <AdminReports /> },
       { path: "customers", element: <AdminCustomers /> },
       { path: "venues", element: <AdminVenueModeration /> },
-      { path: "venue/:id", element: <VenueDetailPage /> },
       { path: "venue-registrations/:id", element: <VenueDetailPage /> },
       { path: "owners", element: <AdminOwners /> },
       { path: "owners/:id", element: <AdminOwnerDetail /> },

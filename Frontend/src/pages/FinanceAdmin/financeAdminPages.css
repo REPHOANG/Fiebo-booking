@@ -339,7 +339,6 @@
   display: flex;
   flex-direction: column;
   padding: 24px;
-  background-color: #f8fafc;
   min-height: 100vh;
 }
 
@@ -981,8 +980,6 @@
 }
 
 .pagination-btn {
-  width: 36px;
-  height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
