@@ -120,6 +120,22 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
   form.append('OpenTime', payload?.openTime ?? '');
   form.append('CloseTime', payload?.closeTime ?? '');
   
+  if (payload?.addressDetail != null) {
+    form.append('AddressDetail', String(payload.addressDetail).trim());
+  }
+  if (payload?.provinceId != null) {
+    form.append('ProvinceId', String(payload.provinceId));
+  }
+  if (payload?.wardId != null) {
+    form.append('WardId', String(payload.wardId));
+  }
+  if (payload?.latitude != null) {
+    form.append('Latitude', String(payload.latitude));
+  }
+  if (payload?.longitude != null) {
+    form.append('Longitude', String(payload.longitude));
+  }
+
   if (payload?.thumbnailFile) {
     form.append('ThumbnailImage', payload.thumbnailFile);
   }

@@ -519,6 +519,17 @@
   transform: translateY(-1px);
 }
 
+.ov-btn--primary {
+  background: #139a44;
+  border-color: #139a44;
+  color: #fff;
+}
+
+.ov-btn--primary:hover {
+  background: #0f7c36;
+  transform: translateY(-1px);
+}
+
 .ov-btn--danger {
   background: #fff;
   border-color: rgba(239, 68, 68, 0.45);

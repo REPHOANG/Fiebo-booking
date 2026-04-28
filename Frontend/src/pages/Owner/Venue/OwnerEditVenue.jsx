@@ -513,7 +513,7 @@ const OwnerEditVenue = () => {
           description: draft?.description ?? draft?.Description ?? "",
           openTime: toInputTime(draft?.openTime ?? draft?.OpenTime ?? ""),
           closeTime: toInputTime(draft?.closeTime ?? draft?.CloseTime ?? ""),
-          thumbnailUrl,
+          thumbnailUrl: draft?.thumbnailUrl ?? draft?.ThumbnailUrl ?? draft?.thumbnailImage ?? draft?.ThumbnailImage ?? "",
           thumbnailFile: null,
         };
 
