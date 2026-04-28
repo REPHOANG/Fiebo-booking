@@ -30,13 +30,13 @@ namespace Fiebo.Persistence.BackgroundJobs
             var active = (int)OwnerPlanStatus.Active;   // = 1
 
             await _context.Database.ExecuteSqlRawAsync(@"
-            UPDATE OwnerPlans
-            SET Status = @expired
-            WHERE EndDate < UTC_TIMESTAMP()
-              AND Status = @active
-        ",
-            new MySqlParameter("@expired", expired),
-            new MySqlParameter("@active", active));
+    UPDATE OwnerPlans
+    SET Status = @expired
+    WHERE EndDate < UTC_DATE()
+      AND Status = @active
+",
+new MySqlParameter("@expired", expired),
+new MySqlParameter("@active", active));
         }
     }
 }

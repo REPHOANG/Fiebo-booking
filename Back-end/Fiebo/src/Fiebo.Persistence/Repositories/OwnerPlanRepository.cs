@@ -36,17 +36,20 @@ namespace Fiebo.Persistence.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> HasActivePlanAsync(string userId, string role)
+        public async Task<string> HasActivePlanAsync(string userId, string role)
         {
-            var now = DateTime.Now;
+            var today = DateTime.Now.Date;
 
             if (role == AppRoles.FieldOwner)
             {
-                return await _context.OwnerPlans
-                    .AnyAsync(op =>
-                        op.OwnerId == userId &&
-                        op.Status == OwnerPlanStatus.Active &&
-                        op.EndDate > now);
+                var plan = await _context.OwnerPlans
+                    .Where(op =>
+                        op.OwnerId == userId).FirstOrDefaultAsync();
+                if(plan == null)
+                {
+                    return OwnerPlanStatus.Inactive.ToString();
+                }
+                return (plan.Status == OwnerPlanStatus.Active && plan.EndDate.Date > today) ? OwnerPlanStatus.Active.ToString() : OwnerPlanStatus.Expired.ToString();
             }
 
             if (role == AppRoles.FieldStaff)
@@ -58,16 +61,19 @@ namespace Fiebo.Persistence.Repositories
                     select v.OwnerId
                 ).FirstOrDefaultAsync();
 
-                if (ownerId == null) return false;
+                if (ownerId == null) return OwnerPlanStatus.Inactive.ToString();
 
-                return await _context.OwnerPlans
-                    .AnyAsync(op =>
-                        op.OwnerId == ownerId &&
-                        op.Status == OwnerPlanStatus.Active &&
-                        op.EndDate > now);
+                var plan = await _context.OwnerPlans
+                    .Where(op =>
+                        op.OwnerId == userId).FirstOrDefaultAsync();
+                if (plan == null)
+                {
+                    return OwnerPlanStatus.Inactive.ToString();
+                }
+                return (plan.Status == OwnerPlanStatus.Active && plan.EndDate.Date > today) ? OwnerPlanStatus.Active.ToString() : OwnerPlanStatus.Expired.ToString();
             }
 
-            return false;
+            return OwnerPlanStatus.Inactive.ToString();
         }
     }
 }

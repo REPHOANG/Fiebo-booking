@@ -81,9 +81,11 @@ namespace Fiebo.API.Authorization
             }
 
             var ownerPlan = await _ownerPlanRepository.GetCurrentActiveByOwnerIdAsync(ownerId);
+            var today = DateTime.Now.Date;
+
             var isActive = ownerPlan != null
                 && ownerPlan.Status == OwnerPlanStatus.Active
-                && ownerPlan.EndDate >= DateTime.Now;
+                && ownerPlan.EndDate.Date >= today;
 
             if (!isActive)
             {

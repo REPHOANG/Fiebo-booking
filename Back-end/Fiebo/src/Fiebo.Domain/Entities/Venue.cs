@@ -42,6 +42,5 @@ namespace Fiebo.Domain.Entities
         public ICollection<VenueStaff> VenueStaffs { get; set; } = [];
         public ICollection<VenueDocument> Documents { get; set; } = [];
         public ICollection<VenueServiceItem> VenueServiceItems { get; set; } = [];
-        public ICollection<VenueUpdateRequest> VenueUpdateRequests { get; set; } = [];
     }
 }

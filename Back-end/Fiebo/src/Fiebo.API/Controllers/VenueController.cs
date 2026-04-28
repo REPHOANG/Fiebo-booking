@@ -697,5 +697,18 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
+
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPut("/api/owner/venues/{venueId}/re-submit")]
+        public async Task<IActionResult> ResubmitVenue([FromRoute] int venueId, [FromForm] ResubmitVenueRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            await _venueService.ResubmitVenueAsync(venueId, ownerId, request);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Nộp lại duyệt sân thành công."
+            });
+        }
     }
 }

@@ -277,7 +277,7 @@ namespace Fiebo.Application.Services
                 _logger.LogWarning("Get user profile failed - user not found: {UserId}", userId);
                 throw new NotFoundException("Không có dữ liệu hợp lệ.");
             }
-            bool? hasSubscription = null;
+            string? hasSubscription = null;
             bool? hasBankAccount = null;
             if (result.Roles == AppRoles.FieldOwner || result.Roles == AppRoles.FieldStaff)
             {

@@ -9,6 +9,7 @@ namespace Fiebo.Domain.Enums
     public enum OwnerPlanStatus
     {
         Active = 1,
-        Expired = 0
+        Expired = 0,
+        Inactive = -1
     }
 }

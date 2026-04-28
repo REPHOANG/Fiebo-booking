@@ -11,19 +11,6 @@ namespace Fiebo.Application.DTOs.Field
 
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Địa chỉ cụ thể là bắt buộc.")]
-        public string AddressDetail { get; set; } = null!;
-
-        [Required(ErrorMessage = "Tỉnh/Thành phố là bắt buộc.")]
-        public int ProvinceId { get; set; }
-
-        [Required(ErrorMessage = "Phường/Xã là bắt buộc.")]
-        public int WardId { get; set; }
-
-        public double Longitude { get; set; }
-
-        public double Latitude { get; set; }
-
         [Required(ErrorMessage = "Giờ mở cửa là bắt buộc.")]
         public TimeOnly OpenTime { get; set; }
 
@@ -32,6 +19,5 @@ namespace Fiebo.Application.DTOs.Field
 
         public IFormFile? ThumbnailImage { get; set; }
 
-        public Fiebo.Application.DTOs.Venue.UpdateVenueDocumentDto? BusinessDocument { get; set; }
     }
 }
