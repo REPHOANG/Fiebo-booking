@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress, Pagination, Typography } from "@mui/material";
+import { Box, CircularProgress, Pagination } from "@mui/material";
 import { Select as AntdSelect } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import {
   Search,
-  Filter,
   Download,
-  MoreHorizontal,
   User,
   UserX,
   ChevronDown,
@@ -110,15 +108,17 @@ const AdminCustomers = () => {
   };
 
   const getStatusClass = (status) => {
-    if (status === "active") return "active";
-    if (status === "inactive") return "inactive";
+    const s = String(status).toLowerCase();
+    if (s === "active" || s === "1") return "active";
+    if (s === "inactive" || s === "0") return "inactive";
     return "locked";
   };
 
   const getStatusLabel = (status) => {
-    if (status === "active") return "Đang hoạt động";
-    if (status === "inactive" ) return "Chưa kích hoạt";
-    return "Không hoạt động";
+    const s = String(status).toLowerCase();
+    if (s === "active" || s === "1") return "Đang hoạt động";
+    if (s === "inactive" || s === "0") return "Không hoạt động";
+    return "Bị khóa";
   };
 
   const startIndex = (page - 1) * PAGE_SIZE + 1;
@@ -219,9 +219,9 @@ const AdminCustomers = () => {
 
                   <td>
                     <span
-                      className={`status-badge ${getStatusClass(item.status.toLowerCase())}`}
+                      className={`status-badge ${getStatusClass(item.status)}`}
                     >
-                      {getStatusLabel(item.status.toLowerCase())}
+                      {getStatusLabel(item.status)}
                     </span>
                   </td>
                 </tr>
@@ -254,11 +254,6 @@ const AdminCustomers = () => {
             trong tổng số <span>{totalItems}</span> khách hàng
           </div>
           <div className="pagination-controls">
-            <select className="page-size-select">
-              <option value="10">10 / trang</option>
-              <option value="20">20 / trang</option>
-              <option value="50">50 / trang</option>
-            </select>
             <Pagination
               count={totalPages}
               page={page}
