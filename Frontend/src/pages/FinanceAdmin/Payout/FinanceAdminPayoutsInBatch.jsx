@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { useParams, Link } from "react-router-dom";
-import { getPayoutsInBatch } from "../../../services/financeAdminService";
+import { getPayoutsInBatch, completePayout, startProcessingPayout, markPayoutAsFailed } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 import {
   Search,
@@ -11,7 +12,10 @@ import {
   Eye,
   CheckCircle2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  XCircle,
+  AlertCircle,
+  PlayCircle,
 } from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
@@ -51,6 +55,9 @@ const FinanceAdminPayoutsInBatch = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
+  const [failState, setFailState] = useState(null); // { id, reason }
+  const [processingId, setProcessingId] = useState(null);
+
   const fetchData = () => {
     setLoading(true);
     setError(null);
@@ -61,6 +68,74 @@ const FinanceAdminPayoutsInBatch = () => {
       })
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được danh sách Payout."))
       .finally(() => setLoading(false));
+  };
+
+  const handleStartProcessing = async (id) => {
+    const result = await Swal.fire({
+      title: 'Bắt đầu xử lý',
+      text: `Xác nhận bắt đầu xử lý payout #${id}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+    if (!result.isConfirmed) return;
+    setProcessingId(id + ":process");
+    try {
+      await startProcessingPayout(id);
+      setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: 'Processing' } : p));
+      Swal.fire({ title: 'Thành công!', text: 'Đã chuyển sang trạng thái Đang xử lý.', icon: 'success', timer: 1800, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCompletePayout = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận hoàn tất',
+      text: `Bạn có chắc chắn muốn hoàn tất thanh toán #${id}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+    setProcessingId(id + ":complete");
+    try {
+      await completePayout(id);
+      Swal.fire({ title: 'Thành công!', text: 'Thanh toán đã được đánh dấu là hoàn tất.', icon: 'success', timer: 2000, showConfirmButton: false });
+      setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: 'Completed', processedAt: new Date().toISOString() } : p));
+    } catch (err) {
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleFailConfirm = async () => {
+    if (!failState?.reason?.trim()) {
+      Swal.fire({ title: 'Thiếu thông tin', text: 'Vui lòng nhập lý do thất bại.', icon: 'warning' });
+      return;
+    }
+    const { id, reason } = failState;
+    setFailState(null);
+    setProcessingId(id + ":fail");
+    try {
+      await markPayoutAsFailed(id, reason);
+      setPayouts(prev => prev.map(p => p.id === id ? { ...p, status: 'Failed', processedAt: new Date().toISOString() } : p));
+      Swal.fire({ title: 'Thành công!', text: 'Đã đánh dấu payout thất bại.', icon: 'success', timer: 1800, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   useEffect(() => {
@@ -77,6 +152,48 @@ const FinanceAdminPayoutsInBatch = () => {
 
   return (
     <div className="payout-detail-container">
+
+      {/* Fail Modal */}
+      {failState && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 20, padding: 32, width: 480,
+            display: "flex", flexDirection: "column", gap: 20,
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ background: '#fee2e2', color: '#ef4444', padding: 10, borderRadius: 12 }}>
+                <AlertCircle size={24} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Đánh dấu payout thất bại</h3>
+            </div>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+              Vui lòng nhập lý do payout #{failState.id} thất bại. Thông tin này sẽ được ghi nhận trong hệ thống.
+            </p>
+            <textarea
+              style={{
+                width: "100%", minHeight: 120, borderRadius: 12,
+                border: "1px solid #e2e8f0", padding: "12px 16px",
+                fontFamily: "inherit", fontSize: 14, resize: "none", boxSizing: "border-box",
+                background: '#f8fafc'
+              }}
+              placeholder="Ví dụ: Chuyển khoản ngân hàng thất bại do số tài khoản không đúng..."
+              value={failState.reason}
+              onChange={(e) => setFailState((s) => ({ ...s, reason: e.target.value }))}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
+              <button type="button" className="btn-action outline" style={{ padding: '10px 20px' }} onClick={() => setFailState(null)}>Hủy bỏ</button>
+              <button type="button" className="btn-action dark" style={{ background: "#ef4444", color: "#fff", padding: '10px 20px' }} onClick={handleFailConfirm}>Xác nhận thất bại</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
         <div>
@@ -164,10 +281,45 @@ const FinanceAdminPayoutsInBatch = () => {
                     </div>
                   )}
                 </td>
-                <td style={{ textAlign: "center" }}>
-                  <Link to={`/finance/payout/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
-                    <Eye size={18} />
-                  </Link>
+                 <td style={{ textAlign: "center" }}>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Link to={`/finance/payout/${item.id}`} className="btn-view-detail" title="Xem chi tiết">
+                      <Eye size={18} />
+                    </Link>
+                    {String(item.status).toLowerCase() === 'pending' && (
+                      <button
+                        onClick={() => handleStartProcessing(item.id)}
+                        className="btn-view-detail"
+                        style={{ color: '#6366f1', borderColor: '#6366f1' }}
+                        title="Bắt đầu xử lý"
+                        disabled={processingId === item.id + ":process"}
+                      >
+                        <PlayCircle size={18} />
+                      </button>
+                    )}
+                    {String(item.status).toLowerCase() === 'processing' && (
+                      <>
+                        <button
+                          onClick={() => handleCompletePayout(item.id)}
+                          className="btn-view-detail"
+                          style={{ color: '#10b981', borderColor: '#10b981' }}
+                          title="Hoàn tất payout"
+                          disabled={processingId === item.id + ":complete"}
+                        >
+                          <CheckCircle2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => setFailState({ id: item.id, reason: "" })}
+                          className="btn-view-detail"
+                          style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                          title="Đánh dấu thất bại"
+                          disabled={processingId === item.id + ":fail"}
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

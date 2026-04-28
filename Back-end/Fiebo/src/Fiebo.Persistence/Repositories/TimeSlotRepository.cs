@@ -57,7 +57,7 @@ namespace Fiebo.Persistence.Repositories
             DayOfWeek dayOfWeek,
             TimeOnly startTime,
             TimeOnly endTime,
-            int? excludeId = null)
+            int? excludeId)
         {
             return await _context.TimeSlots
                 .Where(x =>

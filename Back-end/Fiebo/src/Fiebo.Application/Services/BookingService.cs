@@ -56,7 +56,7 @@ namespace Fiebo.Application.Services
 
             if (string.IsNullOrWhiteSpace(userId))
             {
-                throw new UnauthorizedAccessException("Cannot identify current user.");
+                throw new UnauthorizedAccessException("Không thể định danh người dùng");
             }
 
             var booking = (await _unitOfWork.Bookings
@@ -220,7 +220,7 @@ namespace Fiebo.Application.Services
 
             if (status == BookingStatus.Expired)
             {
-                throw new BadRequestException("Thời gian giữ chỗ và thanh toán đã hết. Vui lòng đặt lại.");
+                throw new NotFoundException("Thời gian giữ chỗ và thanh toán đã hết. Vui lòng đặt lại.");
             }
 
             throw new BadRequestException("Không có dữ liệu hợp lệ.");
@@ -274,6 +274,9 @@ namespace Fiebo.Application.Services
 
         public async Task<HoldSlotResponse> CreateBookingAsync(CreateBookingRequest request, string userId)
         {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new BadRequestException("Bạn không có quyền để thực hiện hành động này");
+
             if (request.Details == null || !request.Details.Any())
                 throw new BadRequestException("Vui lòng chọn ít nhất một khung giờ.");
 
@@ -287,7 +290,7 @@ namespace Fiebo.Application.Services
             var now = DateTime.Now;
             var maxBookingDate = BookingDateValidator.GetMaxDate(now);
 
-            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở.");
+            var venue = await _unitOfWork.Venues.GetByIdAsync(request.VenueId) ?? throw new BadRequestException("Cơ sở này hiện không hoạt động.");
             var ownerPlan = (await _unitOfWork.OwnerPlans.FindAsync(p => p.OwnerId == venue.OwnerId && p.Status == OwnerPlanStatus.Active && p.EndDate > DateTime.Now)).Any();
             if (venue.Status != VenueStatus.Active || !ownerPlan)
                 throw new BadRequestException("Cơ sở này hiện không hoạt động.");
@@ -332,7 +335,7 @@ namespace Fiebo.Application.Services
                 foreach (var item in request.Details)
                 {
                     if (!fieldDict.TryGetValue(item.FieldId, out var field) || field.Status != FieldStatus.Active)
-                        throw new BadRequestException("Sân không tồn tại hoặc đã bị vô hiệu hóa.");
+                        throw new BadRequestException("Sân này hiện không hoạt động.");
 
                     if (field.VenueId != request.VenueId)
                         throw new BadRequestException("Sân không thuộc cơ sở này.");
@@ -352,13 +355,13 @@ namespace Fiebo.Application.Services
                     .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
 
                 if (unavailableSlots.Any())
-                    throw new ResourceConflictException("Một số slot đã được đặt.");
+                    throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
                 var eventUsedSlots = await _unitOfWork.TicketEvents
                     .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
 
                 if (eventUsedSlots.Any())
-                    throw new ResourceConflictException("Một số slot đã được sử dụng cho sự kiện.");
+                    throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
                 var expiredAt = now.AddMinutes(5);
 
@@ -547,7 +550,7 @@ namespace Fiebo.Application.Services
             if (duplicates.Any())
                 throw new BadRequestException("Danh sách đặt sân bị trùng lặp khung giờ.");
 
-            if (userId == null) throw new UnauthorizedAccessException("Bạn cần đăng nhập để thực hiện hành động này.");
+            if (userId == null) throw new UnauthorizedException("Bạn cần đăng nhập");
             if (userRole == null)
             {
                 throw new ForbiddenException("Bạn không có quyền để thực hiện hành động này.");

@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Venue;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
@@ -15,17 +15,17 @@ namespace Fiebo.Application.Validators
         {
             if (doc.IssueDate > now)
             {
-                throw new BadRequestException($"{name}: Ngày cấp không được vượt quá ngày hiện tại");
-            }
-
-            if (doc.ExpiryDate <= now)
-            {
-                throw new BadRequestException($"{name}: Ngày hết hạn không được nhỏ hơn hoặc bằng ngày hiện tại");
+                throw new BadRequestException("Ngày cấp không được vượt quá ngày hiện tại");
             }
 
             if (doc.ExpiryDate <= doc.IssueDate)
             {
-                throw new BadRequestException($"{name}: Ngày hết hạn phải sau ngày cấp");
+                throw new BadRequestException("Ngày hết hạn phải sau ngày cấp");
+            }
+
+            if (doc.ExpiryDate <= now)
+            {
+                throw new BadRequestException("Ngày hết hạn không được nhỏ hơn hoặc bằng ngày hiện tại");
             }
         }
     }

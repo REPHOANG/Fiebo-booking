@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Admin;
+using Fiebo.Application.DTOs.Admin;
 using Fiebo.Application.DTOs.FinanceAdmin;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Constants;
@@ -194,6 +194,25 @@ namespace Fiebo.Application.Services
                     Status = d.Booking?.Status.ToString() ?? ""
                 })]
             };
+        }
+        public async Task<bool> StartProcessingPayoutBatchAsync(int batchId, string adminId)
+        {
+            var success = await _unitOfWork.PayoutBatches.StartProcessingBatchAsync(batchId, adminId);
+            if (!success)
+            {
+                throw new NotFoundException("Batch thanh toán không tồn tại hoặc không ở trạng thái Pending.");
+            }
+            return true;
+        }
+
+        public async Task<bool> CompletePayoutBatchAsync(int batchId, string adminId)
+        {
+            var success = await _unitOfWork.PayoutBatches.MarkBatchAsCompletedAsync(batchId, adminId);
+            if (!success)
+            {
+                throw new NotFoundException("Batch thanh toán không tồn tại hoặc đã được hoàn tất trước đó.");
+            }
+            return true;
         }
     }
 }

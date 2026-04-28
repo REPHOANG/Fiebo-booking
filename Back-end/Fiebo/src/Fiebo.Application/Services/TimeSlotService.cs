@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.DTOs.Venue;
+using Fiebo.Application.DTOs.Venue;
 using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Exceptions;
@@ -47,10 +47,15 @@ namespace Fiebo.Application.Services
 
         public async Task<List<VenueTimeSlotDto>> CreateVenueTimeSlotAsync(int venueId, List<CreateVenueTimeSlotRequest> requests, string? ownerId)
         {
-            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập");
+            }
+
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId) ?? throw new NotFoundException("Sân không tồn tại");
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền thêm khung giờ cho sân này");
+                throw new ForbiddenException("Chủ sở hữu không khớp");
             }
 
             if (requests == null || requests.Count == 0)
@@ -69,23 +74,29 @@ namespace Fiebo.Application.Services
 
                 if (request.StartTime < venue.OpenTime || request.EndTime > venue.CloseTime)
                 {
-                    throw new BadRequestException("Khung giờ phải nằm trong thời gian mở cửa");
+                    throw new BadRequestException("Khung giờ nằm ngoài giờ mở/đóng của sân");
                 }
 
                 var duration = request.EndTime - request.StartTime;
                 if (duration < TimeSpan.FromMinutes(30))
                 {
-                    throw new BadRequestException("Khung giờ tối thiểu là 30 phút");
+                    throw new BadRequestException("Thời lượng khung giờ phải chẵn 30 phút");
                 }
 
                 if (request.StartTime.Minute % 30 != 0 || request.EndTime.Minute % 30 != 0)
                 {
-                    throw new BadRequestException("Thời gian phải theo mốc 30 phút");
+                    throw new BadRequestException("Thời gian bắt đầu và kết thúc phải chẵn 30 phút");
                 }
 
                 if (!Enum.TryParse<DayOfWeek>(request.DayOfWeek, true, out var dayOfWeek))
                 {
-                    throw new BadRequestException("DayOfWeek không hợp lệ");
+                    throw new BadRequestException("Ngày trong tuần không hợp lệ");
+                }
+                
+                var sportType = await _unitOfWork.SportTypes.GetByIdAsync(request.SportTypeId);
+                if (sportType == null)
+                {
+                    throw new BadRequestException("Môn thể thao không hợp lệ");
                 }
 
                 normalizedRequests.Add((request, dayOfWeek));
@@ -112,11 +123,12 @@ namespace Fiebo.Application.Services
                     item.Request.SportTypeId,
                     item.DayOfWeek,
                     item.Request.StartTime,
-                    item.Request.EndTime);
+                    item.Request.EndTime,
+                    null);
 
                 if (overlap)
                 {
-                    throw new BadRequestException("Có khung giờ bị trùng với khung giờ hiện có trong hệ thống.");
+                    throw new BadRequestException("Khung giờ bị trùng với khung giờ đã tồn tại");
                 }
             }
 
@@ -151,11 +163,16 @@ namespace Fiebo.Application.Services
 
         public async Task<VenueTimeSlotDto> UpdateVenueTimeSlotAsync(int timeSlotId, UpdateVenueTimeSlotRequest request, string? ownerId)
         {
-            var timeSlot = await _unitOfWork.TimeSlots.GetByIdAsync(timeSlotId) ?? throw new NotFoundException("Không tìm thấy khung giờ");
-            var venue = await _unitOfWork.Venues.GetByIdAsync(timeSlot.VenueId) ?? throw new NotFoundException("Không tìm thấy cơ sở");
+            if (ownerId == null)
+            {
+                throw new UnauthorizedException("Bạn cần đăng nhập");
+            }
+
+            var timeSlot = await _unitOfWork.TimeSlots.GetByIdAsync(timeSlotId) ?? throw new BadRequestException("Slot không tồn tại");
+            var venue = await _unitOfWork.Venues.GetByIdAsync(timeSlot.VenueId) ?? throw new NotFoundException("Sân không tồn tại");
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền chỉnh sửa khung giờ cho sân này");
+                throw new ForbiddenException("Chủ sở hữu không khớp");
             }
             var canEdit = await _unitOfWork.TimeSlots.CanBeEditedOrDeleted(timeSlotId);
             if (!canEdit)
@@ -168,21 +185,21 @@ namespace Fiebo.Application.Services
             }
             if (request.StartTime < venue.OpenTime || request.EndTime > venue.CloseTime)
             {
-                throw new BadRequestException("Khung giờ phải nằm trong thời gian mở cửa");
+                throw new BadRequestException("Khung giờ nằm ngoài giờ mở/đóng của sân");
             }
             if (timeSlot.IsDeleted)
             {
-                throw new BadRequestException("Khung giờ này đã bị xóa.");
+                throw new BadRequestException("Slot này đã bị xoá");
             }
             var duration = request.EndTime - request.StartTime;
 
             if (duration < TimeSpan.FromMinutes(30))
             {
-                throw new BadRequestException("Khung giờ tối thiểu là 30 phút");
+                throw new BadRequestException("Thời lượng khung giờ phải chẵn 30 phút");
             }
             if (request.StartTime.Minute % 30 != 0 || request.EndTime.Minute % 30 != 0)
             {
-                throw new BadRequestException("Thời gian phải theo mốc 30 phút");
+                throw new BadRequestException("Thời gian bắt đầu và kết thúc phải chẵn 30 phút");
             }
             if (request.StartTime == timeSlot.StartTime &&
                 request.EndTime == timeSlot.EndTime &&
@@ -201,7 +218,7 @@ namespace Fiebo.Application.Services
             var overlap = await _unitOfWork.TimeSlots.IsTimeSlotOverlapping(venue.Id, timeSlot.SportTypeId, timeSlot.DayOfWeek, request.StartTime, request.EndTime, timeSlotId);
             if (overlap)
             {
-                throw new BadRequestException("Khung giờ này đang bị trùng với khung giờ hiện có.");
+                throw new BadRequestException("Khung giờ bị trùng với khung giờ đã tồn tại");
             }
             var isUsed = await _unitOfWork.BookingDetails.FindAsync(bd => bd.SlotId == timeSlotId);
             if (isUsed.ToList().Count == 0)

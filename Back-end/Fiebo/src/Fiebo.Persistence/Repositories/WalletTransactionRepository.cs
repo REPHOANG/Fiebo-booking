@@ -84,7 +84,7 @@ namespace Fiebo.Persistence.Repositories
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
         }
 
-        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        public async Task<bool> StartProcessingWithdrawAsync(int transactionId, string adminId)
         {
             var transaction = await _context.WalletTransactions
                 .FirstOrDefaultAsync(t =>
@@ -94,9 +94,27 @@ namespace Fiebo.Persistence.Repositories
             if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
                 return false;
 
+            transaction.Status = Domain.Enums.TransactionStatus.Processing;
+            transaction.ProcessedBy = adminId;
+            transaction.ProcessedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _context.WalletTransactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == transactionId &&
+                    t.TransactionType == Domain.Enums.TransactionType.Withdraw);
+
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Processing)
+                return false;
+
             transaction.Status = Domain.Enums.TransactionStatus.Success;
             transaction.ProcessedBy = adminId;
-            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.ProcessedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return true;
@@ -111,17 +129,34 @@ namespace Fiebo.Persistence.Repositories
                     t.Id == transactionId &&
                     t.TransactionType == Domain.Enums.TransactionType.Withdraw);
 
-            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Pending)
+            if (transaction == null || transaction.Status != Domain.Enums.TransactionStatus.Processing)
                 return false;
 
             // Mark as rejected with audit info
             transaction.Status = Domain.Enums.TransactionStatus.Rejected;
             transaction.ProcessedBy = adminId;
-            transaction.ProcessedAt = DateTime.UtcNow;
+            transaction.ProcessedAt = DateTime.Now;
             transaction.RejectionReason = rejectionReason;
 
             // Refund the deducted amount back to the customer's wallet
             transaction.Wallet.Balance += transaction.Amount;
+
+            // Create a separate Refund transaction for financial audit trail (Option 1)
+            var refundTransaction = new WalletTransaction
+            {
+                WalletId = transaction.WalletId,
+                Amount = transaction.Amount,
+                Direction = Domain.Enums.TransactionDirection.Credit,
+                TransactionType = Domain.Enums.TransactionType.Refund,
+                ReferenceId = transaction.Id,
+                Status = Domain.Enums.TransactionStatus.Success,
+                Description = $"Hoàn tiền cho yêu cầu rút tiền #{transaction.Id} bị từ chối. Lý do: {rejectionReason}",
+                CreatedAt = DateTime.Now,
+                ProcessedBy = adminId,
+                ProcessedAt = DateTime.Now
+            };
+
+            _context.WalletTransactions.Add(refundTransaction);
 
             await _context.SaveChangesAsync();
             return true;

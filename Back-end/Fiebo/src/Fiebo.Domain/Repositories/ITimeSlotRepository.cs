@@ -18,7 +18,7 @@ namespace Fiebo.Domain.Repositories
             DayOfWeek dayOfWeek,
             TimeOnly startTime,
             TimeOnly endTime,
-            int? excludeId = null);
+            int? excludeId);
         Task<bool> CanBeEditedOrDeleted(int sloId);
     }
 }

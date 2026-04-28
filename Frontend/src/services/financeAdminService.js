@@ -12,6 +12,37 @@ export const completePayout = async (id) => {
   return res.data;
 };
 
+/**
+ * PATCH /api/admin/payouts/{id}/process
+ * Kế toán bắt đầu xử lý payout (Pending → Processing)
+ */
+export const startProcessingPayout = async (id) => {
+  const res = await api.patch(`/api/admin/payouts/${id}/process`);
+  return res.data;
+};
+
+/**
+ * PATCH /api/admin/payouts/{id}/fail
+ * Kế toán đánh dấu payout thất bại (Processing → Failed)
+ */
+export const markPayoutAsFailed = async (id, failureReason) => {
+  const res = await api.patch(`/api/admin/payouts/${id}/fail`, { failureReason });
+  return res.data;
+};
+
+/**
+ * PATCH /api/admin/finance/payout-batch/{id}/complete
+ */
+export const completePayoutBatch = async (id) => {
+  const res = await api.patch(`/api/admin/finance/payout-batch/${id}/complete`);
+  return res.data;
+};
+
+export const processPayoutBatch = async (id) => {
+  const res = await api.patch(`/api/admin/finance/payout-batch/${id}/process`);
+  return res.data;
+};
+
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
 
 const normalizeWithdrawal = (item) => ({
@@ -70,6 +101,15 @@ export const completeWithdrawalRequest = async (id) => {
  */
 export const rejectWithdrawalRequest = async (id, reason) => {
   const res = await api.patch(`/api/admin/withdraw-requests/${id}/reject`, { rejectionReason: reason });
+  return res.data;
+};
+
+/**
+ * PATCH /api/admin/withdraw-requests/{id}/process
+ * Kế toán bắt đầu xử lý (Pending → Processing)
+ */
+export const startProcessingWithdraw = async (id) => {
+  const res = await api.patch(`/api/admin/withdraw-requests/${id}/process`);
   return res.data;
 };
 

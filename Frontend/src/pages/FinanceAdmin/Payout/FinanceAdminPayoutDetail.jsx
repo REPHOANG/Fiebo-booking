@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { useParams, Link } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -6,8 +7,9 @@ import {
   ChevronRight,
   Clock,
   Receipt,
+  CheckCircle2,
 } from "lucide-react";
-import { getPayoutDetail } from "../../../services/financeAdminService";
+import { getPayoutDetail, completePayout } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
 
 const currency = new Intl.NumberFormat("vi-VN", {
@@ -29,6 +31,39 @@ const FinanceAdminPayoutDetail = () => {
       .catch((err) => setError(err?.response?.data?.message ?? "Không tải được chi tiết thanh toán."))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleComplete = async () => {
+    const result = await Swal.fire({
+      title: 'Xác nhận thanh toán',
+      text: "Bạn xác nhận đã hoàn tất chuyển khoản cho chủ sân?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await completePayout(payout.payoutId || payout.id);
+      Swal.fire({
+        title: 'Thành công!',
+        text: 'Thanh toán đã được hoàn tất.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      setPayout(prev => ({ ...prev, status: 'Completed' }));
+    } catch (err) {
+      Swal.fire({
+        title: 'Lỗi!',
+        text: err?.response?.data?.message ?? "Xử lý thất bại.",
+        icon: 'error'
+      });
+    }
+  };
 
   const maskAccount = (num) => {
     if (!num) return "—";
@@ -133,6 +168,15 @@ const FinanceAdminPayoutDetail = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 16 }}>
+              {String(payout.status).toLowerCase() === 'pending' && (
+                <button 
+                  className="btn-action dark" 
+                  style={{ flex: 1, padding: '14px', background: '#10b981' }}
+                  onClick={handleComplete}
+                >
+                  <CheckCircle2 size={20} /> Hoàn tất thanh toán
+                </button>
+              )}
               <button className="btn-action dark" style={{ flex: 1, padding: '14px', background: '#2563eb' }}>
                 <Receipt size={20} /> Xuất hóa đơn
               </button>

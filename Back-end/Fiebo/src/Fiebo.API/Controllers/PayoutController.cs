@@ -82,9 +82,27 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// BR-134 / BR-135: Mark a payout as Completed after external bank transfer is done.
-        /// Finance Admin only. Records processedBy and processedAt audit fields.
-        /// MSG120 on success, MSG121 on failure.
+        /// Kế toán bắt đầu xử lý payout (Pending → Processing).
+        /// Finance Admin only.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpPatch("/api/admin/payouts/{id}/process")]
+        public async Task<IActionResult> StartProcessingPayout([FromRoute] int id)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _payoutService.StartProcessingPayoutAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã chuyển payout sang trạng thái Processing.",
+            });
+        }
+
+        /// <summary>
+        /// Kế toán hoàn thành payout sau khi đã chuyển khoản thực tế (Processing → Completed).
+        /// Finance Admin only.
         /// </summary>
         [Authorize(Roles = AppRoles.FinanceAdmin)]
         [HttpPatch("/api/admin/payouts/{id}/complete")]
@@ -97,7 +115,26 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật trạng thái thành công.", // MSG120
+                Message = "Cập nhật trạng thái thành công.",
+            });
+        }
+
+        /// <summary>
+        /// Kế toán đánh dấu payout thất bại (Processing → Failed) với lý do.
+        /// Finance Admin only.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpPatch("/api/admin/payouts/{id}/fail")]
+        public async Task<IActionResult> MarkPayoutAsFailed([FromRoute] int id, [FromBody] MarkPayoutAsFailedDto request)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _payoutService.MarkPayoutAsFailedAsync(id, adminId, request.FailureReason);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã đánh dấu payout thất bại.",
             });
         }
 
@@ -143,8 +180,27 @@ namespace Fiebo.API.Controllers
         }
 
         /// <summary>
-        /// BR-136 / BR-137: Mark a customer withdrawal request as Completed after bank transfer.
-        /// Finance Admin only. MSG120 on success, MSG121 on failure.
+        /// Kế toán bắt đầu xử lý yêu cầu rút tiền (Pending → Processing).
+        /// Finance Admin only.
+        /// </summary>
+        [Authorize(Roles = AppRoles.FinanceAdmin)]
+        [HttpPatch("/api/admin/withdraw-requests/{id}/process")]
+        public async Task<IActionResult> StartProcessingWithdrawRequest([FromRoute] int id)
+        {
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _payoutService.StartProcessingWithdrawAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã chuyển yêu cầu rút tiền sang trạng thái Processing.",
+            });
+        }
+
+        /// <summary>
+        /// Kế toán hoàn thành yêu cầu rút tiền sau khi đã chuyển khoản (Processing → Success).
+        /// Finance Admin only.
         /// </summary>
         [Authorize(Roles = AppRoles.FinanceAdmin)]
         [HttpPatch("/api/admin/withdraw-requests/{id}/complete")]
@@ -157,7 +213,7 @@ namespace Fiebo.API.Controllers
             return Ok(new ApiResponse<object>
             {
                 StatusCode = StatusCodes.Status200OK,
-                Message = "Cập nhật trạng thái thành công.", // MSG120
+                Message = "Cập nhật trạng thái thành công.",
             });
         }
 

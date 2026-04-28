@@ -159,15 +159,15 @@ namespace Fiebo.Application.Services
             if (payout == null)
                 throw new NotFoundException("Không tìm thấy bản ghi thanh toán.");
 
-            if (payout.Status == PayoutStatus.Completed)
-                throw new BadRequestException("Giao dịch này đã được hoàn thành trước đó.");
+            if (payout.Status != PayoutStatus.Processing)
+                throw new BadRequestException("Chỉ có thể hoàn thành payout đang ở trạng thái Processing.");
 
             var success = await _unitOfWork.Payouts.MarkPayoutAsCompletedAsync(payoutId, adminId);
 
             if (!success)
             {
                 _logger.LogError("MarkPayoutAsCompleted failed for payoutId={PayoutId} by adminId={AdminId}", payoutId, adminId);
-                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
             }
 
             return true;
@@ -233,7 +233,7 @@ namespace Fiebo.Application.Services
             };
         }
 
-        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        public async Task<bool> StartProcessingWithdrawAsync(int transactionId, string adminId)
         {
             var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
 
@@ -241,14 +241,35 @@ namespace Fiebo.Application.Services
                 throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
 
             if (transaction.Status != TransactionStatus.Pending)
-                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+                throw new BadRequestException("Chỉ có thể bắt đầu xử lý yêu cầu đang ở trạng thái Pending.");
+
+            var success = await _unitOfWork.WalletTransactions.StartProcessingWithdrawAsync(transactionId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("StartProcessingWithdraw failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
+            }
+
+            return true;
+        }
+
+        public async Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId)
+        {
+            var transaction = await _unitOfWork.WalletTransactions.GetWithdrawRequestDetailAsync(transactionId);
+
+            if (transaction == null)
+                throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
+
+            if (transaction.Status != TransactionStatus.Processing)
+                throw new BadRequestException("Chỉ có thể hoàn thành yêu cầu đang ở trạng thái Processing.");
 
             var success = await _unitOfWork.WalletTransactions.CompleteWithdrawRequestAsync(transactionId, adminId);
 
             if (!success)
             {
                 _logger.LogError("CompleteWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
-                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
             }
 
             return true;
@@ -264,15 +285,60 @@ namespace Fiebo.Application.Services
             if (transaction == null)
                 throw new NotFoundException("Không tìm thấy yêu cầu rút tiền.");
 
-            if (transaction.Status != TransactionStatus.Pending)
-                throw new BadRequestException("Yêu cầu này đã được xử lý trước đó.");
+            if (transaction.Status != TransactionStatus.Processing)
+                throw new BadRequestException("Chỉ có thể từ chối yêu cầu đang ở trạng thái Processing.");
 
             var success = await _unitOfWork.WalletTransactions.RejectWithdrawRequestAsync(transactionId, adminId, rejectionReason);
 
             if (!success)
             {
                 _logger.LogError("RejectWithdrawRequest failed for transactionId={TxId} by adminId={AdminId}", transactionId, adminId);
-                throw new BadRequestException("Cập nhật trạng thái thất bại."); // MSG121
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
+            }
+
+            return true;
+        }
+
+        public async Task<bool> StartProcessingPayoutAsync(int payoutId, string adminId)
+        {
+            var payout = await _unitOfWork.Payouts.GetByIdAsync(payoutId);
+
+            if (payout == null)
+                throw new NotFoundException("Không tìm thấy bản ghi thanh toán.");
+
+            if (payout.Status != PayoutStatus.Pending)
+                throw new BadRequestException("Chỉ có thể bắt đầu xử lý payout đang ở trạng thái Pending.");
+
+            var success = await _unitOfWork.Payouts.StartProcessingPayoutAsync(payoutId, adminId);
+
+            if (!success)
+            {
+                _logger.LogError("StartProcessingPayout failed for payoutId={PayoutId} by adminId={AdminId}", payoutId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
+            }
+
+            return true;
+        }
+
+        public async Task<bool> MarkPayoutAsFailedAsync(int payoutId, string adminId, string failureReason)
+        {
+            if (string.IsNullOrWhiteSpace(failureReason))
+                throw new BadRequestException("Lý do thất bại không được để trống.");
+
+            var payout = await _unitOfWork.Payouts.GetByIdAsync(payoutId);
+
+            if (payout == null)
+                throw new NotFoundException("Không tìm thấy bản ghi thanh toán.");
+
+            if (payout.Status != PayoutStatus.Processing)
+                throw new BadRequestException("Chỉ có thể đánh dấu thất bại payout đang ở trạng thái Processing.");
+
+            var success = await _unitOfWork.Payouts.MarkPayoutAsFailedAsync(payoutId, adminId, failureReason);
+
+            if (!success)
+            {
+                _logger.LogError("MarkPayoutAsFailed failed for payoutId={PayoutId} by adminId={AdminId}", payoutId, adminId);
+                throw new BadRequestException("Cập nhật trạng thái thất bại.");
             }
 
             return true;
