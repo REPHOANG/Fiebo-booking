@@ -27,30 +27,8 @@
   margin-bottom: 28px;
 }
 
-.venue-info h3 {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 8px;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: calc(1.05rem * 1.3 * 2);
-}
-.venue-info .location {
-  display: flex;
-  align-items: flex-start;
-  gap: 5px;
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-bottom: 14px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+
+
 /* ── Search + filter (unified block) ─────────────────────────── */
 .venues-search-block {
   margin-bottom: 32px;
@@ -717,7 +695,7 @@
 /* ── Venue card ──────────────────────────────────────────────── */
 .venue-card {
   background: #fff;
-  border: 1px solid rgba(15,23,42,0.06);
+  border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: 14px;
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
@@ -728,8 +706,8 @@
 
 .venue-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 30px rgba(15,23,42,0.08);
-  border-color: rgba(15,23,42,0.08);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 /* Image */
@@ -755,7 +733,7 @@
   position: absolute;
   top: 14px;
   left: 14px;
-  background: rgba(255,255,255,0.88);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: 6px 14px;
@@ -764,7 +742,7 @@
   font-weight: 700;
   color: #0f172a;
   letter-spacing: 0.3px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Info */
@@ -772,7 +750,8 @@
   padding: 22px 20px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: stretch !important;
+  justify-content: space-between !important;
   min-height: 160px;
   flex: 1 1 auto;
 }
@@ -783,6 +762,7 @@
   color: #0f172a;
   margin-bottom: 8px;
   line-height: 1.3;
+  text-align: left !important;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -793,14 +773,15 @@
 
 .venue-info .location {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
   gap: 5px;
   font-size: 0.85rem;
   color: #64748b;
-  margin-bottom: 14px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .venue-info .location svg {
@@ -818,9 +799,9 @@
 .venue-meta-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between !important;
   gap: 8px;
-  margin-bottom: 14px;
+  width: 100% !important;
 }
 
 .venue-hours {
@@ -923,7 +904,7 @@
 
 .venue-info .book-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(34,197,94,0.35);
+  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.35);
 }
 
 .venue-info .book-btn:active {
@@ -949,14 +930,16 @@
 .loading-spinner {
   width: 22px;
   height: 22px;
-  border: 3px solid rgba(15,23,42,0.06);
-  border-top-color: rgba(15,23,42,0.3);
+  border: 3px solid rgba(15, 23, 42, 0.06);
+  border-top-color: rgba(15, 23, 42, 0.3);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Empty state ─────────────────────────────────────────────── */
@@ -1080,11 +1063,28 @@
 
 /* Additional mobile tweaks */
 @media (max-width: 480px) {
-  .venue-image { height: 140px; }
-  .venue-info { padding: 16px; min-height: 140px; }
-  .venue-info h3 { font-size: 1rem; }
-  .venue-hours { font-size: 0.8rem; margin-bottom: 12px; }
-  .venue-info .book-btn { padding: 10px 0; border-radius: 12px; }
+  .venue-image {
+    height: 140px;
+  }
+
+  .venue-info {
+    padding: 16px;
+    min-height: 140px;
+  }
+
+  .venue-info h3 {
+    font-size: 1rem;
+  }
+
+  .venue-hours {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+
+  .venue-info .book-btn {
+    padding: 10px 0;
+    border-radius: 12px;
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -1112,15 +1112,18 @@
   padding: 16px 14px 16px 20px;
   background: linear-gradient(160deg, #f0f9ff 0%, #f8fafc 100%);
   border-right: 1px solid rgba(14, 165, 233, 0.12);
-  position: relative; /* stacking context so geocode dropdown beats the map */
-  overflow: visible;  /* don't clip the dropdown */
+  position: relative;
+  /* stacking context so geocode dropdown beats the map */
+  overflow: visible;
+  /* don't clip the dropdown */
 }
 
 /* ── Nominatim geocoding search ─────────────────────────────── */
 .map-geocode-wrap {
   position: relative;
   flex-shrink: 0;
-  z-index: 500; /* must sit above Leaflet's internal stacking context */
+  z-index: 500;
+  /* must sit above Leaflet's internal stacking context */
 }
 
 .map-geocode-input-row {
@@ -1260,7 +1263,8 @@
     0 2px 8px rgba(15, 23, 42, 0.08),
     0 0 0 1px rgba(14, 165, 233, 0.15);
   position: relative;
-  z-index: 1; /* lower than .map-geocode-wrap (500) so dropdown renders on top */
+  z-index: 1;
+  /* lower than .map-geocode-wrap (500) so dropdown renders on top */
 }
 
 /* Crosshair cursor + keep leaflet internal z-indices self-contained */
@@ -1287,8 +1291,15 @@
 }
 
 @keyframes venues-pulse {
-  0%, 100% { box-shadow: 0 2px 10px rgba(14, 165, 233, 0.55), 0 0 0 3px rgba(14, 165, 233, 0.25); }
-  50%       { box-shadow: 0 2px 10px rgba(14, 165, 233, 0.55), 0 0 0 8px rgba(14, 165, 233, 0.1); }
+
+  0%,
+  100% {
+    box-shadow: 0 2px 10px rgba(14, 165, 233, 0.55), 0 0 0 3px rgba(14, 165, 233, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 2px 10px rgba(14, 165, 233, 0.55), 0 0 0 8px rgba(14, 165, 233, 0.1);
+  }
 }
 
 /* ── Badge for picked location ─────────────────────────────── */
@@ -1307,8 +1318,17 @@
   overflow: hidden;
 }
 
-.venues-map-badge svg { flex-shrink: 0; color: #0284c7; }
-.venues-map-badge > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.venues-map-badge svg {
+  flex-shrink: 0;
+  color: #0284c7;
+}
+
+.venues-map-badge>span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
 
 .venues-map-badge-clear {
   display: inline-flex;
@@ -1326,7 +1346,9 @@
   padding: 0;
 }
 
-.venues-map-badge-clear:hover { background: rgba(2, 132, 199, 0.35); }
+.venues-map-badge-clear:hover {
+  background: rgba(2, 132, 199, 0.35);
+}
 
 .venues-map-hint {
   margin: 0;
@@ -1335,7 +1357,9 @@
   line-height: 1.5;
 }
 
-.venues-map-hint strong { color: #0369a1; }
+.venues-map-hint strong {
+  color: #0369a1;
+}
 
 /* ── Right: form column inside filter panel ─────────────────── */
 .filter-form-col {
@@ -1366,5 +1390,3 @@
     max-height: none;
   }
 }
-
-

@@ -482,32 +482,17 @@ const OwnerEditVenue = () => {
     description: "",
     openTime: "",
     closeTime: "",
-    addressDetail: "",
-    provinceId: "",
-    wardId: "",
-    latitude: 0,
-    longitude: 0,
+    thumbnailUrl: "",
+    thumbnailFile: null,
   });
   const [statusLower, setStatusLower] = useState("");
-  const [provinceOptions, setProvinceOptions] = useState([]);
-  const [districtOptions, setDistrictOptions] = useState([]);
 
-  const [docsForm, setDocsForm] = useState({
-    business: { issueDate: "", expiryDate: "", existingImages: [], files: [] },
-  });
   const initialFormRef = useRef({
     name: "",
     description: "",
     openTime: "",
     closeTime: "",
-    addressDetail: "",
-    provinceId: "",
-    wardId: "",
-    latitude: 0,
-    longitude: 0,
-  });
-  const docsInitialRef = useRef({
-    business: { issueDate: "", expiryDate: "" },
+    thumbnailUrl: "",
   });
 
   const canEdit = useMemo(() => ["active", "draft"].includes(statusLower), [statusLower]);
@@ -517,63 +502,28 @@ const OwnerEditVenue = () => {
     (async () => {
       setLoading(true);
       try {
-        const [draft, provinces] = await Promise.all([getVenueDraft(id), getProvinces()]);
+        const draft = await getVenueDraft(id);
         if (!mounted) return;
-        const pList = (Array.isArray(provinces) ? provinces : [])
-          .map((x) => ({
-            id: x?.id ?? x?.provinceId ?? x?.ProvinceId,
-            name: x?.name ?? x?.provinceName ?? x?.ProvinceName,
-          }))
-          .filter((x) => x.id != null && x.name);
-        setProvinceOptions(pList);
 
-        const provinceId = String(draft?.provinceId ?? draft?.ProvinceId ?? "");
-        const wardId = String(draft?.wardId ?? draft?.WardId ?? "");
         setStatusLower(String(draft?.status ?? draft?.Status ?? "").toLowerCase().trim());
-        const lat = Number(draft?.latitude ?? draft?.Latitude ?? 0);
-        const lng = Number(draft?.longitude ?? draft?.Longitude ?? 0);
-        setForm({
+        const thumbnailUrl = draft?.thumbnailImage ?? draft?.ThumbnailImage ?? "";
+
+        const nextForm = {
           name: draft?.name ?? draft?.Name ?? "",
           description: draft?.description ?? draft?.Description ?? "",
           openTime: toInputTime(draft?.openTime ?? draft?.OpenTime ?? ""),
           closeTime: toInputTime(draft?.closeTime ?? draft?.CloseTime ?? ""),
-          addressDetail: draft?.addressDetail ?? draft?.AddressDetail ?? "",
-          provinceId,
-          wardId,
-          latitude: Number.isFinite(lat) ? lat : 0,
-          longitude: Number.isFinite(lng) ? lng : 0,
-        });
+          thumbnailUrl,
+          thumbnailFile: null,
+        };
+
+        setForm(nextForm);
         initialFormRef.current = {
-          name: draft?.name ?? draft?.Name ?? "",
-          description: draft?.description ?? draft?.Description ?? "",
-          openTime: toInputTime(draft?.openTime ?? draft?.OpenTime ?? ""),
-          closeTime: toInputTime(draft?.closeTime ?? draft?.CloseTime ?? ""),
-          addressDetail: draft?.addressDetail ?? draft?.AddressDetail ?? "",
-          provinceId,
-          wardId,
-          latitude: Number.isFinite(lat) ? lat : 0,
-          longitude: Number.isFinite(lng) ? lng : 0,
-        };
-
-        const businessDoc = normalizeDoc(
-          draft?.businessLicense ?? draft?.BusinessLicense,
-        );
-
-        const nextDocsForm = {
-          business: {
-            issueDate: businessDoc?.issueDate ?? "",
-            expiryDate: businessDoc?.expiryDate ?? "",
-            existingImages: businessDoc?.images ?? [],
-            files: [],
-          },
-        };
-
-        setDocsForm(nextDocsForm);
-        docsInitialRef.current = {
-          business: {
-            issueDate: nextDocsForm.business.issueDate,
-            expiryDate: nextDocsForm.business.expiryDate,
-          },
+          name: nextForm.name,
+          description: nextForm.description,
+          openTime: nextForm.openTime,
+          closeTime: nextForm.closeTime,
+          thumbnailUrl: nextForm.thumbnailUrl,
         };
       } catch (e) {
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được dữ liệu cơ sở.");
@@ -586,33 +536,7 @@ const OwnerEditVenue = () => {
     };
   }, [id]);
 
-  useEffect(() => {
-    let mounted = true;
-    if (!form.provinceId) {
-      setDistrictOptions([]);
-      return () => {
-        mounted = false;
-      };
-    }
-    (async () => {
-      try {
-        const list = await getDistrictsByProvince(form.provinceId);
-        if (!mounted) return;
-        const normalized = (Array.isArray(list) ? list : [])
-          .map((x) => ({
-            id: x?.id ?? x?.districtId ?? x?.wardId ?? x?.DistrictId ?? x?.WardId,
-            name: x?.name ?? x?.districtName ?? x?.wardName ?? x?.DistrictName ?? x?.WardName,
-          }))
-          .filter((x) => x.id != null && x.name);
-        setDistrictOptions(normalized);
-      } catch {
-        if (mounted) setDistrictOptions([]);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [form.provinceId]);
+
 
   const onSave = async () => {
     if (!canEdit) {
@@ -622,51 +546,6 @@ const OwnerEditVenue = () => {
     if (!form.name.trim()) return toast.error("Vui lòng nhập tên cơ sở.");
     if (!form.openTime || !form.closeTime) return toast.error("Vui lòng nhập giờ mở và giờ đóng.");
     if (form.closeTime <= form.openTime) return toast.error("Giờ đóng phải sau giờ mở.");
-    if (!form.addressDetail.trim()) return toast.error("Vui lòng nhập địa chỉ chi tiết.");
-    if (!form.provinceId || !form.wardId) return toast.error("Vui lòng chọn tỉnh/thành và quận/huyện.");
-
-    const businessInitial = docsInitialRef.current.business;
-
-    const businessFiles = Array.isArray(docsForm.business.files) ? docsForm.business.files : [];
-
-    const businessDatesChanged =
-      docsForm.business.issueDate !== businessInitial.issueDate ||
-      docsForm.business.expiryDate !== businessInitial.expiryDate;
-
-    const businessChanged = businessFiles.length > 0 || businessDatesChanged;
-
-    const validateDocDates = (label, issueDate, expiryDate) => {
-      if (!issueDate || !expiryDate) {
-        toast.error(`Vui lòng nhập đủ ngày cấp và ngày hết hạn cho "${label}".`);
-        return false;
-      }
-      const issue = new Date(issueDate);
-      const expiry = new Date(expiryDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (Number.isNaN(issue.getTime()) || Number.isNaN(expiry.getTime())) {
-        toast.error(`Ngày không hợp lệ cho "${label}".`);
-        return false;
-      }
-      if (expiry.getTime() < today.getTime()) {
-        toast.error(`Ngày hết hạn không được trước ngày hiện tại cho "${label}".`);
-        return false;
-      }
-      if (expiry.getTime() <= issue.getTime()) {
-        toast.error(`Ngày hết hạn phải sau ngày cấp cho "${label}".`);
-        return false;
-      }
-      return true;
-    };
-
-    if (businessChanged) {
-      if (businessFiles.length > 5) {
-        toast.error('Mỗi loại giấy tờ tối đa 5 ảnh (BusinessDocument).');
-        return;
-      }
-      if (!validateDocDates("Giấy phép kinh doanh", docsForm.business.issueDate, docsForm.business.expiryDate)) return;
-    }
 
     setSaving(true);
     try {
@@ -675,20 +554,7 @@ const OwnerEditVenue = () => {
         description: form.description?.trim() || "",
         openTime: `${form.openTime}:00`,
         closeTime: `${form.closeTime}:00`,
-        addressDetail: form.addressDetail.trim(),
-        provinceId: Number(form.provinceId),
-        wardId: Number(form.wardId),
-        latitude: form.latitude,
-        longitude: form.longitude,
-        ...(businessChanged
-          ? {
-              businessDocument: {
-                issueDate: docsForm.business.issueDate,
-                expiryDate: docsForm.business.expiryDate,
-                files: businessFiles,
-              },
-            }
-          : {}),
+        thumbnailFile: form.thumbnailFile,
       });
       toast.success("Đã cập nhật thông tin cơ sở.");
       navigate(`/owner/venues/${id}`);
@@ -699,16 +565,7 @@ const OwnerEditVenue = () => {
     }
   };
 
-  const businessInitial = docsInitialRef.current.business;
-
-  const businessHasFiles = Array.isArray(docsForm.business.files) && docsForm.business.files.length > 0;
-
-  const businessDatesChanged =
-    docsForm.business.issueDate !== businessInitial.issueDate ||
-    docsForm.business.expiryDate !== businessInitial.expiryDate;
-
-  const businessHasChanges = businessHasFiles || businessDatesChanged;
-  const formHasChanges = useMemo(() => {
+  const hasUnsavedChanges = useMemo(() => {
     if (loading) return false;
     const initial = initialFormRef.current;
     return (
@@ -716,14 +573,9 @@ const OwnerEditVenue = () => {
       form.description !== initial.description ||
       form.openTime !== initial.openTime ||
       form.closeTime !== initial.closeTime ||
-      form.addressDetail !== initial.addressDetail ||
-      form.provinceId !== initial.provinceId ||
-      form.wardId !== initial.wardId ||
-      Number(form.latitude) !== Number(initial.latitude) ||
-      Number(form.longitude) !== Number(initial.longitude)
+      form.thumbnailFile !== null
     );
   }, [form, loading]);
-  const hasUnsavedChanges = formHasChanges || businessHasChanges;
 
   useEffect(() => {
     if (!hasUnsavedChanges) return undefined;
@@ -749,18 +601,7 @@ const OwnerEditVenue = () => {
     navigate(`/owner/venues/${id}`);
   };
 
-  const resetDoc = (type) => {
-    const initial = docsInitialRef.current[type] || { issueDate: "", expiryDate: "" };
-    setDocsForm((p) => ({
-      ...p,
-      [type]: {
-        ...p[type],
-        issueDate: initial.issueDate,
-        expiryDate: initial.expiryDate,
-        files: [],
-      },
-    }));
-  };
+
 
   return (
     <div className="owner-venue-detail">
@@ -810,54 +651,50 @@ const OwnerEditVenue = () => {
                 disabled={!canEdit}
                 onChange={(nextValue) => setForm((p) => ({ ...p, closeTime: nextValue }))}
               />
-              <label className="ovd-label">
-                <MapPin size={14} /> Tỉnh / Thành phố
-                <select
-                  className="ovd-input"
-                  value={form.provinceId}
-                  disabled={!canEdit}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, provinceId: e.target.value, wardId: "" }))
-                  }
-                >
-                  <option value="">-- Chọn tỉnh/thành --</option>
-                  {provinceOptions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ovd-label">
-                <MapPin size={14} /> Quận / Huyện
-                <select
-                  className="ovd-input"
-                  value={form.wardId}
-                  disabled={!canEdit || !form.provinceId}
-                  onChange={(e) => setForm((p) => ({ ...p, wardId: e.target.value }))}
-                >
-                  <option value="">-- Chọn quận/huyện --</option>
-                  {districtOptions.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ovd-label ovd-full">
-                Địa chỉ chi tiết
-                <input
-                  className="ovd-input"
-                  value={form.addressDetail}
-                  disabled={!canEdit}
-                  onChange={(e) => setForm((p) => ({ ...p, addressDetail: e.target.value }))}
-                />
-              </label>
+              <div className="ovd-label ovd-full">
+                <span className="ovd-time-label">Ảnh đại diện (Thumbnail)</span>
+                <div className="ovd-thumbnail-edit">
+                  {(form.thumbnailFile || form.thumbnailUrl) && (
+                    <div className="ovd-thumbnail-preview">
+                      <img
+                        src={form.thumbnailFile ? URL.createObjectURL(form.thumbnailFile) : form.thumbnailUrl}
+                        alt="Thumbnail preview"
+                      />
+                      {form.thumbnailFile && (
+                        <button
+                          type="button"
+                          className="ovd-remove-thumb"
+                          onClick={() => setForm(p => ({ ...p, thumbnailFile: null }))}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <label className="ovd-upload-trigger">
+                    <Plus size={20} />
+                    <span>{form.thumbnailFile || form.thumbnailUrl ? "Thay đổi ảnh" : "Chọn ảnh đại diện"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={!canEdit}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setForm(p => ({ ...p, thumbnailFile: file }));
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
               <label className="ovd-label ovd-full">
                 Mô tả
                 <textarea
                   className="ovd-input"
-                  rows={4}
+                  rows={6}
+                  placeholder="Nhập mô tả về cơ sở của bạn..."
                   value={form.description}
                   disabled={!canEdit}
                   onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
@@ -865,176 +702,7 @@ const OwnerEditVenue = () => {
               </label>
             </div>
 
-            <div style={{ marginTop: 14 }}>
-              <h3 className="ovd-subtitle">
-                <Calendar size={18} /> Chỉnh sửa giấy tờ pháp lý
-              </h3>
 
-              <div className="ovd-docs-grid">
-                <div className="ovd-doc-card">
-                  <h4 className="ovd-doc-title">Giấy phép kinh doanh</h4>
-                  <div className="ovd-create-grid">
-                    <label className="ovd-label">
-                      Ngày cấp
-                      <input
-                        type="date"
-                        className="ovd-input"
-                        value={docsForm.business.issueDate}
-                        disabled={!canEdit}
-                        onChange={(e) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            business: { ...p.business, issueDate: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="ovd-label">
-                      Ngày hết hạn
-                      <input
-                        type="date"
-                        className="ovd-input"
-                        value={docsForm.business.expiryDate}
-                        disabled={!canEdit}
-                        min={
-                          docsForm.business.issueDate && new Date(docsForm.business.issueDate) > new Date()
-                            ? docsForm.business.issueDate
-                            : new Date().toISOString().split("T")[0]
-                        }
-                        onChange={(e) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            business: { ...p.business, expiryDate: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="ovd-label ovd-full">
-                      Ảnh giấy tờ (file, tối đa 5)
-                    </label>
-                  </div>
-
-                  {docsForm.business.files.length > 0 ? (
-                    <div style={{ marginTop: 10 }}>
-                      <LocalDocumentImageCarousel
-                        files={docsForm.business.files}
-                        title="Giấy phép kinh doanh"
-                        inputId="business-document-upload"
-                        disabled={!canEdit}
-                        maxImages={5}
-                        onAddChange={(e) => {
-                          const picked = Array.from(e.target.files || []).filter(Boolean);
-                          const maxImages = 5;
-                          const prevFiles = Array.isArray(docsForm.business.files) ? docsForm.business.files : [];
-
-                          if (picked.length > maxImages) {
-                            const id = "business-max-images";
-                            if (!toast.isActive(id)) {
-                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Vui lòng chọn lại.`, { toastId: id });
-                            }
-                            e.target.value = "";
-                            return;
-                          }
-
-                          if (prevFiles.length + picked.length > maxImages) {
-                            const id = "business-max-total-images";
-                            if (!toast.isActive(id)) {
-                              toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
-                            }
-                            e.target.value = "";
-                            return;
-                          }
-
-                          setDocsForm((p) => ({
-                            ...p,
-                            business: {
-                              ...p.business,
-                              files: [...prevFiles, ...picked],
-                            },
-                          }));
-                          e.target.value = "";
-                        }}
-                        onRemove={(removeIdx) =>
-                          setDocsForm((p) => ({
-                            ...p,
-                            business: {
-                              ...p.business,
-                              files: (p.business.files || []).filter((_, i) => i !== removeIdx),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="ovd-doc-images">
-                        {docsForm.business.existingImages.length > 0 ? (
-                          <DocumentImageCarousel
-                            images={docsForm.business.existingImages}
-                            title="Business license"
-                          />
-                        ) : (
-                          <span className="ovd-muted">Chưa có ảnh.</span>
-                        )}
-                      </div>
-                      <div style={{ marginTop: 10 }}>
-                        <LocalDocumentImageCarousel
-                          files={[]}
-                          title="Giấy phép kinh doanh"
-                          inputId="business-document-upload"
-                          disabled={!canEdit}
-                          maxImages={5}
-                          onAddChange={(e) => {
-                            const picked = Array.from(e.target.files || []).filter(Boolean);
-                            const maxImages = 5;
-                            const prevFiles = Array.isArray(docsForm.business.files) ? docsForm.business.files : [];
-
-                            if (picked.length > maxImages) {
-                              const id = "business-max-images";
-                              if (!toast.isActive(id)) {
-                                toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Vui lòng chọn lại.`, { toastId: id });
-                              }
-                              e.target.value = "";
-                              return;
-                            }
-
-                            if (prevFiles.length + picked.length > maxImages) {
-                              const id = "business-max-total-images";
-                              if (!toast.isActive(id)) {
-                                toast.error(`Tối đa ${maxImages} hình ảnh cho giấy phép kinh doanh. Bạn chỉ có thể thêm ${maxImages - prevFiles.length} ảnh nữa.`, { toastId: id });
-                              }
-                              e.target.value = "";
-                              return;
-                            }
-
-                            setDocsForm((p) => ({
-                              ...p,
-                              business: {
-                                ...p.business,
-                                files: [...prevFiles, ...picked],
-                              },
-                            }));
-                            e.target.value = "";
-                          }}
-                          onRemove={() => {}}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div className="ovd-doc-actions">
-                    <button
-                      type="button"
-                      className="ovd-btn"
-                      disabled={!canEdit || saving || !businessHasChanges}
-                      onClick={() => resetDoc("business")}
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div className="ovd-create-actions">
               <button
