@@ -15,6 +15,7 @@ namespace Fiebo.Domain.Repositories
         Task<bool> HasPendingWithdrawalAsync(int walletId);
         Task<PagedResult<WalletTransaction>> GetAdminWithdrawRequestsAsync(int page, int pageSize, TransactionStatus? status);
         Task<WalletTransaction?> GetWithdrawRequestDetailAsync(int transactionId);
+        Task<bool> StartProcessingWithdrawAsync(int transactionId, string adminId);
         Task<bool> CompleteWithdrawRequestAsync(int transactionId, string adminId);
         Task<bool> RejectWithdrawRequestAsync(int transactionId, string adminId, string rejectionReason);
         Task<PagedResult<PaymentTransactionResponse>> GetPaymentTransaction(

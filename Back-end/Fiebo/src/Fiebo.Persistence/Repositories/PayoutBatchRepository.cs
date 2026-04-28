@@ -42,25 +42,53 @@ namespace Fiebo.Persistence.Repositories
                 Items = items
             };
         }
+        public async Task<bool> StartProcessingBatchAsync(int batchId, string processedBy)
+        {
+            var batch = await _context.PayoutBatches.FindAsync(batchId);
+            if (batch == null) return false;
+
+            if (batch.Status != PayoutStatus.Pending) return false;
+
+            batch.Status = PayoutStatus.Processing;
+            batch.UpdatedAt = DateTime.Now;
+
+            // Move all Pending payouts to Processing
+            var payouts = await _context.Payouts
+                .Where(p => p.BatchId == batchId && p.Status == PayoutStatus.Pending)
+                .ToListAsync();
+
+            foreach (var p in payouts)
+            {
+                p.Status = PayoutStatus.Processing;
+                p.ProcessedBy = processedBy;
+                p.UpdatedAt = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> MarkBatchAsCompletedAsync(int batchId, string processedBy)
         {
             var batch = await _context.PayoutBatches.FindAsync(batchId);
             if (batch == null) return false;
 
-            batch.Status = PayoutStatus.Completed;
-            batch.UpdatedAt = DateTime.UtcNow;
+            if (batch.Status != PayoutStatus.Processing) return false;
 
-            // Update all payouts in this batch that are not already completed
+            batch.Status = PayoutStatus.Completed;
+            batch.UpdatedAt = DateTime.Now;
+
+            // Move all Processing payouts to Completed
             var payouts = await _context.Payouts
-                .Where(p => p.BatchId == batchId && p.Status != PayoutStatus.Completed)
+                .Where(p => p.BatchId == batchId && p.Status == PayoutStatus.Processing)
                 .ToListAsync();
 
             foreach (var p in payouts)
             {
                 p.Status = PayoutStatus.Completed;
                 p.ProcessedBy = processedBy;
-                p.ProcessedAt = DateTime.UtcNow;
-                p.UpdatedAt = DateTime.UtcNow;
+                p.ProcessedAt = DateTime.Now;
+                p.UpdatedAt = DateTime.Now;
             }
 
             await _context.SaveChangesAsync();

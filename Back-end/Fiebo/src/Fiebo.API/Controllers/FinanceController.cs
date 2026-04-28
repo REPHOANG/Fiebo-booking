@@ -16,9 +16,25 @@ namespace Fiebo.API.Controllers
     public class FinanceController : ControllerBase
     {
         private readonly IFinanceAdminService _financeAdminService;
-        public FinanceController(IFinanceAdminService financeAdminService)
+        private readonly IWeeklyPayoutJob _weeklyPayoutJob;
+        public FinanceController(IFinanceAdminService financeAdminService, IWeeklyPayoutJob weeklyPayoutJob)
         {
             _financeAdminService = financeAdminService;
+            _weeklyPayoutJob = weeklyPayoutJob;
+        }
+
+        /// <summary>
+        /// Endpoint test: Trigger Weekly Payout Job manually
+        /// </summary>
+        [HttpPost("trigger-weekly-payout")]
+        public async Task<IActionResult> TriggerWeeklyPayout()
+        {
+            await _weeklyPayoutJob.Run();
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Kích hoạt Weekly Payout Job thành công."
+            });
         }
 
         /// <summary>
@@ -117,6 +133,20 @@ namespace Fiebo.API.Controllers
             });
         }
         
+        [HttpPatch("payout-batch/{id}/process")]
+        public async Task<IActionResult> StartProcessingPayoutBatch([FromRoute] int id)
+        {
+            var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(adminId)) return Unauthorized();
+
+            await _financeAdminService.StartProcessingPayoutBatchAsync(id, adminId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Đã chuyển trạng thái batch và các payout sang Processing.",
+            });
+        }
+
         [HttpPatch("payout-batch/{id}/complete")]
         public async Task<IActionResult> CompletePayoutBatch([FromRoute] int id)
         {

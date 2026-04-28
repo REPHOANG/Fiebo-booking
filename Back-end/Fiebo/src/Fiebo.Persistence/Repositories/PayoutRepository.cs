@@ -108,6 +108,24 @@ namespace Fiebo.Persistence.Repositories
             };
         }
 
+        public async Task<bool> StartProcessingPayoutAsync(int payoutId, string processedBy)
+        {
+            var payout = await _context.Payouts.FindAsync(payoutId);
+
+            if (payout == null)
+                return false;
+
+            if (payout.Status != PayoutStatus.Pending)
+                return false;
+
+            payout.Status = PayoutStatus.Processing;
+            payout.ProcessedBy = processedBy;
+            payout.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<bool> MarkPayoutAsCompletedAsync(int payoutId, string processedBy)
         {
             var payout = await _context.Payouts.FindAsync(payoutId);
@@ -115,13 +133,33 @@ namespace Fiebo.Persistence.Repositories
             if (payout == null)
                 return false;
 
-            if (payout.Status == PayoutStatus.Completed)
+            if (payout.Status != PayoutStatus.Processing)
                 return false;
 
             payout.Status = PayoutStatus.Completed;
             payout.ProcessedBy = processedBy;
-            payout.ProcessedAt = DateTime.UtcNow;
-            payout.UpdatedAt = DateTime.UtcNow;
+            payout.ProcessedAt = DateTime.Now;
+            payout.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> MarkPayoutAsFailedAsync(int payoutId, string processedBy, string failureReason)
+        {
+            var payout = await _context.Payouts.FindAsync(payoutId);
+
+            if (payout == null)
+                return false;
+
+            if (payout.Status != PayoutStatus.Processing)
+                return false;
+
+            payout.Status = PayoutStatus.Failed;
+            payout.ProcessedBy = processedBy;
+            payout.ProcessedAt = DateTime.Now;
+            payout.UpdatedAt = DateTime.Now;
+            payout.FailureReason = failureReason;
 
             await _context.SaveChangesAsync();
             return true;

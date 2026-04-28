@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
-import { getPayoutBatches, completePayoutBatch } from "../../../services/financeAdminService";
+import { getPayoutBatches, completePayoutBatch, processPayoutBatch } from "../../../services/financeAdminService";
 import "../financeAdminPages.css";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Eye, 
-  CheckCircle2, 
-  Clock, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  CheckCircle2,
+  Clock,
   CalendarDays,
   ArrowUpRight,
-  Filter
+  Filter,
+  PlayCircle
 } from "lucide-react";
 
 const currency = new Intl.NumberFormat("vi-VN", {
@@ -42,11 +43,11 @@ const FinanceAdminPayoutBatches = () => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [status, setStatus] = useState("");
   const [year, setYear] = useState(String(now.getFullYear()));
   const [month, setMonth] = useState(String(now.getMonth() + 1));
-  
+
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -63,10 +64,33 @@ const FinanceAdminPayoutBatches = () => {
       .finally(() => setLoading(false));
   };
 
+  const handleProcessBatch = async (id) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận xử lý đợt',
+      text: `Xác nhận chuyển toàn bộ các yêu cầu thanh toán 'Chờ xử lý' trong đợt #${id} sang trạng thái 'Đang xử lý'?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6366f1',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await processPayoutBatch(id);
+      Swal.fire({ title: 'Thành công!', text: 'Đã chuyển đợt thanh toán sang trạng thái Đang xử lý.', icon: 'success', timer: 1800, showConfirmButton: false });
+      setBatches(prev => prev.map(b => b.id === id ? { ...b, status: 'Processing' } : b));
+    } catch (err) {
+      Swal.fire({ title: 'Lỗi!', text: err?.response?.data?.message ?? "Xử lý thất bại.", icon: 'error' });
+    }
+  };
+
   const handleCompleteBatch = async (id) => {
     const result = await Swal.fire({
       title: 'Xác nhận hoàn tất đợt',
-      text: `Xác nhận hoàn tất toàn bộ đợt thanh toán #${id}? Tất cả các yêu cầu thanh toán trong đợt này sẽ được đánh dấu là Thành công.`,
+      text: `Xác nhận hoàn tất toàn bộ đợt thanh toán #${id}? Tất cả các yêu cầu thanh toán 'Đang xử lý' hoặc 'Chờ xử lý' sẽ được đánh dấu là Thành công (trừ các giao dịch đã Thất bại).`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
@@ -108,10 +132,10 @@ const FinanceAdminPayoutBatches = () => {
       <div className="filter-bar-premium">
         <div style={{ position: 'relative', flex: 0.3 }}>
           <Filter size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
-          <select 
-            className="select-premium" 
-            style={{ width: '100%', paddingLeft: 40 }} 
-            value={status} 
+          <select
+            className="select-premium"
+            style={{ width: '100%', paddingLeft: 40 }}
+            value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
           >
             {STATUSES.map((s) => (
@@ -119,7 +143,7 @@ const FinanceAdminPayoutBatches = () => {
             ))}
           </select>
         </div>
-        
+
         <div style={{ display: "flex", gap: 12, flex: 1, justifyContent: 'flex-end' }}>
           <div style={{ position: 'relative' }}>
             <CalendarDays size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
@@ -132,13 +156,13 @@ const FinanceAdminPayoutBatches = () => {
           </div>
           <div style={{ position: 'relative' }}>
             <CalendarDays size={18} style={{ position: 'absolute', left: 12, top: 13, color: '#94a3b8', zIndex: 1 }} />
-            <input 
-              className="select-premium" 
-              type="number" 
-              placeholder="Năm" 
+            <input
+              className="select-premium"
+              type="number"
+              placeholder="Năm"
               value={year}
-              onChange={(e) => { setYear(e.target.value); setPage(1); }} 
-              style={{ width: 140, paddingLeft: 40 }} 
+              onChange={(e) => { setYear(e.target.value); setPage(1); }}
+              style={{ width: 140, paddingLeft: 40 }}
             />
           </div>
         </div>
@@ -189,15 +213,25 @@ const FinanceAdminPayoutBatches = () => {
                     {new Date(item.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </td>
-                 <td style={{ textAlign: "center" }}>
+                <td style={{ textAlign: "center" }}>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                     <Link to={`/finance/payout-batches/${item.id}/payouts`} className="btn-view-detail" title="Xem chi tiết">
                       <Eye size={18} />
                     </Link>
+                    {item.status === 'Pending' && (
+                      <button
+                        onClick={() => handleProcessBatch(item.id)}
+                        className="btn-view-detail"
+                        style={{ color: '#6366f1', borderColor: '#6366f1' }}
+                        title="Bắt đầu xử lý đợt"
+                      >
+                        <PlayCircle size={18} />
+                      </button>
+                    )}
                     {(item.status === 'Pending' || item.status === 'Processing') && (
-                      <button 
-                        onClick={() => handleCompleteBatch(item.id)} 
-                        className="btn-view-detail" 
+                      <button
+                        onClick={() => handleCompleteBatch(item.id)}
+                        className="btn-view-detail"
                         style={{ color: '#10b981', borderColor: '#10b981' }}
                         title="Hoàn tất đợt"
                       >

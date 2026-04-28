@@ -11,6 +11,7 @@ namespace Fiebo.Domain.Enums
         Success = 1,
         Pending = 2,
         Failed = 3,
-        Rejected = 4
+        Rejected = 4,
+        Processing = 5
     }
 }

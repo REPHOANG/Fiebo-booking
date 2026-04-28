@@ -472,12 +472,11 @@ namespace Fiebo.Application.Services
         {
             if (ownerId == null)
             {
-                throw new UnauthorizedException("Bạn cần đăng nhập để tạo sân");
+                throw new UnauthorizedException("Bạn cần đăng nhập");
             }
             if (request.CloseTime <= request.OpenTime)
             {
-                throw new BadRequestException(
-                    "Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+                throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa");
             }
             if (request.CloseTime.Minute % 30 != 0 || request.OpenTime.Minute % 30 != 0)
             {
@@ -528,7 +527,7 @@ namespace Fiebo.Application.Services
         {
             if (ownerId == null)
             {
-                throw new UnauthorizedException("Bạn cần đăng nhập để tải lên giấy tờ");
+                throw new UnauthorizedException("Bạn cần đăng nhập");
             }
             DocumentValidator.ValidateDocument(request.BusinessDocument, DateTime.Now, "Giấy phép kinh doanh");
 

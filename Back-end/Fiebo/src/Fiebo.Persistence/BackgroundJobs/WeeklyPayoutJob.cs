@@ -1,4 +1,4 @@
-﻿using Fiebo.Application.Interfaces;
+using Fiebo.Application.Interfaces;
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
@@ -31,7 +31,7 @@ namespace Fiebo.Persistence.BackgroundJobs
 
         public async Task Run()
         {
-            var now = DateTime.UtcNow;
+            var now = DateTime.Now;
 
             var from = now.Date.AddDays(-7);
             var to = now.Date;
@@ -40,23 +40,24 @@ namespace Fiebo.Persistence.BackgroundJobs
             await _bookingService.FinalizeBookingsAsync(now);
             await _eventService.FinalizeEventsAsync(now);
 
-            // 2. create batch
+            // 2. data
+            var bookingItems = await _payoutService.GetBookingPayouts(from, to);
+            var eventItems = await _payoutService.GetEventPayouts(from, to);
+
+            var all = bookingItems.Concat(eventItems).ToList();
+
+            // 3. create batch
             var batch = new PayoutBatch
             {
                 FromDate = from,
                 ToDate = to,
-                Status = 0,
+                Status = PayoutStatus.Pending,
+                TotalAmount = all.Sum(x => x.Amount),
                 CreatedAt = now
             };
 
             _unitOfWork.PayoutBatches.Add(batch);
             await _unitOfWork.SaveChangesAsync();
-
-            // 3. data
-            var bookingItems = await _payoutService.GetBookingPayouts(from, to);
-            var eventItems = await _payoutService.GetEventPayouts(from, to);
-
-            var all = bookingItems.Concat(eventItems);
 
             var grouped = all.GroupBy(x => x.OwnerId);
 

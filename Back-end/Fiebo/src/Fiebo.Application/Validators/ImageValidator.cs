@@ -1,4 +1,4 @@
-﻿using Fiebo.Domain.Exceptions;
+using Fiebo.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -21,8 +21,11 @@ namespace Fiebo.Application.Validators
 
             var fileList = files.ToList();
 
-            if (fileList.Count < min || fileList.Count > max)
-                throw new BadRequestException($"Số lượng ảnh phải từ {min} đến {max}");
+            if (fileList.Count < min)
+                throw new BadRequestException($"Phải có ít nhất {min} ảnh cho 1 loại giấy tờ");
+
+            if (fileList.Count > max)
+                throw new BadRequestException($"Tối đa {max} ảnh cho mỗi loại giấy tờ");
 
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".svg" };
             var allowedContentTypes = new[]
@@ -40,7 +43,7 @@ namespace Fiebo.Application.Validators
                     throw new BadRequestException("Ảnh không hợp lệ");
 
                 if (file.Length > maxSizeInBytes)
-                    throw new BadRequestException($"Mỗi ảnh không được vượt quá {maxSizeInBytes / (1024 * 1024)}MB");
+                    throw new BadRequestException($"Ảnh không được vượt quá {maxSizeInBytes / (1024 * 1024)}MB");
 
                 var extension = Path.GetExtension(file.FileName).ToLower();
 

@@ -151,7 +151,7 @@ namespace Fiebo.Application.Services
             // Authorization: Field Owner
             if (venue.OwnerId != userId)
             {
-                throw new UnauthorizedException("Bạn không có quyền tạo sân trong cơ sở này.");
+                throw new UnauthorizedException("Bạn không có quyền tạo sân cho cơ sở này");
             }
 
             // BR-02 / MSG-E02: Check for duplicate field names within the same Venue
@@ -217,6 +217,25 @@ namespace Fiebo.Application.Services
             {
                 throw new ForbiddenException("Bạn không có quyền chỉnh sửa sân này.");
             }
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                throw new BadRequestException("Tên sân không được để trống.");
+            }
+            if (request.Name.Length > 100)
+            {
+                throw new BadRequestException("Tên sân không được vượt quá 100 ký tự.");
+            }
+            if (request.Description?.Length > 500)
+            {
+                throw new BadRequestException("Mô tả không được vượt quá 500 ký tự.");
+            }
+
+            var sportType = await _unitOfWork.SportTypes.GetByIdAsync(request.SportTypeId);
+            if (sportType == null)
+            {
+                throw new BadRequestException("Môn thể thao không hợp lệ.");
+            }
+
             field.Name = request.Name;
             field.Description = request.Description;
             field.SportTypeId = request.SportTypeId;
