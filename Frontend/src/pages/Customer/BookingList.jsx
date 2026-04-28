@@ -38,25 +38,8 @@ import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
 import Swal from "sweetalert2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatVND } from "../../utils/helperFunction";
+import { formatDate, formatVND } from "../../utils/helperFunction";
 import emptyImg from "../../assets/images/empty-box.png";
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("vi-VN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
-const formatTime = (t) => {
-  if (!t) return "—";
-  const s = String(t).trim();
-  return s.length >= 5 ? s.slice(0, 5) : s;
-};
 
 const TABS = [
   { key: "all", label: "Tất cả" },
@@ -79,7 +62,8 @@ const TYPE_FILTERS = [
 // Icon cho trạng thái
 const statusIcon = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending" || s === "holding") return <Clock3 size={16} className="bl-status-icon" />;
+  if (s === "pending" || s === "holding")
+    return <Clock3 size={16} className="bl-status-icon" />;
   if (s === "booked")
     return <CreditCard size={16} className="bl-status-icon" />;
   if (s === "completed")
@@ -107,7 +91,7 @@ function normHistoryItem(it) {
     ward: it?.ward ?? it?.Ward,
     venueId: it?.venueId ?? it?.VenueId,
     totalPrice: it?.totalPrice ?? it?.TotalPrice,
-    canReview: Boolean(it?.canReview)
+    canReview: Boolean(it?.canReview),
   };
 }
 
@@ -123,9 +107,7 @@ function groupHistoryByBooking(items) {
     if (!row || byId.has(row.bookingId)) continue;
     byId.set(row.bookingId, row);
   }
-  return [...byId.values()].sort(
-    (a, b) => new Date(b.bookingDate || 0) - new Date(a.bookingDate || 0),
-  );
+  return [...byId.values()];
 }
 
 function getTabForStatus(status) {
@@ -418,10 +400,7 @@ const BookingList = () => {
     },
   });
 
-  const {
-    data: bookingHistoryData,
-    isLoading: loadingList,
-  } = useQuery({
+  const { data: bookingHistoryData, isLoading: loadingList } = useQuery({
     queryKey: [
       "bookingHistory",
       { fromDate: activeFromDate, toDate: activeToDate },
@@ -504,10 +483,7 @@ const BookingList = () => {
       rows = rows.filter((row) => row.kind === "venue");
     if (activeTypeFilter === "event")
       rows = rows.filter((row) => row.kind === "event");
-    return rows.sort(
-      (a, b) =>
-        new Date(String(b.sortDate || 0)) - new Date(String(a.sortDate || 0)),
-    );
+    return rows;
   }, [list, eventItems, activeTab, activeTypeFilter]);
 
   const closeDetailPopup = () => {
@@ -619,11 +595,24 @@ const BookingList = () => {
       });
       // Lưu reportId nếu API trả về
       const reportId = res?.data?.id ?? res?.id ?? res?.reportId ?? null;
-      setBookingReportMap((prev) => ({ ...prev, [reportModal.bookingId]: reportId ?? true }));
+      setBookingReportMap((prev) => ({
+        ...prev,
+        [reportModal.bookingId]: reportId ?? true,
+      }));
       setReportModal(null);
-      await Swal.fire({ icon: "success", title: "Báo cáo đã được gửi!", text: "Chúng tôi sẽ xem xét và phản hồi sớm nhất có thể.", timer: 2500, showConfirmButton: false });
+      await Swal.fire({
+        icon: "success",
+        title: "Báo cáo đã được gửi!",
+        text: "Chúng tôi sẽ xem xét và phản hồi sớm nhất có thể.",
+        timer: 2500,
+        showConfirmButton: false,
+      });
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Gửi báo cáo thất bại", text: err?.response?.data?.message ?? "Vui lòng thử lại sau." });
+      Swal.fire({
+        icon: "error",
+        title: "Gửi báo cáo thất bại",
+        text: err?.response?.data?.message ?? "Vui lòng thử lại sau.",
+      });
     } finally {
       setReportSubmitting(false);
     }
@@ -631,7 +620,11 @@ const BookingList = () => {
 
   const handleViewReportDetail = async (reportId) => {
     if (!reportId || reportId === true) {
-      Swal.fire({ icon: "info", title: "Đã gửi báo cáo", text: "Báo cáo đang được xử lý. Không thể xem chi tiết ngay lúc này." });
+      Swal.fire({
+        icon: "info",
+        title: "Đã gửi báo cáo",
+        text: "Báo cáo đang được xử lý. Không thể xem chi tiết ngay lúc này.",
+      });
       return;
     }
     setReportDetailModal({ reportId });
@@ -758,7 +751,9 @@ const BookingList = () => {
   useEffect(() => {
     if (detailPopupId == null) {
       try {
-        document.documentElement.style.removeProperty("--mobile-bottom-nav-height");
+        document.documentElement.style.removeProperty(
+          "--mobile-bottom-nav-height",
+        );
       } catch (e) {}
       return;
     }
@@ -767,7 +762,10 @@ const BookingList = () => {
       try {
         const nav = document.querySelector(".bottom-nav");
         const h = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
-        document.documentElement.style.setProperty("--mobile-bottom-nav-height", `${h}px`);
+        document.documentElement.style.setProperty(
+          "--mobile-bottom-nav-height",
+          `${h}px`,
+        );
       } catch (e) {
         // ignore
       }
@@ -778,7 +776,9 @@ const BookingList = () => {
     return () => {
       window.removeEventListener("resize", updateNavHeight);
       try {
-        document.documentElement.style.removeProperty("--mobile-bottom-nav-height");
+        document.documentElement.style.removeProperty(
+          "--mobile-bottom-nav-height",
+        );
       } catch (e) {}
     };
   }, [detailPopupId]);
@@ -1154,27 +1154,30 @@ const BookingList = () => {
                             Thanh toán
                           </button>
                         )}
-                        {(["joined"].includes(
+                        {["joined"].includes(
                           String(ev.participantStatus || "").toLowerCase(),
-                        ) && (ev.eventStatus.toLowerCase() === "pending")) && (
-                          <button
-                            type="button"
-                            className="bl-btn danger bl-btn-sm"
-                            onClick={() =>
-                              handleCancelEventTicketFromList(
-                                ev.ticketParticipantId,
-                              )
-                            }
-                            disabled={
-                              cancellingEventTicketId === ev.ticketParticipantId
-                            }
-                          >
-                            <XCircle size={16} className="bl-btn-icon" />
-                            {cancellingEventTicketId === ev.ticketParticipantId
-                              ? "Đang huỷ..."
-                              : "Hủy vé"}
-                          </button>
-                        )}
+                        ) &&
+                          ev.eventStatus.toLowerCase() === "pending" && (
+                            <button
+                              type="button"
+                              className="bl-btn danger bl-btn-sm"
+                              onClick={() =>
+                                handleCancelEventTicketFromList(
+                                  ev.ticketParticipantId,
+                                )
+                              }
+                              disabled={
+                                cancellingEventTicketId ===
+                                ev.ticketParticipantId
+                              }
+                            >
+                              <XCircle size={16} className="bl-btn-icon" />
+                              {cancellingEventTicketId ===
+                              ev.ticketParticipantId
+                                ? "Đang huỷ..."
+                                : "Hủy vé"}
+                            </button>
+                          )}
                         <button
                           type="button"
                           className="bl-btn secondary bl-btn-sm"
@@ -1287,28 +1290,35 @@ const BookingList = () => {
                         </button>
                       )}
                       {/* Report button — only for completed bookings */}
-                      {(b.status || "").toLowerCase() === "completed" && (
-                        bookingReportMap[b.bookingId]
-                          ? (
-                            <button
-                              type="button"
-                              className="bl-btn secondary bl-btn-sm"
-                              title="Xem trạng thái báo cáo"
-                              onClick={() => handleViewReportDetail(bookingReportMap[b.bookingId])}
-                            >
-                              <Flag size={16} className="bl-btn-icon" style={{ color: "#f59e0b" }} /> Báo cáo
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="bl-btn outline bl-btn-sm"
-                              title="Báo cáo vấn đề với đơn đặt này"
-                              onClick={() => handleOpenReport(b.bookingId)}
-                            >
-                              <Flag size={16} className="bl-btn-icon" /> Báo cáo
-                            </button>
-                          )
-                      )}
+                      {(b.status || "").toLowerCase() === "completed" &&
+                        (bookingReportMap[b.bookingId] ? (
+                          <button
+                            type="button"
+                            className="bl-btn secondary bl-btn-sm"
+                            title="Xem trạng thái báo cáo"
+                            onClick={() =>
+                              handleViewReportDetail(
+                                bookingReportMap[b.bookingId],
+                              )
+                            }
+                          >
+                            <Flag
+                              size={16}
+                              className="bl-btn-icon"
+                              style={{ color: "#f59e0b" }}
+                            />{" "}
+                            Báo cáo
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="bl-btn outline bl-btn-sm"
+                            title="Báo cáo vấn đề với đơn đặt này"
+                            onClick={() => handleOpenReport(b.bookingId)}
+                          >
+                            <Flag size={16} className="bl-btn-icon" /> Báo cáo
+                          </button>
+                        ))}
                       <button
                         type="button"
                         className="bl-btn secondary bl-btn-sm"
@@ -1388,15 +1398,28 @@ const BookingList = () => {
                     <>
                       <div className="bl-detail-header">
                         <div>
-                          <div className="bl-popup-code">Mã đơn <strong>#{popupBooking.bookingId ?? popupBooking.id}</strong></div>
+                          <div className="bl-popup-code">
+                            Mã đơn{" "}
+                            <strong>
+                              #{popupBooking.bookingId ?? popupBooking.id}
+                            </strong>
+                          </div>
                           <div className="bl-meta" style={{ marginTop: 6 }}>
                             <span className="bl-meta-item">
-                              <Calendar size={14} /> {formatDate(popupBooking.date || popupBooking.bookingDate)}
+                              <Calendar size={14} />{" "}
+                              {formatDate(
+                                popupBooking.date || popupBooking.bookingDate,
+                              )}
                             </span>
                           </div>
                         </div>
                         <div>
-                          <span className="bl-badge" data-status={(popupBooking.status || "").toLowerCase()}>
+                          <span
+                            className="bl-badge"
+                            data-status={(
+                              popupBooking.status || ""
+                            ).toLowerCase()}
+                          >
                             {translateStatus(popupBooking.status)}
                           </span>
                         </div>
@@ -1405,25 +1428,48 @@ const BookingList = () => {
                       <div className="bl-venue-card">
                         <div className="bl-card-media bl-venue-thumb">
                           <img
-                            src={popupBooking.thumbnailUrl || popupBooking.thumbnail || FALLBACK_VENUE_IMAGE}
+                            src={
+                              popupBooking.thumbnailUrl ||
+                              popupBooking.thumbnail ||
+                              FALLBACK_VENUE_IMAGE
+                            }
                             alt={popupBooking.venueName || "venue"}
                             onError={handleImgError}
                           />
                         </div>
                         <div className="bl-venue-card-body">
-                          <h3 className="bl-venue-name">{popupBooking.venueName || "—"}</h3>
+                          <h3 className="bl-venue-name">
+                            {popupBooking.venueName || "—"}
+                          </h3>
                           <div className="bl-meta">
                             <span className="bl-meta-item">
                               <Clock size={14} />
-                              {(Array.isArray(popupBooking.details) && popupBooking.details.length) ? (
-                                <span style={{ marginLeft: 6 }}>{popupBooking.details.map(s => `${formatTime(s.startTime)} - ${formatTime(s.endTime)}`).join(' • ')}</span>
+                              {Array.isArray(popupBooking.details) &&
+                              popupBooking.details.length ? (
+                                <span style={{ marginLeft: 6 }}>
+                                  {popupBooking.details
+                                    .map(
+                                      (s) =>
+                                        `${formatTime(s.startTime)} - ${formatTime(s.endTime)}`,
+                                    )
+                                    .join(" • ")}
+                                </span>
                               ) : (
                                 <span style={{ marginLeft: 6 }}>—</span>
                               )}
                             </span>
                             <span className="bl-meta-item">
                               <MapPin size={14} />
-                              <span className="bl-ellipsis" style={{ marginLeft: 6 }}>{popupBooking.address || popupBooking.city || popupBooking.province || popupBooking.ward || "—"}</span>
+                              <span
+                                className="bl-ellipsis"
+                                style={{ marginLeft: 6 }}
+                              >
+                                {popupBooking.address ||
+                                  popupBooking.city ||
+                                  popupBooking.province ||
+                                  popupBooking.ward ||
+                                  "—"}
+                              </span>
                             </span>
                           </div>
                         </div>
@@ -1439,22 +1485,38 @@ const BookingList = () => {
                           </strong>
                         </div>
                         <div className="bl-ticket-row">
-                          <span className="bl-ticket-label">Thông tin khách hàng</span>
+                          <span className="bl-ticket-label">
+                            Thông tin khách hàng
+                          </span>
                           {/* <div className="bl-ticket-value bl-contact"> */}
-                            {/* <div className="bl-contact-card"> */}
-                              <div className="bl-contact-line bl-contact-name">
-                                <User size={14} className="bl-contact-icon" />
-                                <span className="bl-contact-text" title={popupBooking.fullName ?? popupBooking.fullname ?? popupBooking.customerName ?? ''}>
-                                  {popupBooking.fullName ?? popupBooking.fullname ?? popupBooking.customerName ?? '—'}
-                                </span>
-                              </div>
-                              <div className="bl-contact-line bl-contact-phone">
-                                <Phone size={14} className="bl-contact-icon" />
-                                <span className="bl-contact-text">
-                                  {popupBooking.phone ?? popupBooking.phoneNumber ?? popupBooking.customerPhone ?? '—'}
-                                </span>
-                              </div>
-                            {/* </div> */}
+                          {/* <div className="bl-contact-card"> */}
+                          <div className="bl-contact-line bl-contact-name">
+                            <User size={14} className="bl-contact-icon" />
+                            <span
+                              className="bl-contact-text"
+                              title={
+                                popupBooking.fullName ??
+                                popupBooking.fullname ??
+                                popupBooking.customerName ??
+                                ""
+                              }
+                            >
+                              {popupBooking.fullName ??
+                                popupBooking.fullname ??
+                                popupBooking.customerName ??
+                                "—"}
+                            </span>
+                          </div>
+                          <div className="bl-contact-line bl-contact-phone">
+                            <Phone size={14} className="bl-contact-icon" />
+                            <span className="bl-contact-text">
+                              {popupBooking.phone ??
+                                popupBooking.phoneNumber ??
+                                popupBooking.customerPhone ??
+                                "—"}
+                            </span>
+                          </div>
+                          {/* </div> */}
                           {/* </div> */}
                         </div>
                         {/* Removed duplicate phone row — phone already shown in customer info above */}
@@ -1479,7 +1541,8 @@ const BookingList = () => {
                         </div>
                       ) : null}
                       <div className="bl-actions">
-                        {(popupBooking.status || "").toLowerCase() === "holding" && (
+                        {(popupBooking.status || "").toLowerCase() ===
+                          "holding" && (
                           <button
                             type="button"
                             className="bl-btn primary"
@@ -1552,44 +1615,91 @@ const BookingList = () => {
 
       {/* ── Report Form Modal ── */}
       {reportModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 200, padding: 16,
-        }}>
-          <div style={{
-            background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 480,
-            display: "flex", flexDirection: "column", gap: 18,
-            boxShadow: "0 32px 64px rgba(0,0,0,0.22)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 20,
+              padding: 28,
+              width: "100%",
+              maxWidth: 480,
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+              boxShadow: "0 32px 64px rgba(0,0,0,0.22)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#111827",
+                  }}
+                >
                   🚩 Báo cáo đơn đặt #{reportModal.bookingId}
                 </h3>
-                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
+                <p
+                  style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}
+                >
                   Mô tả vấn đề bạn gặp phải với đơn đặt sân này.
                 </p>
               </div>
-              <button type="button" onClick={() => setReportModal(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}>
+              <button
+                type="button"
+                onClick={() => setReportModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#9ca3af",
+                }}
+              >
                 <X size={22} />
               </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}
+              >
                 Tiêu đề <span style={{ color: "#dc2626" }}>*</span>
               </label>
               <input
                 type="text"
                 placeholder="Ví dụ: Sân không đúng mô tả, Bị hủy không có lý do..."
                 value={reportForm.title}
-                onChange={(e) => setReportForm((f) => ({ ...f, title: e.target.value }))}
+                onChange={(e) =>
+                  setReportForm((f) => ({ ...f, title: e.target.value }))
+                }
                 style={{
-                  border: "1px solid #d1d5db", borderRadius: 10,
-                  padding: "10px 12px", fontSize: 14, fontFamily: "inherit",
-                  outline: "none", width: "100%", boxSizing: "border-box",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
                 maxLength={200}
                 autoFocus
@@ -1597,43 +1707,77 @@ const BookingList = () => {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+              <label
+                style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}
+              >
                 Nội dung chi tiết <span style={{ color: "#dc2626" }}>*</span>
               </label>
               <textarea
                 placeholder="Mô tả chi tiết vấn đề bạn gặp phải..."
                 value={reportForm.content}
-                onChange={(e) => setReportForm((f) => ({ ...f, content: e.target.value }))}
+                onChange={(e) =>
+                  setReportForm((f) => ({ ...f, content: e.target.value }))
+                }
                 style={{
-                  border: "1px solid #d1d5db", borderRadius: 10,
-                  padding: "10px 12px", fontSize: 14, fontFamily: "inherit",
-                  minHeight: 110, resize: "vertical", outline: "none",
-                  width: "100%", boxSizing: "border-box",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  minHeight: 110,
+                  resize: "vertical",
+                  outline: "none",
+                  width: "100%",
+                  boxSizing: "border-box",
                 }}
                 maxLength={2000}
               />
-              <span style={{ fontSize: 11, color: "#9ca3af", alignSelf: "flex-end" }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#9ca3af",
+                  alignSelf: "flex-end",
+                }}
+              >
                 {reportForm.content.length}/2000
               </span>
             </div>
 
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => setReportModal(null)}
+            <div
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+            >
+              <button
+                type="button"
+                onClick={() => setReportModal(null)}
                 disabled={reportSubmitting}
                 style={{
-                  border: "1px solid #d1d5db", background: "#fff", borderRadius: 12,
-                  padding: "10px 20px", cursor: "pointer", fontWeight: 600, fontSize: 14,
-                }}>
+                  border: "1px solid #d1d5db",
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: "10px 20px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
                 Hủy
               </button>
-              <button type="button" onClick={handleSubmitReport}
+              <button
+                type="button"
+                onClick={handleSubmitReport}
                 disabled={reportSubmitting}
                 style={{
-                  border: "none", background: "linear-gradient(135deg,#f59e0b,#d97706)",
-                  color: "#fff", borderRadius: 12, padding: "10px 24px",
+                  border: "none",
+                  background: "linear-gradient(135deg,#f59e0b,#d97706)",
+                  color: "#fff",
+                  borderRadius: 12,
+                  padding: "10px 24px",
                   cursor: reportSubmitting ? "not-allowed" : "pointer",
-                  fontWeight: 700, fontSize: 14, opacity: reportSubmitting ? 0.7 : 1,
-                }}>
+                  fontWeight: 700,
+                  fontSize: 14,
+                  opacity: reportSubmitting ? 0.7 : 1,
+                }}
+              >
                 {reportSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
               </button>
             </div>
@@ -1643,75 +1787,203 @@ const BookingList = () => {
 
       {/* ── Report Detail Modal ── */}
       {reportDetailModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 200, padding: 16,
-        }}>
-          <div style={{
-            background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 500,
-            display: "flex", flexDirection: "column", gap: 16,
-            boxShadow: "0 32px 64px rgba(0,0,0,0.22)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111827" }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 20,
+              padding: 28,
+              width: "100%",
+              maxWidth: 500,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              boxShadow: "0 32px 64px rgba(0,0,0,0.22)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "#111827",
+                }}
+              >
                 🚩 Chi tiết báo cáo
               </h3>
-              <button type="button"
-                onClick={() => { setReportDetailModal(null); setReportDetail(null); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setReportDetailModal(null);
+                  setReportDetail(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#9ca3af",
+                }}
+              >
                 <X size={22} />
               </button>
             </div>
 
             {reportDetailLoading ? (
-              <div style={{ textAlign: "center", padding: "20px 0", color: "#6b7280" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "20px 0",
+                  color: "#6b7280",
+                }}
+              >
                 <Loader2 size={28} className="spin" />
                 <p>Đang tải...</p>
               </div>
             ) : reportDetail ? (
               <>
-                <div style={{ background: "#f9fafb", borderRadius: 12, padding: "14px 16px" }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>Tiêu đề</p>
-                  <p style={{ margin: 0, fontWeight: 600, color: "#111827" }}>{reportDetail.title}</p>
+                <div
+                  style={{
+                    background: "#f9fafb",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "0 0 4px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#6b7280",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Tiêu đề
+                  </p>
+                  <p style={{ margin: 0, fontWeight: 600, color: "#111827" }}>
+                    {reportDetail.title}
+                  </p>
                 </div>
 
-                <div style={{ background: "#f9fafb", borderRadius: 12, padding: "14px 16px" }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>Nội dung báo cáo</p>
-                  <p style={{ margin: 0, lineHeight: 1.6, color: "#374151" }}>{reportDetail.content}</p>
+                <div
+                  style={{
+                    background: "#f9fafb",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "0 0 4px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#6b7280",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Nội dung báo cáo
+                  </p>
+                  <p style={{ margin: 0, lineHeight: 1.6, color: "#374151" }}>
+                    {reportDetail.content}
+                  </p>
                 </div>
 
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <div style={{
-                    padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700,
-                    background: reportDetail.status === 1 ? "#d1fae5" : "#fef3c7",
-                    color: reportDetail.status === 1 ? "#065f46" : "#92400e",
-                  }}>
-                    {reportDetail.status === 1 ? "✓ Đã phản hồi" : "⏳ Chờ xử lý"}
+                  <div
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: 999,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      background:
+                        reportDetail.status === 1 ? "#d1fae5" : "#fef3c7",
+                      color: reportDetail.status === 1 ? "#065f46" : "#92400e",
+                    }}
+                  >
+                    {reportDetail.status === 1
+                      ? "✓ Đã phản hồi"
+                      : "⏳ Chờ xử lý"}
                   </div>
                   <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                    Gửi lúc: {reportDetail.createdAt ? new Date(reportDetail.createdAt).toLocaleString("vi-VN") : "—"}
+                    Gửi lúc:{" "}
+                    {reportDetail.createdAt
+                      ? new Date(reportDetail.createdAt).toLocaleString("vi-VN")
+                      : "—"}
                   </span>
                 </div>
 
                 {reportDetail.status === 1 && reportDetail.responseContent ? (
-                  <div style={{ background: "#f0fdf4", borderRadius: 12, padding: "14px 16px", borderLeft: "4px solid #6ee7b7" }}>
-                    <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 700, color: "#065f46", textTransform: "uppercase" }}>Phản hồi từ Admin</p>
-                    <p style={{ margin: "0 0 8px", lineHeight: 1.6, color: "#374151" }}>{reportDetail.responseContent}</p>
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      borderRadius: 12,
+                      padding: "14px 16px",
+                      borderLeft: "4px solid #6ee7b7",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: "0 0 6px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#065f46",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Phản hồi từ Admin
+                    </p>
+                    <p
+                      style={{
+                        margin: "0 0 8px",
+                        lineHeight: 1.6,
+                        color: "#374151",
+                      }}
+                    >
+                      {reportDetail.responseContent}
+                    </p>
                     {reportDetail.respondedAt && (
                       <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>
-                        Phản hồi lúc: {new Date(reportDetail.respondedAt).toLocaleString("vi-VN")}
+                        Phản hồi lúc:{" "}
+                        {new Date(reportDetail.respondedAt).toLocaleString(
+                          "vi-VN",
+                        )}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p style={{ margin: 0, color: "#9ca3af", fontSize: 14, fontStyle: "italic" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#9ca3af",
+                      fontSize: 14,
+                      fontStyle: "italic",
+                    }}
+                  >
                     Chưa có phản hồi từ Admin. Vui lòng chờ trong thời gian tới.
                   </p>
                 )}
               </>
             ) : (
-              <p style={{ color: "#dc2626", textAlign: "center" }}>Không thể tải chi tiết báo cáo.</p>
+              <p style={{ color: "#dc2626", textAlign: "center" }}>
+                Không thể tải chi tiết báo cáo.
+              </p>
             )}
           </div>
         </div>

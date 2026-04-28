@@ -510,19 +510,19 @@ namespace Fiebo.Application.Services
             var ratedBookingIds = await _unitOfWork.Bookings.GetRatedBookingIdsAsync(bookingIds);
 
 
-            var items = result.Items.SelectMany(b => b.BookingDetails.Select(bd => new BookingHistoryResponse
+            var items = result.Items.Select(b => new BookingHistoryResponse
             {
                 BookingId = b.Id,
                 Status = b.Status.ToString(),
                 BookingDate = b.BookingDate,
-                VenueName = bd.Field?.Venue?.Name ?? "N/A",
-                ThumbnailUrl = bd.Field?.Venue?.ThumbnailUrl,
-                Province = bd.Field?.Venue?.Province?.Name ?? "N/A",
-                Ward = bd.Field?.Venue?.Ward?.Name ?? "N/A",
-                Address = bd.Field?.Venue?.AddressDetail ?? "N/A",
-                VenueId = bd.Field?.VenueId ?? 0,
+                VenueName = b.Venue?.Name ?? "N/A",
+                ThumbnailUrl = b.Venue?.ThumbnailUrl,
+                Province = b.Venue?.Province?.Name ?? "N/A",
+                Ward = b.Venue?.Ward?.Name ?? "N/A",
+                Address = b.Venue?.AddressDetail ?? "N/A",
+                VenueId = b.VenueId,
                 CanReview = b.Status == BookingStatus.Completed && !ratedBookingIds.Contains(b.Id)
-            })).ToList();
+            }).ToList();
 
             return new PagedResult<BookingHistoryResponse>
             {

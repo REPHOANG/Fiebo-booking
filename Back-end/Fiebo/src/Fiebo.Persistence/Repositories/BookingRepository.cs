@@ -24,13 +24,9 @@ namespace Fiebo.Persistence.Repositories
 
             var query = _context.Bookings
                 .AsNoTracking()
-                .Include(b => b.BookingDetails)
-                    .ThenInclude(bd => bd.Field)
-                        .ThenInclude(f => f.Venue)
+                        .Include(f => f.Venue)
                             .ThenInclude(v => v!.Province)
-                .Include(b => b.BookingDetails)
-                    .ThenInclude(bd => bd.Field)
-                        .ThenInclude(f => f.Venue)
+                        .Include(f => f.Venue)
                             .ThenInclude(v => v!.Ward)
                 .Where(b => b.UserId == userId);
 
