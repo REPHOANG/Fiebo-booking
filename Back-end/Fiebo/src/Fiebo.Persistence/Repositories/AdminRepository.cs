@@ -51,10 +51,10 @@ namespace Fiebo.Persistence.Repositories
                 {
                     Id = u.Id,
                     FullName = u.FullName,
-                    Email = u.Email,
-                    PhoneNumber = u.PhoneNumber,
-                    Status = (int)u.Status,
-                    UserName = u.UserName
+                    Email = u.Email ?? "",
+                    PhoneNumber = u.PhoneNumber ?? "",
+                    Status = u.Status.ToString(),
+                    CreatedAt = u.CreatedAt
                 })
                 .ToListAsync();
 

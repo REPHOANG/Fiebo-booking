@@ -318,7 +318,6 @@
 .report-id {
   font-weight: 600;
   color: var(--text-gray);
-  font-family: monospace;
   font-size: 14px;
 }
 
@@ -357,7 +356,6 @@
 .booking-id {
   font-weight: 600;
   color: var(--primary-blue);
-  font-family: monospace;
 }
 
 .date-time {
@@ -366,7 +364,7 @@
 }
 
 .date-time .time {
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-dark);
 }
 
@@ -381,7 +379,7 @@
   gap: 8px;
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -565,7 +563,7 @@
 
 .m-value {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .activity-icon-bg {

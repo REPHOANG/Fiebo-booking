@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  CircularProgress,
-  Pagination,
-  Typography,
-} from "@mui/material";
+import { Box, CircularProgress, Pagination, Typography } from "@mui/material";
 import { Select as AntdSelect } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,10 +9,11 @@ import {
   MoreHorizontal,
   User,
   UserX,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import { getCustomers } from "../../../services/adminService";
 import "./AdminCustomers.css";
+import { formatDate } from "./../../../utils/helperFunction";
 
 const STATUS_OPTIONS = [
   { value: "", label: "Trạng thái: Tất cả" },
@@ -66,11 +62,7 @@ const AdminCustomers = () => {
     pageSize: PAGE_SIZE,
   };
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["adminCustomers", queryParams],
     queryFn: () => getCustomers(queryParams),
     staleTime: 2 * 60 * 1000,
@@ -93,15 +85,23 @@ const AdminCustomers = () => {
   const handleExport = () => {
     if (customers.length === 0) return;
     const headers = ["ID", "Họ tên", "Email", "Số điện thoại", "Trạng thái"];
-    const rows = customers.map(c => [
+    const rows = customers.map((c) => [
       c.id,
       c.fullName,
       c.email,
       c.phoneNumber,
-      c.status === 1 ? "Hoạt động" : c.status === 0 ? "Không hoạt động" : "Bị khóa"
+      c.status === 1
+        ? "Hoạt động"
+        : c.status === 0
+          ? "Không hoạt động"
+          : "Bị khóa",
     ]);
 
-    let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
+    let csvContent =
+      "\uFEFF" +
+      headers.join(",") +
+      "\n" +
+      rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -110,14 +110,14 @@ const AdminCustomers = () => {
   };
 
   const getStatusClass = (status) => {
-    if (status === 1) return "active";
-    if (status === -1) return "locked";
-    return "inactive";
+    if (status === "active") return "active";
+    if (status === "inactive") return "inactive";
+    return "locked";
   };
 
   const getStatusLabel = (status) => {
-    if (status === 1) return "Đang hoạt động";
-    if (status === -1) return "Đã khóa";
+    if (status === "active") return "Đang hoạt động";
+    if (status === "inactive" ) return "Chưa kích hoạt";
     return "Không hoạt động";
   };
 
@@ -130,7 +130,10 @@ const AdminCustomers = () => {
       <div className="customers-header">
         <div className="header-title">
           <h1>Quản lý khách hàng</h1>
-          <p>Tổng số <span>{totalItems.toLocaleString()}</span> người dùng trong hệ thống.</p>
+          <p>
+            Tổng số <span>{totalItems.toLocaleString()}</span> người dùng trong
+            hệ thống.
+          </p>
         </div>
         <button className="btn-export" onClick={handleExport}>
           <Download size={18} />
@@ -177,11 +180,11 @@ const AdminCustomers = () => {
       {/* Table Card */}
       <div className="customers-table-card">
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
             <CircularProgress size={40} />
           </Box>
         ) : isError ? (
-          <Box sx={{ p: 4, textAlign: 'center', color: '#ef4444' }}>
+          <Box sx={{ p: 4, textAlign: "center", color: "#ef4444" }}>
             Không thể tải dữ liệu. Vui lòng thử lại sau.
           </Box>
         ) : (
@@ -189,11 +192,10 @@ const AdminCustomers = () => {
             <thead>
               <tr>
                 <th>KHÁCH HÀNG</th>
-                <th>EMAIL/SĐT</th>
+                <th>EMAIL</th>
+                <th>SỐ ĐIỆN THOẠI</th>
                 <th>NGÀY THAM GIA</th>
-                <th>ĐƠN ĐẶT</th>
                 <th>TRẠNG THÁI</th>
-                <th>THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
@@ -204,29 +206,23 @@ const AdminCustomers = () => {
                       <div className="customer-avatar">
                         {getInitials(item.fullName) || <User size={20} />}
                       </div>
-                      <span className="customer-name">{item.fullName || "N/A"}</span>
+                      <span className="customer-name">
+                        {item.fullName || "N/A"}
+                      </span>
                     </div>
                   </td>
                   <td>
-                    <div className="contact-cell">
                       <div>{item.email || "N/A"}</div>
-                      <div className="phone">{item.phoneNumber || "N/A"}</div>
-                    </div>
                   </td>
-                  <td>24/04/2026</td>
-                  <td style={{ fontWeight: 600 }}>12</td>
+                  <td >{item.phoneNumber}</td>
+                  <td>{formatDate(item.createdAt)}</td>
+
                   <td>
-                    <span className={`status-badge ${getStatusClass(item.status)}`}>
-                      {getStatusLabel(item.status)}
+                    <span
+                      className={`status-badge ${getStatusClass(item.status.toLowerCase())}`}
+                    >
+                      {getStatusLabel(item.status.toLowerCase())}
                     </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <button className="btn-detail">Chi tiết</button>
-                      <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                        <MoreHorizontal size={20} />
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}
@@ -240,7 +236,9 @@ const AdminCustomers = () => {
               <UserX size={32} />
             </div>
             <h3>Không tìm thấy kết quả</h3>
-            <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc để xem thêm khách hàng.</p>
+            <p>
+              Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc để xem thêm khách hàng.
+            </p>
           </div>
         )}
       </div>
@@ -249,7 +247,11 @@ const AdminCustomers = () => {
       {!isLoading && customers.length > 0 && (
         <div className="pagination-section">
           <div className="pagination-info">
-            Hiển thị <span>{startIndex}-{endIndex}</span> trong tổng số <span>{totalItems}</span> khách hàng
+            Hiển thị{" "}
+            <span>
+              {startIndex}-{endIndex}
+            </span>{" "}
+            trong tổng số <span>{totalItems}</span> khách hàng
           </div>
           <div className="pagination-controls">
             <select className="page-size-select">

@@ -75,7 +75,8 @@ namespace Fiebo.Application.Services
                 VenueId = r.VenueId,                  
                 VenueName = r.Venue?.Name ?? "N/A",
                 BookingId = r.BookingId,
-                CustomerId = r.UserId
+                CustomerId = r.UserId,
+                RespondedAt = r.RespondedAt
             });
         }
 

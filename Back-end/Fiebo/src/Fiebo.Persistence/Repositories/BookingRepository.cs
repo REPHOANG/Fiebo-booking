@@ -1,5 +1,6 @@
 using Fiebo.Application.DTOs.Booking;
 using Fiebo.Domain.Entities;
+using Fiebo.Domain.Enums;
 using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Fiebo.Persistence.Data;
@@ -233,7 +234,7 @@ namespace Fiebo.Persistence.Repositories
                 .Include(b => b.Venue)
                 .Include(b => b.BookingDetails)
                     .ThenInclude(bd => bd.Field)
-                .Where(b => venueIds.Contains(b.Venue.Id));
+                .Where(b => b.Status != BookingStatus.Holding && venueIds.Contains(b.Venue.Id));
 
             if (parameters.BookingId.HasValue)
             {

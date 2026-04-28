@@ -611,7 +611,7 @@ namespace Fiebo.Application.Services
             }
             else if (role == AppRoles.FieldOwner && venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền xem bản nháp của sân này");
+                throw new ForbiddenException("Bạn không có quyền xem bản nháp của sân này");
             }
             bool canViewBusinessLicense = role == AppRoles.FieldOwner;
             var businessLicense = canViewBusinessLicense

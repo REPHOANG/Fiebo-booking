@@ -41,10 +41,18 @@ const formatDisplayValue = (key, value) => {
 
 const normalizeDoc = (doc) => {
   if (!doc || typeof doc !== "object") return null;
+
   const issueDate = doc.issueDate ?? doc.IssueDate ?? null;
   const expiryDate = doc.expiryDate ?? doc.ExpiryDate ?? null;
+
   const imagesRaw = doc.images ?? doc.Images ?? [];
-  const images = Array.isArray(imagesRaw) ? imagesRaw.filter(Boolean) : [];
+
+  const images = Array.isArray(imagesRaw)
+    ? imagesRaw
+        .map((img) => img?.imageUrl || img?.url || null)
+        .filter(Boolean)
+    : [];
+
   return { issueDate, expiryDate, images };
 };
 

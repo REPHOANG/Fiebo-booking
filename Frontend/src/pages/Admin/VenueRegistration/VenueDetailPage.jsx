@@ -98,7 +98,6 @@ export const VenueDetailPage = () => {
   }
 
   const businessLicenseImages = data?.businessLicense?.images ?? [];
-  const landUseDocumentImages = data?.landUseDocument?.images ?? [];
   const venueName = data?.venueName || "Cơ sở chưa đặt tên";
   const address = data?.address || "Chưa có địa chỉ";
   const openTime = formatTimeValue(data?.openTime);
@@ -152,7 +151,6 @@ export const VenueDetailPage = () => {
               <img style={{
                 width:"100%",
                 height:"100%"
-
               }} src={data?.thumbnailUrl} alt="" />
             </div>
           </div>
@@ -257,7 +255,7 @@ export const VenueDetailPage = () => {
 
                   <div className="avr-legal-images">
                     <ReviewDocImageCarousel
-                      images={doc.images}
+                      images={doc.images.map(img => img.imageUrl)}
                       title={doc.label}
                       emptyHint="Chưa có ảnh đính kèm"
                     />
