@@ -79,7 +79,7 @@ namespace Fiebo.Persistence.Repositories
                 .Include(f => f.BookingDetails
                     .Where(bd =>
                         bd.Booking.BookingDate == date &&
-                        (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked)))
+                        (bd.Booking.Status == BookingStatus.Pending || bd.Booking.Status == BookingStatus.Booked || bd.Booking.Status == BookingStatus.Holding)))
                 .ThenInclude(bd => bd.Booking)
                 .ToListAsync();
         }

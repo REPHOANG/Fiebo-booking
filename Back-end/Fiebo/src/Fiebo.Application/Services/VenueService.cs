@@ -460,7 +460,7 @@ namespace Fiebo.Application.Services
             }
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền xem lịch sân này");
+                throw new ForbiddenException("Bạn không có quyền xem lịch sân này");
             }
             return await GetVenueSchedule(venueId, date);
         }
