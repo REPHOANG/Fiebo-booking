@@ -70,7 +70,7 @@ export default function CreateVenueStepDocuments({
   return (
     <div className="cv-card">
       <h3 className="cv-card-title">
-        <LayoutList size={20} /> Giấy tờ (Documents + Images)
+        <LayoutList size={20} /> Giấy tờ
       </h3>
       {!venueId ? (
         <p className="cv-error-text">Chưa có venueId. Vui lòng quay lại bước 1.</p>

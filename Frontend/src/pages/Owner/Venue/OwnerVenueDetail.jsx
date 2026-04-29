@@ -369,9 +369,10 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
   // We load from owner endpoint first (which includes `Status`) to ensure this is accurate.
   const statusLower = String(venue?.status || venue?.Status || "").toLowerCase().trim();
   const canEditVenue = ["active", "draft"].includes(statusLower);
-  const canCreateField = ["active", "draft", "pending"].includes(statusLower);
   const canDeactivateVenue = statusLower === "active" || statusLower === "draft";
+  const canOfflineBook = ["active", "inactive"].includes(statusLower);
   const isInactive = statusLower === "inactive";
+  const isPendingOrRejected = statusLower === "pending" || statusLower === "rejected";
 
   const filteredFields = useMemo(() => {
     const kw = searchKeyword.trim().toLowerCase();
@@ -425,30 +426,30 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
         </button>
         <div className="ovd-actions">
           <Link
-            className={`ovd-btn ${!canCreateField && !isStaff ? "is-disabled" : ""}`}
-            to={isStaff ? `/staff/venues/${id}/time-slot` : (canCreateField ? `/owner/venues/${id}/time-slot` : "#")}
-            onClick={(e) => {
-              if (!isStaff && !canCreateField) e.preventDefault();
-            }}
+            className="ovd-btn"
+            to={isStaff ? `/staff/venues/${id}/time-slot` : `/owner/venues/${id}/time-slot`}
           >
             <Calendar size={16} /> {isStaff ? "Xem khung giờ" : "Quản lý khung giờ"}
           </Link>
           <Link
-            className={`ovd-btn ${!canEditVenue && !isStaff ? "is-disabled" : ""}`}
-            to={isStaff ? `/staff/venues/${id}/services` : (canEditVenue ? `/owner/venue/${id}/services` : "#")}
-            onClick={(e) => {
-              if (!isStaff && !canEditVenue) e.preventDefault();
-            }}
+            className="ovd-btn"
+            to={isStaff ? `/staff/venues/${id}/services` : `/owner/venue/${id}/services`}
           >
             <Package size={16} /> {isStaff ? "Xem dịch vụ" : "Quản lý dịch vụ"}
           </Link>
           <Link
-            className="ovd-btn ovd-btn--primary"
-            to={isStaff ? `/staff/venues/${id}/offline-booking` : `/owner/venues/${id}/offline-booking`}
+            className={`ovd-btn ovd-btn--primary${!canOfflineBook ? " is-disabled" : ""}`}
+            to={canOfflineBook
+              ? (isStaff ? `/staff/venues/${id}/offline-booking` : `/owner/venues/${id}/offline-booking`)
+              : "#"}
+            onClick={(e) => {
+              if (!canOfflineBook) e.preventDefault();
+            }}
+            title={!canOfflineBook ? "Chỉ có thể đặt offline khi cơ sở đang active hoặc inactive" : undefined}
           >
             <Calendar size={16} /> Đặt offline
           </Link>
-          {!isStaff && (
+          {!isStaff && !isPendingOrRejected && (
             <button
               type="button"
               className="ovd-btn ovd-btn--danger"
@@ -627,12 +628,9 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
               {!isStaff && (
                 <div className="ovd-actions">
                   <Link
-                    className={`ovd-btn ${!canCreateField ? "is-disabled" : ""}`}
-                    to={canCreateField ? `/owner/venues/${id}/add-field` : "#"}
-                    state={canCreateField ? { venueDraftHint } : undefined}
-                    onClick={(e) => {
-                      if (!canCreateField) e.preventDefault();
-                    }}
+                    className="ovd-btn"
+                    to={`/owner/venues/${id}/add-field`}
+                    state={{ venueDraftHint }}
                   >
                     <Plus size={15} /> Thêm sân
                   </Link>
@@ -653,9 +651,8 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="all">Tất cả trạng thái</option>
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Ngừng hoạt động</option>
               </select>
               <select
                 className="ovd-input"
@@ -708,8 +705,6 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
                           </div>
                         </div>
                         <div className="ovd-field-right">
-                          <span className="ovd-field-price-label">Mức giá</span>
-                          <span className="ovd-field-price">{priceLabel}</span>
                         </div>
                       </div>
                         {!isStaff && fieldId != null ? (

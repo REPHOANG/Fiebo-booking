@@ -243,6 +243,7 @@ const OwnerBookingDetail = ({
               <li>Họ tên: <strong>{d.customerName ?? "—"}</strong></li>
               <li>SĐT: <strong>{d.phoneNumber ?? "—"}</strong></li>
               {d.bookingNote ? <li>Ghi chú: {d.bookingNote}</li> : null}
+              {d.cancelReason ? <li>Lý do hủy đơn: <strong style={{ color: "red", fontStyle: "italic" }}>{d.cancelReason}</strong></li > : null}
             </ul>
           </div>
 

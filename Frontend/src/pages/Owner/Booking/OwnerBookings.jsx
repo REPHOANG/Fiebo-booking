@@ -9,6 +9,7 @@ import "./OwnerBookingsCompact.css";
 import { getOwnerBookingList, confirmBookingApi, rejectBookingApi, ownerCancelBookingApi } from "../../../services/bookingService";
 import { getOwnerVenueSelectOptions } from "../../../services/venueService";
 import Swal from "sweetalert2";
+import CancelReasonModal from "../../../components/common/CancelReasonModal/CancelReasonModal";
 
 const filterSchema = yup.object({
   venueId: yup.string(),
@@ -16,6 +17,14 @@ const filterSchema = yup.object({
 
 const PAGE_SIZE = 10;
 const WEEK_DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+const BOOKING_CANCEL_REASONS = [
+  "Sân bảo trì, không thể hoạt động",
+  "Điều kiện thời tiết không phù hợp",
+  "Trùng lịch với đơn đặt khác",
+  "Khách hàng yêu cầu hủy qua điện thoại",
+  "Khác",
+];
 
 const BOOKING_STATUS_FILTER_OPTIONS = [
   { value: "", label: "Tất cả trạng thái" },
@@ -109,6 +118,12 @@ const OwnerBookings = ({
   const [statusFilter, setStatusFilter] = useState("");
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const filterMenuRef = useRef(null);
+  const [cancelBookingId, setCancelBookingId] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState("");
+  const [customCancelReason, setCustomCancelReason] = useState("");
+  const [cancelReasonError, setCancelReasonError] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   const { register, watch, reset } = useForm({
     resolver: yupResolver(filterSchema),
@@ -191,47 +206,58 @@ const OwnerBookings = ({
     }
   };
 
-  const handleCancel = async (bookingId) => {
-    const { value: reason } = await Swal.fire({
-      title: "Hủy đơn hàng",
-      input: "textarea",
-      inputLabel: "Lý do hủy đơn",
-      inputPlaceholder: "Nhập lý do hủy đơn hàng...",
-      showCancelButton: true,
-      confirmButtonText: "Hủy đơn",
-      cancelButtonText: "Đóng",
-      confirmButtonColor: "#dc3545",
-      inputValidator: (value) => {
-        if (!value) {
-          return "Vui lòng nhập lý do hủy!";
-        }
-      },
-    });
+  const openCancelModal = (bookingId) => {
+    setCancelBookingId(bookingId);
+    setSelectedCancelReason("");
+    setCustomCancelReason("");
+    setCancelReasonError("");
+    setShowCancelModal(true);
+  };
 
-    if (reason) {
-      try {
-        Swal.fire({
-          title: "Đang hủy đơn...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
-          showConfirmButton: false,
-        });
-        await ownerCancelBookingApi(bookingId, reason);
-        Swal.close();
-        await Swal.fire({
-          icon: "success",
-          title: "Đã hủy đơn hàng và hoàn tiền.",
-          showConfirmButton: false,
-          timer: 1500,
-        });
-        loadList();
-      } catch (e) {
-        Swal.close();
-        const msg = e?.response?.data?.message || "Không thể hủy đơn hàng.";
-        toast.error(msg);
-      }
+  const closeCancelModal = () => {
+    if (cancelSubmitting) return;
+    setShowCancelModal(false);
+    setCancelBookingId(null);
+    setSelectedCancelReason("");
+    setCustomCancelReason("");
+    setCancelReasonError("");
+  };
+
+  const confirmCancelBooking = async () => {
+    if (!cancelBookingId || cancelSubmitting) return;
+
+    if (!selectedCancelReason) {
+      setCancelReasonError("Vui lòng chọn lý do hủy.");
+      return;
+    }
+
+    const cancelNote =
+      selectedCancelReason === "Khác"
+        ? customCancelReason.trim()
+        : selectedCancelReason;
+
+    if (!cancelNote) {
+      setCancelReasonError("Vui lòng nhập lý do hủy.");
+      return;
+    }
+
+    setCancelReasonError("");
+    setCancelSubmitting(true);
+    try {
+      await ownerCancelBookingApi(cancelBookingId, cancelNote);
+      closeCancelModal();
+      await Swal.fire({
+        icon: "success",
+        title: "Đã hủy đơn hàng và hoàn tiền.",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+      loadList();
+    } catch (e) {
+      const msg = e?.response?.data?.message || "Không thể hủy đơn hàng.";
+      toast.error(msg);
+    } finally {
+      setCancelSubmitting(false);
     }
   };
 
@@ -628,7 +654,7 @@ const OwnerBookings = ({
                         <button
                           type="button"
                           className="ob-action-btn ob-btn-reject"
-                          onClick={() => handleCancel(bid)}
+                          onClick={() => openCancelModal(bid)}
                         >
                           Hủy đơn
                         </button>
@@ -680,6 +706,31 @@ const OwnerBookings = ({
           </div>
         </div>
       </div>
+
+      <CancelReasonModal
+        open={showCancelModal}
+        title="Hủy đơn đặt sân"
+        description="Chọn lý do hủy đơn đặt sân"
+        reasons={BOOKING_CANCEL_REASONS}
+        selectedReason={selectedCancelReason}
+        onSelectReason={(reason) => {
+          setSelectedCancelReason(reason);
+          setCancelReasonError("");
+        }}
+        allowCustomReason
+        customOptionLabel="Khác"
+        customReason={customCancelReason}
+        onCustomReasonChange={(value) => {
+          setCustomCancelReason(value);
+          setCancelReasonError("");
+        }}
+        errorMessage={cancelReasonError}
+        isSubmitting={cancelSubmitting}
+        onClose={closeCancelModal}
+        onConfirm={confirmCancelBooking}
+        cancelText="Đóng"
+        confirmText="Xác nhận hủy đơn"
+      />
     </div>
   );
 };

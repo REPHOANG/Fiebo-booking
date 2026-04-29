@@ -455,15 +455,7 @@ const CreateVenue = () => {
       const existingId = createdVenue?.venueId ?? createdVenue?.VenueId ?? null;
 
       if (existingId) {
-        Swal.fire({
-          title: "Đang cập nhật cơ sở...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
-          showConfirmButton: false,
-        });
-          try {
+        try {
           await updateOwnerVenueInfo(existingId, {
             name: data.name,
             description: data.description,
@@ -476,8 +468,6 @@ const CreateVenue = () => {
             closeTime: normalizeTimeForApi(data.closeTime),
             thumbnailFile: thumbnailFile || undefined,
           });
-          Swal.close();
-          toast.success(`Đã cập nhật cơ sở #${existingId}`);
           if (thumbnailFile) setExistingThumbnailUrl("");
           setActiveStep(1);
         } catch (e) {
@@ -502,22 +492,12 @@ const CreateVenue = () => {
       form.append("Longitude", String(Number(data.longitude)));
       if (thumbnailFile) form.append("Thumbnail", thumbnailFile);
 
-      Swal.fire({
-        title: "Đang tạo cơ sở...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-        showConfirmButton: false,
-      });
-        try {
+      
+      try {
         const result = await createVenue(form);
         const id = result?.venueId ?? result?.VenueId;
         const status = result?.status ?? result?.Status ?? "DRAFT";
         if (id) {
-          Swal.close();
-          toast.success(`Tạo cơ sở thành công #${id}`);
-          await Swal.fire({ icon: "success", title: `Tạo cơ sở thành công #${id}`, showConfirmButton: false, timer: 1400 });
           setCreatedVenue({ venueId: id, status });
           setActiveStep(1);
         } else {
@@ -586,15 +566,6 @@ const CreateVenue = () => {
 
       let hasError = false;
 
-      Swal.fire({
-        title: "Đang lưu giấy tờ...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-        showConfirmButton: false,
-      });
-
       for (const d of docsToUpdate) {
         const form = new FormData();
         form.append("IssueDate", d.issueDate);
@@ -649,8 +620,6 @@ const CreateVenue = () => {
       } catch {
         /* bước xác nhận vẫn dùng state hiện tại */
       }
-      Swal.close();
-      toast.success("Đã lưu giấy tờ.");
       setActiveStep(2);
     } catch (e) {
       Swal.close();
@@ -665,26 +634,16 @@ const CreateVenue = () => {
     if (!venueId) return;
     setIsSubmitting(true);
     try {
-      Swal.fire({
-        title: "Đang gửi duyệt...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-        showConfirmButton: false,
-      });
+      
       try {
         await submitVenue(venueId);
-        Swal.close();
-        toast.success("Đã gửi duyệt cơ sở.");
+        toast.success("Đã gửi duyệt cơ sở");
         navigate("/owner/venues");
       } catch (e) {
-        Swal.close();
         const msg = e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được.";
         await Swal.fire({ icon: "error", title: msg });
       }
     } catch (e) {
-      Swal.close();
       const msg = e?.response?.data?.message || e?.response?.data?.Message || e?.message || "Không gửi duyệt được.";
       await Swal.fire({ icon: "error", title: msg });
     } finally {
@@ -752,7 +711,6 @@ const CreateVenue = () => {
           </button>
           <div>
             <h1>Tạo cơ sở mới</h1>
-            <p>Thực hiện theo 3 bước để gửi duyệt cơ sở</p>
           </div>
         </div>
 
@@ -764,7 +722,7 @@ const CreateVenue = () => {
             >
               <div className="cv-step-dot">{idx < activeStep ? "✓" : idx + 1}</div>
               <div className="cv-step-title">
-                {idx + 1}. {t}
+                {t}
               </div>
             </div>
           ))}

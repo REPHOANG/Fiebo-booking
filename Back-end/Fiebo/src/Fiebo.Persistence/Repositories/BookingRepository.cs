@@ -27,7 +27,7 @@ namespace Fiebo.Persistence.Repositories
                         .Include(f => f.Venue)
                             .ThenInclude(v => v!.Province)
                         .Include(f => f.Venue)
-                            .ThenInclude(v => v!.Ward)
+                            .ThenInclude(v => v!.Ward)                        
                 .Where(b => b.UserId == userId);
 
             if (parameters.FromDate.HasValue)
@@ -91,6 +91,7 @@ namespace Fiebo.Persistence.Repositories
                     .ThenInclude(bd => bd.TimeSlot)
                 .Include(b => b.BookingServiceItems)
                     .ThenInclude(si => si.VenueServiceItem)
+                    .Include(b => b.CancelBooking)
                 .FirstOrDefaultAsync(b => b.Id == bookingId);
         }
 

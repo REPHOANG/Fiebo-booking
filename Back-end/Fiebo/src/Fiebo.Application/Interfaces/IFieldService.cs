@@ -11,8 +11,7 @@ namespace Fiebo.Application.Interfaces
     {
         Task<PagedResult<FieldsDetailDTO>> GetFieldsByVenue(int venueId, int page, int pageSize);
         Task<List<SportTypeResponse>> GetAllSportTypes();
-        Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId);
-        Task<int> CreateFieldAsync(int venueId, CreateFieldRequest request, string userId);
+Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId, string? role);        Task<int> CreateFieldAsync(int venueId, CreateFieldRequest request, string userId);
         Task UpdateFieldAsync(UpdateFieldRequest request, string? userId, int fieldId);
         Task UploadFieldImage(int fieldId, string? userId, List<IFormFile> files);
         Task DeleteFieldImage(string publicId, string? userId);
