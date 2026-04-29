@@ -54,36 +54,26 @@ function splitTimeParts(value) {
   const match = /^(\d{2}):(\d{2})$/.exec(String(value || "").trim());
   const safeHours = match ? Number(match[1]) : 5;
   const safeMinutes = match ? match[2] : "00";
-  const period = safeHours >= 12 ? "PM" : "AM";
-  const hours12 = safeHours % 12 || 12;
   return {
-    hours: String(hours12).padStart(2, "0"),
+    hours: String(safeHours).padStart(2, "0"),
     minutes: safeMinutes === "30" ? "30" : "00",
-    period,
   };
 }
 
-function joinTimeParts(hours12Text, minutesText, period) {
-  const hours12 = Number(hours12Text);
-  const safeHours12 = Number.isFinite(hours12) && hours12 >= 1 && hours12 <= 12 ? hours12 : 12;
-  let hours24 = safeHours12 % 12;
-  if (period === "PM") hours24 += 12;
-  return `${String(hours24).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
+function joinTimeParts(hoursText, minutesText) {
+  const hours = Number(hoursText);
+  const safeHours = Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
+  return `${String(safeHours).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
 }
 
-const TIME_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
-  const value = String(index + 1).padStart(2, "0");
-  return { value, label: `${index + 1} giờ` };
+const TIME_HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => {
+  const value = String(index).padStart(2, "0");
+  return { value, label: `${index} giờ` };
 });
 
 const TIME_MINUTE_OPTIONS = [
   { value: "00", label: "00 phút" },
   { value: "30", label: "30 phút" },
-];
-
-const TIME_PERIOD_OPTIONS = [
-  { value: "AM", label: "Sáng" },
-  { value: "PM", label: "Chiều" },
 ];
 
 function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "" }) {
@@ -149,7 +139,7 @@ function TimeSegmentField({ name, label, value, register, setValue, error }) {
   const parts = splitTimeParts(value);
 
   const updateTime = (nextParts) => {
-    setValue(name, joinTimeParts(nextParts.hours, nextParts.minutes, nextParts.period), {
+    setValue(name, joinTimeParts(nextParts.hours, nextParts.minutes), {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -176,15 +166,8 @@ function TimeSegmentField({ name, label, value, register, setValue, error }) {
           ariaLabel={`${label} - phút`}
           onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
         />
-        <SegmentedDropdown
-          className="cv-time-segment cv-time-segment--period"
-          value={parts.period}
-          options={TIME_PERIOD_OPTIONS}
-          ariaLabel={`${label} - buổi`}
-          onChange={(nextPeriod) => updateTime({ ...parts, period: nextPeriod })}
-        />
       </div>
-      <p className="cv-time-hint">Chọn theo dạng giờ và phút, mỗi 30 phút một mốc</p>
+      <p className="cv-time-hint">Chọn theo dạng 24 giờ và phút, mỗi 30 phút một mốc</p>
       {error ? <p className="cv-error-text">{error.message}</p> : null}
     </div>
   );

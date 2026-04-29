@@ -2,8 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Building2, Calendar, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Plus, X } from "lucide-react";
 import { toast } from "react-toastify";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
 import { getVenueDraft, updateOwnerVenueInfo } from "../../../services/venueService";
+import Swal from "sweetalert2";
 import "./OwnerVenueDetail.css";
 
 const toInputTime = (value) => {
@@ -28,8 +32,8 @@ const normalizeDoc = (doc) => {
 
   const images = Array.isArray(imagesRaw)
     ? imagesRaw
-        .map((img) => img?.imageUrl || img?.url || null)
-        .filter(Boolean)
+      .map((img) => img?.imageUrl || img?.url || null)
+      .filter(Boolean)
     : [];
 
   return { issueDate, expiryDate, images };
@@ -39,36 +43,26 @@ function splitTimeParts(value) {
   const match = /^(\d{2}):(\d{2})$/.exec(String(value || "").trim());
   const safeHours = match ? Number(match[1]) : 5;
   const safeMinutes = match ? match[2] : "00";
-  const period = safeHours >= 12 ? "PM" : "AM";
-  const hours12 = safeHours % 12 || 12;
   return {
-    hours: String(hours12).padStart(2, "0"),
+    hours: String(safeHours).padStart(2, "0"),
     minutes: safeMinutes === "30" ? "30" : "00",
-    period,
   };
 }
 
-function joinTimeParts(hours12Text, minutesText, period) {
-  const hours12 = Number(hours12Text);
-  const safeHours12 = Number.isFinite(hours12) && hours12 >= 1 && hours12 <= 12 ? hours12 : 12;
-  let hours24 = safeHours12 % 12;
-  if (period === "PM") hours24 += 12;
-  return `${String(hours24).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
+function joinTimeParts(hoursText, minutesText) {
+  const hours = Number(hoursText);
+  const safeHours = Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
+  return `${String(safeHours).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
 }
 
-const TIME_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
-  const value = String(index + 1).padStart(2, "0");
-  return { value, label: `${index + 1} giờ` };
+const TIME_HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => {
+  const value = String(index).padStart(2, "0");
+  return { value, label: `${index} giờ` };
 });
 
 const TIME_MINUTE_OPTIONS = [
   { value: "00", label: "00 phút" },
   { value: "30", label: "30 phút" },
-];
-
-const TIME_PERIOD_OPTIONS = [
-  { value: "AM", label: "Sáng" },
-  { value: "PM", label: "Chiều" },
 ];
 
 function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "", disabled = false }) {
@@ -141,7 +135,7 @@ function TimeSegmentField({ label, value, onChange, disabled }) {
   const parts = splitTimeParts(value);
 
   const updateTime = (nextParts) => {
-    onChange(joinTimeParts(nextParts.hours, nextParts.minutes, nextParts.period));
+    onChange(joinTimeParts(nextParts.hours, nextParts.minutes));
   };
 
   return (
@@ -164,16 +158,7 @@ function TimeSegmentField({ label, value, onChange, disabled }) {
           disabled={disabled}
           onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
         />
-        <SegmentedDropdown
-          className="ovd-time-segment ovd-time-segment--period"
-          value={parts.period}
-          options={TIME_PERIOD_OPTIONS}
-          ariaLabel={`${label} - buổi`}
-          disabled={disabled}
-          onChange={(nextPeriod) => updateTime({ ...parts, period: nextPeriod })}
-        />
       </div>
-      <p className="ovd-time-hint">Chọn theo dạng giờ và phút, mỗi 30 phút một mốc</p>
     </div>
   );
 }
@@ -297,7 +282,7 @@ const LocalDocumentImageCarousel = ({
   useEffect(() => {
     if (safeFiles.length === 0) {
       setPreviewUrls([]);
-      return () => {};
+      return () => { };
     }
 
     const nextUrls = safeFiles.map((file) => URL.createObjectURL(file));
@@ -472,20 +457,55 @@ const DocumentUploadPicker = ({ inputId, disabled, currentCount, maxImages = 5, 
   </div>
 );
 
+const schema = yup.object().shape({
+  name: yup
+    .string()
+    .required("Tên cơ sở là bắt buộc")
+    .max(50, "Tên cơ sở tối đa 50 ký tự"),
+  description: yup
+    .string()
+    .max(250, "Mô tả tối đa 250 ký tự")
+    .nullable(),
+  openTime: yup.string().required("Vui lòng chọn giờ mở cửa"),
+  closeTime: yup
+    .string()
+    .required("Vui lòng chọn giờ đóng cửa")
+    .test("is-after", "Giờ đóng phải sau giờ mở", function (value) {
+      const { openTime } = this.parent;
+      if (!openTime || !value) return true;
+      return value > openTime;
+    }),
+});
+
 const OwnerEditVenue = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    openTime: "",
-    closeTime: "",
-    thumbnailUrl: "",
-    thumbnailFile: null,
-  });
   const [statusLower, setStatusLower] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [deletedThumbnail, setDeletedThumbnail] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      name: "",
+      description: "",
+      openTime: "",
+      closeTime: "",
+      thumbnailFile: null,
+    },
+  });
+
+  const formValues = watch();
 
   const initialFormRef = useRef({
     name: "",
@@ -513,17 +533,15 @@ const OwnerEditVenue = () => {
           description: draft?.description ?? draft?.Description ?? "",
           openTime: toInputTime(draft?.openTime ?? draft?.OpenTime ?? ""),
           closeTime: toInputTime(draft?.closeTime ?? draft?.CloseTime ?? ""),
-          thumbnailUrl: draft?.thumbnailUrl ?? draft?.ThumbnailUrl ?? draft?.thumbnailImage ?? draft?.ThumbnailImage ?? "",
           thumbnailFile: null,
         };
 
-        setForm(nextForm);
+        setThumbnailUrl(draft?.thumbnailUrl ?? draft?.ThumbnailUrl ?? draft?.thumbnailImage ?? draft?.ThumbnailImage ?? "");
+        setDeletedThumbnail(false);
+        reset(nextForm);
         initialFormRef.current = {
-          name: nextForm.name,
-          description: nextForm.description,
-          openTime: nextForm.openTime,
-          closeTime: nextForm.closeTime,
-          thumbnailUrl: nextForm.thumbnailUrl,
+          ...nextForm,
+          thumbnailUrl: draft?.thumbnailUrl ?? draft?.ThumbnailUrl ?? draft?.thumbnailImage ?? draft?.ThumbnailImage ?? "",
         };
       } catch (e) {
         toast.error(e?.response?.data?.message ?? e?.message ?? "Không tải được dữ liệu cơ sở.");
@@ -538,23 +556,21 @@ const OwnerEditVenue = () => {
 
 
 
-  const onSave = async () => {
+  const onSave = async (data) => {
     if (!canEdit) {
       toast.error("Chỉ trạng thái active hoặc draft mới được chỉnh sửa.");
       return;
     }
-    if (!form.name.trim()) return toast.error("Vui lòng nhập tên cơ sở.");
-    if (!form.openTime || !form.closeTime) return toast.error("Vui lòng nhập giờ mở và giờ đóng.");
-    if (form.closeTime <= form.openTime) return toast.error("Giờ đóng phải sau giờ mở.");
 
     setSaving(true);
     try {
       await updateOwnerVenueInfo(id, {
-        name: form.name.trim(),
-        description: form.description?.trim() || "",
-        openTime: `${form.openTime}:00`,
-        closeTime: `${form.closeTime}:00`,
-        thumbnailFile: form.thumbnailFile,
+        name: data.name.trim(),
+        description: data.description?.trim() || "",
+        openTime: `${data.openTime}:00`,
+        closeTime: `${data.closeTime}:00`,
+        deletedThumbnail: deletedThumbnail,
+        thumbnailFile: data.thumbnailFile,
       });
       toast.success("Đã cập nhật thông tin cơ sở.");
       navigate(`/owner/venues/${id}`);
@@ -569,13 +585,14 @@ const OwnerEditVenue = () => {
     if (loading) return false;
     const initial = initialFormRef.current;
     return (
-      form.name !== initial.name ||
-      form.description !== initial.description ||
-      form.openTime !== initial.openTime ||
-      form.closeTime !== initial.closeTime ||
-      form.thumbnailFile !== null
+      formValues.name !== initial.name ||
+      formValues.description !== initial.description ||
+      formValues.openTime !== initial.openTime ||
+      formValues.closeTime !== initial.closeTime ||
+      formValues.thumbnailFile !== null ||
+      deletedThumbnail
     );
-  }, [form, loading]);
+  }, [formValues, loading, deletedThumbnail]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return undefined;
@@ -593,7 +610,21 @@ const OwnerEditVenue = () => {
 
   const confirmLeavePage = () => {
     if (!hasUnsavedChanges) return true;
-    return window.confirm("Bạn có thay đổi chưa lưu. Rời trang và bỏ các thay đổi này?");
+    Swal.fire({
+      title: "Bạn có thay đổi chưa lưu",
+      text: "Rời trang và bỏ các thay đổi này?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d63030",
+      cancelButtonColor: "rgb(22, 101, 199)",
+      confirmButtonText: "Rời trang",
+      cancelButtonText: "Ở lại"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate(`/owner/venues/${id}`);
+      }
+      return false;
+    });
   };
 
   const navigateToVenueDetail = () => {
@@ -631,74 +662,100 @@ const OwnerEditVenue = () => {
             ) : null}
             <div className="ovd-create-grid">
               <label className="ovd-label ovd-full">
-                Tên cơ sở
+                Tên cơ sở <span className="ovd-required">*</span>
                 <input
-                  className="ovd-input"
-                  value={form.name}
+                  className={`ovd-input ${errors.name ? "is-invalid" : ""}`}
+                  {...register("name")}
                   disabled={!canEdit}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 />
+                {errors.name && <span className="ovd-error-text">{errors.name.message}</span>}
               </label>
-              <TimeSegmentField
-                label="Giờ mở"
-                value={form.openTime}
-                disabled={!canEdit}
-                onChange={(nextValue) => setForm((p) => ({ ...p, openTime: nextValue }))}
+
+              <Controller
+                name="openTime"
+                control={control}
+                render={({ field }) => (
+                  <div className="ovd-field-group">
+                    <TimeSegmentField
+                      label="Giờ mở"
+                      value={field.value}
+                      disabled={!canEdit}
+                      onChange={field.onChange}
+                    />
+                    {errors.openTime && <span className="ovd-error-text">{errors.openTime.message}</span>}
+                  </div>
+                )}
               />
-              <TimeSegmentField
-                label="Giờ đóng"
-                value={form.closeTime}
-                disabled={!canEdit}
-                onChange={(nextValue) => setForm((p) => ({ ...p, closeTime: nextValue }))}
+
+              <Controller
+                name="closeTime"
+                control={control}
+                render={({ field }) => (
+                  <div className="ovd-field-group">
+                    <TimeSegmentField
+                      label="Giờ đóng"
+                      value={field.value}
+                      disabled={!canEdit}
+                      onChange={field.onChange}
+                    />
+                    {errors.closeTime && <span className="ovd-error-text">{errors.closeTime.message}</span>}
+                  </div>
+                )}
               />
               <div className="ovd-label ovd-full">
-                <span className="ovd-time-label">Ảnh đại diện (Thumbnail)</span>
+                <span className="ovd-time-label">Ảnh đại diện</span>
                 <div className="ovd-thumbnail-edit">
-                  {(form.thumbnailFile || form.thumbnailUrl) && (
+                  {formValues.thumbnailFile || thumbnailUrl ? (
                     <div className="ovd-thumbnail-preview">
                       <img
-                        src={form.thumbnailFile ? URL.createObjectURL(form.thumbnailFile) : form.thumbnailUrl}
+                        src={formValues.thumbnailFile ? URL.createObjectURL(formValues.thumbnailFile) : thumbnailUrl}
                         alt="Thumbnail preview"
                       />
-                      {form.thumbnailFile && (
-                        <button
-                          type="button"
-                          className="ovd-remove-thumb"
-                          onClick={() => setForm(p => ({ ...p, thumbnailFile: null }))}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="ovd-remove-thumb"
+                        onClick={() => {
+                          if (formValues.thumbnailFile) {
+                            setValue("thumbnailFile", null);
+                          } else {
+                            setThumbnailUrl("");
+                            setDeletedThumbnail(true);
+                          }
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
+                  ) : (
+                    <label className="ovd-upload-trigger">
+                      <Plus size={20} />
+                      <span>Chọn ảnh đại diện</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        disabled={!canEdit}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setValue("thumbnailFile", file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                   )}
-                  <label className="ovd-upload-trigger">
-                    <Plus size={20} />
-                    <span>{form.thumbnailFile || form.thumbnailUrl ? "Thay đổi ảnh" : "Chọn ảnh đại diện"}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      disabled={!canEdit}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setForm(p => ({ ...p, thumbnailFile: file }));
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
                 </div>
               </div>
 
               <label className="ovd-label ovd-full">
                 Mô tả
                 <textarea
-                  className="ovd-input"
+                  className={`ovd-input ${errors.description ? "is-invalid" : ""}`}
                   rows={6}
                   placeholder="Nhập mô tả về cơ sở của bạn..."
-                  value={form.description}
+                  {...register("description")}
                   disabled={!canEdit}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                 />
+                {errors.description && <span className="ovd-error-text">{errors.description.message}</span>}
               </label>
             </div>
 
@@ -717,7 +774,7 @@ const OwnerEditVenue = () => {
                 type="button"
                 className="ovd-btn ovd-btn--primary"
                 disabled={!canEdit || saving}
-                onClick={onSave}
+                onClick={handleSubmit(onSave)}
               >
                 {saving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>

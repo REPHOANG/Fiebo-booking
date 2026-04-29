@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import { ArrowLeft, Building2, MapPin, FileText, Check, Plus, X, MapPinned, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, FileText, Check, Plus, X, MapPinned, Loader2, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -56,6 +56,132 @@ function MapViewportController({ center, shouldAnimate }) {
   return null;
 }
 
+function splitTimeParts(value) {
+  const match = /^(\d{2}):(\d{2})$/.exec(String(value || "").trim());
+  const safeHours = match ? Number(match[1]) : 5;
+  const safeMinutes = match ? match[2] : "00";
+  return {
+    hours: String(safeHours).padStart(2, "0"),
+    minutes: safeMinutes === "30" ? "30" : "00",
+  };
+}
+
+function joinTimeParts(hoursText, minutesText) {
+  const hours = Number(hoursText);
+  const safeHours = Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
+  return `${String(safeHours).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
+}
+
+const TIME_HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => {
+  const value = String(index).padStart(2, "0");
+  return { value, label: `${index} giờ` };
+});
+
+const TIME_MINUTE_OPTIONS = [
+  { value: "00", label: "00 phút" },
+  { value: "30", label: "30 phút" },
+];
+
+function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "", disabled = false }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
+
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <div className={`cv-time-dropdown ${className}${isOpen ? " is-open" : ""}${disabled ? " is-disabled" : ""}`} ref={rootRef}>
+      <button
+        type="button"
+        className="cv-time-dropdown-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) setIsOpen((open) => !open);
+        }}
+      >
+        <span className="cv-time-dropdown-value">{selectedOption.label}</span>
+        <ChevronDown size={18} className="cv-time-dropdown-chevron" aria-hidden />
+      </button>
+      {isOpen ? (
+        <div className="cv-time-dropdown-panel" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                className={`cv-time-dropdown-option${isSelected ? " active" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {isSelected ? <Check size={16} strokeWidth={2.5} aria-hidden /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TimeSegmentField({ label, value, onChange, disabled }) {
+  const parts = splitTimeParts(value);
+
+  const updateTime = (nextParts) => {
+    onChange(joinTimeParts(nextParts.hours, nextParts.minutes));
+  };
+
+  return (
+    <div className="cv-form-group cv-time-field cv-full-width">
+      <label>
+        {label} <span className="cv-required">*</span>
+      </label>
+      <div className="cv-time-segments" aria-label={label}>
+        <SegmentedDropdown
+          className="cv-time-segment cv-time-segment--hour"
+          value={parts.hours}
+          options={TIME_HOUR_OPTIONS}
+          ariaLabel={`${label} - giờ`}
+          disabled={disabled}
+          onChange={(nextHours) => updateTime({ ...parts, hours: nextHours })}
+        />
+        <SegmentedDropdown
+          className="cv-time-segment cv-time-segment--minute"
+          value={parts.minutes}
+          options={TIME_MINUTE_OPTIONS}
+          ariaLabel={`${label} - phút`}
+          disabled={disabled}
+          onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
+        />
+      </div>
+      <p className="cv-time-hint">Chọn theo dạng 24 giờ và phút, mỗi 30 phút một mốc</p>
+    </div>
+  );
+}
+
 // Validation Schema
 const schema = yup.object({
   name: yup.string().trim().required("Vui lòng nhập tên cơ sở").min(3, "Tên ít nhất 3 ký tự"),
@@ -92,6 +218,7 @@ const OwnerRecreateVenue = () => {
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     watch,
     reset,
@@ -291,17 +418,31 @@ const OwnerRecreateVenue = () => {
                 <textarea rows={3} {...register("description")} placeholder="Mô tả về cơ sở..." />
               </div>
 
-              <div className="cv-form-group">
-                <label>Giờ mở cửa <span className="cv-required">*</span></label>
-                <input type="time" {...register("openTime")} />
-                {errors.openTime && <p className="cv-error-text">{errors.openTime.message}</p>}
-              </div>
+              <Controller
+                name="openTime"
+                control={control}
+                render={({ field }) => (
+                  <TimeSegmentField
+                    label="Giờ mở cửa"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              {errors.openTime && <p className="cv-error-text" style={{ marginTop: "-10px", marginBottom: "10px", gridColumn: "1 / -1" }}>{errors.openTime.message}</p>}
 
-              <div className="cv-form-group">
-                <label>Giờ đóng cửa <span className="cv-required">*</span></label>
-                <input type="time" {...register("closeTime")} />
-                {errors.closeTime && <p className="cv-error-text">{errors.closeTime.message}</p>}
-              </div>
+              <Controller
+                name="closeTime"
+                control={control}
+                render={({ field }) => (
+                  <TimeSegmentField
+                    label="Giờ đóng cửa"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              {errors.closeTime && <p className="cv-error-text" style={{ marginTop: "-10px", marginBottom: "10px", gridColumn: "1 / -1" }}>{errors.closeTime.message}</p>}
 
               <div className="cv-form-group cv-full-width">
                 <label>Ảnh đại diện cơ sở</label>

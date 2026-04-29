@@ -16,6 +16,8 @@ namespace Fiebo.Application.DTOs.Field
 
         [Required(ErrorMessage = "Giờ đóng cửa là bắt buộc.")]
         public TimeOnly CloseTime { get; set; }
+        public bool DeletedThumbnail { get; set; }
+
 
         public IFormFile? ThumbnailImage { get; set; }
 

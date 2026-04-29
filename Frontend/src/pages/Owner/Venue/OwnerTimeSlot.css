@@ -603,6 +603,30 @@
   cursor: not-allowed;
 }
 
+.ots-apply-slots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.45rem 0.85rem;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--ots-radius-sm);
+  background: #e8f5e9;
+  color: #2e7d32;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ots-apply-slots:hover:not(:disabled) {
+  background: #c8e6c9;
+}
+
+.ots-apply-slots:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .ots-slot-toolbar {
   display: flex;
   flex-wrap: wrap;

@@ -15,8 +15,13 @@
 }
 
 @keyframes ovdSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ovd-header {
@@ -256,7 +261,8 @@
     align-items: flex-start;
   }
 
-  .ovd-btn, .ovd-toggle-btn {
+  .ovd-btn,
+  .ovd-toggle-btn {
     padding: 8px 10px;
     font-size: 12px;
   }
@@ -287,7 +293,8 @@
     grid-template-columns: 1fr;
   }
 
-  .ovd-main-cover, .ovd-cover-thumb {
+  .ovd-main-cover,
+  .ovd-cover-thumb {
     width: 100%;
     height: auto;
   }
@@ -922,7 +929,7 @@
   box-shadow: 0 8px 24px rgba(148, 163, 184, 0.16);
 }
 
-.ovd-upload-input:focus + .ovd-upload-picker {
+.ovd-upload-input:focus+.ovd-upload-picker {
   border-color: #22c55e;
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
 }
@@ -979,7 +986,7 @@
 
 .ovd-time-segments {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(120px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   width: 100%;
@@ -1928,7 +1935,7 @@
   justify-content: center;
   gap: 8px;
   width: 180px;
-  height:180px;
+  height: 180px;
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
   color: #64748b;
@@ -2033,4 +2040,28 @@
 .ovd-upload-trigger span {
   font-size: 13px;
   font-weight: 700;
+}
+
+.ovd-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.ovd-error-text {
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 4px;
+  display: block;
+}
+
+.ovd-input.is-invalid {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2;
+}
+
+.ovd-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

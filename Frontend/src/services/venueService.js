@@ -136,6 +136,10 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
     form.append('Longitude', String(payload.longitude));
   }
 
+  if (payload?.deletedThumbnail) {
+    form.append('DeletedThumbnail', 'true');
+  }
+
   if (payload?.thumbnailFile) {
     form.append('ThumbnailImage', payload.thumbnailFile);
   }
