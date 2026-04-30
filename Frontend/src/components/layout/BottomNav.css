@@ -1,0 +1,140 @@
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  background: #ffffff;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 60;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  overflow: hidden;
+  transition: height 240ms cubic-bezier(.2,.9,.3,1);
+}
+
+.bottom-nav.expanded {
+  height: 128px; /* 2 rows */
+}
+
+.bottom-nav-main-row {
+  height: 64px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.bottom-nav-expanded-row {
+  height: 64px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  background: #fff;
+  transform: translateY(64px);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(.2,.9,.3,1), opacity 200ms ease;
+}
+
+.bottom-nav-expanded-row.open {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 12px;
+  height: 100%;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+
+
+.bottom-nav .nav-item.active {
+  color: #16a34a;
+}
+
+/* Subtle transitions and hover/active visuals */
+.bottom-nav .nav-item {
+  position: relative;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  border-radius: 10px;
+}
+
+.bottom-nav .nav-item:hover {
+  /* keep layout stable — use background + subtle scale instead of vertical shift */
+  transform: none;
+  background-color: rgba(22, 163, 74, 0.06);
+  color: #16a34a;
+}
+
+.bottom-nav .nav-item.active {
+  background: linear-gradient(90deg, rgba(22,163,74,0.14), rgba(22,163,74,0.06));
+  box-shadow: 0 8px 20px rgba(22,163,74,0.08);
+  transform: none;
+}
+
+/* make svg icons inherit text color */
+.bottom-nav .nav-item svg {
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Remove native button borders and focus rings so no extra outline appears */
+.bottom-nav .nav-item,
+.bottom-nav .nav-item button,
+.bottom-nav .more-btn {
+  border: none;
+  outline: none;
+  background-clip: padding-box;
+}
+
+.bottom-nav .nav-item:focus,
+.bottom-nav .nav-item:focus-visible,
+.bottom-nav .more-btn:focus,
+.bottom-nav .more-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Hide desktop 'more-desktop' chunk on mobile */
+.more-desktop {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  /* show only primary (first 4) + more button on mobile */
+  .bottom-nav .nav-item {
+    flex: 1 1 auto;
+    max-width: 80px;
+  }
+
+  .more-desktop { display: none; }
+}
+
+@media (min-width: 900px) {
+  /* On desktop, hide the mobile bottom/left nav since header shows horizontal menu */
+  .bottom-nav {
+    display: none;
+  }
+
+  /* restore main content padding to default on desktop */
+  .layout .main {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* hide mobile 'more' button on desktop */
+  .bottom-nav .more-btn { display: none; }
+  .more-desktop { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+}

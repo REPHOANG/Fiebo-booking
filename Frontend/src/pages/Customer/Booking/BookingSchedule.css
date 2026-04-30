@@ -1,0 +1,1443 @@
+/* ══════════════════════════════════════════════════════════════
+   Booking Schedule Page - Modern Design
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bs-primary: #2563eb;
+  --bs-accent: #10b981;
+  --bs-danger: #ef4444;
+  --bs-warning: #f59e0b;
+  --bs-gray: #6b7280;
+  --bs-dark: #1e293b;
+  --bs-darker: #0f172a;
+  --bs-light: #f8fafc;
+  --bs-border: rgba(0, 0, 0, 0.08);
+}
+
+.bs-main {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 140px;
+  min-height: 100vh;
+  background: #f1f5f9;
+  box-sizing: border-box;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────────── */
+.bs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 8px 6px;
+  /* tighter vertical spacing */
+  background: transparent;
+  /* remove heavy white card look */
+  box-shadow: none;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.04);
+  flex-wrap: nowrap;
+}
+
+/* Trang lịch trong OwnerLayout: sticky phải nằm dưới owner-topbar, không đè Search/mail. */
+.owner-content .bs-topbar {
+  top: var(--owner-topbar-offset, 78px);
+  z-index: 10;
+  background: rgba(241, 245, 249, 0.97);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.bs-back {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: #fff;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.bs-back:hover {
+  transform: translateX(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.bs-title {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 12px;
+  letter-spacing: -0.4px;
+  text-align: left;
+}
+
+.bs-date-picker {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.bs-date-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #d1fae5;
+  color: #065f46;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  user-select: none;
+}
+
+.bs-date-display:hover {
+  background: #f0fdf4;
+  border-color: #6ee7b7;
+}
+
+/* ── Calendar Popup ──────────────────────────────────────────── */
+.bs-calendar-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 20px;
+  z-index: 1000;
+  animation: bsCalFadeIn 0.18s ease;
+}
+
+@keyframes bsCalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bs-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.bs-cal-month {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: capitalize;
+}
+
+.bs-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #166534;
+  transition: background 0.15s;
+}
+
+.bs-cal-nav:hover:not(:disabled) {
+  background: #f0fdf4;
+}
+
+.bs-cal-nav:disabled {
+  color: #cbd5e1;
+  cursor: default;
+}
+
+.bs-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.bs-cal-wd {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 4px 0;
+}
+
+.bs-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.bs-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 auto;
+  border-radius: 50%;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.bs-cal-day:hover:not(.empty):not(.past) {
+  background: #f0fdf4;
+}
+
+.bs-cal-day.empty {
+  cursor: default;
+}
+
+.bs-cal-day.past {
+  color: #cbd5e1;
+  cursor: default;
+}
+
+.bs-cal-day.today {
+  border: 2px solid #166534;
+  font-weight: 700;
+}
+
+.bs-cal-day.selected {
+  background: #166534;
+  color: #fff;
+  font-weight: 700;
+}
+
+.bs-cal-day.selected.today {
+  border-color: #166534;
+}
+
+.bs-cal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.bs-cal-cancel {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bs-cal-cancel:hover {
+  background: #f0fdf4;
+}
+
+.bs-cal-confirm {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #166534;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bs-cal-confirm:hover {
+  background: #14532d;
+}
+
+/* ── Venue Info Card ───────────────────────────────────────────── */
+.bs-venue-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.bs-vc-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.bs-vc-info span {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.bs-vc-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bs-vc-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bs-vc-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bs-vc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--bs-accent) 0%, rgba(16, 185, 129, 0.7) 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.bs-legend {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.bs-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.bs-legend-item--locked {
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.bs-legend-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  /* give a subtle dark outline for better contrast */
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(238, 236, 236, 0.3);
+  transition: all 0.2s;
+}
+
+.bs-legend-item:hover .bs-legend-box {
+  transform: scale(1.15);
+}
+
+.bs-legend-box.available {
+  background: linear-gradient(135deg, #fff 0%, #f3f4f6 100%);
+}
+
+.bs-legend-box.selected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.bs-legend-box.booked {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.bs-legend-box.locked {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.bs-legend-box.event {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+}
+
+/* ── Time Range Filter ────────────────────────────────────────── */
+.bs-time-filter {
+  position: fixed;
+  left: 16px;
+  bottom: 92px;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #d1fae5;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+  width: 48px;
+  max-width: 48px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: max-width 0.28s ease, width 0.28s ease, padding 0.28s ease;
+}
+
+.bs-time-filter:hover,
+.bs-time-filter:focus-within {
+  width: auto;
+  max-width: 360px;
+  padding: 10px 14px;
+}
+
+.bs-time-filter-label {
+  font-size: 0;
+  line-height: 1;
+  width: 20px;
+  min-width: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bs-time-filter-label::before {
+  content: "🔍";
+  font-size: 16px;
+}
+
+.bs-time-filter:hover .bs-time-filter-label,
+.bs-time-filter:focus-within .bs-time-filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  width: auto;
+  min-width: 0;
+}
+
+.bs-time-filter:hover .bs-time-filter-label::before,
+.bs-time-filter:focus-within .bs-time-filter-label::before {
+  content: "";
+}
+
+.bs-time-range-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 320px;
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease, max-width 0.28s ease;
+}
+
+.bs-time-filter:hover .bs-time-range-container,
+.bs-time-filter:focus-within .bs-time-range-container {
+  opacity: 1;
+  max-width: 320px;
+}
+
+.bs-time-slider {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.bs-zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.bs-zoom-btn:hover {
+  border-color: #10b981;
+  color: #047857;
+}
+
+.bs-time-display {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #065f46;
+  white-space: nowrap;
+  background: #d1fae5;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+  min-width: 48px;
+  text-align: center;
+}
+
+.bs-time-filter.is-owner {
+  border-color: #c7eadb;
+}
+
+.bs-time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+  transition: all 0.2s;
+}
+
+.bs-time-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.7);
+}
+
+.bs-time-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+  transition: all 0.2s;
+}
+
+
+
+/* ── Venue Name ──────────────────────────────────────────────── */
+.bs-venue-name {
+  font-size: 1rem;
+  color: #475569;
+  margin: 0 0 18px 0;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: capitalize;
+}
+
+/* ── Grid Wrapper ──────────────────────────────────────────────── */
+.bs-grid-wrapper-outer {
+  margin-bottom: 18px;
+  margin-left: -10px;
+  margin-right: -10px;
+  width: calc(100% + 20px);
+  max-width: none;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  box-sizing: border-box;
+}
+
+/* Notice bar */
+.bs-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #b2ebf2;
+  color: #005662;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #80deea;
+  line-height: 1.4;
+}
+
+.bs-notice-icon {
+  flex-shrink: 0;
+}
+
+
+/* Một môn = một khối lưới (trục giờ riêng) */
+.bs-sport-block {
+  border-bottom: 2px solid rgba(15, 23, 42, 0.32);
+}
+
+.bs-sport-block:last-child {
+  border-bottom: none;
+}
+
+.bs-grid-wrapper {
+  overflow-x: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bs-grid-wrapper::-webkit-scrollbar {
+  height: 0;
+  display: none;
+}
+
+.bs-grid-wrapper {
+  scrollbar-width: none;
+}
+
+.bs-grid-wrapper.dragging {
+  cursor: grabbing;
+}
+
+/* ── Grid ────────────────────────────────────────────────────── */
+.bs-grid {
+  display: grid;
+  gap: 0;
+  min-width: max-content;
+  padding: 0;
+}
+
+/* Corner cell (top-left, nhãn giờ) — trong suốt để lộ nền trang */
+.bs-corner {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: transparent;
+  min-width: 0;
+}
+
+/* ── Row 1: Time labels ─────────────────────────────────────── */
+.bs-time-label {
+  padding: 4px 0 2px 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  user-select: none;
+  background: transparent;
+  text-align: left;
+  overflow: visible;
+  position: relative;
+  justify-self: stretch;
+  box-sizing: border-box;
+}
+
+.bs-time-label>span {
+  display: inline-block;
+  transform: translateX(-50%);
+  position: relative;
+  z-index: 2;
+}
+
+.bs-time-label.first {
+  padding-left: 0;
+}
+
+.bs-time-label.first>span {
+  transform: none;
+  margin-left: 0;
+}
+
+.bs-time-label.last>span {
+  transform: translateX(-100%);
+  margin-left: 100%;
+}
+
+.bs-time-label.hour {
+  font-weight: 700;
+  color: #111827;
+}
+
+.bs-time-label.half {
+  color: #6b7280;
+}
+
+/* ── Row 2: Teal bar with tick marks ─────────────────────────── */
+.bs-bar-corner {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: transparent;
+  border-bottom: 2px solid rgba(15, 23, 42, 0.45);
+  min-width: 0;
+}
+
+.bs-tick-cell {
+  height: 10px;
+  background: linear-gradient(180deg, #7dd3c5 0%, #5ec4b6 100%);
+  position: relative;
+  border-bottom: 2px solid rgba(15, 23, 42, 0.45);
+  overflow: visible;
+}
+
+.bs-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: calc(100% + 2px);
+  background: #f59e0b;
+  z-index: 2;
+  transform: translateX(-50%);
+}
+
+/* Field label (left column) */
+.bs-field-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #eef7f0;
+  border-right: 2px solid rgba(15, 23, 42, 0.38);
+  border-bottom: 2px solid rgba(15, 23, 42, 0.38);
+  white-space: nowrap;
+  max-width: none;
+  min-width: 0;
+  min-height: 38px;
+  transition: background 0.2s;
+  box-sizing: border-box;
+}
+
+.bs-field-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.bs-field-tooltip {
+  position: fixed;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 8px;
+  z-index: 9999;
+  width: 220px;
+  max-width: min(220px, calc(100vw - 24px));
+  pointer-events: none;
+  animation: bs-tooltip-in 0.12s ease-out;
+}
+
+@keyframes bs-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bs-field-tooltip img {
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.bs-field-tooltip-placeholder {
+  width: 100%;
+  height: 128px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e2e8f0 0%, #f1f5f9 100%);
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.bs-field-tooltip-name {
+  display: block;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 8px 4px 2px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.bs-field-label:hover {
+  filter: brightness(0.96);
+}
+
+/* Sport type group header */
+.bs-sport-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 1px solid #d1d5db;
+  min-height: 34px;
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 4;
+}
+
+.bs-sport-header-main {
+  display: grid;
+  grid-template-columns: 20px 112px 44px;
+  align-items: center;
+  column-gap: 8px;
+  flex: 0 0 clamp(180px, 24vw, 260px);
+  width: clamp(180px, 24vw, 260px);
+  min-width: clamp(180px, 24vw, 260px);
+  max-width: clamp(180px, 24vw, 260px);
+}
+
+.bs-sport-header-icon {
+  font-size: 1rem;
+  width: 20px;
+  flex: 0 0 20px;
+  text-align: center;
+}
+
+.bs-sport-header-name {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  min-width: 112px;
+  max-width: 112px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bs-sport-header-count {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.72rem;
+  margin-left: 4px;
+  width: 44px;
+  min-width: 44px;
+  text-align: left;
+}
+
+.bs-sport-header-hours {
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  justify-self: end;
+  gap: 8px 10px;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  padding-left: 10px;
+}
+
+.bs-sport-header-hours-range {
+  white-space: nowrap;
+}
+
+.bs-sport-header-empty-label {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ── Cells ───────────────────────────────────────────────────── */
+.bs-cell {
+  min-height: 38px;
+  border-right: 2px solid rgba(3, 4, 7, 0.45);
+  border-bottom: 2px solid rgba(15, 23, 42, 0.45);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+
+.bs-cell.available {
+  background: #ffffff;
+}
+
+.bs-cell.available:hover {
+  background: #d1fae5;
+}
+
+.bs-cell.selected {
+  background: #10b981;
+}
+
+.bs-cell.selected:hover {
+  background: #059669;
+}
+
+.bs-cell.booked {
+  background: #fca5a5;
+  cursor: not-allowed;
+}
+
+/* .bs-cell.booked.past {
+  background: #ef4444;
+} */
+
+/* Cùng trạng thái booked liền kề: nối lại thành 1 khối để nhìn dễ phân biệt */
+.bs-cell.booked.bs-book-run-start,
+.bs-cell.booked.bs-book-run-mid {
+  border-right: none;
+}
+
+.bs-cell.booked.bs-book-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.booked.bs-book-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* Khóa (giờ qua / cột không mở bán) — cùng tông với ô Khoá trong chú thích */
+.bs-cell.locked {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: default;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border-right-color: rgba(0, 0, 0, 0.22);
+  border-bottom-color: rgba(0, 0, 0, 0.22);
+}
+
+/* Ô khóa liền kề: một khối liên tục */
+.bs-cell.locked.bs-lock-run-start,
+.bs-cell.locked.bs-lock-run-mid {
+  border-right: none;
+}
+
+.bs-cell.locked.bs-lock-run-mid {
+  box-shadow: none;
+}
+
+.bs-cell.locked.bs-lock-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.locked.bs-lock-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.locked.bs-lock-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* Chưa cấu hình khung giờ — không đặt được, nhìn như trạng thái Khoá */
+.bs-cell.no-config {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  cursor: default;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  border-right-color: rgba(0, 0, 0, 0.22);
+  border-bottom-color: rgba(0, 0, 0, 0.22);
+}
+
+.bs-cell.no-config:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.bs-cell-no-slot-merged {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background: #818385;
+  color: #181b20;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: center;
+  border-right: 2px solid rgba(0, 0, 0, 0.22);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.22);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Sự kiện còn chỗ (RemainingTicketQuantity > 0) — vàng */
+.bs-cell.event {
+  background: linear-gradient(145deg, #fde047 0%, #eab308 55%, #ca8a04 100%);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.bs-cell.event.past {
+  background: linear-gradient(145deg, #facc15 0%, #f59e0b 55%, #a16207 100%);
+}
+
+.bs-cell.event[data-event-nav="true"] {
+  cursor: pointer;
+}
+
+.bs-cell.event[data-event-nav="true"]:hover {
+  filter: brightness(1.05);
+}
+
+/* Sự kiện đã đầy (RemainingTicketQuantity === 0) — tím, bấm xem */
+/* Cùng eventId trên một hàng: bỏ vách dọc giữa các ô, bo góc hai đầu */
+.bs-cell.event.bs-event-run-start,
+.bs-cell.event.bs-event-run-mid {
+  border-right: none;
+}
+
+.bs-cell.event.bs-event-run-mid {
+  box-shadow: none;
+}
+
+.bs-cell.event.bs-event-run-single {
+  border-radius: 7px;
+}
+
+.bs-cell.event.bs-event-run-start {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+
+.bs-cell.event.bs-event-run-end {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+/* ── Bottom Bar ────────────────────────────────────────────────── */
+.bs-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 12px 24px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(135deg, #166534 0%, #15803d 100%);
+  border-top: 1px solid #16a34a;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Mobile: move left/right to top row, button on bottom row */
+@media (max-width: 520px) {
+  .bs-bottom-bar {
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .bs-bottom-bar>.bs-bottom-info {
+    order: 1;
+    margin-bottom: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .bs-bottom-bar>.bs-bottom-price {
+    order: 2;
+    margin: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .bs-bottom-bar>.bs-next-btn {
+    order: 3;
+    width: 100%;
+    max-width: none;
+    margin: 6px 0 0;
+  }
+}
+
+/* ── Top row: info left, price right ───────────────────────── */
+.bs-bottom-bar>.bs-bottom-info,
+.bs-bottom-bar>.bs-bottom-price {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Hover info badge (left side) ──────────────────────────── */
+.bs-bottom-info {
+  position: relative;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bs-bottom-price {
+  color: #fff;
+  font-size: 0.95rem;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  margin-left: auto;
+}
+
+.bs-bottom-price strong {
+  font-size: 1.05rem;
+}
+
+.bs-bottom-info-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: default;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: background 0.2s;
+}
+
+.bs-bottom-info:hover .bs-bottom-info-badge {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.bs-bottom-info-popup {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  min-width: 240px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 0.88rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 110;
+}
+
+.bs-bottom-info-popup::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 20px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  transform: rotate(45deg);
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.bs-bottom-info:hover .bs-bottom-info-popup {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.bs-popup-row {
+  padding: 4px 0;
+  white-space: nowrap;
+}
+
+.bs-popup-row strong {
+  color: #166534;
+}
+
+.bs-popup-total {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #166534;
+}
+
+.bs-next-btn {
+  display: block;
+  clear: both;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 14px 0;
+  border-radius: 14px;
+  border: none;
+  background: #129bbd;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.bs-next-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.bs-next-btn:hover:not(.disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(16, 185, 129, 0.4);
+}
+
+.bs-next-btn:active:not(.disabled) {
+  transform: translateY(-1px);
+}
+
+.bs-next-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+}
+
+/* ── Loading / Error / Empty ────────────────────────────────────── */
+.bs-loading,
+.bs-error,
+.bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px;
+  text-align: center;
+  color: #64748b;
+  gap: 14px;
+}
+
+.bs-spinner {
+  animation: bs-spin 1s linear infinite;
+  color: var(--bs-accent);
+}
+
+@keyframes bs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bs-error h2 {
+  color: #1e293b;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.bs-error p {
+  max-width: 400px;
+}
+
+.bs-back-link {
+  margin-top: 16px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+  color: var(--bs-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bs-back-link:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -6px;
+    margin-right: -6px;
+    width: calc(100% + 12px);
+  }
+
+  .bs-main {
+    padding: 20px 16px 140px;
+  }
+
+  .bs-time-filter {
+    left: 12px;
+    right: auto;
+    bottom: 98px;
+  }
+
+  .bs-time-range-container {
+    max-width: 280px;
+  }
+
+  .bs-topbar {
+    gap: 12px;
+  }
+
+  .bs-title {
+    font-size: 1.2rem;
+  }
+
+  .bs-legend {
+    gap: 16px;
+    padding: 14px 16px;
+  }
+
+  .bs-legend-item {
+    font-size: 0.78rem;
+  }
+
+  .bs-field-label {
+    min-width: 90px;
+    font-size: 0.78rem;
+    padding: 0 8px;
+    min-height: 48px;
+  }
+
+  .bs-cell {
+    min-height: 48px;
+  }
+
+  .bs-time-header {
+    font-size: 0.7rem;
+    padding: 8px 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bs-grid-wrapper-outer {
+    margin-left: -4px;
+    margin-right: -4px;
+    width: calc(100% + 8px);
+  }
+
+  .bs-main {
+    padding: 16px 12px 140px;
+  }
+
+  .bs-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bs-title {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .bs-back {
+    width: 40px;
+    height: 40px;
+  }
+
+  .bs-field-label {
+    min-width: 70px;
+    font-size: 0.7rem;
+    padding: 0 6px;
+    min-height: 44px;
+  }
+
+  .bs-sport-header-name {
+    min-width: 92px;
+    max-width: 92px;
+  }
+
+  .bs-sport-header-count {
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .bs-sport-header {
+    gap: 8px;
+  }
+
+  .bs-sport-header-main {
+    grid-template-columns: 18px 92px 40px;
+    column-gap: 6px;
+    flex-basis: clamp(150px, 44vw, 220px);
+    width: clamp(150px, 44vw, 220px);
+    min-width: clamp(150px, 44vw, 220px);
+    max-width: clamp(150px, 44vw, 220px);
+  }
+
+  .bs-cell {
+    min-height: 44px;
+  }
+
+  .bs-time-header {
+    font-size: 0.65rem;
+    padding: 6px 1px;
+  }
+
+  .bs-legend {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .bs-next-btn {
+    font-size: 1rem;
+    padding: 14px 0;
+  }
+}

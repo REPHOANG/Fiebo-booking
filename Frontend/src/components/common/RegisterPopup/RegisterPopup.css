@@ -1,0 +1,42 @@
+/* Form đăng ký cao hơn — chỉ một vùng cuộn (.register-popup-content), không chồng với .register-card */
+.register-popup-modal {
+  max-width: 460px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.register-popup-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  max-height: min(calc(100vh - 40px), calc(100dvh - 40px));
+}
+
+.register-popup-content .register-page {
+  min-height: 0;
+  padding: 28px 22px 24px;
+  background: transparent;
+  overflow: visible;
+  display: block;
+}
+
+.register-popup-content .register-card {
+  box-shadow: none;
+  padding: 0;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.register-popup-content .register-header {
+  margin-bottom: 20px;
+}
+
+.register-popup-content .register-logo {
+  max-width: 140px;
+}

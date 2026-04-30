@@ -1,0 +1,209 @@
+/* adminOwner.css */
+:root {
+  --primary-blue: #2563eb;
+  --bg-light: #f8fafc;
+  --text-dark: #1e293b;
+  --text-gray: #64748b;
+  --border-color: #e2e8f0;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --premium-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.admin-owners-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: "Be Vietnam Pro", sans-serif;
+}
+
+.owners-header {
+  margin-bottom: 32px;
+}
+
+.owners-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.02em;
+}
+
+.owners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.owner-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.owner-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--premium-shadow);
+  border-color: #cbd5e1;
+}
+
+/* Card Header */
+.owner-card-header {
+  padding: 24px 24px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.owner-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+}
+
+.owner-info {
+  flex: 1;
+}
+
+.owner-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.owner-username {
+  font-size: 12px;
+  color: var(--text-gray);
+  margin-top: 4px;
+  display: block;
+}
+
+.owner-card__status {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.owner-card__status.active { background: #dcfce7; color: #166534; }
+.owner-card__status.pending { background: #fff7ed; color: #9a3412; }
+.owner-card__status.suspended { background: #f1f5f9; color: #475569; }
+
+/* Card Content */
+.owner-card-content {
+  padding: 0 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.contact-icon {
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+}
+
+/* Stats Row */
+.owner-stats-row {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-box {
+  background: #f1f5ff;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-blue);
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+/* Card Footer */
+.owner-card-footer {
+  margin-top: auto;
+  padding: 16px 24px;
+  background: #fafafa;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.update-time {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.btn-details {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: gap 0.2s;
+}
+
+.btn-details:hover {
+  gap: 8px;
+}
+
+/* Loading & Empty states */
+.loading-container, .empty-container {
+  padding: 64px;
+  text-align: center;
+  background: white;
+  border-radius: 20px;
+  border: 1px dashed var(--border-color);
+}
+
+.pagination-wrapper {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+}

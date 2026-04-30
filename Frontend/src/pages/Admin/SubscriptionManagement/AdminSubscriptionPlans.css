@@ -1,0 +1,299 @@
+/* AdminSubscriptionPlans.css */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+.subs-container {
+  font-family: 'Be Vietnam Pro', sans-serif !important;
+  padding: 32px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.subs-container * {
+  font-family: 'Be Vietnam Pro', sans-serif !important;
+}
+
+.subs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.subs-title h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.subs-title p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.subs-title p span {
+  color: #1e56d9;
+  font-weight: 700;
+}
+
+.btn-add-plan {
+  background-color: #1e56d9;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(30, 86, 217, 0.2);
+}
+
+.btn-add-plan:hover {
+  background-color: #1a4bc4;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(30, 86, 217, 0.3);
+}
+
+/* Grid */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+/* Plan Card */
+.plan-card {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  border-top: 6px solid transparent;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.plan-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
+}
+
+.plan-card.basic { border-top-color: #3b82f6; }
+.plan-card.popular { border-top-color: #10b981; }
+.plan-card.premium { border-top-color: #8b5cf6; }
+
+.plan-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.plan-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-card.basic .plan-icon-wrapper { background: #eff6ff; color: #3b82f6; }
+.plan-card.popular .plan-icon-wrapper { background: #ecfdf5; color: #10b981; }
+.plan-card.premium .plan-icon-wrapper { background: #f5f3ff; color: #8b5cf6; }
+
+.plan-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-plan-action {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.btn-plan-action:hover {
+  color: #1e293b;
+}
+
+.plan-popular-badge {
+  position: absolute;
+  top: 16px;
+  right: 80px;
+  background: #1e293b;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.plan-id-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1e56d9;
+  background: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.plan-card h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 24px 0;
+}
+
+.plan-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.plan-metric label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.plan-metric .price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e56d9;
+}
+
+.plan-metric .duration {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Stats Card */
+.stats-container {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.stats-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: #eff6ff;
+  color: #1e56d9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.stat-box {
+  background: #f8fafc;
+  padding: 24px;
+  border-radius: 16px;
+}
+
+.stat-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.stat-trend {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-trend.up { color: #10b981; }
+.stat-trend.down { color: #ef4444; }
+
+.stat-subtext {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Floating Settings */
+.btn-settings-floating {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 60px;
+  height: 60px;
+  background: #1e56d9;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(30, 86, 217, 0.3);
+  transition: all 0.2s;
+  z-index: 100;
+}
+
+.btn-settings-floating:hover {
+  transform: rotate(45deg) scale(1.1);
+  background: #1a4bc4;
+}
+
+/* Plan Form Dialog */
+.plan-form-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.plan-form-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}

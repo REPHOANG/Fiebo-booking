@@ -1,0 +1,359 @@
+.obd-page .owner-home-content {
+  max-width: 720px;
+}
+
+.obd-back {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.obd-back:hover {
+  color: #139a44;
+}
+
+.obd-loading {
+  margin: 0;
+  color: #6b7280;
+}
+
+.obd-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.obd-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+}
+
+.obd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.obd-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.obd-badge[data-status="pending"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.obd-badge[data-status="booked"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.obd-badge[data-status="completed"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.obd-badge[data-status="customercancelled"],
+.obd-badge[data-status="ownercancelled"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.obd-section {
+  margin-bottom: 20px;
+}
+
+.obd-section h3 {
+  font-size: 14px;
+  margin: 0 0 10px 0;
+  color: #374151;
+}
+
+.obd-info {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.obd-info li {
+  margin-bottom: 4px;
+}
+
+.obd-empty {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.obd-table-wrap {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.obd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.obd-table th,
+.obd-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.obd-table th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}
+
+.obd-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.obd-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.obd-total strong {
+  color: #166534;
+}
+
+.obd-action-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.obd-action-btn {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+}
+
+.obd-action-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.obd-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.obd-btn-accept {
+  background: #047857;
+  color: #fff;
+}
+
+.obd-btn-reject {
+  background: #ef4444;
+  color: #fff;
+}
+
+.obd-cancel-btn {
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.obd-cancel-btn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.obd-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* Modal hủy đặt sân */
+.obd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.obd-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.obd-modal {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e5e7eb;
+}
+
+.obd-modal h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.obd-modal-desc {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.obd-cancel-reasons {
+  border: none;
+  margin: 0 0 18px 0;
+  padding: 0;
+  max-height: min(42vh, 280px);
+  overflow-y: auto;
+}
+
+.obd-reason-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.obd-reason-row:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+}
+
+.obd-reason-row input {
+  margin-top: 3px;
+  accent-color: #139a44;
+  flex-shrink: 0;
+}
+
+.obd-reason-row span {
+  line-height: 1.4;
+}
+
+.obd-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.obd-modal-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+}
+
+.obd-modal-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.obd-modal-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.obd-modal-btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.obd-modal-btn-primary {
+  background: #ef4444;
+  color: #fff;
+}
+
+.obd-modal-btn-primary:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .obd-page {
+    padding: 12px;
+  }
+
+  .obd-card {
+    padding: 14px;
+  }
+
+  .obd-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .obd-action-group {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .obd-action-btn {
+    width: 100%;
+  }
+
+  .obd-cancel-btn {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .obd-table {
+    min-width: 560px;
+  }
+}

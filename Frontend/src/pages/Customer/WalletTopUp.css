@@ -1,0 +1,356 @@
+.wtu-main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-bottom: 2rem;
+}
+
+.wtu-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.wtu-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: var(--bp-back-btn-bg, #f1f5f9);
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wtu-back-btn:hover {
+  background: #e2e8f0;
+}
+
+.wtu-header-title {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.wtu-header-spacer {
+  width: 40px;
+}
+
+.wtu-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.wtu-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.wtu-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.wtu-balance-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wtu-balance-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.wtu-card-desc {
+  color: #64748b;
+  font-size: 0.9375rem;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.wtu-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wtu-form-error {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.wtu-presets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.wtu-preset-btn {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.wtu-preset-btn:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.wtu-preset-btn.active {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.wtu-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wtu-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.wtu-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.wtu-input:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.wtu-input::placeholder {
+  color: #94a3b8;
+}
+
+.wtu-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: #475569;
+}
+
+.wtu-summary strong {
+  color: #059669;
+  font-size: 1.0625rem;
+}
+
+.wtu-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.wtu-submit:hover:not(:disabled) {
+  opacity: 0.95;
+}
+
+.wtu-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.wtu-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============ Màn hình hướng dẫn chuyển khoản (sau khi xác nhận nạp) ============ */
+
+.wtu-payment-card {
+  padding: 1.25rem 1.5rem;
+}
+
+.wtu-payment-intro {
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.wtu-qr-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.wtu-qr-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+
+.wtu-bank-block {
+  margin-bottom: 1.25rem;
+}
+
+.wtu-block-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wtu-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9375rem;
+}
+
+.wtu-info-row:last-child {
+  border-bottom: none;
+}
+
+.wtu-info-label {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.wtu-info-value {
+  color: #0f172a;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.wtu-info-value-with-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.wtu-info-value-with-copy .wtu-info-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.wtu-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.wtu-copy-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.wtu-amount {
+  color: #059669;
+  font-size: 1.0625rem;
+}
+
+.wtu-transfer-content {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.wtu-payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.wtu-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.wtu-btn-secondary:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
+  color: #059669;
+}
+

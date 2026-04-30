@@ -1,0 +1,53 @@
+import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { Navigate, useLocation } from "react-router-dom";
+import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
+import { AUTH_STORAGE_KEY } from "../store/authSlice";
+import { hasRole } from "../utils/roleUtils";
+
+const ProtectedRoute = ({ element, requiredRole }) => {
+  const location = useLocation();
+  const { isAuthenticated, user, profileLoading } = useSelector(
+    (state) => state.auth,
+  );
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) {
+    return <div style={{ display: "none" }} />;
+  }
+  if (profileLoading) {
+    return null; // hoặc spinner
+  }
+
+  if (isAuthenticated && user) {
+    if (requiredRole) {
+      if (!hasRole(user, requiredRole)) {
+        return <Navigate to="/" replace />;
+      }
+    }
+    return element;
+  }
+
+  // Nếu không có token trong localStorage hoặc chưa đăng nhập, chỉ Navigate về '/' (không mở popup login)
+  const hasToken = typeof window !== "undefined" && localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!hasToken || !isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  // Nếu có token mà vẫn mất quyền, mở popup login
+  return (
+    <Navigate
+      to="/"
+      replace
+      state={{
+        [OPEN_AUTH_STATE_KEY]: "login",
+        redirectTo: `${location.pathname}${location.search}${location.hash}`,
+      }}
+    />
+  );
+};
+
+export default ProtectedRoute;

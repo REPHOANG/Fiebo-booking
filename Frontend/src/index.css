@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&display=swap');
+@import './styles/backgrounds.css';
+
+/* ================================
+   GLOBAL RESET
+================================ */
+* {
+  font-family: 'Be Vietnam Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+html {
+  overflow-y: scroll;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ================================
+   SPORT BACKGROUND (LIGHT & CLEAN)
+================================ */
+
+body {
+  color: #2d3748;
+
+  /* Main gradient */
+  background: linear-gradient(
+    135deg,
+    #f6fbff 0%,
+    #edf7f1 40%,
+    #e8f5ff 70%,
+    #f3f7ff 100%
+  );
+
+  background-attachment: fixed;
+}
+
+/* Soft sport mesh overlay */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background:
+    radial-gradient(circle at 15% 25%, rgba(43,170,77,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 75%, rgba(59,130,246,0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(16,185,129,0.08) 0%, transparent 60%);
+
+  pointer-events: none;
+}
+
+/* ================================
+   CARD / CONTENT BASE
+================================ */
+
+.card {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+}
+
+/* ================================
+   FORM UTILITIES
+================================ */
+
+.field-error {
+  font-size: 12px;
+  color: #e53e3e;
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.input-error {
+  border-color: #e53e3e !important;
+  background: #fff5f5 !important;
+}
+
+.server-error {
+  font-size: 13px;
+  padding: 8px 10px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(229,62,62,0.15) !important;
+}
+
+.optional-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* ================================
+   BUTTON SPORT STYLE
+================================ */
+
+.btn-primary {
+  background: linear-gradient(135deg,#22c55e,#3b82f6);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .25s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* ================================
+   INPUT STYLE
+================================ */
+
+input, select {
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  outline: none;
+  transition: all .2s ease;
+}

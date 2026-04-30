@@ -1,0 +1,439 @@
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-venue-page {
+  gap: 18px;
+}
+
+.admin-title {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: #151b2e;
+  letter-spacing: -0.03em;
+}
+
+.admin-subtitle {
+  margin: 0;
+  color: #5f6985;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.admin-card-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.admin-card-value {
+  margin: 0;
+  color: #111827;
+  font-weight: 700;
+}
+
+.admin-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.admin-input,
+.admin-select {
+  height: 40px;
+}
+
+.admin-textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.admin-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #fff;
+  color: #111827;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 24px rgba(20, 35, 94, 0.06);
+}
+
+.admin-btn-primary {
+  background: linear-gradient(135deg, #3b6bff, #2b57dc);
+  border-color: #2b57dc;
+  color: #fff;
+}
+
+.admin-btn-soft {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(197, 205, 229, 0.9);
+}
+
+.admin-table-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
+}
+
+.admin-inline-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-status-open,
+.admin-status-active,
+.admin-status-verified,
+.admin-status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.admin-status-locked,
+.admin-status-suspended,
+.admin-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-status-pending,
+.admin-status-pending-kyc {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-venue-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.admin-venue-toolbar__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-venue-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-venue-filter {
+  border: 1px solid rgba(207, 214, 235, 0.92);
+  background: rgba(255, 255, 255, 0.85);
+  color: #2d3653;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-venue-filter.is-active {
+  background: linear-gradient(135deg, #3d6fff, #2852d8);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 12px 26px rgba(45, 87, 217, 0.28);
+}
+
+.admin-venue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.admin-venue-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(221, 227, 245, 0.92);
+  border-radius: 22px;
+  padding: 14px;
+  box-shadow: 0 18px 44px rgba(41, 59, 132, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.admin-venue-card__cover {
+  height: 128px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.admin-venue-card__cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.4), transparent 16%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 55%);
+}
+
+.admin-venue-card__cover--football {
+  background:
+    linear-gradient(180deg, rgba(14, 37, 76, 0.55), rgba(10, 18, 37, 0.25)),
+    linear-gradient(135deg, #6ab3d9, #2f7b45 58%, #1b5e20 100%);
+}
+
+.admin-venue-card__cover--basketball {
+  background:
+    linear-gradient(180deg, rgba(59, 30, 8, 0.28), rgba(59, 30, 8, 0.18)),
+    linear-gradient(135deg, #6e4321, #c48a47 50%, #f3c98b 100%);
+}
+
+.admin-venue-card__cover--tennis {
+  background:
+    linear-gradient(180deg, rgba(9, 28, 53, 0.35), rgba(9, 28, 53, 0.12)),
+    linear-gradient(135deg, #4f90c8, #2d7dc0 45%, #e5b44d 100%);
+}
+
+.admin-venue-card__cover--swimming {
+  background:
+    linear-gradient(180deg, rgba(9, 32, 51, 0.18), rgba(9, 32, 51, 0.08)),
+    linear-gradient(135deg, #5fd3e7, #25b8d5 48%, #0f7898 100%);
+}
+
+.admin-venue-card__cover--volleyball {
+  background:
+    linear-gradient(180deg, rgba(22, 23, 46, 0.15), rgba(22, 23, 46, 0.06)),
+    linear-gradient(135deg, #9fa8d7, #d7b07a 44%, #8f5e3b 100%);
+}
+
+.admin-venue-card__sport-chip {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2a4bbd;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-venue-card__footer-stats {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  font-size: 11px;
+  color: #41506e;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 999px;
+  margin-right: 6px;
+}
+
+.dot--green {
+  background: #22c55e;
+}
+
+.dot--red {
+  background: #ef4444;
+}
+
+.admin-venue-card__body {
+  padding: 14px 2px 2px;
+}
+
+.admin-venue-card__heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-venue-card__heading-row h3 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.18;
+  color: #161e37;
+}
+
+.admin-venue-card__status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-venue-card__status.is-open {
+  background: #dbfce7;
+  color: #0c8a48;
+}
+
+.admin-venue-card__status.is-locked {
+  background: #ffe0df;
+  color: #d74037;
+}
+
+.admin-venue-card__location {
+  margin: 10px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6c738c;
+  font-size: 12px;
+}
+
+.admin-venue-card__metrics {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-venue-card__metrics div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f4f6ff;
+}
+
+.admin-venue-card__metrics span {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  color: #8e96ad;
+  letter-spacing: 0.08em;
+}
+
+.admin-venue-card__metrics strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  line-height: 1;
+  color: #1b2240;
+}
+
+.admin-venue-card__actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-venue-card__toggle,
+.admin-venue-card__settings {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-venue-card__toggle {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.admin-venue-card__toggle.is-lock {
+  background: #ffe0df;
+  color: #cc3b34;
+}
+
+.admin-venue-card__toggle.is-open {
+  background: #3668f2;
+  color: #ffffff;
+}
+
+.admin-venue-card__settings {
+  width: 42px;
+  background: #e7ebfb;
+  color: #4b597a;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 900px) {
+  .admin-controls {
+    flex-direction: column;
+  }
+
+  .admin-title {
+    font-size: 28px;
+  }
+
+  .admin-venue-toolbar {
+    flex-direction: column;
+  }
+}
