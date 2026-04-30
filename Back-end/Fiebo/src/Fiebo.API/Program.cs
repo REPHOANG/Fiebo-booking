@@ -1,4 +1,3 @@
-using DotNetEnv;
 using Fiebo.API.Authorization;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
@@ -27,7 +26,6 @@ using System.Reflection;
 using System.Text;
 
 
-Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -105,7 +103,10 @@ builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, OwnerPlanAu
 builder.Services.AddHangfire(config =>
     config.UseStorage(new MySqlStorage(
         connectionString,
-        new MySqlStorageOptions()
+        new MySqlStorageOptions
+        {
+            PrepareSchemaIfNecessary = true
+        }
     )));
 
 builder.Services.AddHangfireServer();
