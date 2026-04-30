@@ -235,6 +235,7 @@ const CreateVenue = () => {
     watch,
     formState: { errors },
     setValue,
+    control,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -731,6 +732,7 @@ const CreateVenue = () => {
         {activeStep === 0 ? (
           <CreateVenueStepBasic
             register={reg}
+            control={control}
             errors={errors}
             handleSubmit={handleSubmit}
             onSubmit={onSubmit}

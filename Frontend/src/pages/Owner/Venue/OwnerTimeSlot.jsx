@@ -222,6 +222,8 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
+
+
   /** Chỉ một dòng đang sửa (theo index trong `slotRows`); slot đã lưu trên máy chủ mặc định khóa cho đến khi bấm Sửa. */
   const [editingRowIdx, setEditingRowIdx] = useState(null);
   const editSnapshotRef = useRef(null);
@@ -504,51 +506,10 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
   //   });
   // };
 
-  const applyPriceToAllSlotsOfActiveDay = () => {
-    if (!slotRows.length) return;
-    const dk = activeDayKey;
-    const sourceIdx = editingRowIdx !== null ? editingRowIdx : 0;
-    const sourceRow = slotRows[sourceIdx];
-    if (!sourceRow) return;
 
-    const raw = sourceRow.prices?.[dk];
-    const price = raw === "" || raw === undefined || raw === null ? 0 : Number(raw);
 
-    setSlotRows((prev) =>
-      prev.map((row) => ({
-        ...row,
-        prices: {
-          ...(row.prices || {}),
-          [dk]: price,
-        },
-      })),
-    );
-    toast.success(
-      `Đã áp dụng giá ${price.toLocaleString("vi-VN")}đ cho toàn bộ khung giờ của ${weekDayLabels[activeDayIndex]}.`,
-    );
-  };
 
-  const applyCurrentDayToAllOtherDays = () => {
-    if (!slotRows.length || !otherDayKeys.length) return;
-    const sourceKey = activeDayKey;
-    setSlotRows((prev) =>
-      prev.map((row) => {
-        const raw = row.prices?.[sourceKey];
-        const price = raw === "" || raw === undefined || raw === null ? 0 : Number(raw);
-        const nextPrices = { ...(row.prices || {}) };
-        otherDayKeys.forEach((k) => {
-          nextPrices[k] = price;
-        });
-        return {
-          ...row,
-          prices: nextPrices,
-        };
-      }),
-    );
-    toast.success(
-      "Đã áp dụng giá trong bảng cho các ngày còn lại. Nhấn Lưu trên từng ngày (tab) để đồng bộ máy chủ.",
-    );
-  };
+
 
   const addSlotForActiveDay = useCallback(
     (startHHMM, endHHMM) => {
@@ -1193,8 +1154,7 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
       });
     }
 
-  const applyPriceDisabled =
-    saving || !sportTypeId || loadingSlots || !slotRows.length || !otherDayKeys.length || hasActiveDayValidationErrors;
+
   const saveDisabled = saving || !sportTypeId || loadingSlots || hasActiveDayValidationErrors;
   const saveWeekDisabled = saving || !sportTypeId || loadingSlots || hasWeekValidationErrors;
 
@@ -1352,27 +1312,8 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
                 </button>
               ))}
             </div>
-            {!isStaff && (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="ots-apply-slots"
-                  disabled={saveDisabled}
-                  onClick={applyPriceToAllSlotsOfActiveDay}
-                  title="Lấy giá của khung giờ đầu tiên (hoặc đang chọn) áp dụng cho tất cả khung khác trong ngày này"
-                >
-                  <Zap size={15} /> ÁP DỤNG GIÁ CHO CẢ NGÀY
-                </button>
-                <button
-                  type="button"
-                  className="ots-apply-days"
-                  disabled={applyPriceDisabled}
-                  onClick={applyCurrentDayToAllOtherDays}
-                >
-                  <Sparkles size={15} /> ÁP DỤNG GIÁ CHO CÁC NGÀY CÒN LẠI
-                </button>
-              </div>
-            )}
+
+
           </div>
 
           <div className="ots-slot-toolbar">

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Input, Select } from "antd";
 import Swal from "sweetalert2";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -49,8 +50,8 @@ const normalizeDoc = (doc) => {
 
   const images = Array.isArray(imagesRaw)
     ? imagesRaw
-        .map((img) => img?.imageUrl || img?.url || null)
-        .filter(Boolean)
+      .map((img) => img?.imageUrl || img?.url || null)
+      .filter(Boolean)
     : [];
 
   return { issueDate, expiryDate, images };
@@ -637,35 +638,37 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
                 </div>
               )}
             </div>
-           
+
             <div className="ovd-filters">
-              <input
-                className="ovd-input"
+              <Input
+                className="ovd-filter-input"
                 placeholder="Tìm theo tên sân..."
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
+                allowClear
               />
-              <select
-                className="ovd-input"
+              <Select
+                className="ovd-filter-select"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="inactive">Ngừng hoạt động</option>
-              </select>
-              <select
-                className="ovd-input"
+                onChange={(val) => setStatusFilter(val)}
+                options={[
+                  { value: "all", label: "Tất cả trạng thái" },
+                  { value: "active", label: "Đang hoạt động" },
+                  { value: "inactive", label: "Ngừng hoạt động" },
+                ]}
+              />
+              <Select
+                className="ovd-filter-select"
                 value={sportFilter}
-                onChange={(e) => setSportFilter(e.target.value)}
-              >
-                <option value="all">Tất cả môn</option>
-                {sportFilterOptions.map((s) => (
-                  <option key={s} value={s.toLowerCase()}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSportFilter(val)}
+                options={[
+                  { value: "all", label: "Tất cả môn" },
+                  ...sportFilterOptions.map((s) => ({
+                    value: s.toLowerCase(),
+                    label: s,
+                  })),
+                ]}
+              />
             </div>
 
             {fieldsLoading ? (
@@ -707,78 +710,88 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
                         <div className="ovd-field-right">
                         </div>
                       </div>
-                        {!isStaff && fieldId != null ? (
-                          <div className="ovd-field-actions ovd-field-actions--card">
-                            <Link
-                              className={`ovd-toggle-btn ${!canEditVenue ? "is-disabled" : ""}`}
-                              to={`/owner/venues/${id}/edit-field/${fieldId}`}
-                              state={{ venueDraftHint }}
-                              onClick={(e) => {
-                                if (!canEditVenue) e.preventDefault();
-                              }}
-                            >
-                              Chỉnh sửa
-                            </Link>
-                            <button
-                              type="button"
-                              className={`ovd-toggle-btn ovd-toggle-btn--warn ${!canToggleFieldStatus ? "is-disabled" : ""}`}
-                              disabled={!canToggleFieldStatus || isFieldStatusLoading}
-                              onClick={async () => {
-                                if (!canToggleFieldStatus || fieldId == null) return;
-                                const { isConfirmed } = await Swal.fire({
-                                  title: `${toggleFieldLabel} sân?`,
-                                  text: `Bạn muốn ${toggleFieldLabel.toLowerCase()} sân "${fieldName}"?`,
-                                  icon: statusLower === "inactive" ? "question" : "warning",
-                                  showCancelButton: true,
-                                  confirmButtonColor: statusLower === "inactive" ? "#16a34a" : "#dc2626",
-                                  cancelButtonColor: "#6b7280",
-                                  confirmButtonText: toggleFieldLabel,
-                                  cancelButtonText: "Hủy",
-                                });
-                                if (!isConfirmed) return;
-                                setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: true }));
-                                try {
-                                  await toggleOwnerFieldStatus(id, fieldId);
-                                  setFields((prev) =>
-                                    (prev || []).map((item) => {
-                                      const currentId = item?.fieldId ?? item?.FieldId;
-                                      if (currentId !== fieldId) return item;
-                                      const nextStatus = statusLower === "inactive" ? "Active" : "Inactive";
-                                      return {
-                                        ...item,
-                                        status: nextStatus,
-                                        Status: nextStatus,
-                                      };
-                                    })
-                                  );
-                                  toast.success(statusLower === "inactive" ? "Đã kích hoạt sân." : "Đã vô hiệu hóa sân.");
-                                } catch (error) {
-                                  toast.error(
-                                    error?.response?.data?.message ??
-                                    error?.message ??
-                                    "Không cập nhật được trạng thái sân."
-                                  );
-                                } finally {
-                                  setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: false }));
-                                }
-                              }}
-                              title={
-                                !canToggleFieldStatus
-                                  ? "Chỉ sân ở trạng thái hoạt động hoặc đã vô hiệu hóa mới có thể đổi trạng thái."
-                                  : undefined
+                      {isStaff && fieldId != null && (
+                        <div className="ovd-field-actions ovd-field-actions--card">
+                          <Link
+                            className="ovd-toggle-btn"
+                            to={`/staff/venues/${id}/field-detail/${fieldId}`}
+                          >
+                            Xem chi tiết
+                          </Link>
+                        </div>
+                      )}
+                      {!isStaff && fieldId != null ? (
+                        <div className="ovd-field-actions ovd-field-actions--card">
+                          <Link
+                            className={`ovd-toggle-btn ${!canEditVenue ? "is-disabled" : ""}`}
+                            to={`/owner/venues/${id}/edit-field/${fieldId}`}
+                            state={{ venueDraftHint }}
+                            onClick={(e) => {
+                              if (!canEditVenue) e.preventDefault();
+                            }}
+                          >
+                            Chỉnh sửa
+                          </Link>
+                          <button
+                            type="button"
+                            className={`ovd-toggle-btn ovd-toggle-btn--warn ${!canToggleFieldStatus ? "is-disabled" : ""}`}
+                            disabled={!canToggleFieldStatus || isFieldStatusLoading}
+                            onClick={async () => {
+                              if (!canToggleFieldStatus || fieldId == null) return;
+                              const { isConfirmed } = await Swal.fire({
+                                title: `${toggleFieldLabel} sân?`,
+                                text: `Bạn muốn ${toggleFieldLabel.toLowerCase()} sân "${fieldName}"?`,
+                                icon: statusLower === "inactive" ? "question" : "warning",
+                                showCancelButton: true,
+                                confirmButtonColor: statusLower === "inactive" ? "#16a34a" : "#dc2626",
+                                cancelButtonColor: "#6b7280",
+                                confirmButtonText: toggleFieldLabel,
+                                cancelButtonText: "Hủy",
+                              });
+                              if (!isConfirmed) return;
+                              setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: true }));
+                              try {
+                                await toggleOwnerFieldStatus(id, fieldId);
+                                setFields((prev) =>
+                                  (prev || []).map((item) => {
+                                    const currentId = item?.fieldId ?? item?.FieldId;
+                                    if (currentId !== fieldId) return item;
+                                    const nextStatus = statusLower === "inactive" ? "Active" : "Inactive";
+                                    return {
+                                      ...item,
+                                      status: nextStatus,
+                                      Status: nextStatus,
+                                    };
+                                  })
+                                );
+                                toast.success(statusLower === "inactive" ? "Đã kích hoạt sân." : "Đã vô hiệu hóa sân.");
+                              } catch (error) {
+                                toast.error(
+                                  error?.response?.data?.message ??
+                                  error?.message ??
+                                  "Không cập nhật được trạng thái sân."
+                                );
+                              } finally {
+                                setFieldStatusLoading((prev) => ({ ...prev, [fieldId]: false }));
                               }
-                            >
-                              {isFieldStatusLoading ? (
-                                <Loader2 size={14} className="ovd-spinner" />
-                              ) : statusLower === "inactive" ? (
-                                <RotateCcw size={14} />
-                              ) : (
-                                <CircleOff size={14} />
-                              )}
-                              {isFieldStatusLoading ? "Đang xử lý..." : toggleFieldLabel}
-                            </button>
-                          </div>
-                        ) : null}
+                            }}
+                            title={
+                              !canToggleFieldStatus
+                                ? "Chỉ sân ở trạng thái hoạt động hoặc đã vô hiệu hóa mới có thể đổi trạng thái."
+                                : undefined
+                            }
+                          >
+                            {isFieldStatusLoading ? (
+                              <Loader2 size={14} className="ovd-spinner" />
+                            ) : statusLower === "inactive" ? (
+                              <RotateCcw size={14} />
+                            ) : (
+                              <CircleOff size={14} />
+                            )}
+                            {isFieldStatusLoading ? "Đang xử lý..." : toggleFieldLabel}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
+import { Select } from "antd";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import { ArrowLeft, Building2, MapPin, FileText, Check, Plus, X, MapPinned, Loader2, ChevronDown } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, FileText, Check, Plus, Search, X, MapPinned, Loader2, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
@@ -197,6 +198,22 @@ const schema = yup.object({
   bizExpiryDate: yup.string().required("Vui lòng nhập ngày hết hạn"),
 });
 
+const LOCATION_TOAST_ID = "recreate-venue-location";
+const LOCATION_BUTTON_COOLDOWN_MS = 1500;
+
+function getLocationErrorMessage(err) {
+  switch (err?.code) {
+    case 1:
+      return null;
+    case 2:
+      return "Không xác định được vị trí hiện tại.";
+    case 3:
+      return "Lấy vị trí quá lâu, vui lòng thử lại.";
+    default:
+      return err?.message || "Không lấy được vị trí hiện tại.";
+  }
+}
+
 const OwnerRecreateVenue = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -214,6 +231,18 @@ const OwnerRecreateVenue = () => {
   const [existingBizImages, setExistingBizImages] = useState([]);
   const [deletedBizImageIds, setDeletedBizImageIds] = useState([]);
   const [bizDocId, setBizDocId] = useState(null);
+
+  // Map search and location states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLocationCooldown, setIsLocationCooldown] = useState(false);
+  const searchContainerRef = useRef(null);
+  const locationRequestRef = useRef(0);
+  const locationClickLockRef = useRef(false);
+  const locationCooldownTimeoutRef = useRef(null);
+
 
   const {
     register,
@@ -313,6 +342,119 @@ const OwnerRecreateVenue = () => {
     setValue("latitude", nextLat, { shouldValidate: true, shouldDirty: true });
     setValue("longitude", nextLng, { shouldValidate: true, shouldDirty: true });
   };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (locationCooldownTimeoutRef.current) clearTimeout(locationCooldownTimeoutRef.current);
+    };
+  }, []);
+
+  const handleSearch = async (val) => {
+    setSearchQuery(val);
+    if (!val || val.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`
+      );
+      const data = await response.json();
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectLocation = (item) => {
+    const latNum = parseFloat(item.lat);
+    const lngNum = parseFloat(item.lon);
+    onPickCoords(latNum, lngNum);
+    setSearchQuery(item.display_name);
+    setSearchResults([]);
+  };
+
+  const useMyLocation = useCallback(() => {
+    if (locationClickLockRef.current || isLocating || isLocationCooldown) return;
+
+    const startLocationCooldown = () => {
+      if (locationCooldownTimeoutRef.current) {
+        clearTimeout(locationCooldownTimeoutRef.current);
+      }
+      setIsLocationCooldown(true);
+      locationCooldownTimeoutRef.current = setTimeout(() => {
+        locationClickLockRef.current = false;
+        setIsLocationCooldown(false);
+        locationCooldownTimeoutRef.current = null;
+      }, LOCATION_BUTTON_COOLDOWN_MS);
+    };
+
+    locationClickLockRef.current = true;
+
+    if (!navigator?.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ định vị (geolocation).", {
+        toastId: LOCATION_TOAST_ID,
+      });
+      startLocationCooldown();
+      return;
+    }
+
+    locationRequestRef.current += 1;
+    const requestId = locationRequestRef.current;
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (requestId !== locationRequestRef.current) return;
+        const a = pos?.coords?.latitude;
+        const o = pos?.coords?.longitude;
+        onPickCoords(a, o);
+        if (toast.isActive(LOCATION_TOAST_ID)) {
+          toast.update(LOCATION_TOAST_ID, {
+            render: "Đã lấy vị trí hiện tại.",
+            type: "success",
+            autoClose: 1000,
+            closeButton: true,
+          });
+        } else {
+          toast.success("Đã lấy vị trí hiện tại.", { toastId: LOCATION_TOAST_ID });
+        }
+        setIsLocating(false);
+        startLocationCooldown();
+      },
+      (err) => {
+        if (requestId !== locationRequestRef.current) return;
+        const message = getLocationErrorMessage(err);
+        if (!message) {
+          toast.dismiss(LOCATION_TOAST_ID);
+        } else if (toast.isActive(LOCATION_TOAST_ID)) {
+          toast.update(LOCATION_TOAST_ID, {
+            render: message,
+            type: "error",
+            autoClose: 2000,
+            closeButton: true,
+          });
+        } else {
+          toast.error(message, { toastId: LOCATION_TOAST_ID });
+        }
+        setIsLocating(false);
+        startLocationCooldown();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }, [isLocating, isLocationCooldown]);
+
 
   const handleRecreate = async (data) => {
     setSubmitting(true);
@@ -486,25 +628,56 @@ const OwnerRecreateVenue = () => {
             <div className="cv-form-grid">
               <div className="cv-form-group">
                 <label>Tỉnh / Thành phố <span className="cv-required">*</span></label>
-                <select {...register("provinceId")}>
-                  <option value="">-- Chọn tỉnh/thành --</option>
-                  {provinces.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="provinceId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      showSearch
+                      className="cv-antd-select"
+                      placeholder="-- Chọn tỉnh/thành --"
+                      optionFilterProp="label"
+                      listHeight={250}
+                      onChange={(val) => {
+                        field.onChange(val);
+                        setValue("wardId", "");
+                      }}
+                      options={provinces.map(p => ({
+                        value: String(p.id),
+                        label: p.name,
+                      }))}
+                    />
+                  )}
+                />
                 {errors.provinceId && <p className="cv-error-text">{errors.provinceId.message}</p>}
               </div>
 
+
               <div className="cv-form-group">
                 <label>Quận / Huyện <span className="cv-required">*</span></label>
-                <select {...register("wardId")} disabled={!selectedProvinceId}>
-                  <option value="">-- Chọn quận/huyện --</option>
-                  {districts.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="wardId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      showSearch
+                      className="cv-antd-select"
+                      placeholder="-- Chọn quận/huyện --"
+                      optionFilterProp="label"
+                      listHeight={250}
+                      disabled={!selectedProvinceId}
+                      options={districts.map(d => ({
+                        value: String(d.id),
+                        label: d.name,
+                      }))}
+                    />
+                  )}
+                />
                 {errors.wardId && <p className="cv-error-text">{errors.wardId.message}</p>}
               </div>
+
 
               <div className="cv-form-group cv-full-width">
                 <label>Địa chỉ chi tiết <span className="cv-required">*</span></label>
@@ -514,7 +687,53 @@ const OwnerRecreateVenue = () => {
 
               <div className="cv-map-section cv-full-width">
                 <label><MapPinned size={16} /> Chấm vị trí trên bản đồ <span className="cv-required">*</span></label>
-                <div className="cv-map-wrapper" style={{ height: "300px", marginTop: "10px" }}>
+                <div className="cv-map-wrapper" style={{ height: "320px", marginTop: "10px" }}>
+                  <div className="cv-map-search-container" ref={searchContainerRef}>
+                    <div className="cv-map-search-input-wrapper">
+                      <Search className="cv-map-search-icon" size={18} />
+                      <input
+                        type="text"
+                        className="cv-map-search-input"
+                        placeholder="Tìm kiếm địa chỉ..."
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                      />
+                      {isSearching && <div className="cv-map-search-spinner" />}
+                    </div>
+                    {searchResults.length > 0 && (
+                      <ul className="cv-map-search-results">
+                        {searchResults.map((item, idx) => (
+                          <li
+                            key={`${item.place_id}-${idx}`}
+                            onClick={() => selectLocation(item)}
+                            className="cv-map-search-item"
+                          >
+                            <MapPin size={16} />
+                            <span>{item.display_name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="cv-map-btn cv-map-btn--overlay cv-map-btn--my-location"
+                    onClick={useMyLocation}
+                    disabled={isLocating || isLocationCooldown}
+                    aria-busy={isLocating}
+                    title="Vị trí của tôi"
+                  >
+                    {isLocating ? (
+                      <span className="cv-locating-text">Đang định vị...</span>
+                    ) : (
+                      <>
+                        <MapPin size={18} />
+                        <span>Dùng vị trí hiện tại</span>
+                      </>
+                    )}
+                  </button>
+
                   <MapContainer center={pickedPosition} zoom={16} style={{ height: "100%", width: "100%", borderRadius: "8px" }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <MapViewportController center={pickedPosition} shouldAnimate={true} />
@@ -527,6 +746,7 @@ const OwnerRecreateVenue = () => {
                     }} />
                   </MapContainer>
                 </div>
+
                 <p className="cv-wizard-hint">Click hoặc kéo marker để xác định vị trí chính xác</p>
               </div>
             </div>

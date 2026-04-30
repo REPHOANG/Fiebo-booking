@@ -71,6 +71,7 @@ import StaffVenues from "../pages/Staff/Venue/StaffVenues";
 import StaffVenueDetail from "../pages/Staff/Venue/StaffVenueDetail";
 import StaffTimeSlot from "../pages/Staff/Venue/StaffTimeSlot";
 import StaffServiceManagement from "../pages/Staff/Venue/StaffServiceManagement";
+import StaffFieldDetail from "../pages/Staff/Venue/StaffFieldDetail";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -257,6 +258,7 @@ const routes = [
       { path: "venues/:id", element: <StaffVenueDetail /> },
       { path: "venues/:id/time-slot", element: <StaffTimeSlot /> },
       { path: "venues/:id/services", element: <StaffServiceManagement /> },
+      { path: "venues/:id/field-detail/:fieldId", element: <StaffFieldDetail /> },
       { path: "profile", element: <Profile /> },
       { path: "offline-booking", element: <StaffOfflineBooking /> },
       { path: "venues/:id/offline-booking", element: <BookingSchedule /> },
