@@ -21,12 +21,10 @@
 .ed-hero-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    #0f766e 0%,
-    #139a44 42%,
-    #15803d 100%
-  );
+  background: linear-gradient(135deg,
+      #0f766e 0%,
+      #139a44 42%,
+      #15803d 100%);
   opacity: 1;
 }
 
@@ -34,11 +32,9 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse 80% 60% at 80% 20%,
-    rgba(255, 255, 255, 0.12),
-    transparent 55%
-  );
+  background: radial-gradient(ellipse 80% 60% at 80% 20%,
+      rgba(255, 255, 255, 0.12),
+      transparent 55%);
   pointer-events: none;
 }
 
@@ -513,6 +509,7 @@
   0% {
     background-position: 100% 0;
   }
+
   100% {
     background-position: -100% 0;
   }

@@ -17,6 +17,7 @@ namespace Fiebo.Application.DTOs.Booking
         public DateTime CreatedAt { get; set; }
         public string? CancelReason { get; set; }
 
+
         public List<DetailItemResponse> BookedItems { get; set; } = [];
         public List<BookingServiceItemResponse> Services { get; set; } = [];
     }

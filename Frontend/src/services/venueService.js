@@ -114,41 +114,35 @@ export const deactivateOwnerVenue = async (venueId) => {
 export const updateOwnerVenueInfo = async (venueId, payload) => {
   const form = new FormData();
   form.append('Name', String(payload?.name ?? '').trim());
-  if (payload?.description != null && String(payload.description).trim() !== '') {
+  if (payload?.description != null) {
     form.append('Description', String(payload.description).trim());
   }
-  form.append('AddressDetail', String(payload?.addressDetail ?? '').trim());
-  form.append('ProvinceId', String(Number(payload?.provinceId)));
-  form.append('WardId', String(Number(payload?.wardId)));
-  // Đảm bảo gửi đúng format cho backend (dấu phẩy nếu cần)
-  const safeLat = String(Number(payload?.latitude ?? 0)).replace(".", ",");
-  const safeLng = String(Number(payload?.longitude ?? 0)).replace(".", ",");
-  form.append('Latitude', safeLat);
-  form.append('Longitude', safeLng);
   form.append('OpenTime', payload?.openTime ?? '');
   form.append('CloseTime', payload?.closeTime ?? '');
+  
+  if (payload?.addressDetail != null) {
+    form.append('AddressDetail', String(payload.addressDetail).trim());
+  }
+  if (payload?.provinceId != null) {
+    form.append('ProvinceId', String(payload.provinceId));
+  }
+  if (payload?.wardId != null) {
+    form.append('WardId', String(payload.wardId));
+  }
+  if (payload?.latitude != null) {
+    form.append('Latitude', String(payload.latitude));
+  }
+  if (payload?.longitude != null) {
+    form.append('Longitude', String(payload.longitude));
+  }
+
+  if (payload?.deletedThumbnail) {
+    form.append('DeletedThumbnail', 'true');
+  }
+
   if (payload?.thumbnailFile) {
     form.append('ThumbnailImage', payload.thumbnailFile);
   }
-
-  // Optional — update legal documents (BusinessDocument).
-  // Backend expects nested form fields:
-  // - BusinessDocument.IssueDate / ExpiryDate / Images[]
-  const businessDocument = payload?.businessDocument;
-  if (businessDocument) {
-    if (businessDocument.issueDate) {
-      form.append("BusinessDocument.IssueDate", String(businessDocument.issueDate));
-    }
-    if (businessDocument.expiryDate) {
-      form.append("BusinessDocument.ExpiryDate", String(businessDocument.expiryDate));
-    }
-    const files = Array.isArray(businessDocument.files) ? businessDocument.files : [];
-    for (const file of files) {
-      if (file) form.append("BusinessDocument.Images", file);
-    }
-  }
-
-
 
   const response = await api.put(`/api/owner/venues/${venueId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },

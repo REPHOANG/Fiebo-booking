@@ -75,20 +75,20 @@ namespace Fiebo.Application.Services
             // BR-49 / E1: Verify venue exists and belongs to the current Field Owner
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
             if(role == AppRoles.FieldStaff)
-            {
-                var permission = (await _unitOfWork.VenueStaffs.FindAsync(v => v.StaffId == ownerId && v.VenueId == venueId)).Any();
-                if (!permission)
-                {
-                    throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
-                }
-            }
-            else if (role == AppRoles.FieldOwner)
-            {
-                if (venue == null || venue.OwnerId != ownerId)
-                {
-                    throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
-                }
-            }
+ {
+     var permission = (await _unitOfWork.VenueStaffs.FindAsync(v => v.StaffId == ownerId && v.VenueId == venueId)).Any();
+     if (!permission)
+     {
+         throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
+     }
+ }
+ else if (role == AppRoles.FieldOwner)
+ {
+     if (venue == null || venue.OwnerId != ownerId)
+     {
+         throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
+     }
+ }
 
             var fields = await _unitOfWork.Fields.GetAllFieldsByVenueAsync(venueId);
 

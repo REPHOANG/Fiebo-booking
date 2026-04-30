@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   MapPin, Star, Search, Frown, X, Clock,
-  Calendar, ChevronRight, SlidersHorizontal, Navigation, Navigation2, Dumbbell,
+  Calendar, ChevronRight, SlidersHorizontal, Navigation, Navigation2, Dumbbell, Crosshair, Plus, Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { searchVenues } from "../services/fieldService";
@@ -16,6 +16,7 @@ import {
   sportTypeIdFromSearchParam,
 } from "../services/sportTypeService";
 import "./Venues.css";
+import Swal from "sweetalert2";
 
 // Fix Leaflet default marker icon paths (Vite/CRA bundler)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -50,6 +51,68 @@ const FlyToLocation = ({ target }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
   return null;
+};
+
+/** Nút định vị GPS hiển thị bên trong bản đồ */
+const LocateControl = ({ onLocate }) => {
+  const map = useMap();
+  const [locating, setLocating] = useState(false);
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      window.alert("Trình duyệt không hỗ trợ định vị.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        map.flyTo([lat, lng], 14, { duration: 1.2 });
+        if (onLocate) onLocate({ lat, lng });
+        setLocating(false);
+      },
+      () => {
+        Swal.fire("Lỗi", "Không lấy được vị trí. Hãy cho phép truy cập vị trí.", "error");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+    );
+  };
+
+  return (
+    <div className="map-controls-group">
+      <button
+        type="button"
+        className={`map-ctrl-btn map-locate-btn${locating ? " is-locating" : ""}`}
+        onClick={handleLocate}
+        title="Định vị vị trí của bạn"
+        aria-label="Định vị vị trí của bạn"
+      >
+        <Crosshair size={18} />
+      </button>
+      <div className="map-zoom-group">
+        <button
+          type="button"
+          className="map-ctrl-btn map-zoom-btn"
+          onClick={() => map.zoomIn()}
+          title="Phóng to"
+          aria-label="Phóng to"
+        >
+          <Plus size={18} />
+        </button>
+        <span className="map-zoom-divider" />
+        <button
+          type="button"
+          className="map-ctrl-btn map-zoom-btn"
+          onClick={() => map.zoomOut()}
+          title="Thu nhỏ"
+          aria-label="Thu nhỏ"
+        >
+          <Minus size={18} />
+        </button>
+      </div>
+    </div>
+  );
 };
 
 /** Fallback parse `?sport=` (tên) khi GET `/api/sport-types` chưa xong. */
@@ -789,6 +852,9 @@ const Venues = () => {
 
                   {/* ── Left: OpenStreetMap + Nominatim search ─────── */}
                   <div className="filter-map-col">
+                    <p style={{
+                      fontSize: "12px", fontWeight: "bold"
+                    }}>Vị trí của bạn:</p>
                     {/* Nominatim geocoding search box */}
                     <div className="map-geocode-wrap" ref={mapSearchBoxRef}>
                       <div className="map-geocode-input-row">
@@ -832,59 +898,7 @@ const Venues = () => {
                       )}
                     </div>
 
-                    {mapPickedLocation && (
-                      <div className="venues-map-badge">
-                        <Navigation2 size={13} />
-                        <span>{mapPickedLocation.label || `${mapPickedLocation.lat.toFixed(4)}, ${mapPickedLocation.lng.toFixed(4)}`}</span>
-                        <button
-                          type="button"
-                          className="venues-map-badge-clear"
-                          onClick={() => {
-                            // Remove temporary coords from URL and clear transient marker.
-                            try {
-                              setSearchParams((prev) => {
-                                const p = new URLSearchParams(prev);
-                                p.delete("lat");
-                                p.delete("lng");
-                                return p;
-                              }, { replace: true });
-                            } catch { }
-                            setMapPickedLocation(null);
-                            setMapSearchQuery("");
 
-                            // Restore saved localStorage location to userGeo if present.
-                            try {
-                              const stored = localStorage.getItem("userLocation");
-                              if (stored) {
-                                const c = JSON.parse(stored);
-                                if (c?.latitude != null && c?.longitude != null) {
-                                  const lat = Number(c.latitude);
-                                  const lng = Number(c.longitude);
-                                  // update URL so restored location is reflected there
-                                  try {
-                                    setSearchParams((prev) => {
-                                      const p = new URLSearchParams(prev);
-                                      p.set("lat", String(lat));
-                                      p.set("lng", String(lng));
-                                      return p;
-                                    }, { replace: true });
-                                  } catch { }
-                                  setUserGeo({ userLat: lat, userLng: lng });
-                                  setMapPickedLocation({ lat, lng, label: null });
-                                  setFlyToTarget({ lat, lng });
-                                  return;
-                                }
-                              }
-                            } catch { }
-
-                            setUserGeo({ userLat: null, userLng: null });
-                          }}
-                          aria-label="Xóa vị trí"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    )}
 
                     <div className="filter-map-container">
                       <MapContainer
@@ -895,6 +909,7 @@ const Venues = () => {
                         }
                         zoom={11}
                         scrollWheelZoom
+                        zoomControl={false}
                         style={{ height: "100%", width: "100%" }}
                       >
                         <TileLayer
@@ -948,6 +963,22 @@ const Venues = () => {
                             </Popup>
                           </Marker>
                         ))}
+                        <LocateControl
+                          onLocate={(latlng) => {
+                            setMapPickedLocation({ lat: latlng.lat, lng: latlng.lng, label: null });
+                            setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
+                            setFilterMode("khoang-cach");
+                            setMapSearchQuery("");
+                            try {
+                              setSearchParams((prev) => {
+                                const p = new URLSearchParams(prev);
+                                p.set("lat", String(latlng.lat));
+                                p.set("lng", String(latlng.lng));
+                                return p;
+                              }, { replace: true });
+                            } catch { }
+                          }}
+                        />
                       </MapContainer>
                     </div>
                   </div>
@@ -1112,11 +1143,6 @@ const Venues = () => {
                               />
                               <span className="distance-suffix">km</span>
                             </div>
-                            <p className="filter-hint">
-                              {mapPickedLocation
-                                ? "✅ Dùng vị trí đã chọn trên bản đồ."
-                                : "Chưa có vị trí — click bản đồ bên trái hoặc trình duyệt sẽ xin quyền khi Áp dụng."}
-                            </p>
                           </div>
                         </div>
                       )}
@@ -1227,18 +1253,21 @@ const Venues = () => {
                           {formatTime(openTime)} – {formatTime(closeTime)}
                         </span>
                       )}
-                      <span className="venue-rating">
-                        <Star size={13} className="venue-rating-star" />
-                        <span className="rating-value">
-                          {Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}
-                        </span>
-                      </span>
+
                     </div>
                     {(venue.distanceKm ?? venue.DistanceKm) != null && (
-                      <p className="venue-distance">
-                        <Navigation2 size={13} />{" "}
-                        {Number(venue.distanceKm ?? venue.DistanceKm).toFixed(1)} km
-                      </p>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <p className="venue-distance">
+                          <Navigation2 size={13} />{" "}
+                          {Number(venue.distanceKm ?? venue.DistanceKm).toFixed(1)} km
+                        </p>
+                        <span className="venue-rating">
+                          <Star size={13} className="venue-rating-star" />
+                          <span className="rating-value">
+                            {Number(venue.rating ?? venue.Rating ?? 0).toFixed(1)}
+                          </span>
+                        </span>
+                      </div>
                     )}
                     <button
                       className="book-btn"

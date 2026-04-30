@@ -199,7 +199,7 @@ export const VenueDetailPage = () => {
                   </dt>
                   <dd>{data?.ownerPhone || "-"}</dd>
                 </div>
-                <div className="avr-dl-row avr-dl-row--block">
+                <div className="avr-dl-row ">
                   <dt>Họ tên</dt>
                   <dd>{data?.ownerName || "-"}</dd>
                 </div>
@@ -218,7 +218,7 @@ export const VenueDetailPage = () => {
                   <dt>Số tài khoản</dt>
                   <dd>{data?.ownerBankAccountNumber || "-"}</dd>
                 </div>
-                <div className="avr-dl-row avr-dl-row--block">
+                <div className="avr-dl-row">
                   <dt>Chủ tài khoản</dt>
                   <dd>{data?.ownerAccountHolderName || "-"}</dd>
                 </div>

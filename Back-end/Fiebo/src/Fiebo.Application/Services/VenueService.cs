@@ -460,7 +460,7 @@ namespace Fiebo.Application.Services
             }
             if (venue.OwnerId != ownerId)
             {
-                throw new UnauthorizedException("Bạn không có quyền xem lịch sân này");
+                throw new ForbiddenException("Bạn không có quyền xem lịch sân này");
             }
             return await GetVenueSchedule(venueId, date);
         }
@@ -674,52 +674,51 @@ namespace Fiebo.Application.Services
         }
 
         public async Task UpdateVenueAsync(int venueId, UpdateVenueRequest request, string ownerId)
-        {
-            var venue = await _unitOfWork.Venues.GetVenueWithDocumentsTrackedAsync(venueId);
-            if (venue == null)
-                throw new NotFoundException("Không tìm thấy cơ sở.");
+{
+    var venue = await _unitOfWork.Venues.GetVenueWithDocumentsTrackedAsync(venueId);
+    if (venue == null)
+        throw new NotFoundException("Không tìm thấy cơ sở.");
 
-            if (venue.OwnerId != ownerId)
-                throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
-            bool isFullDay = request.OpenTime == TimeOnly.MinValue
-              && request.CloseTime == TimeOnly.MinValue;
+    if (venue.OwnerId != ownerId)
+        throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
+    bool isFullDay = request.OpenTime == TimeOnly.MinValue
+      && request.CloseTime == TimeOnly.MinValue;
 
-            if (!isFullDay && request.CloseTime <= request.OpenTime)
-                throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+    if (!isFullDay && request.CloseTime <= request.OpenTime)
+        throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
 
-            bool isHoursShortened = !isFullDay && (request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime);
-            if (isHoursShortened)
-            {
-                var hasConflict = await _unitOfWork.TimeSlots
-                    .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
-                if (hasConflict)
-                    throw new BadRequestException(
-                        "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
-            }
+    bool isHoursShortened = !isFullDay && (request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime);
+    if (isHoursShortened)
+    {
+        var hasConflict = await _unitOfWork.TimeSlots
+            .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
+        if (hasConflict)
+            throw new BadRequestException(
+                "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
+    }
 
-            venue.Name = request.Name;
-            venue.Description = request.Description;
-            venue.OpenTime = request.OpenTime;
-            venue.CloseTime = request.CloseTime;
+    venue.Name = request.Name;
+    venue.Description = request.Description;
+    venue.OpenTime = request.OpenTime;
+    venue.CloseTime = request.CloseTime;
+    if (request.DeletedThumbnail)
+{
+    venue.ThumbnailUrl = null;
+}
+    if (request.ThumbnailImage is { Length: > 0 })
+    {
+        var fileList = new List<IFormFile> { request.ThumbnailImage };
+        ImageValidator.ValidateFiles(fileList, 1, 1);
+        var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+        venue.ThumbnailUrl = uploadResult.Url;
+    }
 
-            if (request.DeletedThumbnail)
-            {
-                venue.ThumbnailUrl = null;
-            }
-            if (request.ThumbnailImage is { Length: > 0 })
-            {
-                var fileList = new List<IFormFile> { request.ThumbnailImage };
-                ImageValidator.ValidateFiles(fileList, 1, 1);
-                var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
-                venue.ThumbnailUrl = uploadResult.Url;
-            }
+    venue.UpdatedAt = DateTime.Now;
 
-            venue.UpdatedAt = DateTime.Now;
-
-            _unitOfWork.Venues.Update(venue);
-            await _unitOfWork.SaveChangesAsync();
-        }
+    _unitOfWork.Venues.Update(venue);
+    await _unitOfWork.SaveChangesAsync();
+}
 
         public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
         {

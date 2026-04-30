@@ -23,7 +23,7 @@ const getStoredLocation = () => {
       const coords = JSON.parse(stored);
       return { lat: coords.latitude, lng: coords.longitude };
     }
-  } catch {}
+  } catch { }
   return null;
 };
 
@@ -82,7 +82,7 @@ const CustomerHome = () => {
     navigate("/");
   };
 
-  if(nearbyError || popularError) {
+  if (nearbyError || popularError) {
     return <ErrorPage />
   }
 
@@ -108,7 +108,6 @@ const CustomerHome = () => {
                 <MapPin size={13} /> {locationName}
               </span>
             </div>
-            <button className="ch-see-all-btn">Xem tất cả →</button>
           </div>
           <div className="ch-venue-grid">
             {nearbyLoading ? (
@@ -140,7 +139,6 @@ const CustomerHome = () => {
               <h2 className="ch-section-title">Sân nổi bật</h2>
               <span className="ch-section-subtitle">Nhiều lượt đặt nhất</span>
             </div>
-            <button className="ch-see-all-btn">Xem tất cả →</button>
           </div>
           <div className="ch-venue-grid">
             {popularLoading ? (

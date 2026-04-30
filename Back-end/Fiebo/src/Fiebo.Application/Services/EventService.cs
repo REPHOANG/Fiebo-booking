@@ -166,6 +166,7 @@ namespace Fiebo.Application.Services
                     VenueName = e.Venue?.Name ?? "",
                     EventDate = e.EventDate,
                     TicketPrice = e.PricePerPerson,
+                    ImageUrl = e.Venue?.ThumbnailUrl ?? "",
                     RemainingTicketQuantity = e.MaxPlayer - currentPlayer,
                     Slots = e.Details
                         .Select(d => new TicketEventSlotResponse

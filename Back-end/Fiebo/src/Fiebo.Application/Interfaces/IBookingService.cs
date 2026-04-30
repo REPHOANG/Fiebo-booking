@@ -19,7 +19,7 @@ namespace Fiebo.Application.Interfaces
         Task<OwnerBookingDetailResponse?> GetBookingDetailForOwnerAsync(int bookingId, string ownerId);
         Task<bool> OwnerCancelBookingAsync(int bookingId, string ownerId, string cancelReason, string? userRole);
         Task<bool> ConfirmBookingAsync(int bookingId, string ownerId, string? userRole);
-        Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason, string? userRole);
+Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason, string? userRole);
         Task<PagedResult<OwnerBookingListResponse>> GetBookingListForOwnerAsync(string ownerId, OwnerBookingFilter parameters);
         Task FinalizeBookingsAsync(DateTime now);
     }

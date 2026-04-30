@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, Trash2, Clock, Save, Sparkles, Pencil, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 // import { getOwnerVenueFields } from "../../../services/fieldService";
 import { getSportTypes, normalizeSportTypeList } from "../../../services/sportTypeService";
@@ -12,6 +12,7 @@ import {
   deleteOwnerVenueTimeSlot,
 } from "../../../services/venueTimeSlotService";
 import "./OwnerTimeSlot.css";
+import Swal from "sweetalert2";
 
 // const translateFieldStatus = (raw) => {
 //   const s = String(raw ?? "")
@@ -221,6 +222,8 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
   const [ownerVenuesList, setOwnerVenuesList] = useState([]);
+
+
   /** Chỉ một dòng đang sửa (theo index trong `slotRows`); slot đã lưu trên máy chủ mặc định khóa cho đến khi bấm Sửa. */
   const [editingRowIdx, setEditingRowIdx] = useState(null);
   const editSnapshotRef = useRef(null);
@@ -503,27 +506,10 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
   //   });
   // };
 
-  const applyCurrentDayToAllOtherDays = () => {
-    if (!slotRows.length || !otherDayKeys.length) return;
-    const sourceKey = activeDayKey;
-    setSlotRows((prev) =>
-      prev.map((row) => {
-        const raw = row.prices?.[sourceKey];
-        const price = raw === "" || raw === undefined || raw === null ? 0 : Number(raw);
-        const nextPrices = { ...(row.prices || {}) };
-        otherDayKeys.forEach((k) => {
-          nextPrices[k] = price;
-        });
-        return {
-          ...row,
-          prices: nextPrices,
-        };
-      }),
-    );
-    toast.success(
-      "Đã áp dụng giá trong bảng cho các ngày còn lại. Nhấn Lưu trên từng ngày (tab) để đồng bộ máy chủ.",
-    );
-  };
+
+
+
+
 
   const addSlotForActiveDay = useCallback(
     (startHHMM, endHHMM) => {
@@ -1143,19 +1129,32 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
     }
 
     setSaving(true);
-    try {
-      await deleteOwnerVenueTimeSlot(slotId);
-      setSlotRows((prev) => applyStrip(prev));
-      toast.success(`Đã xóa slot (${weekDayLabels[activeDayIndex]}).`);
-    } catch (e) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được khung giờ.");
-    } finally {
-      setSaving(false);
+      Swal.fire({
+        title: "Xác nhận xóa",
+        text: `Bạn có chắc muốn xóa khung giờ này của ${weekDayLabels[activeDayIndex]}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Xóa",
+        confirmButtonColor: "#d63030",
+        cancelButtonText: "Hủy",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            await deleteOwnerVenueTimeSlot(slotId);
+            setSlotRows((prev) => applyStrip(prev));
+            toast.success(`Đã xóa slot (${weekDayLabels[activeDayIndex]}).`);
+          } catch (e) {
+            toast.error(e?.response?.data?.message ?? e?.message ?? "Không xóa được khung giờ.");
+          } finally {
+            setSaving(false);
+          }
+        } else {
+          setSaving(false);
+        }
+      });
     }
-  };
 
-  const applyPriceDisabled =
-    saving || !sportTypeId || loadingSlots || !slotRows.length || !otherDayKeys.length || hasActiveDayValidationErrors;
+
   const saveDisabled = saving || !sportTypeId || loadingSlots || hasActiveDayValidationErrors;
   const saveWeekDisabled = saving || !sportTypeId || loadingSlots || hasWeekValidationErrors;
 
@@ -1313,16 +1312,8 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
                 </button>
               ))}
             </div>
-            {!isStaff && (
-              <button
-                type="button"
-                className="ots-apply-days"
-                disabled={applyPriceDisabled}
-                onClick={applyCurrentDayToAllOtherDays}
-              >
-                <Sparkles size={15} /> ÁP DỤNG GIÁ CHO CÁC NGÀY CÒN LẠI
-              </button>
-            )}
+
+
           </div>
 
           <div className="ots-slot-toolbar">

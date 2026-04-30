@@ -18,6 +18,7 @@ namespace Fiebo.Application.DTOs.Field
         public TimeOnly CloseTime { get; set; }
         public bool DeletedThumbnail { get; set; }
 
+
         public IFormFile? ThumbnailImage { get; set; }
 
     }

@@ -40,6 +40,7 @@ import OwnerVenueDetail from "../pages/Owner/Venue/OwnerVenueDetail";
 import OwnerTimeSlot from "../pages/Owner/Venue/OwnerTimeSlot";
 import OwnerAddField from "../pages/Owner/Venue/OwnerAddField";
 import OwnerEditVenue from "../pages/Owner/Venue/OwnerEditVenue";
+import OwnerRecreateVenue from "../pages/Owner/Venue/OwnerRecreateVenue";
 import OwnerBookings from "../pages/Owner/Booking/OwnerBookings";
 import OwnerBookingDetail from "../pages/Owner/Booking/OwnerBookingDetail";
 import StaffList from "../pages/Owner/StaffManagement/StaffList";
@@ -70,6 +71,7 @@ import StaffVenues from "../pages/Staff/Venue/StaffVenues";
 import StaffVenueDetail from "../pages/Staff/Venue/StaffVenueDetail";
 import StaffTimeSlot from "../pages/Staff/Venue/StaffTimeSlot";
 import StaffServiceManagement from "../pages/Staff/Venue/StaffServiceManagement";
+import StaffFieldDetail from "../pages/Staff/Venue/StaffFieldDetail";
 import ProtectedRoute from "./ProtectedRoute";
 import PayoutDetails from "../pages/Owner/Payout/PayoutDetails";
 import OwnerDashboard from "../pages/Owner/Dashboard/OwnerDashboard";
@@ -121,6 +123,63 @@ const routes = [
   },
 
   {
+    path: "/owner",
+    element: (
+      <ProtectedRoute element={<OwnerLayout />} requiredRole="FieldOwner" />
+    ),
+    children: [
+      { index: true, element: <OwnerDashboard /> },
+      { path: "profile", element: <OwnerProfile /> },
+      {
+        path: "subscription/overview",
+        element: <OwnerSubscriptionOverview />,
+      },
+      {
+        path: "subscription/plans",
+        element: <OwnerSubscriptionPlans />,
+      },
+      { path: "wallet", element: <Wallet /> },
+      { path: "payout", element: <PayoutList /> },
+      { path: "payout/:id/details", element: <PayoutDetails /> },
+      {
+        path: "venues",
+        children: [
+          { index: true, element: <OwnerVenues /> },
+          { path: ":id", element: <OwnerVenueDetail /> },
+          { path: ":id/edit", element: <OwnerEditVenue /> },
+          { path: ":id/recreate", element: <OwnerRecreateVenue /> },
+          { path: ":id/time-slot", element: <OwnerTimeSlot /> },
+          { path: ":id/add-field", element: <OwnerAddField /> },
+          { path: ":id/edit-field/:fieldId", element: <OwnerAddField /> },
+          {
+            path: ":id/create-field",
+            element: <OwnerVenueTimeSlotLegacyRedirect />,
+          },
+          {
+            path: ":id/offline-booking",
+            element: <BookingSchedule />,
+          },
+          {
+            path: ":id/offline-booking/confirm",
+            element: <BookingConfirmation />,
+          },
+        ],
+      },
+      { path: "create-venue", element: <CreateVenue /> },
+      { path: "offline-booking", element: <OwnerOfflineBooking /> },
+      { path: "bookings", element: <OwnerBookings /> },
+      { path: "bookings/:id", element: <OwnerBookingDetail /> },
+      { path: "staff", element: <StaffList /> },
+      { path: "events", element: <OwnerEvents /> },
+      { path: "events/create", element: <CreateEvent /> },
+      { path: "events/:id", element: <OwnerEventDetail /> },
+      {
+        path: "venue/:venueId/services",
+        element: <ServiceManagement />,
+      },
+    ],
+  },
+  {
     path: "/",
     element: <Layout />,
     children: [
@@ -146,60 +205,6 @@ const routes = [
       },
       { path: "venues", element: <Venues /> },
       { path: "wallet", element: <ProtectedRoute element={<Wallet />} /> },
-    ],
-  },
-  {
-    path: "/owner",
-    element: (
-      <ProtectedRoute element={<OwnerLayout />} requiredRole="FieldOwner" />
-    ),
-    children: [
-      { index: true, element: <OwnerDashboard /> },
-      { path: "profile", element: <OwnerProfile /> },
-      {
-        path: "subscription/overview",
-        element: <OwnerSubscriptionOverview />,
-      },
-      {
-        path: "subscription/plans",
-        element: <OwnerSubscriptionPlans />,
-      },
-      { path: "wallet", element: <Wallet /> },
-      { path: "payout", element: <PayoutList /> },
-      { path: "payout/:id/details", element: <PayoutDetails /> },
-      { path: "venues", element: <OwnerVenues /> },
-      { path: "create-venue", element: <CreateVenue /> },
-      { path: "offline-booking", element: <OwnerOfflineBooking /> },
-      { path: "venues/:id", element: <OwnerVenueDetail /> },
-      { path: "venues/:id/edit", element: <OwnerEditVenue /> },
-      { path: "venues/:id/time-slot", element: <OwnerTimeSlot /> },
-      { path: "venues/:id/add-field", element: <OwnerAddField /> },
-      {
-        path: "venues/:id/edit-field/:fieldId",
-        element: <OwnerAddField />,
-      },
-      {
-        path: "venues/:id/create-field",
-        element: <OwnerVenueTimeSlotLegacyRedirect />,
-      },
-      {
-        path: "venues/:id/offline-booking",
-        element: <BookingSchedule />,
-      },
-      {
-        path: "venues/:id/offline-booking/confirm",
-        element: <BookingConfirmation />,
-      },
-      { path: "bookings", element: <OwnerBookings /> },
-      { path: "bookings/:id", element: <OwnerBookingDetail /> },
-      { path: "staff", element: <StaffList /> },
-      { path: "events", element: <OwnerEvents /> },
-      { path: "events/create", element: <CreateEvent /> },
-      { path: "events/:id", element: <OwnerEventDetail /> },
-      {
-        path: "venue/:venueId/services",
-        element: <ServiceManagement />,
-      },
     ],
   },
   {
@@ -253,6 +258,7 @@ const routes = [
       { path: "venues/:id", element: <StaffVenueDetail /> },
       { path: "venues/:id/time-slot", element: <StaffTimeSlot /> },
       { path: "venues/:id/services", element: <StaffServiceManagement /> },
+      { path: "venues/:id/field-detail/:fieldId", element: <StaffFieldDetail /> },
       { path: "profile", element: <Profile /> },
       { path: "offline-booking", element: <StaffOfflineBooking /> },
       { path: "venues/:id/offline-booking", element: <BookingSchedule /> },
