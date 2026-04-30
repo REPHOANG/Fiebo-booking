@@ -13,7 +13,7 @@ namespace Fiebo.Application.Interfaces
             double userLat,
             double userLng,
             int limit,
-            double radiusKm);
+            double? radiusKm);
         Task<List<VenueInfoResponse>> GetTopBookingVenuesAsync(
             int top,
             double userLat,

@@ -37,5 +37,6 @@ namespace Fiebo.Application.DTOs.Venue
         public VenueDocumentResponse? BusinessLicense { get; set; }
 
         public string? Status { get; set; }
+        public string? RejectionReason { get; set; }
     }
 }

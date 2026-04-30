@@ -17,6 +17,8 @@ namespace Fiebo.Application.DTOs.Admin
         public TimeOnly CloseTime { get; set; }
         public string ThumbnailUrl { get; set; } = string.Empty;
         public string VenueStatus { get; set; } = string.Empty;
+        public double Longitude { get; set; }
+        public double Latitude { get; set; }
 
         // Owner Info
         public string OwnerName { get; set; } = string.Empty;

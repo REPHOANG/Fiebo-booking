@@ -229,7 +229,7 @@ namespace Fiebo.Application.Services
                 Status = transaction.Status.ToString(),
                 ProcessedBy = transaction.ProcessedBy,
                 ProcessedAt = transaction.ProcessedAt,
-                RejectionReason = transaction.RejectionReason
+                RejectionReason = transaction.Description
             };
         }
 

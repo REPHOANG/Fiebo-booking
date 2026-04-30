@@ -19,7 +19,9 @@ namespace Fiebo.Application.DTOs.Admin
         public string OwnerEmail { get; set; } = string.Empty;
         public string OwnerPhone { get; set; } = string.Empty;
         public string ThumbnailUrl { get; set; }
-        
+        public double Longitude { get; set; }
+        public double Latitude { get; set; }
+
         // Owner Bank Info
         public string OwnerBankName { get; set; } = string.Empty;
         public string OwnerBankAccountNumber { get; set; } = string.Empty;
