@@ -198,7 +198,7 @@ const BookingSchedule = () => {
   const [searchParams] = useSearchParams();
   const prefillDate = searchParams.get('date') || '';
   const prefillTimeRaw = searchParams.get('time') || '';
-  const prefillTime = prefillTimeRaw ? prefillTimeRaw.slice(0,5) : '';
+  const prefillTime = prefillTimeRaw ? prefillTimeRaw.slice(0, 5) : '';
 
   const [venue, setVenue] = useState(null);
   const [fields, setFields] = useState([]);
@@ -351,95 +351,95 @@ const BookingSchedule = () => {
     let mounted = true;
 
     const fetchAndDispatch = async () => {
-        try {
-          const res = await getVenueSchedule(id, selectedDate);
-          if (!mounted) return;
-          const fieldList = buildFieldsFromVenueSchedule(res);
-          const serverSlots = [];
-          (res?.sportTypes || []).forEach((st) => {
-            (st.slots || []).forEach((s) => serverSlots.push(s));
-          });
+      try {
+        const res = await getVenueSchedule(id, selectedDate);
+        if (!mounted) return;
+        const fieldList = buildFieldsFromVenueSchedule(res);
+        const serverSlots = [];
+        (res?.sportTypes || []).forEach((st) => {
+          (st.slots || []).forEach((s) => serverSlots.push(s));
+        });
 
-          // Build slots from response (giống useMemo) để map slotId -> idx, tránh phụ thuộc state slots gây loop
-          let slotsForMap = [];
-          if (serverSlots.length) {
-            const minStart = serverSlots.reduce(
-              (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
-              serverSlots[0].startTime
+        // Build slots from response (giống useMemo) để map slotId -> idx, tránh phụ thuộc state slots gây loop
+        let slotsForMap = [];
+        if (serverSlots.length) {
+          const minStart = serverSlots.reduce(
+            (min, s) => (String(s.startTime) < String(min) ? s.startTime : min),
+            serverSlots[0].startTime
+          );
+          const maxEnd = serverSlots.reduce(
+            (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
+            serverSlots[0].endTime
+          );
+          const step = BASE_GRID_STEP_MINUTES;
+          slotsForMap = generateSlots(minStart, maxEnd, step);
+        } else if (venue?.openTime && venue?.closeTime) {
+          slotsForMap = generateSlots(venue.openTime, venue.closeTime, BASE_GRID_STEP_MINUTES);
+        }
+
+        const startToIdx = {};
+        serverSlots.forEach((s) => {
+          const hhmm = normalizeSlotTime(s.startTime);
+          const idx = slotsForMap.findIndex((sl) => sl.label === hhmm);
+          if (idx >= 0) startToIdx[s.slotId] = idx;
+        });
+
+        const booked = [];
+        const scheduleEvents = [];
+        (res?.sportTypes || []).forEach((st) => {
+          const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
+          (st.fields || []).forEach((f) => {
+            const nameKey = (f.fieldName || f.name || '').trim();
+            const fieldIdx = fieldList.findIndex(
+              (ff) =>
+                normalizeText(ff.name || "") === normalizeText(nameKey) &&
+                normalizeText(ff.sportType || "") === sportKey
             );
-            const maxEnd = serverSlots.reduce(
-              (max, s) => (String(s.endTime) > String(max) ? s.endTime : max),
-              serverSlots[0].endTime
-            );
-            const step = BASE_GRID_STEP_MINUTES;
-            slotsForMap = generateSlots(minStart, maxEnd, step);
-          } else if (venue?.openTime && venue?.closeTime) {
-            slotsForMap = generateSlots(venue.openTime, venue.closeTime, BASE_GRID_STEP_MINUTES);
-          }
-
-          const startToIdx = {};
-          serverSlots.forEach((s) => {
-            const hhmm = normalizeSlotTime(s.startTime);
-            const idx = slotsForMap.findIndex((sl) => sl.label === hhmm);
-            if (idx >= 0) startToIdx[s.slotId] = idx;
-          });
-
-          const booked = [];
-          const scheduleEvents = [];
-          (res?.sportTypes || []).forEach((st) => {
-            const sportKey = (st.sportTypeName || st.sportType || '').trim().toLowerCase();
-            (st.fields || []).forEach((f) => {
-              const nameKey = (f.fieldName || f.name || '').trim();
-              const fieldIdx = fieldList.findIndex(
-                (ff) =>
-                  normalizeText(ff.name || "") === normalizeText(nameKey) &&
-                  normalizeText(ff.sportType || "") === sportKey
-              );
-              if (fieldIdx < 0) return;
-              (f.unavailableSlots || []).forEach((us) => {
-                const slotIdx = startToIdx[us.slotId ?? us.SlotId];
-                if (slotIdx == null || slotIdx < 0) return;
-                const eid = us.eventId ?? us.EventId;
-                if (eid != null && eid !== '') {
-                  const n = Number(eid);
-                  if (!Number.isNaN(n)) scheduleEvents.push({ fieldIdx, slotIdx, eventId: n });
-                } else {
-                  // Nếu API có trả bookingId/reservationId cho unavailableSlots thì lưu lại để phân biệt các booking gần nhau
-                  const bookingIdRaw =
-                    us.bookingId ??
-                    us.BookingId ??
-                    us.bookingID ??
-                    us.reservationId ??
-                    us.ReservationId ??
-                    us.booking_id ??
-                    null;
-                  const bookingId =
-                    bookingIdRaw != null && bookingIdRaw !== ""
-                      ? (() => {
-                          const n = Number(bookingIdRaw);
-                          return Number.isNaN(n) ? String(bookingIdRaw) : n;
-                        })()
-                      : null;
-                  booked.push({ fieldIdx, slotIdx, bookingId });
-                }
-              });
+            if (fieldIdx < 0) return;
+            (f.unavailableSlots || []).forEach((us) => {
+              const slotIdx = startToIdx[us.slotId ?? us.SlotId];
+              if (slotIdx == null || slotIdx < 0) return;
+              const eid = us.eventId ?? us.EventId;
+              if (eid != null && eid !== '') {
+                const n = Number(eid);
+                if (!Number.isNaN(n)) scheduleEvents.push({ fieldIdx, slotIdx, eventId: n, status: us.status ?? us.Status });
+              } else {
+                // Nếu API có trả bookingId/reservationId cho unavailableSlots thì lưu lại để phân biệt các booking gần nhau
+                const bookingIdRaw =
+                  us.bookingId ??
+                  us.BookingId ??
+                  us.bookingID ??
+                  us.reservationId ??
+                  us.ReservationId ??
+                  us.booking_id ??
+                  null;
+                const bookingId =
+                  bookingIdRaw != null && bookingIdRaw !== ""
+                    ? (() => {
+                      const n = Number(bookingIdRaw);
+                      return Number.isNaN(n) ? String(bookingIdRaw) : n;
+                    })()
+                    : null;
+                booked.push({ fieldIdx, slotIdx, bookingId });
+              }
             });
           });
+        });
 
-          if (mounted) {
-            setVenueSchedule(res);
-            setFields(fieldList);
-            setScheduleEventSlots(scheduleEvents);
-            // Chỉ slot "đã đặt" (không gắn sự kiện) — slot có eventId hiển thị riêng + click xem chi tiết
-            try {
-              dispatch(setBookedSlotsFromServer({ venueId: String(id), date: selectedDate, slots: booked }));
-            } catch (e) {}
-          }
-        } catch (e) {
-          if (mounted) {
-            setScheduleEventSlots([]);
-          }
+        if (mounted) {
+          setVenueSchedule(res);
+          setFields(fieldList);
+          setScheduleEventSlots(scheduleEvents);
+          // Chỉ slot "đã đặt" (không gắn sự kiện) — slot có eventId hiển thị riêng + click xem chi tiết
+          try {
+            dispatch(setBookedSlotsFromServer({ venueId: String(id), date: selectedDate, slots: booked }));
+          } catch (e) { }
         }
+      } catch (e) {
+        if (mounted) {
+          setScheduleEventSlots([]);
+        }
+      }
     };
 
     // Call once on mount/when venue or date changes. Polling removed to avoid repeated API calls.
@@ -578,15 +578,24 @@ const BookingSchedule = () => {
   const eventIdByCell = useMemo(() => {
     const m = new Map();
     scheduleEventSlots.forEach((x) => {
-      if (x.eventId != null && !Number.isNaN(Number(x.eventId))) {
-        m.set(`${x.fieldIdx}_${x.slotIdx}`, Number(x.eventId));
+      const eid = x.eventId ?? x.EventId;
+      if (eid != null && !Number.isNaN(Number(eid))) {
+        m.set(`${x.fieldIdx}_${x.slotIdx}`, {
+          id: Number(eid),
+          status: x.status ?? x.Status ?? "Pending"
+        });
       }
     });
     return m;
   }, [scheduleEventSlots]);
 
   const getEventIdForCell = useCallback(
-    (fieldIdx, slotIdx) => eventIdByCell.get(`${fieldIdx}_${slotIdx}`) ?? null,
+    (fieldIdx, slotIdx) => eventIdByCell.get(`${fieldIdx}_${slotIdx}`)?.id ?? null,
+    [eventIdByCell]
+  );
+
+  const getEventStatusForCell = useCallback(
+    (fieldIdx, slotIdx) => eventIdByCell.get(`${fieldIdx}_${slotIdx}`)?.status ?? null,
     [eventIdByCell]
   );
 
@@ -660,10 +669,12 @@ const BookingSchedule = () => {
 
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
-      return `bs-cell event${past ? " past" : ""}`;
+      const status = (getEventStatusForCell(fieldIdx, slotIdx) || "").toLowerCase();
+      return `bs-cell event${past ? " past" : ""}${status ? ` status-${status}` : ""}`;
     }
     if (isEventBlock(fieldIdx, slotIdx)) {
-      return `bs-cell event${past ? " past" : ""}`;
+      const status = (getEventStatusForCell(fieldIdx, slotIdx) || "").toLowerCase();
+      return `bs-cell event${past ? " past" : ""}${status ? ` status-${status}` : ""}`;
     }
     if (isBooked(fieldIdx, slotIdx)) {
       // Không hiển thị booking đã qua — chỉ như ô khóa (cùng hàng với nối locked-run)
@@ -798,6 +809,22 @@ const BookingSchedule = () => {
     if (isLocked(slotIdx)) return;
     const evId = getEventIdForCell(fieldIdx, slotIdx);
     if (evId != null) {
+      const status = (getEventStatusForCell(fieldIdx, slotIdx) || "").toLowerCase();
+      if (status !== "pending") {
+        Swal.fire({
+          title: "Thông báo",
+          text: status === "ongoing" 
+            ? "Sự kiện này đang diễn ra, không thể đăng ký thêm." 
+            : (status === "cancelled" || status === "canceled")
+            ? "Sự kiện này đã bị hủy bỏ."
+            : "Sự kiện đã diễn ra hoặc đã bị hủy.",
+          icon: "info",
+          confirmButtonText: "Đã hiểu",
+          confirmButtonColor: "#0284c7",
+        });
+        return;
+      }
+
       navigate(`/event/${evId}`, {
         state: {
           bookingScheduleReturn: {
@@ -1433,7 +1460,7 @@ const BookingSchedule = () => {
             </div>
           </div>
         )}
-        
+
         <button
           className={`bs-next-btn${selectedSlots.length === 0 ? " disabled" : ""}`}
           disabled={selectedSlots.length === 0}

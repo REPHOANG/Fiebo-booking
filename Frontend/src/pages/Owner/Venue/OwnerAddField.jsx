@@ -96,7 +96,7 @@ const extractCloudinaryPublicIdFromUrl = (url) => {
   }
 };
 
-const OwnerAddField = () => {
+const OwnerAddField = ({ isStaff = false }) => {
   const { id, fieldId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -360,11 +360,13 @@ const OwnerAddField = () => {
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
-          <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/time-slot`}>
-            <Calendar size={16} />
-            Quản lý time slot
-          </Link>
-          <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}`}>
+          {!isStaff && (
+            <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/time-slot`}>
+              <Calendar size={16} />
+              Quản lý time slot
+            </Link>
+          )}
+          <Link className="ovd-btn ovd-btn--secondary" to={isStaff ? `/staff/venues/${id}` : `/owner/venues/${id}`}>
             Chi tiết cơ sở
           </Link>
         </div>
@@ -373,7 +375,7 @@ const OwnerAddField = () => {
       <div className="ovd-card">
         <div className="ovd-title-row">
           <h3 className="ovd-subtitle">
-            <Calendar size={18} /> {isEdit ? "Sửa sân" : "Thêm sân mới"}
+            <Calendar size={18} /> {isStaff ? "Chi tiết sân" : isEdit ? "Sửa sân" : "Thêm sân mới"}
           </h3>
         </div>
        
@@ -385,6 +387,7 @@ const OwnerAddField = () => {
               <select
                 className="ovd-input"
                 {...register("sportTypeId")}
+                disabled={isStaff}
               >
                 <option value="">-- Chọn môn --</option>
                 {sportTypeOptions.map((s) => (
@@ -406,6 +409,7 @@ const OwnerAddField = () => {
                 placeholder="Ví dụ: Sân 1"
                 autoComplete="off"
                 {...register("name")}
+                disabled={isStaff}
               />
               {errors.name && (
                 <span className="oaf-field-error" role="alert">
@@ -420,6 +424,7 @@ const OwnerAddField = () => {
                 rows={3}
                 placeholder="Mô tả sân (tuỳ chọn)"
                 {...register("description")}
+                disabled={isStaff}
               />
               {errors.description && (
                 <span className="oaf-field-error" role="alert">
@@ -435,34 +440,38 @@ const OwnerAddField = () => {
               {isEdit && existingImageUrls.length > 0 ? (
                 <>
                   
-                  <div style={{ marginBottom: 8 }}>
-                    <button
-                      type="button"
-                      className="ovd-toggle-btn"
-                      disabled={deletingAllExisting || submitting || deletingImageUrl !== ""}
-                      onClick={removeAllExistingImages}
-                    >
-                      {deletingAllExisting ? "Đang xóa ảnh cũ..." : "Xóa hết ảnh cũ"}
-                    </button>
-                  </div>
+                  {isEdit && existingImageUrls.length > 0 && !isStaff && (
+                    <div style={{ marginBottom: 8 }}>
+                      <button
+                        type="button"
+                        className="ovd-toggle-btn"
+                        disabled={deletingAllExisting || submitting || deletingImageUrl !== ""}
+                        onClick={removeAllExistingImages}
+                      >
+                        {deletingAllExisting ? "Đang xóa ảnh cũ..." : "Xóa hết ảnh cũ"}
+                      </button>
+                    </div>
+                  )}
                   <ul className="cv-doc-gallery" aria-label="Ảnh sân hiện có">
                     {existingImageUrls.map((url, idx) => (
                       <li key={`${url}-${idx}`} className="cv-doc-gallery-item">
                         <div className="cv-doc-gallery-tile">
                           <img src={url} alt={`Ảnh sân ${idx + 1}`} />
-                          <button
-                            type="button"
-                            className="cv-doc-gallery-remove"
-                            aria-label="Xóa ảnh đã lưu"
-                            disabled={deletingImageUrl === url || submitting || deletingAllExisting}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              removeExistingImage(url);
-                            }}
-                          >
-                            <X size={14} strokeWidth={2.5} />
-                          </button>
+                          {!isStaff && (
+                            <button
+                              type="button"
+                              className="cv-doc-gallery-remove"
+                              aria-label="Xóa ảnh đã lưu"
+                              disabled={deletingImageUrl === url || submitting || deletingAllExisting}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeExistingImage(url);
+                              }}
+                            >
+                              <X size={14} strokeWidth={2.5} />
+                            </button>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -478,7 +487,7 @@ const OwnerAddField = () => {
                     onRemove={() => removeImageAt(idx)}
                   />
                 ))}
-                {remainingUploadSlots > 0 ? (
+                {remainingUploadSlots > 0 && !isStaff ? (
                   <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
                     <label className="cv-doc-gallery-add">
                       <input
@@ -517,11 +526,13 @@ const OwnerAddField = () => {
             </div>
           </div>
 
-          <div className="ovd-create-actions">
-            <button type="submit" className="ovd-btn ovd-btn--primary" disabled={submitting}>
-              {submitting ? (isEdit ? "Đang lưu..." : "Đang tạo...") : isEdit ? "Lưu thay đổi" : "Tạo sân"}
-            </button>
-          </div>
+          {!isStaff && (
+            <div className="ovd-create-actions">
+              <button type="submit" className="ovd-btn ovd-btn--primary" disabled={submitting}>
+                {submitting ? (isEdit ? "Đang lưu..." : "Đang tạo...") : isEdit ? "Lưu thay đổi" : "Tạo sân"}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

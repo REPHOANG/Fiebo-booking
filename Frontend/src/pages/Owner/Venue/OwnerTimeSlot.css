@@ -579,29 +579,6 @@
 }
 
 
-.ots-apply-days {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0.45rem 0.85rem;
-  font-size: 12px;
-  font-weight: 700;
-  border: none;
-  border-radius: var(--ots-radius-sm);
-  background: #e3f2fd;
-  color: var(--ots-apply-blue);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.ots-apply-days:hover:not(:disabled) {
-  background: #bbdefb;
-}
-
-.ots-apply-days:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
 .ots-slot-toolbar {
   display: flex;

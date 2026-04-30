@@ -229,7 +229,6 @@ const OwnerBookingDetail = ({
                 <button
                   type="button"
                   className="obd-cancel-btn"
-                  onClick={openCancelModal}
                   disabled={cancelling}
                 >
                   Hủy đặt sân
@@ -244,6 +243,7 @@ const OwnerBookingDetail = ({
               <li>Họ tên: <strong>{d.customerName ?? "—"}</strong></li>
               <li>SĐT: <strong>{d.phoneNumber ?? "—"}</strong></li>
               {d.bookingNote ? <li>Ghi chú: {d.bookingNote}</li> : null}
+              {d.cancelReason ? <li>Lý do hủy đơn: <strong style={{ color: "red", fontStyle: "italic" }}>{d.cancelReason}</strong></li > : null}
             </ul>
           </div>
 
@@ -308,7 +308,6 @@ const OwnerBookingDetail = ({
           }}
           errorMessage={cancelReasonError}
           isSubmitting={cancelling}
-          onClose={closeCancelModal}
           onConfirm={handleConfirmCancel}
           cancelText="Hủy"
           confirmText="Xác nhận"

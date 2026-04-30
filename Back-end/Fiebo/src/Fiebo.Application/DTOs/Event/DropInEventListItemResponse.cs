@@ -10,5 +10,6 @@ namespace Fiebo.Application.DTOs.Event
         public List<TicketEventSlotResponse> Slots { get; set; } = [];
         public decimal TicketPrice { get; set; }
         public int RemainingTicketQuantity { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
     }
 }

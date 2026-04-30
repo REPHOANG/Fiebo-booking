@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Controller } from "react-hook-form";
+import { Select } from "antd";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Building2, Check, ChevronDown, MapPin, MapPinned, Plus, X } from "lucide-react";
+import { Building2, Check, ChevronDown, MapPin, MapPinned, Plus, Search, X } from "lucide-react";
 
 // Fix Leaflet default marker icons (Vite/CRA asset resolution)
 try {
@@ -54,36 +56,26 @@ function splitTimeParts(value) {
   const match = /^(\d{2}):(\d{2})$/.exec(String(value || "").trim());
   const safeHours = match ? Number(match[1]) : 5;
   const safeMinutes = match ? match[2] : "00";
-  const period = safeHours >= 12 ? "PM" : "AM";
-  const hours12 = safeHours % 12 || 12;
   return {
-    hours: String(hours12).padStart(2, "0"),
+    hours: String(safeHours).padStart(2, "0"),
     minutes: safeMinutes === "30" ? "30" : "00",
-    period,
   };
 }
 
-function joinTimeParts(hours12Text, minutesText, period) {
-  const hours12 = Number(hours12Text);
-  const safeHours12 = Number.isFinite(hours12) && hours12 >= 1 && hours12 <= 12 ? hours12 : 12;
-  let hours24 = safeHours12 % 12;
-  if (period === "PM") hours24 += 12;
-  return `${String(hours24).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
+function joinTimeParts(hoursText, minutesText) {
+  const hours = Number(hoursText);
+  const safeHours = Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
+  return `${String(safeHours).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
 }
 
-const TIME_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => {
-  const value = String(index + 1).padStart(2, "0");
-  return { value, label: `${index + 1} giờ` };
+const TIME_HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => {
+  const value = String(index).padStart(2, "0");
+  return { value, label: `${index} giờ` };
 });
 
 const TIME_MINUTE_OPTIONS = [
   { value: "00", label: "00 phút" },
   { value: "30", label: "30 phút" },
-];
-
-const TIME_PERIOD_OPTIONS = [
-  { value: "AM", label: "Sáng" },
-  { value: "PM", label: "Chiều" },
 ];
 
 function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "" }) {
@@ -149,7 +141,7 @@ function TimeSegmentField({ name, label, value, register, setValue, error }) {
   const parts = splitTimeParts(value);
 
   const updateTime = (nextParts) => {
-    setValue(name, joinTimeParts(nextParts.hours, nextParts.minutes, nextParts.period), {
+    setValue(name, joinTimeParts(nextParts.hours, nextParts.minutes), {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -176,15 +168,7 @@ function TimeSegmentField({ name, label, value, register, setValue, error }) {
           ariaLabel={`${label} - phút`}
           onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
         />
-        <SegmentedDropdown
-          className="cv-time-segment cv-time-segment--period"
-          value={parts.period}
-          options={TIME_PERIOD_OPTIONS}
-          ariaLabel={`${label} - buổi`}
-          onChange={(nextPeriod) => updateTime({ ...parts, period: nextPeriod })}
-        />
       </div>
-      <p className="cv-time-hint">Chọn theo dạng giờ và phút, mỗi 30 phút một mốc</p>
       {error ? <p className="cv-error-text">{error.message}</p> : null}
     </div>
   );
@@ -195,6 +179,7 @@ function TimeSegmentField({ name, label, value, register, setValue, error }) {
  */
 export default function CreateVenueStepBasic({
   register: reg,
+  control,
   errors,
   handleSubmit,
   onSubmit,
@@ -225,6 +210,50 @@ export default function CreateVenueStepBasic({
   /** Đã có venue nháp — bước 1 sẽ cập nhật thay vì tạo mới */
   isEditingExistingDraft = false,
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchContainerRef = useRef(null);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setSearchResults([]);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearch = async (val) => {
+    setSearchQuery(val);
+    if (!val || val.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`
+      );
+      const data = await response.json();
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectLocation = (item) => {
+    const latNum = parseFloat(item.lat);
+    const lngNum = parseFloat(item.lon);
+    pickCoords(latNum, lngNum);
+    setSearchQuery(item.display_name);
+    setSearchResults([]);
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <fieldset disabled={isSubmitting} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
@@ -337,39 +366,60 @@ export default function CreateVenueStepBasic({
             <label>
               Tỉnh / Thành phố <span className="cv-required">*</span>
             </label>
-            <select
-              {...reg("provinceId")}
-              onChange={(e) => {
-                setValue("provinceId", e.target.value);
-                setValue("wardId", "");
-              }}
-            >
-              <option value="">-- Chọn tỉnh/thành --</option>
-              {provinceOptions.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            {loadingProvinces ? <p className="cv-wizard-hint">Đang tải tỉnh/thành...</p> : null}
+            <Controller
+              name="provinceId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  showSearch
+                  className="cv-antd-select"
+                  placeholder="-- Chọn tỉnh/thành --"
+                  optionFilterProp="label"
+                  listHeight={250}
+                  loading={loadingProvinces}
+                  onChange={(val) => {
+                    field.onChange(val);
+                    setValue("wardId", "");
+                  }}
+                  options={provinceOptions.map((p) => ({
+                    value: String(p.id),
+                    label: p.name,
+                  }))}
+                />
+              )}
+            />
             {errors.provinceId ? <p className="cv-error-text">{errors.provinceId.message}</p> : null}
           </div>
+
 
           <div className="cv-form-group">
             <label>
               Quận / Huyện <span className="cv-required">*</span>
             </label>
-            <select {...reg("wardId")} disabled={!selectedProvinceId || loadingDistricts}>
-              <option value="">-- Chọn quận/huyện --</option>
-              {districtOptions.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-            {loadingDistricts ? <p className="cv-wizard-hint">Đang tải quận/huyện...</p> : null}
+            <Controller
+              name="wardId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  showSearch
+                  className="cv-antd-select"
+                  placeholder="-- Chọn quận/huyện --"
+                  optionFilterProp="label"
+                  listHeight={250}
+                  loading={loadingDistricts}
+                  disabled={!selectedProvinceId || loadingDistricts}
+                  options={districtOptions.map((w) => ({
+                    value: String(w.id),
+                    label: w.name,
+                  }))}
+                />
+              )}
+            />
             {errors.wardId ? <p className="cv-error-text">{errors.wardId.message}</p> : null}
           </div>
+
 
           <div className="cv-form-group cv-full-width">
             <label>
@@ -388,15 +438,51 @@ export default function CreateVenueStepBasic({
             <div className="cv-map-actions">
             </div>
             <div className="cv-map-wrapper">
+              <div className="cv-map-search-container" ref={searchContainerRef}>
+                <div className="cv-map-search-input-wrapper">
+                  <Search className="cv-map-search-icon" size={18} />
+                  <input
+                    type="text"
+                    className="cv-map-search-input"
+                    placeholder="Tìm kiếm địa chỉ..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
+                  {isSearching && <div className="cv-map-search-spinner" />}
+                </div>
+                {searchResults.length > 0 && (
+                  <ul className="cv-map-search-results">
+                    {searchResults.map((item, idx) => (
+                      <li
+                        key={`${item.place_id}-${idx}`}
+                        onClick={() => selectLocation(item)}
+                        className="cv-map-search-item"
+                      >
+                        <MapPin size={16} />
+                        <span>{item.display_name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <button
                 type="button"
-                className="cv-map-btn cv-map-btn--overlay"
+                className="cv-map-btn cv-map-btn--overlay cv-map-btn--my-location"
                 onClick={useMyLocation}
                 disabled={isLocationButtonDisabled}
                 aria-busy={isLocating}
+                title="Vị trí của tôi"
               >
-                {isLocating ? "Đang định vị..." : "Dùng vị trí hiện tại"}
+                {isLocating ? (
+                  <span className="cv-locating-text">Đang định vị...</span>
+                ) : (
+                  <>
+                    <MapPin size={18} />
+                    <span>Dùng vị trí hiện tại</span>
+                  </>
+                )}
               </button>
+
               <MapContainer
                 center={pickedPosition}
                 zoom={16}

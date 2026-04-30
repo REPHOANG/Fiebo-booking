@@ -69,8 +69,8 @@ const EventDetail = () => {
     String(scheduleReturn.date).length > 0;
   const backHref = backFromSchedule
     ? `/venue/${scheduleReturn.venueId}/booking/schedule?date=${encodeURIComponent(
-        String(scheduleReturn.date).slice(0, 10)
-      )}`
+      String(scheduleReturn.date).slice(0, 10)
+    )}`
     : "/events";
   const backLabel = backFromSchedule ? "Lịch đặt sân" : "Danh sách sự kiện";
 
@@ -400,7 +400,7 @@ const EventDetail = () => {
         <aside className="ed-aside">
           <div className="ed-join-card er-register-card">
             <h2 className="ed-join-title">Đăng ký tham gia</h2>
-            
+
             {soldOut ? (
               <p className="ed-soldout">Sự kiện đã đủ người tham gia.</p>
             ) : null}

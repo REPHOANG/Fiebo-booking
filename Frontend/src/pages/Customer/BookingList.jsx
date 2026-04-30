@@ -38,7 +38,7 @@ import GiveRating from "./GiveRating/GiveRating";
 import "./BookingList.css";
 import Swal from "sweetalert2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatDate, formatVND } from "../../utils/helperFunction";
+import { formatDate, formatTime, formatVND } from "../../utils/helperFunction";
 import emptyImg from "../../assets/images/empty-box.png";
 
 const TABS = [
@@ -1523,8 +1523,7 @@ const BookingList = () => {
                         <div className="bl-ticket-row">
                           <span className="bl-ticket-label">Ghi chú</span>
                           <strong className="bl-ticket-value">
-                            {popupBooking.note ??
-                              popupBooking.bookingNote ??
+                            {popupBooking.bookingNote ??
                               "—"}
                           </strong>
                         </div>

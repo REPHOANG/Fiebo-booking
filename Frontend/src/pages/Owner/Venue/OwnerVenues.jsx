@@ -26,7 +26,9 @@ function normalizeVenueStatus(raw) {
     };
     return byNum[raw] ?? String(raw).toLowerCase();
   }
-  return String(raw).trim().toLowerCase();
+  const s = String(raw).trim().toLowerCase();
+  if (s === "cancelled") return "rejected";
+  return s;
 }
 
 const translateVenueStatus = (status) => {
@@ -153,7 +155,7 @@ const OwnerVenues = () => {
   };
 
   const renderVenueCard = (v) => {
-    const id = pick(v, "venueId", "VenueId");
+    const id = pick(v, "venueId", "VenueId", "id", "Id");
     const name = pick(v, "name", "Name") ?? "—";
     const thumb = pick(v, "thumbnailUrl", "ThumbnailUrl") || "";
     const province = pick(v, "province", "Province") ?? "";
@@ -193,6 +195,14 @@ const OwnerVenues = () => {
               >
                 {statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
               </Link>
+              {statusLower === "rejected" ? (
+                <Link
+                  to={`/owner/venues/${id}/recreate`}
+                  className="ov-btn ov-btn--primary"
+                >
+                  Tạo lại
+                </Link>
+              ) : null}
               {canDeactivate ? (
                 <button
                   type="button"

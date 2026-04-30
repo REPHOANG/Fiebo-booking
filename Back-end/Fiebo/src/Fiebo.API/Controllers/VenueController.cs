@@ -255,36 +255,37 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-41: Get all fields under a specific venue for the Field Owner.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
-        [HttpGet]
-        [Route("/api/owner/venue/{venueId}/fields")]
-        public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
+[HttpGet]
+[Route("/api/owner/venue/{venueId}/fields")]
+public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
+{
+    var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var role = User.FindFirst(ClaimTypes.Role)?.Value;
+    if (string.IsNullOrWhiteSpace(ownerId))
+    {
+        throw new UnauthorizedAccessException("Cannot identify current owner.");
+    }
+
+    var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId, role);
+
+    if (result.Count == 0)
+    {
+        return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
         {
-            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(ownerId))
-            {
-                throw new UnauthorizedAccessException("Cannot identify current owner.");
-            }
+            StatusCode = StatusCodes.Status200OK,
+            Message = "Chưa có sân nào được tạo trong cơ sở này.",
+            Data = result
+        });
+    }
 
-            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
-
-            if (result.Count == 0)
-            {
-                return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
-                {
-                    StatusCode = StatusCodes.Status200OK,
-                    Message = "Chưa có sân nào được tạo trong cơ sở này.",
-                    Data = result
-                });
-            }
-
-            return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
-            {
-                StatusCode = StatusCodes.Status200OK,
-                Message = "Lấy danh sách sân thành công.",
-                Data = result
-            });
-        }
+    return Ok(new ApiResponse<List<OwnerFieldListItemResponse>>
+    {
+        StatusCode = StatusCodes.Status200OK,
+        Message = "Lấy danh sách sân thành công.",
+        Data = result
+    });
+}
 
 
         /// <summary>
