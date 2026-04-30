@@ -95,6 +95,7 @@ namespace Fiebo.Persistence.Repositories
                     .ThenInclude(bd => bd.TimeSlot)
                 .Include(b => b.BookingServiceItems)
                     .ThenInclude(si => si.VenueServiceItem)
+                    .Include(b => b.CancelBooking)
                 .FirstOrDefaultAsync(b => b.Id == bookingId);
         }
 

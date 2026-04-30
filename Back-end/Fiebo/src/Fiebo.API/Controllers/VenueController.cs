@@ -40,7 +40,7 @@ namespace Fiebo.API.Controllers
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
-            [FromQuery] double radiusKm = 50,
+            [FromQuery] double? radiusKm,
             [FromQuery] int limit = 5,
             [FromQuery] double userLat = 21.027381,
             [FromQuery] double userLng = 105.833529)
@@ -255,18 +255,19 @@ namespace Fiebo.API.Controllers
         /// <summary>
         /// UC-41: Get all fields under a specific venue for the Field Owner.
         /// </summary>
-        [Authorize(Roles = AppRoles.FieldOwner)]
+        [Authorize(Roles = AppRoles.FieldOwner + "," + AppRoles.FieldStaff)]
         [HttpGet]
         [Route("/api/owner/venue/{venueId}/fields")]
         public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
         {
             var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrWhiteSpace(ownerId))
             {
                 throw new UnauthorizedAccessException("Cannot identify current owner.");
             }
 
-            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId);
+            var result = await _fieldService.GetOwnerFieldsByVenueAsync(venueId, ownerId, role);
 
             if (result.Count == 0)
             {

@@ -1025,6 +1025,7 @@ namespace Fiebo.Application.Services
                 BookingNote = booking.BookingNote,
                 TotalPrice = booking.TotalPrice,
                 CreatedAt = booking.CreatedAt,
+                CancelReason = booking.CancelBooking?.CancelReason,
                 BookedItems = booking.BookingDetails.Select(bd => new DetailItemResponse
                 {
                     FieldName = bd.Field?.Name ?? "N/A",
@@ -1083,15 +1084,25 @@ namespace Fiebo.Application.Services
         // ================================================================
         //   Owner Confirm Booking
         // ================================================================
-        public async Task<bool> ConfirmBookingAsync(int bookingId, string ownerId)
+        public async Task<bool> ConfirmBookingAsync(int bookingId, string ownerId, string? userRole)
         {
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
                 throw new NotFoundException("Không tìm thấy lịch đặt");
-
-            if (booking.Venue.OwnerId != ownerId)
-                throw new ForbiddenException("Bạn không có quyền xác nhận lịch đặt này");
+            if(userRole == AppRoles.FieldStaff)
+            {
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền để xác nhận lịch đặt này.");
+                }
+            }
+            else if (userRole == AppRoles.FieldOwner)
+            {
+                if (booking.Venue.OwnerId != ownerId)
+                    throw new ForbiddenException("Bạn không có quyền xác nhận lịch đặt này");
+            }
 
             if (booking.Status != BookingStatus.Pending)
                 throw new BadRequestException("Chỉ có thể xác nhận lịch đặt đang chờ xác nhận.");
@@ -1118,15 +1129,26 @@ namespace Fiebo.Application.Services
         // ================================================================
         //   Owner Reject Booking (+ Refund)
         // ================================================================
-        public async Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason)
+        public async Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason, string? userRole)
         {
             var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
             if (booking is null)
                 throw new NotFoundException("Không tìm thấy lịch đặt");
 
-            if (booking.Venue.OwnerId != ownerId)
-                throw new ForbiddenException("Bạn không có quyền từ chối lịch đặt này");
+            if(userRole == AppRoles.FieldStaff)
+            {
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền để từ chối lịch đặt này.");
+                }
+            }
+            else if (userRole == AppRoles.FieldOwner)
+            {
+                if (booking.Venue.OwnerId != ownerId)
+                    throw new ForbiddenException("Bạn không có quyền từ chối lịch đặt này");
+            }
 
             if (booking.Status != BookingStatus.Pending)
                 throw new BadRequestException("Chỉ có thể từ chối lịch đặt đang chờ xác nhận.");

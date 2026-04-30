@@ -47,7 +47,7 @@ namespace Fiebo.Application.Services
             double userLat,
             double userLng,
             int limit,
-            double radiusKm)
+            double? radiusKm)
         {
             var venues = await _unitOfWork.Venues
         .GetNearestVenuesAsync(userLat, userLng, sportTypeId, limit, radiusKm);
@@ -73,8 +73,8 @@ namespace Fiebo.Application.Services
 
             Dictionary<int, double> distances;
 
-                distances = await _mapService
-                    .GetDistancesAsync(userLat, userLng, locationList);
+            distances = await _mapService
+                .GetDistancesAsync(userLat, userLng, locationList);
 
             var result = venues
                 .Select(v =>
@@ -681,26 +681,32 @@ namespace Fiebo.Application.Services
 
             if (venue.OwnerId != ownerId)
                 throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
+            bool isFullDay = request.OpenTime == TimeOnly.MinValue
+              && request.CloseTime == TimeOnly.MinValue;
 
-            if (request.CloseTime <= request.OpenTime)
+            if (!isFullDay && request.CloseTime <= request.OpenTime)
                 throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
 
-                bool isHoursShortened = request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime;
-                if (isHoursShortened)
-                {
-                    var hasConflict = await _unitOfWork.TimeSlots
-                        .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
-                    if (hasConflict)
-                        throw new BadRequestException(
-                            "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
-                }
+            bool isHoursShortened = !isFullDay && (request.OpenTime > venue.OpenTime || request.CloseTime < venue.CloseTime);
+            if (isHoursShortened)
+            {
+                var hasConflict = await _unitOfWork.TimeSlots
+                    .HasTimeSlotsOutsideRangeAsync(venueId, request.OpenTime, request.CloseTime);
+                if (hasConflict)
+                    throw new BadRequestException(
+                        "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
+            }
 
             venue.Name = request.Name;
             venue.Description = request.Description;
             venue.OpenTime = request.OpenTime;
             venue.CloseTime = request.CloseTime;
 
+            if (request.DeletedThumbnail)
+            {
+                venue.ThumbnailUrl = null;
+            }
             if (request.ThumbnailImage is { Length: > 0 })
             {
                 var fileList = new List<IFormFile> { request.ThumbnailImage };
@@ -985,7 +991,7 @@ namespace Fiebo.Application.Services
             venue.WardId = request.WardId;
             venue.Longitude = request.Longitude;
             venue.Latitude = request.Latitude;
-            if (request.ThumbnailDeleted)
+            if (request.DeletedThumbnail)
             {
                 venue.ThumbnailUrl = null;
             }

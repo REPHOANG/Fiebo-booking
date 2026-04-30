@@ -19,11 +19,13 @@ namespace Fiebo.Persistence.Repositories
      double userLng,
      int? sportTypeId,
      int limit,
-     double radiusKm)
+     double? radiusKm)
         {
-            double latRange = radiusKm / 111.0;
-            double lngRange = radiusKm /
-                (111.0 * Math.Cos(userLat * Math.PI / 180));
+            if(radiusKm.HasValue)
+            {
+                
+            }
+            
 
             const double R = 6371;
             var now = DateTime.Now;

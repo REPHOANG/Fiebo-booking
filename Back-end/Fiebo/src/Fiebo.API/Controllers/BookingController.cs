@@ -207,10 +207,11 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> ConfirmBooking([FromRoute] int id)
         {
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrWhiteSpace(ownerId))
                 throw new UnauthorizedAccessException("Cannot identify current user.");
 
-            await _bookingService.ConfirmBookingAsync(id, ownerId);
+            await _bookingService.ConfirmBookingAsync(id, ownerId, role);
 
             return Ok(new ApiResponse<object>
             {
@@ -227,10 +228,11 @@ namespace Fiebo.API.Controllers
         public async Task<IActionResult> RejectBooking([FromRoute] int id, [FromBody] OwnerCancelBookingRequest request)
         {
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             if (string.IsNullOrWhiteSpace(ownerId))
                 throw new UnauthorizedAccessException("Cannot identify current user.");
 
-            await _bookingService.RejectBookingAsync(id, ownerId, request.CancelReason);
+            await _bookingService.RejectBookingAsync(id, ownerId, request.CancelReason, role);
 
             return Ok(new ApiResponse<object>
             {

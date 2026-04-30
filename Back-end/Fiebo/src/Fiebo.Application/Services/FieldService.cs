@@ -70,13 +70,24 @@ namespace Fiebo.Application.Services
             })];
         }
 
-        public async Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId)
+        public async Task<List<OwnerFieldListItemResponse>> GetOwnerFieldsByVenueAsync(int venueId, string ownerId, string? role)
         {
             // BR-49 / E1: Verify venue exists and belongs to the current Field Owner
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
-            if (venue == null || venue.OwnerId != ownerId)
+            if(role == AppRoles.FieldStaff)
             {
-                throw new UnauthorizedException("Bạn không có quyền truy cập vào cơ sở này.");
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(v => v.StaffId == ownerId && v.VenueId == venueId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
+                }
+            }
+            else if (role == AppRoles.FieldOwner)
+            {
+                if (venue == null || venue.OwnerId != ownerId)
+                {
+                    throw new ForbiddenException("Bạn không có quyền truy cập vào cơ sở này.");
+                }
             }
 
             var fields = await _unitOfWork.Fields.GetAllFieldsByVenueAsync(venueId);

@@ -35,7 +35,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.TimeSlots
                 .AnyAsync(ts => ts.VenueId == venueId
-                             && (ts.StartTime < newOpenTime || ts.EndTime > newCloseTime));
+                             && (ts.StartTime < newOpenTime || ts.EndTime > newCloseTime) && !ts.IsDeleted);
         }
 
         public Task<List<TimeSlot>> GetVenueTimeSlotAsync(int venueId, int sportTypeId)
