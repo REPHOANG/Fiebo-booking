@@ -136,7 +136,7 @@ namespace Fiebo.Persistence.Repositories
             transaction.Status = Domain.Enums.TransactionStatus.Rejected;
             transaction.ProcessedBy = adminId;
             transaction.ProcessedAt = DateTime.Now;
-            transaction.RejectionReason = rejectionReason;
+            transaction.Description = rejectionReason;
 
             // Refund the deducted amount back to the customer's wallet
             transaction.Wallet.Balance += transaction.Amount;

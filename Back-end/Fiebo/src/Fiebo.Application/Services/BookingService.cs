@@ -647,7 +647,7 @@ namespace Fiebo.Application.Services
                     BookingDate = request.BookingDate,
                     BookingNote = request.BookingNote,
                     BookingType = BookingType.WalkIn,
-                    Status = BookingStatus.Booked 
+                    Status = BookingStatus.Booked
                 };
 
                 _unitOfWork.Bookings.Add(booking);
@@ -990,8 +990,11 @@ namespace Fiebo.Application.Services
             // Notify the customer
             try
             {
-                await _notificationService.NotifyBookingCancelledByOwnerAsync(
+                if (booking.BookingType != BookingType.Online)
+                {
+                    await _notificationService.NotifyBookingCancelledByOwnerAsync(
                     booking.UserId, bookingId, cancelReason, refundAmount);
+                }
             }
             catch (Exception ex)
             {
@@ -1085,136 +1088,136 @@ namespace Fiebo.Application.Services
         //   Owner Confirm Booking
         // ================================================================
         public async Task<bool> ConfirmBookingAsync(int bookingId, string ownerId, string? userRole)
-{
-    var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
-
-    if (booking is null)
-        throw new NotFoundException("Không tìm thấy lịch đặt");
-    if(userRole == AppRoles.FieldStaff)
-    {
-        var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
-        if (!permission)
         {
-            throw new ForbiddenException("Bạn không có quyền để xác nhận lịch đặt này.");
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+
+            if (booking is null)
+                throw new NotFoundException("Không tìm thấy lịch đặt");
+            if (userRole == AppRoles.FieldStaff)
+            {
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền để xác nhận lịch đặt này.");
+                }
+            }
+            else if (userRole == AppRoles.FieldOwner)
+            {
+                if (booking.Venue.OwnerId != ownerId)
+                    throw new ForbiddenException("Bạn không có quyền xác nhận lịch đặt này");
+            }
+
+            if (booking.Status != BookingStatus.Pending)
+                throw new BadRequestException("Chỉ có thể xác nhận lịch đặt đang chờ xác nhận.");
+
+            var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
+            trackedBooking.Status = BookingStatus.Booked;
+            trackedBooking.ConfirmExpiredAt = null;
+            trackedBooking.UpdatedAt = DateTime.Now;
+            _unitOfWork.Bookings.Update(trackedBooking);
+            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _notificationService.NotifyBookingConfirmedAsync(booking.UserId, bookingId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify customer for confirmed booking {BookingId}", bookingId);
+            }
+
+            return true;
         }
-    }
-    else if (userRole == AppRoles.FieldOwner)
-    {
-        if (booking.Venue.OwnerId != ownerId)
-            throw new ForbiddenException("Bạn không có quyền xác nhận lịch đặt này");
-    }
-
-    if (booking.Status != BookingStatus.Pending)
-        throw new BadRequestException("Chỉ có thể xác nhận lịch đặt đang chờ xác nhận.");
-
-    var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
-    trackedBooking.Status = BookingStatus.Booked;
-    trackedBooking.ConfirmExpiredAt = null;
-    trackedBooking.UpdatedAt = DateTime.Now;
-    _unitOfWork.Bookings.Update(trackedBooking);
-    await _unitOfWork.SaveChangesAsync();
-
-    try
-    {
-        await _notificationService.NotifyBookingConfirmedAsync(booking.UserId, bookingId);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogWarning(ex, "Failed to notify customer for confirmed booking {BookingId}", bookingId);
-    }
-
-    return true;
-}
 
         // ================================================================
         //   Owner Reject Booking (+ Refund)
         // ================================================================
         public async Task<bool> RejectBookingAsync(int bookingId, string ownerId, string rejectReason, string? userRole)
-{
-    var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
-
-    if (booking is null)
-        throw new NotFoundException("Không tìm thấy lịch đặt");
-
-    if(userRole == AppRoles.FieldStaff)
-    {
-        var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
-        if (!permission)
         {
-            throw new ForbiddenException("Bạn không có quyền để từ chối lịch đặt này.");
-        }
-    }
-    else if (userRole == AppRoles.FieldOwner)
-    {
-        if (booking.Venue.OwnerId != ownerId)
-            throw new ForbiddenException("Bạn không có quyền từ chối lịch đặt này");
-    }
+            var booking = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
 
-    if (booking.Status != BookingStatus.Pending)
-        throw new BadRequestException("Chỉ có thể từ chối lịch đặt đang chờ xác nhận.");
+            if (booking is null)
+                throw new NotFoundException("Không tìm thấy lịch đặt");
 
-    var refundAmount = booking.TotalPrice;
-
-    var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
-
-    await _unitOfWork.BeginTransactionAsync();
-    try
-    {
-        trackedBooking.Status = BookingStatus.Rejected;
-        trackedBooking.ConfirmExpiredAt = null;
-        trackedBooking.UpdatedAt = DateTime.Now;
-        _unitOfWork.Bookings.Update(trackedBooking);
-
-        _unitOfWork.CancelBooking.Add(new CancelBooking
-        {
-            BookingId = bookingId,
-            CancelReason = rejectReason,
-            RefundAmount = refundAmount
-        });
-
-        if (refundAmount > 0 && !string.IsNullOrEmpty(booking.UserId))
-        {
-            var customerWallet = (await _unitOfWork.Wallets
-                .FindAsync(w => w.UserId == booking.UserId))
-                .FirstOrDefault();
-
-            if (customerWallet is null)
-                throw new NotFoundException("Không tìm thấy ví khách hàng.");
-
-            customerWallet.Balance += refundAmount;
-            _unitOfWork.Wallets.Update(customerWallet);
-
-            _unitOfWork.WalletTransactions.Add(new WalletTransaction
+            if (userRole == AppRoles.FieldStaff)
             {
-                WalletId = customerWallet.Id,
-                TransactionType = TransactionType.Refund,
-                Direction = TransactionDirection.Credit,
-                Amount = refundAmount,
-                ReferenceId = bookingId
-            });
+                var permission = (await _unitOfWork.VenueStaffs.FindAsync(s => s.StaffId == ownerId && s.VenueId == booking.VenueId)).Any();
+                if (!permission)
+                {
+                    throw new ForbiddenException("Bạn không có quyền để từ chối lịch đặt này.");
+                }
+            }
+            else if (userRole == AppRoles.FieldOwner)
+            {
+                if (booking.Venue.OwnerId != ownerId)
+                    throw new ForbiddenException("Bạn không có quyền từ chối lịch đặt này");
+            }
+
+            if (booking.Status != BookingStatus.Pending)
+                throw new BadRequestException("Chỉ có thể từ chối lịch đặt đang chờ xác nhận.");
+
+            var refundAmount = booking.TotalPrice;
+
+            var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
+
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                trackedBooking.Status = BookingStatus.Rejected;
+                trackedBooking.ConfirmExpiredAt = null;
+                trackedBooking.UpdatedAt = DateTime.Now;
+                _unitOfWork.Bookings.Update(trackedBooking);
+
+                _unitOfWork.CancelBooking.Add(new CancelBooking
+                {
+                    BookingId = bookingId,
+                    CancelReason = rejectReason,
+                    RefundAmount = refundAmount
+                });
+
+                if (refundAmount > 0 && !string.IsNullOrEmpty(booking.UserId))
+                {
+                    var customerWallet = (await _unitOfWork.Wallets
+                        .FindAsync(w => w.UserId == booking.UserId))
+                        .FirstOrDefault();
+
+                    if (customerWallet is null)
+                        throw new NotFoundException("Không tìm thấy ví khách hàng.");
+
+                    customerWallet.Balance += refundAmount;
+                    _unitOfWork.Wallets.Update(customerWallet);
+
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = customerWallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = refundAmount,
+                        ReferenceId = bookingId
+                    });
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogError(ex, "Refund failed for rejected booking {BookingId}", bookingId);
+                throw new BadRequestException("Đã xảy ra lỗi khi xử lý hoàn tiền. Vui lòng thử lại.");
+            }
+
+            try
+            {
+                await _notificationService.NotifyBookingRejectedAsync(booking.UserId, bookingId, rejectReason, refundAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify customer for rejected booking {BookingId}", bookingId);
+            }
+
+            return true;
         }
-
-        await _unitOfWork.SaveChangesAsync();
-        await _unitOfWork.CommitTransactionAsync();
-    }
-    catch (Exception ex)
-    {
-        await _unitOfWork.RollbackTransactionAsync();
-        _logger.LogError(ex, "Refund failed for rejected booking {BookingId}", bookingId);
-        throw new BadRequestException("Đã xảy ra lỗi khi xử lý hoàn tiền. Vui lòng thử lại.");
-    }
-
-    try
-    {
-        await _notificationService.NotifyBookingRejectedAsync(booking.UserId, bookingId, rejectReason, refundAmount);
-    }
-    catch (Exception ex)
-    {
-_logger.LogWarning(ex, "Failed to notify customer for rejected booking {BookingId}", bookingId);
-    }
-
-    return true;
-}
 
         public async Task FinalizeBookingsAsync(DateTime now)
         {

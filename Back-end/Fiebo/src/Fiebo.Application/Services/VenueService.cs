@@ -641,7 +641,8 @@ namespace Fiebo.Application.Services
                         ImageId = i.Id,
                         ImageUrl = i.ImageUrl
                     })]
-                } : null
+                } : null,
+                RejectionReason = venue.RejectionReason
             };
         }
 
@@ -990,7 +991,7 @@ namespace Fiebo.Application.Services
             venue.WardId = request.WardId;
             venue.Longitude = request.Longitude;
             venue.Latitude = request.Latitude;
-            if (request.DeletedThumbnail)
+            if (request.ThumbnailDeleted)
             {
                 venue.ThumbnailUrl = null;
             }
