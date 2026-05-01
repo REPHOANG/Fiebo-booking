@@ -652,6 +652,64 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
     weekDates,
   ]);
 
+  const applySlotsToAllDays = useCallback(() => {
+    // 1. Check if other days have slots
+    const conflictDays = otherDayKeys.filter((dk) => daysHavingAnySlot[dk]);
+    if (conflictDays.length > 0) {
+      const labels = conflictDays.map((dk) => {
+        const d = weekDates.find((wd) => toIsoDate(wd) === dk);
+        return d ? WEEK_DAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1] : "";
+      });
+      Swal.fire({
+        icon: "error",
+        title: "Không thể áp dụng",
+        text: `Các ngày (${labels.join(", ")}) đã có khung giờ. Bạn cần xóa toàn bộ khung giờ của các ngày đó trước khi sử dụng tính năng này để tránh chồng lấn.`,
+        confirmButtonText: "Đã hiểu",
+        confirmButtonColor: "var(--ots-primary)",
+      });
+      return;
+    }
+
+    // 2. Get active day slots
+    const activeDaySlots = slotRows.filter(
+      (r) => r.prices?.[activeDayKey] !== undefined || r.slotIds?.[activeDayKey] !== undefined
+    );
+
+    if (activeDaySlots.length === 0) {
+      toast.info("Ngày hiện tại chưa có khung giờ nào để áp dụng.");
+      return;
+    }
+
+    // 3. Apply to all other days
+    setSlotRows((prev) => {
+      return prev.map((row) => {
+        const hasActiveDayData =
+          row.prices?.[activeDayKey] !== undefined || row.slotIds?.[activeDayKey] !== undefined;
+
+        if (!hasActiveDayData) return row;
+
+        const nextPrices = { ...(row.prices || {}) };
+        const activePrice = row.prices?.[activeDayKey] ?? 0;
+
+        otherDayKeys.forEach((dk) => {
+          nextPrices[dk] = activePrice;
+        });
+
+        return { ...row, prices: nextPrices };
+      });
+    });
+
+    toast.success(`Đã áp dụng khung giờ của ${weekDayLabels[activeDayIndex]} cho tất cả các ngày còn lại.`);
+  }, [
+    otherDayKeys,
+    daysHavingAnySlot,
+    slotRows,
+    activeDayKey,
+    activeDayIndex,
+    weekDayLabels,
+    weekDates,
+  ]);
+
   const sortedOwnerVenues = useMemo(() => {
     return [...ownerVenuesList].sort((a, b) => {
       const na = String(a?.name ?? a?.Name ?? "");
@@ -1366,6 +1424,15 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
                     Xóa khung nháp
                   </button>
                 ) : null}
+                <button
+                  type="button"
+                  className="ots-apply-all-btn"
+                  disabled={saving || loadingSlots || !sportTypeId || rowsForActiveDay.length === 0}
+                  onClick={applySlotsToAllDays}
+                  title="Áp dụng toàn bộ khung giờ hiện tại cho tất cả các ngày khác trong tuần"
+                >
+                  <Sparkles size={14} /> Áp dụng cho tất cả các ngày
+                </button>
               </>
             )}
           </div>
@@ -1695,9 +1762,9 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
         <button
           type="button"
           className="ots-fab"
-          disabled={saveDisabled}
-          title={`Lưu khung giờ — chỉ ${weekDayLabels[activeDayIndex]}`}
-          onClick={() => saveSlots()}
+          disabled={saveWeekDisabled}
+          title="LƯU CẢ TUẦN"
+          onClick={() => saveWeekSlots()}
         >
           <Save size={22} strokeWidth={2.2} />
         </button>

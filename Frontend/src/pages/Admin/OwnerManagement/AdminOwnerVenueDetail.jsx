@@ -252,24 +252,6 @@ export const AdminOwnerVenueDetail = () => {
                   <dd>{closeTime}</dd>
                 </div>
               </dl>
-              {data?.latitude && data?.longitude && (
-                <div className="avr-map-mini">
-                  <iframe
-                    title="Vị trí cơ sở"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 0.005}%2C${data.latitude - 0.004}%2C${data.longitude + 0.005}%2C${data.latitude + 0.004}&layer=mapnik&marker=${data.latitude}%2C${data.longitude}`}
-                    className="avr-map-iframe"
-                    loading="lazy"
-                  />
-                  <a
-                    className="avr-map-link"
-                    href={`https://www.google.com/maps?q=${data.latitude},${data.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MapPin size={12} /> Xem trên Google Maps
-                  </a>
-                </div>
-              )}
             </DetailPanel>
           </div>
 
@@ -340,6 +322,21 @@ export const AdminOwnerVenueDetail = () => {
                 </div>
               </dl>
             </DetailPanel>
+          </div>
+
+          <div className="avr-map-section-standalone" style={{ marginTop: '16px' }}>
+            {data?.latitude && data?.longitude && (
+              <DetailPanel title="Vị trí trên bản đồ" icon={MapPin}>
+                <div className="avr-map-mini">
+                  <iframe
+                    title="Vị trí cơ sở"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 0.005}%2C${data.latitude - 0.004}%2C${data.longitude + 0.005}%2C${data.latitude + 0.004}&layer=mapnik&marker=${data.latitude}%2C${data.longitude}`}
+                    className="avr-map-iframe"
+                    loading="lazy"
+                  />
+                </div>
+              </DetailPanel>
+            )}
           </div>
 
           {/* Documents */}
