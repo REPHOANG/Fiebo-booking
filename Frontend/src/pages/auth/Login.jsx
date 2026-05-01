@@ -1,23 +1,27 @@
 // src/pages/Login.jsx
-import { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { setCredentials, AUTH_STORAGE_KEY, REFRESH_STORAGE_KEY } from '../../store/authSlice';
-import { login, loginWithGoogle } from '../../services/authService';
-import { GoogleLogin } from '@react-oauth/google';
-import { toast } from 'react-toastify';
-import { motion } from 'framer-motion';
-import Alert from '@mui/material/Alert';
-import Collapse from '@mui/material/Collapse';
-import { getHomePathByRole } from '../../utils/roleUtils';
-import fieboLogo from '../../assets/images/Logo với chữ.png';
-import { OPEN_AUTH_STATE_KEY } from '../../context/AuthModalContext';
-import './Login.css';
+import { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import {
+  setCredentials,
+  AUTH_STORAGE_KEY,
+  REFRESH_STORAGE_KEY,
+} from "../../store/authSlice";
+import { login, loginWithGoogle } from "../../services/authService";
+import { GoogleLogin } from "@react-oauth/google";
+import { toast } from "react-toastify";
+import { motion } from "framer-motion";
+import Alert from "@mui/material/Alert";
+import Collapse from "@mui/material/Collapse";
+import { getHomePathByRole } from "../../utils/roleUtils";
+import fieboLogo from "../../assets/images/logo-with-text.png";
+import { OPEN_AUTH_STATE_KEY } from "../../context/AuthModalContext";
+import "./Login.css";
 
 // ── Yup schema for password login ──────────────────────────────────────────
 const passwordSchema = yup.object({
@@ -35,7 +39,12 @@ const passwordSchema = yup.object({
 
 // (Phone OTP removed)
 
-const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectAfterLogin = "" }) => {
+const Login = ({
+  onLoginSuccess,
+  onOpenRegister,
+  onOpenForgotPassword,
+  redirectAfterLogin = "",
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -107,15 +116,23 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
   const resolveHomePath = (user) => getHomePathByRole(user);
 
   const resolveReturnPath = () => {
-    if (typeof redirectAfterLogin === "string" && redirectAfterLogin.startsWith("/")) {
+    if (
+      typeof redirectAfterLogin === "string" &&
+      redirectAfterLogin.startsWith("/")
+    ) {
       return redirectAfterLogin;
     }
     const fromState = location.state?.from;
     if (typeof fromState === "string" && fromState.startsWith("/")) {
       return fromState;
     }
-    if (fromState && typeof fromState === "object" && typeof fromState.pathname === "string") {
-      const search = typeof fromState.search === "string" ? fromState.search : "";
+    if (
+      fromState &&
+      typeof fromState === "object" &&
+      typeof fromState.pathname === "string"
+    ) {
+      const search =
+        typeof fromState.search === "string" ? fromState.search : "";
       const hash = typeof fromState.hash === "string" ? fromState.hash : "";
       return `${fromState.pathname}${search}${hash}`;
     }
@@ -139,7 +156,13 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
     try {
       const response = await login(loginPayload);
       const token = response.accessToken || response.token;
-      dispatch(setCredentials({ user: response.user, token, refreshToken: response.refreshToken }));
+      dispatch(
+        setCredentials({
+          user: response.user,
+          token,
+          refreshToken: response.refreshToken,
+        }),
+      );
 
       if (rememberMe) {
         localStorage.setItem(
@@ -157,21 +180,25 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
         localStorage.setItem(REFRESH_STORAGE_KEY, response.refreshToken);
       }
 
-      toast.success('Đăng nhập thành công! Chào mừng ' + (response.user?.name || response.user?.email), {
-        position: 'top-right', autoClose: 3000,
-      });
+      toast.success(
+        "Đăng nhập thành công! Chào mừng " +
+          (response.user?.name || response.user?.email),
+        {
+          position: "top-right",
+          autoClose: 3000,
+        },
+      );
 
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
       const forceDashboard = homePath === "/admin" || homePath === "/finance";
-      const nextPath = forceDashboard ? homePath : (returnPath || homePath);
+      const nextPath = forceDashboard ? homePath : returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });
         onLoginSuccess();
         return;
       }
       navigate(nextPath, { replace: true });
-
     } catch (error) {
       const msg = (error?.message || "").toLowerCase();
       if (msg.includes("invalid") || msg.includes("credentials")) {
@@ -209,19 +236,25 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
       setAlertInfo(null);
       const response = await loginWithGoogle(credential);
       const token = response.accessToken || response.token;
-      dispatch(setCredentials({ user: response.user, token, refreshToken: response.refreshToken }));
+      dispatch(
+        setCredentials({
+          user: response.user,
+          token,
+          refreshToken: response.refreshToken,
+        }),
+      );
       localStorage.setItem(AUTH_STORAGE_KEY, token);
       if (response.refreshToken) {
         localStorage.setItem(REFRESH_STORAGE_KEY, response.refreshToken);
       }
-      toast.success('Đăng nhập Google thành công!', {
-        position: 'top-right',
+      toast.success("Đăng nhập Google thành công!", {
+        position: "top-right",
         autoClose: 3000,
       });
       const returnPath = resolveReturnPath();
       const homePath = resolveHomePath(response.user);
       const forceDashboard = homePath === "/admin" || homePath === "/finance";
-      const nextPath = forceDashboard ? homePath : (returnPath || homePath);
+      const nextPath = forceDashboard ? homePath : returnPath || homePath;
       if (typeof onLoginSuccess === "function") {
         navigate(nextPath, { replace: true });
         onLoginSuccess();
@@ -282,151 +315,150 @@ const Login = ({ onLoginSuccess, onOpenRegister, onOpenForgotPassword, redirectA
         </Collapse>
 
         {/* ═══════════ PASSWORD FORM ═══════════ */}
-          <form
-            className="login-form"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-          >
-            <div className="form-group">
-              <div className="input-group">
-                <label htmlFor="identifier">Email hoặc số điện thoại</label>
-                <input
-                  id="identifier"
-                  type="text"
-                  autoComplete="username"
-                  className={`input-field${errors.identifier ? " input-error" : ""}`}
-                  placeholder="Nhập email hoặc số điện thoại"
-                  disabled={isLoading}
-                  {...field("identifier")}
-                />
-                {errors.identifier && (
-                  <p className="field-error">{errors.identifier.message}</p>
-                )}
-              </div>
-
-              <div className="input-group">
-                <label htmlFor="password">Mật khẩu</label>
-                <div className="password-wrapper">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    className={`input-field${errors.password ? " input-error" : ""}`}
-                    placeholder="Nhập mật khẩu của bạn"
-                    disabled={isLoading}
-                    {...field("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="toggle-password"
-                    aria-label="Hiện/ẩn mật khẩu"
-                    disabled={isLoading}
-                  >
-                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="field-error">{errors.password.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="remember-forgot">
-              <div className="checkbox-group">
-                <label className="remember-me">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={e => setRememberMe(e.target.checked)}
-                  />
-                  <span>Nhớ tài khoản</span>
-                </label>
-
-              </div>
-
-              {typeof onOpenForgotPassword === "function" ? (
-                <button
-                  type="button"
-                  className="forgot-link auth-inline-link"
-                  onClick={onOpenForgotPassword}
-                >
-                  Quên mật khẩu?
-                </button>
-              ) : (
-                <Link
-                  to="/"
-                  className="forgot-link"
-                  state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }}
-                >
-                  Quên mật khẩu?
-                </Link>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`login-btn ${isLoading ? "loading" : ""}`}
-            >
-              {isLoading ? (
-                <>
-                  <span>Đang đăng nhập...</span>
-                </>
-              ) : (
-                "Đăng nhập"
-              )}
-            </button>
-
-            <div className="login-divider">
-              <span>hoặc</span>
-            </div>
-
-            <div className="google-login">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
+        <form
+          className="login-form"
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+        >
+          <div className="form-group">
+            <div className="input-group">
+              <label htmlFor="identifier">Email hoặc số điện thoại</label>
+              <input
+                id="identifier"
+                type="text"
+                autoComplete="username"
+                className={`input-field${errors.identifier ? " input-error" : ""}`}
+                placeholder="Nhập email hoặc số điện thoại"
+                disabled={isLoading}
+                {...field("identifier")}
               />
+              {errors.identifier && (
+                <p className="field-error">{errors.identifier.message}</p>
+              )}
             </div>
 
-            <div className="signup-prompt">
-              <span>Chưa có tài khoản? </span>
-              {typeof onOpenRegister === "function" ? (
+            <div className="input-group">
+              <label htmlFor="password">Mật khẩu</label>
+              <div className="password-wrapper">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  className={`input-field${errors.password ? " input-error" : ""}`}
+                  placeholder="Nhập mật khẩu của bạn"
+                  disabled={isLoading}
+                  {...field("password")}
+                />
                 <button
                   type="button"
-                  className="signup-link auth-inline-link"
-                  onClick={onOpenRegister}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="toggle-password"
+                  aria-label="Hiện/ẩn mật khẩu"
+                  disabled={isLoading}
                 >
-                  Đăng ký tại đây
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
-              ) : (
-                <Link to="/register" className="signup-link">
-                  Đăng ký tại đây
-                </Link>
+              </div>
+              {errors.password && (
+                <p className="field-error">{errors.password.message}</p>
               )}
             </div>
-            <div className="signup-prompt">
-              <span>Bạn là chủ sân? </span>
-              {typeof onOpenRegister === "function" ? (
-                <button
-                  type="button"
-                  className="signup-link auth-inline-link"
-                  onClick={() => onOpenRegister({ accountRole: "FieldOwner" })}
-                >
-                  Đăng ký tài khoản chủ sân
-                </button>
-              ) : (
-                <Link
-                  to="/"
-                  className="signup-link"
-                  state={{ [OPEN_AUTH_STATE_KEY]: "register-owner" }}
-                >
-                  Đăng ký Owner
-                </Link>
-              )}
+          </div>
+
+          <div className="remember-forgot">
+            <div className="checkbox-group">
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Nhớ tài khoản</span>
+              </label>
             </div>
-          </form>
+
+            {typeof onOpenForgotPassword === "function" ? (
+              <button
+                type="button"
+                className="forgot-link auth-inline-link"
+                onClick={onOpenForgotPassword}
+              >
+                Quên mật khẩu?
+              </button>
+            ) : (
+              <Link
+                to="/"
+                className="forgot-link"
+                state={{ [OPEN_AUTH_STATE_KEY]: "forgot-password" }}
+              >
+                Quên mật khẩu?
+              </Link>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`login-btn ${isLoading ? "loading" : ""}`}
+          >
+            {isLoading ? (
+              <>
+                <span>Đang đăng nhập...</span>
+              </>
+            ) : (
+              "Đăng nhập"
+            )}
+          </button>
+
+          <div className="login-divider">
+            <span>hoặc</span>
+          </div>
+
+          <div className="google-login">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap={false}
+            />
+          </div>
+
+          <div className="signup-prompt">
+            <span>Chưa có tài khoản? </span>
+            {typeof onOpenRegister === "function" ? (
+              <button
+                type="button"
+                className="signup-link auth-inline-link"
+                onClick={onOpenRegister}
+              >
+                Đăng ký tại đây
+              </button>
+            ) : (
+              <Link to="/register" className="signup-link">
+                Đăng ký tại đây
+              </Link>
+            )}
+          </div>
+          <div className="signup-prompt">
+            <span>Bạn là chủ sân? </span>
+            {typeof onOpenRegister === "function" ? (
+              <button
+                type="button"
+                className="signup-link auth-inline-link"
+                onClick={() => onOpenRegister({ accountRole: "FieldOwner" })}
+              >
+                Đăng ký tài khoản chủ sân
+              </button>
+            ) : (
+              <Link
+                to="/"
+                className="signup-link"
+                state={{ [OPEN_AUTH_STATE_KEY]: "register-owner" }}
+              >
+                Đăng ký Owner
+              </Link>
+            )}
+          </div>
+        </form>
 
         {/* OTP login removed */}
       </motion.div>

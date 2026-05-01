@@ -93,6 +93,8 @@ namespace Fiebo.Application.Services
                 OpenTime = venue.OpenTime,
                 CloseTime = venue.CloseTime,
                 ThumbnailUrl = venue.ThumbnailUrl ?? string.Empty,
+                Longitude = venue.Longitude,
+                Latitude = venue.Latitude,
                 OwnerName = ownerProfile.FullName ?? string.Empty,
                 OwnerEmail = ownerProfile.Email ?? string.Empty,
                 OwnerPhone = ownerProfile.PhoneNumber ?? string.Empty,

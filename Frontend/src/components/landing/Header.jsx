@@ -3,12 +3,9 @@ import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  BellIcon,
-  ChevronDownIcon,
-} from "lucide-react";
+import { BellIcon, ChevronDownIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Logohomepage from "../../assets/images/Logo Fiebo.png";
+import Logohomepage from "../../assets/images/logo-fiebo.png";
 import "./Header.css";
 import { useAuthModal } from "../../context/AuthModalContext";
 import VenuesMegaMenu from "../common/VenuesMegaMenu/VenuesMegaMenu";
@@ -22,9 +19,7 @@ const Header = () => {
   const user = useSelector((state) => state.auth.user);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
   const isOwner =
-    (user?.role || user?.roles || "")
-      .toString()
-      .toLowerCase() === "fieldowner";
+    (user?.role || user?.roles || "").toString().toLowerCase() === "fieldowner";
 
   const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -45,9 +40,9 @@ const Header = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    sessionStorage.removeItem('token');
+    sessionStorage.removeItem("token");
     queryClient.clear();
     setUserMenuOpen(false);
   };
@@ -69,10 +64,12 @@ const Header = () => {
             </Link>
 
             <nav className="menu-desktop">
-              <NavLink to="/" end>Trang chủ</NavLink>
+              <NavLink to="/" end>
+                Trang chủ
+              </NavLink>
 
               <div
-                className={`mega-wrapper ${venuesMegaActive ? 'mega-open' : ''}`}
+                className={`mega-wrapper ${venuesMegaActive ? "mega-open" : ""}`}
                 onMouseEnter={() => setVenuesMegaActive(true)}
                 onMouseLeave={() => setVenuesMegaActive(false)}
                 onFocusCapture={() => setVenuesMegaActive(true)}
@@ -109,7 +106,10 @@ const Header = () => {
                   }}
                 >
                   <span className="greeting-text">
-                    Xin chào, <strong>{user?.name || user?.fullName || "Người dùng"}</strong>
+                    Xin chào,{" "}
+                    <strong>
+                      {user?.name || user?.fullName || "Người dùng"}
+                    </strong>
                   </span>
 
                   <motion.span
@@ -197,7 +197,6 @@ const Header = () => {
           </div>
 
           {/* Mobile Toggle */}
-
         </div>
       </header>
       <div className="header-spacer" aria-hidden="true" />

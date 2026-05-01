@@ -15,6 +15,8 @@ namespace Fiebo.Application.DTOs.Wallet
         public required string Direction { get; set; }
 
         public required string TransactionType { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
 
         public int? ReferenceId { get; set; }
 

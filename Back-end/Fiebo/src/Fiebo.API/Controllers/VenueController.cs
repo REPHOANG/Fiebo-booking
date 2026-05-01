@@ -40,7 +40,7 @@ namespace Fiebo.API.Controllers
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearbyFields(
             [FromQuery] int? sportTypeId,
-            [FromQuery] double radiusKm = 50,
+            [FromQuery] double? radiusKm,
             [FromQuery] int limit = 5,
             [FromQuery] double userLat = 21.027381,
             [FromQuery] double userLng = 105.833529)

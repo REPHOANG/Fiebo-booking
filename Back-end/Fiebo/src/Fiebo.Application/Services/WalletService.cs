@@ -156,7 +156,9 @@ namespace Fiebo.Application.Services
                 Direction = wt.Direction.ToString(),
                 TransactionType = wt.TransactionType.ToString(),
                 ReferenceId = wt.ReferenceId,
-                CreatedAt = wt.CreatedAt
+                CreatedAt = wt.CreatedAt,
+                Status = wt.Status.ToString(),
+                Description = wt.Description ?? ""
             }).ToList();
             return new PagedResult<WalletTransactionResponse>
             {

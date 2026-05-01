@@ -1,4 +1,3 @@
-using DotNetEnv;
 using Fiebo.API.Authorization;
 using Fiebo.API.Middlewares;
 using Fiebo.API.Services;
@@ -27,7 +26,6 @@ using System.Reflection;
 using System.Text;
 
 
-Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -46,7 +44,11 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 24));
 builder.Services.AddDbContext<FieboDbContext>(options =>
 {
     options.UseMySql(connectionString, serverVersion,
-        b => b.MigrationsAssembly("Fiebo.Persistence"));
+        b => b.MigrationsAssembly("Fiebo.Persistence")
+              .EnableRetryOnFailure(
+                  maxRetryCount: 10,
+                  maxRetryDelay: TimeSpan.FromSeconds(30),
+                  errorNumbersToAdd: null));
 });
 
 // ASP.NET Core Identity
@@ -101,7 +103,10 @@ builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, OwnerPlanAu
 builder.Services.AddHangfire(config =>
     config.UseStorage(new MySqlStorage(
         connectionString,
-        new MySqlStorageOptions()
+        new MySqlStorageOptions
+        {
+            PrepareSchemaIfNecessary = true
+        }
     )));
 
 builder.Services.AddHangfireServer();
@@ -213,11 +218,6 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.AddServer(new OpenApiServer
-    {
-        Url = "http://localhost:8080",
-        Description = "Local"
-    });
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -289,15 +289,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-//// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
 
 // Luôn bật Swagger (Cho cả môi trường Dev và Docker)
-// sau này lên Server thật (Production) thì có thể khóa lại sau.
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
