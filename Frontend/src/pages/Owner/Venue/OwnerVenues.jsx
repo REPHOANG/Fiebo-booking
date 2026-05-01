@@ -200,7 +200,7 @@ const OwnerVenues = () => {
                   to={`/owner/venues/${id}/recreate`}
                   className="ov-btn ov-btn--primary"
                 >
-                  Tạo lại
+                  Chỉnh sửa
                 </Link>
               ) : null}
               {canDeactivate ? (
@@ -325,7 +325,7 @@ const OwnerVenues = () => {
                 <Ban size={18} strokeWidth={2.25} />
               </span>
               <span className="ov-tab-main">
-                <span className="ov-tab-label">Cơ sở bị hủy</span>
+                <span className="ov-tab-label">Cơ sở bị từ chối</span>
                 <span className="ov-tab-count">{cancelledVenues.length}</span>
               </span>
             </button>

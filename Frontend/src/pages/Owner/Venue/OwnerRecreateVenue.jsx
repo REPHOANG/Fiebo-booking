@@ -226,8 +226,10 @@ const OwnerRecreateVenue = () => {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [existingThumbnail, setExistingThumbnail] = useState("");
+  const [deletedThumbnail, setDeletedThumbnail] = useState(false);
   
   const [bizFiles, setBizFiles] = useState([]);
+  const [bizFilePreviews, setBizFilePreviews] = useState([]);
   const [existingBizImages, setExistingBizImages] = useState([]);
   const [deletedBizImageIds, setDeletedBizImageIds] = useState([]);
   const [bizDocId, setBizDocId] = useState(null);
@@ -338,6 +340,17 @@ const OwnerRecreateVenue = () => {
     return () => URL.revokeObjectURL(url);
   }, [thumbnailFile]);
 
+  // Biz files previews
+  useEffect(() => {
+    if (bizFiles.length === 0) {
+      setBizFilePreviews([]);
+      return;
+    }
+    const urls = bizFiles.map(file => URL.createObjectURL(file));
+    setBizFilePreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [bizFiles]);
+
   const onPickCoords = (nextLat, nextLng) => {
     setValue("latitude", nextLat, { shouldValidate: true, shouldDirty: true });
     setValue("longitude", nextLng, { shouldValidate: true, shouldDirty: true });
@@ -427,9 +440,7 @@ const OwnerRecreateVenue = () => {
             autoClose: 1000,
             closeButton: true,
           });
-        } else {
-          toast.success("Đã lấy vị trí hiện tại.", { toastId: LOCATION_TOAST_ID });
-        }
+        } 
         setIsLocating(false);
         startLocationCooldown();
       },
@@ -478,6 +489,7 @@ const OwnerRecreateVenue = () => {
         latitude: data.latitude,
         longitude: data.longitude,
         thumbnailFile: thumbnailFile || undefined,
+        deletedThumbnail: deletedThumbnail && !thumbnailFile,
       });
 
       // 2. Update Documents
@@ -589,29 +601,45 @@ const OwnerRecreateVenue = () => {
               <div className="cv-form-group cv-full-width">
                 <label>Ảnh đại diện cơ sở</label>
                 <div className="cv-doc-gallery cv-doc-gallery--thumbnail">
-                  {(thumbnailPreview || existingThumbnail) && (
+                  {(thumbnailPreview || (existingThumbnail && !deletedThumbnail)) ? (
                     <div className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile cv-doc-gallery-tile--thumbnail">
                         <img src={thumbnailPreview || existingThumbnail} alt="Thumbnail" />
-                        {thumbnailPreview && (
-                          <button type="button" className="cv-doc-gallery-remove" onClick={() => setThumbnailFile(null)}>
-                            <X size={14} />
-                          </button>
-                        )}
+                        <button 
+                          type="button" 
+                          className="cv-doc-gallery-remove" 
+                          title="Xóa ảnh"
+                          onClick={() => {
+                            if (thumbnailPreview) {
+                              setThumbnailFile(null);
+                            } else {
+                              setDeletedThumbnail(true);
+                            }
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     </div>
-                  )}
-                  {!thumbnailPreview && (
+                  ) : (
                     <div className="cv-doc-gallery-item cv-doc-gallery-item--add">
                       <label className="cv-doc-gallery-add cv-doc-gallery-add--thumbnail">
                         <input
                           type="file"
                           accept="image/*"
                           hidden
-                          onChange={(e) => setThumbnailFile(e.target.files[0])}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setThumbnailFile(file);
+                              setDeletedThumbnail(false);
+                            }
+                          }}
                         />
                         <Plus size={24} />
-                        <span className="cv-doc-gallery-add-text">{existingThumbnail ? "Thay đổi ảnh" : "Thêm ảnh"}</span>
+                        <span className="cv-doc-gallery-add-text">
+                          {existingThumbnail ? "Thay đổi ảnh" : "Thêm ảnh"}
+                        </span>
                       </label>
                     </div>
                   )}
@@ -746,8 +774,6 @@ const OwnerRecreateVenue = () => {
                     }} />
                   </MapContainer>
                 </div>
-
-                <p className="cv-wizard-hint">Click hoặc kéo marker để xác định vị trí chính xác</p>
               </div>
             </div>
           </div>
@@ -773,24 +799,28 @@ const OwnerRecreateVenue = () => {
               <div className="cv-form-group cv-full-width">
                 <label>Ảnh giấy phép kinh doanh <span className="cv-required">*</span></label>
                 <ul className="cv-doc-gallery">
-                  {existingBizImages.map((img) => (
+                  {existingBizImages.filter(img => !deletedBizImageIds.includes(img.id)).map((img) => (
                     <li key={img.id} className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile cv-doc-gallery-tile--server">
                         <img src={img.url} alt="Biz Doc" />
                         <span className="cv-doc-gallery-badge">Đã lưu</span>
-                        <button type="button" className="cv-doc-gallery-remove" onClick={() => {
-                          setDeletedBizImageIds(prev => [...prev, img.id]);
-                          setExistingBizImages(prev => prev.filter(x => x.id !== img.id));
-                        }}>
+                        <button 
+                          type="button" 
+                          className="cv-doc-gallery-remove" 
+                          title="Xóa"
+                          onClick={() => {
+                            setDeletedBizImageIds(prev => [...prev, img.id]);
+                          }}
+                        >
                           <X size={14} />
                         </button>
                       </div>
                     </li>
                   ))}
-                  {bizFiles.map((file, idx) => (
+                  {bizFilePreviews.map((url, idx) => (
                     <li key={idx} className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile">
-                        <img src={URL.createObjectURL(file)} alt="Preview" />
+                        <img src={url} alt="Preview" />
                         <button type="button" className="cv-doc-gallery-remove" onClick={() => {
                           setBizFiles(prev => prev.filter((_, i) => i !== idx));
                         }}>
@@ -799,7 +829,7 @@ const OwnerRecreateVenue = () => {
                       </div>
                     </li>
                   ))}
-                  {existingBizImages.length + bizFiles.length < 5 && (
+                  {existingBizImages.filter(img => !deletedBizImageIds.includes(img.id)).length + bizFiles.length < 5 && (
                     <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
                       <label className="cv-doc-gallery-add">
                         <input

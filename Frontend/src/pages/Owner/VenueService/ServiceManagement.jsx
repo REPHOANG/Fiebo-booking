@@ -17,8 +17,6 @@ import {
   Avatar,
   IconButton,
   Tooltip,
-  useMediaQuery,
-  useTheme,
   Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -41,7 +39,8 @@ import Swal from "sweetalert2";
 
 const toastId = "service-toast";
 export default function ServiceManagement({ isStaff = false }) {
-  const { venueId } = useParams();
+  const { venueId: paramVenueId, id: paramId } = useParams();
+  const vId = paramVenueId || paramId;
   const queryClient = useQueryClient();
 
   // ================= STATE =================
@@ -66,18 +65,18 @@ export default function ServiceManagement({ isStaff = false }) {
 
   // ================= QUERY =================
   const { data, isLoading } = useQuery({
-    queryKey: ["services", venueId, page, pageSize, debouncedSearch],
+    queryKey: ["services", vId, page, pageSize, debouncedSearch],
     queryFn: () =>
-      getVenueServices(Number(venueId), page, pageSize, debouncedSearch),
-    enabled: !!venueId,
+      getVenueServices(Number(vId), page, pageSize, debouncedSearch),
+    enabled: !!vId,
     keepPreviousData: true,
   });
 
   // ================= MUTATIONS =================
   const addMutation = useMutation({
-    mutationFn: (data) => addVenueService(venueId, data),
+    mutationFn: (data) => addVenueService(vId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services", venueId] });
+      queryClient.invalidateQueries({ queryKey: ["services", vId] });
       toast.success("Thêm dịch vụ thành công", { toastId });
       setFormDialogOpen(false);
     },
@@ -87,9 +86,9 @@ export default function ServiceManagement({ isStaff = false }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateVenueService(venueId, id, data),
+    mutationFn: ({ id, data }) => updateVenueService(vId, id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services", venueId] });
+      queryClient.invalidateQueries({ queryKey: ["services", vId] });
       toast.success("Cập nhật dịch vụ thành công", { toastId });
       setFormDialogOpen(false);
     },
@@ -101,7 +100,7 @@ export default function ServiceManagement({ isStaff = false }) {
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteVenueService(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services", venueId] });
+      queryClient.invalidateQueries({ queryKey: ["services", vId] });
       toast.success("Xóa dịch vụ thành công", { toastId });
     },
     onError: () => {
@@ -273,8 +272,8 @@ export default function ServiceManagement({ isStaff = false }) {
               </TableHead>
 
               <TableBody>
-                {data.items.length > 0 ? (
-                  data.items.map((service) => (
+                {data?.items?.length > 0 ? (
+                  data?.items.map((service) => (
                     <TableRow
                       key={service.id}
                       sx={{
@@ -378,7 +377,7 @@ export default function ServiceManagement({ isStaff = false }) {
         <Stack justifyContent="center" alignItems="center" sx={{ mt: 4 }}>
                   <Pagination
                     page={parseInt(page)}
-                    count={data.totalPages}
+                    count={data?.totalPages}
                     onChange={(e, v) => setPage(v)}
                     color="success"
                   />
