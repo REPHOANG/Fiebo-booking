@@ -5,10 +5,12 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'Back-end/Fiebo/**'
+      - 'Frontend/**'
   pull_request:
     branches: ["main", "develop"]
     paths:
       - 'Back-end/Fiebo/**'
+      - 'Frontend/**'
 
 jobs:
   build-and-test:
@@ -59,12 +61,19 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
+      - name: Build and push Backend image
         uses: docker/build-push-action@v5
         with:
           context: ./Back-end/Fiebo
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-backend:latest
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-frontend:latest
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -74,7 +83,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ~/deploy-workspace/Fiebo
+            git pull origin main
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
-

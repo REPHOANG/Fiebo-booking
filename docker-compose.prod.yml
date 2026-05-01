@@ -45,7 +45,7 @@ services:
       - fiebo-network
 
   fiebo-frontend:
-    image: tranhieunb1/fiebo-backend:latest
+    image: tranhieunb1/fiebo-frontend:latest
     container_name: fiebo_frontend
     restart: always
     ports:
