@@ -47,7 +47,7 @@ namespace Fiebo.Application.Services
             double userLat,
             double userLng,
             int limit,
-            double radiusKm)
+            double? radiusKm)
         {
             var venues = await _unitOfWork.Venues
         .GetNearestVenuesAsync(userLat, userLng, sportTypeId, limit, radiusKm);
@@ -73,8 +73,8 @@ namespace Fiebo.Application.Services
 
             Dictionary<int, double> distances;
 
-                distances = await _mapService
-                    .GetDistancesAsync(userLat, userLng, locationList);
+            distances = await _mapService
+                .GetDistancesAsync(userLat, userLng, locationList);
 
             var result = venues
                 .Select(v =>
@@ -641,7 +641,8 @@ namespace Fiebo.Application.Services
                         ImageId = i.Id,
                         ImageUrl = i.ImageUrl
                     })]
-                } : null
+                } : null,
+                RejectionReason = venue.RejectionReason
             };
         }
 

@@ -36,11 +36,18 @@ import { toast } from "react-toastify";
 import LoadingPage from "../../../components/ui/Loading/LoadingPage";
 import "../../Owner/Venue/CreateVenue.css";
 import "./VenueDetailPage.css";
+import { formatDate } from "../../../utils/helperFunction";
+import CancelReasonModal from "../../../components/common/CancelReasonModal/CancelReasonModal";
 
-const formatDate = (value) => {
-  if (!value) return "-";
-  return dayjs(value).format("DD/MM/YYYY");
-};
+const REJECT_REASONS = [
+  "Giấy phép kinh doanh không hợp lệ",
+  "Ảnh giấy tờ không rõ nét / bị mờ",
+  "Thông tin giấy phép không trùng khớp",
+  "Thiếu giấy tờ pháp lý cần thiết",
+  "Thông tin cơ sở không chính xác",
+  "Hình ảnh cơ sở không phù hợp",
+  "Khác",
+];
 
 const formatTimeValue = (value) => {
   if (!value) return "-";
@@ -62,7 +69,10 @@ export const VenueDetailPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [openReject, setOpenReject] = useState(false);
-  const [reason, setReason] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
+  const [error, setError] = useState("");
+
 
   const approveMutation = useMutation({
     mutationFn: () => approveVenue(id),
@@ -77,7 +87,7 @@ export const VenueDetailPage = () => {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: () => rejectVenue({ id, reason }),
+    mutationFn: (finalReason) => rejectVenue({ id, reason: finalReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ADMIN_PENDING_VENUES_QUERY_KEY });
       toast.success("Từ chối cơ sở thành công");
@@ -92,6 +102,25 @@ export const VenueDetailPage = () => {
     queryKey: [...ADMIN_PENDING_VENUES_QUERY_KEY, "detail", id],
     queryFn: () => getVenueDetail(id),
   });
+  const handleConfirmReject = async () => {
+    if (!selectedReason) {
+      setError("Vui lòng chọn lý do.");
+      return;
+    }
+
+    const finalReason =
+      selectedReason === "Khác"
+        ? customReason.trim()
+        : selectedReason;
+
+    if (!finalReason) {
+      setError("Vui lòng nhập lý do.");
+      return;
+    }
+
+    setError("");
+    rejectMutation.mutate(finalReason);
+  };
 
   if (isLoading) {
     return <LoadingPage />;
@@ -108,7 +137,6 @@ export const VenueDetailPage = () => {
     expiryDateLabel: formatDate(data?.businessLicense?.expiryDate),
     images: businessLicenseImages,
   };
-  console.log("thumbnail:", data?.thumbnailUrl);
 
   return (
     <div className="avr-page">
@@ -289,31 +317,30 @@ export const VenueDetailPage = () => {
         </div>
       </div>
 
-      <Dialog open={openReject} onClose={() => setOpenReject(false)}>
-        <DialogTitle>Từ chối hồ sơ đăng ký sân</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="Lý do từ chối"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenReject(false)}>Huỷ</Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => rejectMutation.mutate()}
-            disabled={!reason.trim() || rejectMutation.isPending}
-          >
-            {rejectMutation.isPending ? "Đang gửi..." : "Xác nhận"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CancelReasonModal
+        open={openReject}
+        title="Từ chối hồ sơ"
+        description="Chọn lý do từ chối hồ sơ đăng ký sân"
+        reasons={REJECT_REASONS}
+        selectedReason={selectedReason}
+        onSelectReason={(r) => {
+          setSelectedReason(r);
+          setError("");
+        }}
+        allowCustomReason
+        customOptionLabel="Khác"
+        customReason={customReason}
+        onCustomReasonChange={(v) => {
+          setCustomReason(v);
+          setError("");
+        }}
+        errorMessage={error}
+        isSubmitting={rejectMutation.isPending}
+        onClose={() => setOpenReject(false)}
+        onConfirm={handleConfirmReject}
+        cancelText="Đóng"
+        confirmText="Xác nhận từ chối"
+      />
     </div>
   );
 };

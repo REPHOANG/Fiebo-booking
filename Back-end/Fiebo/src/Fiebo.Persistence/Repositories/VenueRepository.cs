@@ -15,16 +15,12 @@ namespace Fiebo.Persistence.Repositories
         }
 
         public async Task<List<Venue>> GetNearestVenuesAsync(
-     double userLat,
-     double userLng,
-     int? sportTypeId,
-     int limit,
-     double radiusKm)
+    double userLat,
+    double userLng,
+    int? sportTypeId,
+    int limit,
+    double? radiusKm)
         {
-            double latRange = radiusKm / 111.0;
-            double lngRange = radiusKm /
-                (111.0 * Math.Cos(userLat * Math.PI / 180));
-
             const double R = 6371;
             var now = DateTime.Now;
 
@@ -33,14 +29,24 @@ namespace Fiebo.Persistence.Repositories
                 .Where(v =>
                     v.Status == VenueStatus.Active &&
                     _context.OwnerPlans.Any(p =>
-                    p.OwnerId == v.OwnerId &&
-                    p.Status == OwnerPlanStatus.Active &&
-                    p.EndDate >= now) &&
+                        p.OwnerId == v.OwnerId &&
+                        p.Status == OwnerPlanStatus.Active &&
+                        p.EndDate >= now)
+                );
+
+            if (radiusKm.HasValue)
+            {
+                double latRange = radiusKm.Value / 111.0;
+                double lngRange = radiusKm.Value /
+                    (111.0 * Math.Cos(userLat * Math.PI / 180));
+
+                baseQuery = baseQuery.Where(v =>
                     v.Latitude >= userLat - latRange &&
                     v.Latitude <= userLat + latRange &&
                     v.Longitude >= userLng - lngRange &&
                     v.Longitude <= userLng + lngRange
                 );
+            }
 
             if (sportTypeId.HasValue)
             {
@@ -54,7 +60,6 @@ namespace Fiebo.Persistence.Repositories
                 .Select(v => new
                 {
                     Venue = v,
-
                     Distance =
                         R * Math.Acos(
                             Math.Cos(userLat * Math.PI / 180) *
@@ -63,8 +68,14 @@ namespace Fiebo.Persistence.Repositories
                             Math.Sin(userLat * Math.PI / 180) *
                             Math.Sin(v.Latitude * Math.PI / 180)
                         )
-                })
-                .Where(x => x.Distance <= radiusKm)
+                });
+
+            if (radiusKm.HasValue)
+            {
+                query = query.Where(x => x.Distance <= radiusKm.Value);
+            }
+
+            query = query
                 .OrderBy(x => x.Distance)
                 .Take(limit);
 

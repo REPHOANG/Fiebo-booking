@@ -10,7 +10,7 @@ import { useDispatch } from "react-redux";
 import { setRegistrationPending } from "../../store/authSlice";
 import { register } from "../../services/authService";
 import { motion } from "framer-motion";
-import fieboLogo from "../../assets/images/Logo với chữ.png";
+import fieboLogo from "../../assets/images/logo-with-text.png";
 import { OPEN_AUTH_STATE_KEY } from "../../context/AuthModalContext";
 import "./Register.css";
 
@@ -80,8 +80,8 @@ const Register = ({
   onSwitchToLogin,
   onClose,
   onOpenVerifyOTP,
-  accountRole = 'Customer',
-  variant = 'default',
+  accountRole = "Customer",
+  variant = "default",
   onSwitchToOwnerRegister,
   onSwitchToCustomerRegister,
 }) => {
@@ -119,12 +119,14 @@ const Register = ({
         role: accountRole,
       });
 
-      dispatch(setRegistrationPending({ email: data.email, phone: data.phone || '' }));
-      if (typeof onOpenVerifyOTP === 'function') {
+      dispatch(
+        setRegistrationPending({ email: data.email, phone: data.phone || "" }),
+      );
+      if (typeof onOpenVerifyOTP === "function") {
         onOpenVerifyOTP();
       } else {
         onClose?.();
-        navigate('/verify-otp');
+        navigate("/verify-otp");
       }
     } catch (error) {
       const errorMsg = error.message || error.details || "Đăng ký thất bại";

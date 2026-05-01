@@ -1,13 +1,38 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { Select } from "antd";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { toast } from "react-toastify";
-import { ArrowLeft, Building2, MapPin, FileText, Check, Plus, Search, X, MapPinned, Loader2, ChevronDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  MapPin,
+  FileText,
+  Check,
+  Plus,
+  Search,
+  X,
+  MapPinned,
+  Loader2,
+  ChevronDown,
+  CircleAlert,
+} from "lucide-react";
 import Swal from "sweetalert2";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -18,16 +43,29 @@ import {
   addVenueDocuments,
   submitVenue,
 } from "../../../services/venueService";
-import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
+import {
+  getDistrictsByProvince,
+  getProvinces,
+} from "../../../services/addressService";
 import "./CreateVenue.css";
+import { Alert, AlertTitle } from "@mui/material";
 
 // Fix Leaflet default marker icons
 try {
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
-    iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).toString(),
-    iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).toString(),
-    shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).toString(),
+    iconRetinaUrl: new URL(
+      "leaflet/dist/images/marker-icon-2x.png",
+      import.meta.url,
+    ).toString(),
+    iconUrl: new URL(
+      "leaflet/dist/images/marker-icon.png",
+      import.meta.url,
+    ).toString(),
+    shadowUrl: new URL(
+      "leaflet/dist/images/marker-shadow.png",
+      import.meta.url,
+    ).toString(),
   });
 } catch {
   // ignore
@@ -69,7 +107,8 @@ function splitTimeParts(value) {
 
 function joinTimeParts(hoursText, minutesText) {
   const hours = Number(hoursText);
-  const safeHours = Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
+  const safeHours =
+    Number.isFinite(hours) && hours >= 0 && hours <= 23 ? hours : 0;
   return `${String(safeHours).padStart(2, "0")}:${minutesText === "30" ? "30" : "00"}`;
 }
 
@@ -83,7 +122,14 @@ const TIME_MINUTE_OPTIONS = [
   { value: "30", label: "30 phút" },
 ];
 
-function SegmentedDropdown({ value, options, onChange, ariaLabel, className = "", disabled = false }) {
+function SegmentedDropdown({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  className = "",
+  disabled = false,
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -103,10 +149,14 @@ function SegmentedDropdown({ value, options, onChange, ariaLabel, className = ""
     if (disabled) setIsOpen(false);
   }, [disabled]);
 
-  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+  const selectedOption =
+    options.find((option) => option.value === value) ?? options[0];
 
   return (
-    <div className={`cv-time-dropdown ${className}${isOpen ? " is-open" : ""}${disabled ? " is-disabled" : ""}`} ref={rootRef}>
+    <div
+      className={`cv-time-dropdown ${className}${isOpen ? " is-open" : ""}${disabled ? " is-disabled" : ""}`}
+      ref={rootRef}
+    >
       <button
         type="button"
         className="cv-time-dropdown-trigger"
@@ -119,10 +169,18 @@ function SegmentedDropdown({ value, options, onChange, ariaLabel, className = ""
         }}
       >
         <span className="cv-time-dropdown-value">{selectedOption.label}</span>
-        <ChevronDown size={18} className="cv-time-dropdown-chevron" aria-hidden />
+        <ChevronDown
+          size={18}
+          className="cv-time-dropdown-chevron"
+          aria-hidden
+        />
       </button>
       {isOpen ? (
-        <div className="cv-time-dropdown-panel" role="listbox" aria-label={ariaLabel}>
+        <div
+          className="cv-time-dropdown-panel"
+          role="listbox"
+          aria-label={ariaLabel}
+        >
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -138,7 +196,9 @@ function SegmentedDropdown({ value, options, onChange, ariaLabel, className = ""
                 }}
               >
                 <span>{option.label}</span>
-                {isSelected ? <Check size={16} strokeWidth={2.5} aria-hidden /> : null}
+                {isSelected ? (
+                  <Check size={16} strokeWidth={2.5} aria-hidden />
+                ) : null}
               </button>
             );
           })}
@@ -175,17 +235,22 @@ function TimeSegmentField({ label, value, onChange, disabled }) {
           options={TIME_MINUTE_OPTIONS}
           ariaLabel={`${label} - phút`}
           disabled={disabled}
-          onChange={(nextMinutes) => updateTime({ ...parts, minutes: nextMinutes })}
+          onChange={(nextMinutes) =>
+            updateTime({ ...parts, minutes: nextMinutes })
+          }
         />
       </div>
-      <p className="cv-time-hint">Chọn theo dạng 24 giờ và phút, mỗi 30 phút một mốc</p>
     </div>
   );
 }
 
 // Validation Schema
 const schema = yup.object({
-  name: yup.string().trim().required("Vui lòng nhập tên cơ sở").min(3, "Tên ít nhất 3 ký tự"),
+  name: yup
+    .string()
+    .trim()
+    .required("Vui lòng nhập tên cơ sở")
+    .min(3, "Tên ít nhất 3 ký tự"),
   description: yup.string().optional(),
   openTime: yup.string().required("Vui lòng chọn giờ mở cửa"),
   closeTime: yup.string().required("Vui lòng chọn giờ đóng cửa"),
@@ -221,12 +286,12 @@ const OwnerRecreateVenue = () => {
   const [submitting, setSubmitting] = useState(false);
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
-  
+
   // States for images
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [existingThumbnail, setExistingThumbnail] = useState("");
-  
+
   const [bizFiles, setBizFiles] = useState([]);
   const [existingBizImages, setExistingBizImages] = useState([]);
   const [deletedBizImageIds, setDeletedBizImageIds] = useState([]);
@@ -242,7 +307,7 @@ const OwnerRecreateVenue = () => {
   const locationRequestRef = useRef(0);
   const locationClickLockRef = useRef(false);
   const locationCooldownTimeoutRef = useRef(null);
-
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const {
     register,
@@ -265,23 +330,32 @@ const OwnerRecreateVenue = () => {
   const selectedProvinceId = watch("provinceId");
   const lat = watch("latitude");
   const lng = watch("longitude");
-  const pickedPosition = useMemo(() => [lat || 21.0285, lng || 105.8542], [lat, lng]);
+  const pickedPosition = useMemo(
+    () => [lat || 21.0285, lng || 105.8542],
+    [lat, lng],
+  );
 
   // Load Data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [provs, draft] = await Promise.all([getProvinces(), getVenueDraft(id)]);
-        
+        const [provs, draft] = await Promise.all([
+          getProvinces(),
+          getVenueDraft(id),
+        ]);
+
         setProvinces(provs || []);
-        
+
         if (draft) {
           reset({
             name: draft.name || draft.Name || "",
             description: draft.description || draft.Description || "",
             openTime: (draft.openTime || draft.OpenTime || "05:00").slice(0, 5),
-            closeTime: (draft.closeTime || draft.CloseTime || "22:00").slice(0, 5),
+            closeTime: (draft.closeTime || draft.CloseTime || "22:00").slice(
+              0,
+              5,
+            ),
             provinceId: String(draft.provinceId || draft.ProvinceId || ""),
             wardId: String(draft.wardId || draft.WardId || ""),
             addressDetail: draft.addressDetail || draft.AddressDetail || "",
@@ -290,18 +364,30 @@ const OwnerRecreateVenue = () => {
           });
 
           setExistingThumbnail(draft.thumbnailUrl || draft.ThumbnailUrl || "");
-          
-          const biz = draft.businessLicense || draft.BusinessLicense || draft.businessDocument || draft.BusinessDocument;
+          setRejectionReason(draft.rejectionReason || "");
+          const biz =
+            draft.businessLicense ||
+            draft.BusinessLicense ||
+            draft.businessDocument ||
+            draft.BusinessDocument;
           if (biz) {
             setBizDocId(biz.documentId || biz.DocumentId || null);
-            setValue("bizIssueDate", (biz.issueDate || biz.IssueDate || "").slice(0, 10));
-            setValue("bizExpiryDate", (biz.expiryDate || biz.ExpiryDate || "").slice(0, 10));
-            
+            setValue(
+              "bizIssueDate",
+              (biz.issueDate || biz.IssueDate || "").slice(0, 10),
+            );
+            setValue(
+              "bizExpiryDate",
+              (biz.expiryDate || biz.ExpiryDate || "").slice(0, 10),
+            );
+
             const imgs = biz.images || biz.Images || [];
-            setExistingBizImages(imgs.map(img => ({
-              id: img.imageId || img.ImageId || img.id || img.Id,
-              url: img.imageUrl || img.ImageUrl || img.url || img.Url
-            })));
+            setExistingBizImages(
+              imgs.map((img) => ({
+                id: img.imageId || img.ImageId || img.id || img.Id,
+                url: img.imageUrl || img.ImageUrl || img.url || img.Url,
+              })),
+            );
           }
         }
       } catch (e) {
@@ -346,14 +432,18 @@ const OwnerRecreateVenue = () => {
   // Close search results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
         setSearchResults([]);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      if (locationCooldownTimeoutRef.current) clearTimeout(locationCooldownTimeoutRef.current);
+      if (locationCooldownTimeoutRef.current)
+        clearTimeout(locationCooldownTimeoutRef.current);
     };
   }, []);
 
@@ -366,7 +456,7 @@ const OwnerRecreateVenue = () => {
     setIsSearching(true);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`,
       );
       const data = await response.json();
       setSearchResults(data || []);
@@ -386,7 +476,8 @@ const OwnerRecreateVenue = () => {
   };
 
   const useMyLocation = useCallback(() => {
-    if (locationClickLockRef.current || isLocating || isLocationCooldown) return;
+    if (locationClickLockRef.current || isLocating || isLocationCooldown)
+      return;
 
     const startLocationCooldown = () => {
       if (locationCooldownTimeoutRef.current) {
@@ -428,7 +519,9 @@ const OwnerRecreateVenue = () => {
             closeButton: true,
           });
         } else {
-          toast.success("Đã lấy vị trí hiện tại.", { toastId: LOCATION_TOAST_ID });
+          toast.success("Đã lấy vị trí hiện tại.", {
+            toastId: LOCATION_TOAST_ID,
+          });
         }
         setIsLocating(false);
         startLocationCooldown();
@@ -454,7 +547,6 @@ const OwnerRecreateVenue = () => {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }, [isLocating, isLocationCooldown]);
-
 
   const handleRecreate = async (data) => {
     setSubmitting(true);
@@ -485,16 +577,18 @@ const OwnerRecreateVenue = () => {
         const form = new FormData();
         form.append("IssueDate", data.bizIssueDate);
         form.append("ExpiryDate", data.bizExpiryDate);
-        bizFiles.forEach(file => form.append("NewImages", file));
-        deletedBizImageIds.forEach(id => form.append("DeletedImageIds", id));
-        
+        bizFiles.forEach((file) => form.append("NewImages", file));
+        deletedBizImageIds.forEach((id) => form.append("DeletedImageIds", id));
+
         await updateOwnerDocument(bizDocId, form);
       } else {
         const form = new FormData();
         form.append("BusinessDocument.IssueDate", data.bizIssueDate);
         form.append("BusinessDocument.ExpiryDate", data.bizExpiryDate);
-        bizFiles.forEach(file => form.append("BusinessDocument.Images", file));
-        
+        bizFiles.forEach((file) =>
+          form.append("BusinessDocument.Images", file),
+        );
+
         await addVenueDocuments(id, form);
       }
 
@@ -512,7 +606,9 @@ const OwnerRecreateVenue = () => {
       navigate("/owner/venues");
     } catch (e) {
       Swal.close();
-      toast.error(e?.response?.data?.message || e?.message || "Lỗi khi cập nhật cơ sở.");
+      toast.error(
+        e?.response?.data?.message || e?.message || "Lỗi khi cập nhật cơ sở.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -533,15 +629,33 @@ const OwnerRecreateVenue = () => {
     <div className="create-venue-page">
       <div className="cv-container">
         <div className="cv-header">
-          <button type="button" className="cv-back-btn" onClick={() => navigate(-1)}>
+          <button
+            type="button"
+            className="cv-back-btn"
+            onClick={() => navigate(-1)}
+          >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1>Tạo lại cơ sở</h1>
-            <p>Cập nhật đầy đủ thông tin để gửi duyệt lại cơ sở này</p>
+            <h1>Chỉnh sửa và yêu cầu duyệt lại cơ sở</h1>
           </div>
         </div>
 
+        {rejectionReason && (
+          <Alert  sx={{
+            mb:1,
+            borderRadius:3,
+            bgcolor: "#fcd8d4",
+            fontFamily: "Be Vietnam Pro",
+          }} severity="error" >
+            <AlertTitle sx={{
+              fontFamily: "Be Vietnam Pro",
+            }}>
+              Lý do từ chối
+            </AlertTitle>
+            {rejectionReason}
+          </Alert>
+        )}
         <form onSubmit={handleSubmit(handleRecreate)}>
           {/* Basic Info */}
           <div className="cv-card">
@@ -550,14 +664,26 @@ const OwnerRecreateVenue = () => {
             </h3>
             <div className="cv-form-grid">
               <div className="cv-form-group cv-full-width">
-                <label>Tên cơ sở <span className="cv-required">*</span></label>
-                <input type="text" {...register("name")} placeholder="Nhập tên cơ sở..." />
-                {errors.name && <p className="cv-error-text">{errors.name.message}</p>}
+                <label>
+                  Tên cơ sở <span className="cv-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register("name")}
+                  placeholder="Nhập tên cơ sở..."
+                />
+                {errors.name && (
+                  <p className="cv-error-text">{errors.name.message}</p>
+                )}
               </div>
 
               <div className="cv-form-group cv-full-width">
                 <label>Mô tả</label>
-                <textarea rows={3} {...register("description")} placeholder="Mô tả về cơ sở..." />
+                <textarea
+                  rows={3}
+                  {...register("description")}
+                  placeholder="Mô tả về cơ sở..."
+                />
               </div>
 
               <Controller
@@ -571,7 +697,18 @@ const OwnerRecreateVenue = () => {
                   />
                 )}
               />
-              {errors.openTime && <p className="cv-error-text" style={{ marginTop: "-10px", marginBottom: "10px", gridColumn: "1 / -1" }}>{errors.openTime.message}</p>}
+              {errors.openTime && (
+                <p
+                  className="cv-error-text"
+                  style={{
+                    marginTop: "-10px",
+                    marginBottom: "10px",
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  {errors.openTime.message}
+                </p>
+              )}
 
               <Controller
                 name="closeTime"
@@ -584,7 +721,18 @@ const OwnerRecreateVenue = () => {
                   />
                 )}
               />
-              {errors.closeTime && <p className="cv-error-text" style={{ marginTop: "-10px", marginBottom: "10px", gridColumn: "1 / -1" }}>{errors.closeTime.message}</p>}
+              {errors.closeTime && (
+                <p
+                  className="cv-error-text"
+                  style={{
+                    marginTop: "-10px",
+                    marginBottom: "10px",
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  {errors.closeTime.message}
+                </p>
+              )}
 
               <div className="cv-form-group cv-full-width">
                 <label>Ảnh đại diện cơ sở</label>
@@ -592,9 +740,16 @@ const OwnerRecreateVenue = () => {
                   {(thumbnailPreview || existingThumbnail) && (
                     <div className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile cv-doc-gallery-tile--thumbnail">
-                        <img src={thumbnailPreview || existingThumbnail} alt="Thumbnail" />
+                        <img
+                          src={thumbnailPreview || existingThumbnail}
+                          alt="Thumbnail"
+                        />
                         {thumbnailPreview && (
-                          <button type="button" className="cv-doc-gallery-remove" onClick={() => setThumbnailFile(null)}>
+                          <button
+                            type="button"
+                            className="cv-doc-gallery-remove"
+                            onClick={() => setThumbnailFile(null)}
+                          >
                             <X size={14} />
                           </button>
                         )}
@@ -611,7 +766,9 @@ const OwnerRecreateVenue = () => {
                           onChange={(e) => setThumbnailFile(e.target.files[0])}
                         />
                         <Plus size={24} />
-                        <span className="cv-doc-gallery-add-text">{existingThumbnail ? "Thay đổi ảnh" : "Thêm ảnh"}</span>
+                        <span className="cv-doc-gallery-add-text">
+                          {existingThumbnail ? "Thay đổi ảnh" : "Thêm ảnh"}
+                        </span>
                       </label>
                     </div>
                   )}
@@ -627,7 +784,9 @@ const OwnerRecreateVenue = () => {
             </h3>
             <div className="cv-form-grid">
               <div className="cv-form-group">
-                <label>Tỉnh / Thành phố <span className="cv-required">*</span></label>
+                <label>
+                  Tỉnh / Thành phố <span className="cv-required">*</span>
+                </label>
                 <Controller
                   name="provinceId"
                   control={control}
@@ -643,19 +802,22 @@ const OwnerRecreateVenue = () => {
                         field.onChange(val);
                         setValue("wardId", "");
                       }}
-                      options={provinces.map(p => ({
+                      options={provinces.map((p) => ({
                         value: String(p.id),
                         label: p.name,
                       }))}
                     />
                   )}
                 />
-                {errors.provinceId && <p className="cv-error-text">{errors.provinceId.message}</p>}
+                {errors.provinceId && (
+                  <p className="cv-error-text">{errors.provinceId.message}</p>
+                )}
               </div>
 
-
               <div className="cv-form-group">
-                <label>Quận / Huyện <span className="cv-required">*</span></label>
+                <label>
+                  Quận / Huyện <span className="cv-required">*</span>
+                </label>
                 <Controller
                   name="wardId"
                   control={control}
@@ -668,27 +830,46 @@ const OwnerRecreateVenue = () => {
                       optionFilterProp="label"
                       listHeight={250}
                       disabled={!selectedProvinceId}
-                      options={districts.map(d => ({
+                      options={districts.map((d) => ({
                         value: String(d.id),
                         label: d.name,
                       }))}
                     />
                   )}
                 />
-                {errors.wardId && <p className="cv-error-text">{errors.wardId.message}</p>}
+                {errors.wardId && (
+                  <p className="cv-error-text">{errors.wardId.message}</p>
+                )}
               </div>
 
-
               <div className="cv-form-group cv-full-width">
-                <label>Địa chỉ chi tiết <span className="cv-required">*</span></label>
-                <input type="text" {...register("addressDetail")} placeholder="Số nhà, tên đường..." />
-                {errors.addressDetail && <p className="cv-error-text">{errors.addressDetail.message}</p>}
+                <label>
+                  Địa chỉ chi tiết <span className="cv-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  {...register("addressDetail")}
+                  placeholder="Số nhà, tên đường..."
+                />
+                {errors.addressDetail && (
+                  <p className="cv-error-text">
+                    {errors.addressDetail.message}
+                  </p>
+                )}
               </div>
 
               <div className="cv-map-section cv-full-width">
-                <label><MapPinned size={16} /> Chấm vị trí trên bản đồ <span className="cv-required">*</span></label>
-                <div className="cv-map-wrapper" style={{ height: "320px", marginTop: "10px" }}>
-                  <div className="cv-map-search-container" ref={searchContainerRef}>
+                <label>
+                  <MapPinned size={16} /> Chọn vị trí trên bản đồ
+                </label>
+                <div
+                  className="cv-map-wrapper"
+                  style={{ height: "320px", marginTop: "10px" }}
+                >
+                  <div
+                    className="cv-map-search-container"
+                    ref={searchContainerRef}
+                  >
                     <div className="cv-map-search-input-wrapper">
                       <Search className="cv-map-search-icon" size={18} />
                       <input
@@ -734,20 +915,37 @@ const OwnerRecreateVenue = () => {
                     )}
                   </button>
 
-                  <MapContainer center={pickedPosition} zoom={16} style={{ height: "100%", width: "100%", borderRadius: "8px" }}>
+                  <MapContainer
+                    center={pickedPosition}
+                    zoom={16}
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      borderRadius: "8px",
+                    }}
+                  >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <MapViewportController center={pickedPosition} shouldAnimate={true} />
+                    <MapViewportController
+                      center={pickedPosition}
+                      shouldAnimate={true}
+                    />
                     <MapClickHandler onPick={onPickCoords} />
-                    <Marker position={pickedPosition} draggable={true} eventHandlers={{
-                      dragend: (e) => {
-                        const { lat, lng } = e.target.getLatLng();
-                        onPickCoords(lat, lng);
-                      }
-                    }} />
+                    <Marker
+                      position={pickedPosition}
+                      draggable={true}
+                      eventHandlers={{
+                        dragend: (e) => {
+                          const { lat, lng } = e.target.getLatLng();
+                          onPickCoords(lat, lng);
+                        },
+                      }}
+                    />
                   </MapContainer>
                 </div>
 
-                <p className="cv-wizard-hint">Click hoặc kéo marker để xác định vị trí chính xác</p>
+                <p className="cv-wizard-hint">
+                  Click hoặc kéo marker để xác định vị trí chính xác
+                </p>
               </div>
             </div>
           </div>
@@ -759,29 +957,48 @@ const OwnerRecreateVenue = () => {
             </h3>
             <div className="cv-form-grid">
               <div className="cv-form-group">
-                <label>Ngày cấp <span className="cv-required">*</span></label>
+                <label>
+                  Ngày cấp <span className="cv-required">*</span>
+                </label>
                 <input type="date" {...register("bizIssueDate")} />
-                {errors.bizIssueDate && <p className="cv-error-text">{errors.bizIssueDate.message}</p>}
+                {errors.bizIssueDate && (
+                  <p className="cv-error-text">{errors.bizIssueDate.message}</p>
+                )}
               </div>
 
               <div className="cv-form-group">
-                <label>Ngày hết hạn <span className="cv-required">*</span></label>
+                <label>
+                  Ngày hết hạn <span className="cv-required">*</span>
+                </label>
                 <input type="date" {...register("bizExpiryDate")} />
-                {errors.bizExpiryDate && <p className="cv-error-text">{errors.bizExpiryDate.message}</p>}
+                {errors.bizExpiryDate && (
+                  <p className="cv-error-text">
+                    {errors.bizExpiryDate.message}
+                  </p>
+                )}
               </div>
 
               <div className="cv-form-group cv-full-width">
-                <label>Ảnh giấy phép kinh doanh <span className="cv-required">*</span></label>
+                <label>
+                  Ảnh giấy phép kinh doanh{" "}
+                  <span className="cv-required">*</span>
+                </label>
                 <ul className="cv-doc-gallery">
                   {existingBizImages.map((img) => (
                     <li key={img.id} className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile cv-doc-gallery-tile--server">
                         <img src={img.url} alt="Biz Doc" />
                         <span className="cv-doc-gallery-badge">Đã lưu</span>
-                        <button type="button" className="cv-doc-gallery-remove" onClick={() => {
-                          setDeletedBizImageIds(prev => [...prev, img.id]);
-                          setExistingBizImages(prev => prev.filter(x => x.id !== img.id));
-                        }}>
+                        <button
+                          type="button"
+                          className="cv-doc-gallery-remove"
+                          onClick={() => {
+                            setDeletedBizImageIds((prev) => [...prev, img.id]);
+                            setExistingBizImages((prev) =>
+                              prev.filter((x) => x.id !== img.id),
+                            );
+                          }}
+                        >
                           <X size={14} />
                         </button>
                       </div>
@@ -791,9 +1008,15 @@ const OwnerRecreateVenue = () => {
                     <li key={idx} className="cv-doc-gallery-item">
                       <div className="cv-doc-gallery-tile">
                         <img src={URL.createObjectURL(file)} alt="Preview" />
-                        <button type="button" className="cv-doc-gallery-remove" onClick={() => {
-                          setBizFiles(prev => prev.filter((_, i) => i !== idx));
-                        }}>
+                        <button
+                          type="button"
+                          className="cv-doc-gallery-remove"
+                          onClick={() => {
+                            setBizFiles((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            );
+                          }}
+                        >
                           <X size={14} />
                         </button>
                       </div>
@@ -809,26 +1032,44 @@ const OwnerRecreateVenue = () => {
                           hidden
                           onChange={(e) => {
                             const files = Array.from(e.target.files);
-                            setBizFiles(prev => [...prev, ...files].slice(0, 5 - existingBizImages.length));
+                            setBizFiles((prev) =>
+                              [...prev, ...files].slice(
+                                0,
+                                5 - existingBizImages.length,
+                              ),
+                            );
                           }}
                         />
                         <Plus size={24} />
-                        <span className="cv-doc-gallery-add-text">Thêm ảnh</span>
+                        <span className="cv-doc-gallery-add-text">
+                          Thêm ảnh
+                        </span>
                       </label>
                     </li>
                   )}
                 </ul>
-                <p className="cv-wizard-hint">Tối đa 5 ảnh. Ảnh phải rõ nét, không bị mờ.</p>
+                <p style={{ marginTop: "3px" }} className="cv-wizard-hint">
+                  Tối đa 5 ảnh. Ảnh tải lên phải rõ nét, không bị mờ.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Actions */}
           <div className="cv-submit-section" style={{ marginTop: "30px" }}>
-            <button type="button" className="cv-cancel-btn" onClick={() => navigate(-1)} disabled={submitting}>
+            <button
+              type="button"
+              className="cv-cancel-btn"
+              onClick={() => navigate(-1)}
+              disabled={submitting}
+            >
               Hủy bỏ
             </button>
-            <button type="submit" className="cv-submit-btn" disabled={submitting}>
+            <button
+              type="submit"
+              className="cv-submit-btn"
+              disabled={submitting}
+            >
               {submitting ? "Đang xử lý..." : "Gửi duyệt lại"}
             </button>
           </div>

@@ -1,14 +1,16 @@
-name: Fiebo Backend CI
+name: Fiebo Backend CI/CD
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "develop"]
     paths:
       - 'Back-end/Fiebo/**'
+      - 'Frontend/**'
   pull_request:
-    branches: [main, develop]
+    branches: ["main", "develop"]
     paths:
       - 'Back-end/Fiebo/**'
+      - 'Frontend/**'
 
 jobs:
   build-and-test:
@@ -42,3 +44,46 @@ jobs:
         with:
           name: test-results
           path: Back-end/Fiebo/**/TestResults/*.trx
+
+  deploy:
+    name: Build Docker & Deploy
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Back-end/Fiebo
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-backend:latest
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-frontend:latest
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/deploy-workspace/Fiebo
+            git pull origin main
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f

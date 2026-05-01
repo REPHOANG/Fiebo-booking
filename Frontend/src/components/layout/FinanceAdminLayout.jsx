@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate, useLocation, matchPath } from "react-router-dom";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useNavigate,
+  useLocation,
+  matchPath,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,15 +17,23 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import fieboLogo from "../../assets/images/Logo Fiebo.png";
+import fieboLogo from "../../assets/images/logo-fiebo.png";
 import { AUTH_STORAGE_KEY, logout } from "../../store/authSlice";
 import "./AdminLayout.css";
 
 const navItems = [
   { to: "/finance/transactions", label: "Danh sách giao dịch", icon: FileText },
-  { to: "/finance/payout-batches", label: "Quản lý đợt thanh toán", icon: CircleDollarSign },
+  {
+    to: "/finance/payout-batches",
+    label: "Quản lý đợt thanh toán",
+    icon: CircleDollarSign,
+  },
   // { to: "/finance/revenue-reports", label: "Báo cáo doanh thu", icon: BarChart3 },
-  { to: "/finance/withdrawal-requests", label: "Yêu cầu rút tiền", icon: Wallet },
+  {
+    to: "/finance/withdrawal-requests",
+    label: "Yêu cầu rút tiền",
+    icon: Wallet,
+  },
 ];
 
 const FinanceAdminLayout = () => {
@@ -31,20 +46,19 @@ const FinanceAdminLayout = () => {
 
   // Find current page title based on navItems
   const currentNavItem = navItems.find((item) =>
-    matchPath({ path: item.to, end: item.end }, location.pathname)
+    matchPath({ path: item.to, end: item.end }, location.pathname),
   );
 
   // If no exact match (e.g. detail page), try to find a parent match
   const fallbackNavItem = !currentNavItem
-    ? navItems.slice(1).find(item => location.pathname.startsWith(item.to))
+    ? navItems.slice(1).find((item) => location.pathname.startsWith(item.to))
     : null;
 
   const pageTitle = currentNavItem
     ? currentNavItem.label
-    : fallbackNavItem ? fallbackNavItem.label
+    : fallbackNavItem
+      ? fallbackNavItem.label
       : "Finance Admin";
-
-
 
   const handleLogout = () => {
     dispatch(logout());
@@ -68,10 +82,20 @@ const FinanceAdminLayout = () => {
         <div className="admin-shell__overlay" onClick={closeSidebar} />
       )}
 
-      <aside className={`admin-shell__sidebar${sidebarOpen ? " admin-shell__sidebar--open" : ""}`}>
+      <aside
+        className={`admin-shell__sidebar${sidebarOpen ? " admin-shell__sidebar--open" : ""}`}
+      >
         <div className="admin-shell__sidebar-header">
-          <Link to="/finance" className="admin-shell__brand" onClick={closeSidebar}>
-            <img src={fieboLogo} alt="Fiebo" className="admin-shell__brand-logo" />
+          <Link
+            to="/finance"
+            className="admin-shell__brand"
+            onClick={closeSidebar}
+          >
+            <img
+              src={fieboLogo}
+              alt="Fiebo"
+              className="admin-shell__brand-logo"
+            />
             <span>Finance Admin</span>
           </Link>
           <button
@@ -85,7 +109,13 @@ const FinanceAdminLayout = () => {
         </div>
         <nav className="admin-shell__nav">
           {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className="admin-shell__nav-link" onClick={closeSidebar}>
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className="admin-shell__nav-link"
+              onClick={closeSidebar}
+            >
               <Icon size={16} />
               <span>{label}</span>
             </NavLink>
@@ -103,15 +133,19 @@ const FinanceAdminLayout = () => {
           >
             <Menu size={20} />
           </button>
-          <div className="admin-shell__header-title">
-            {pageTitle}
-          </div>
+          <div className="admin-shell__header-title">{pageTitle}</div>
           <div className="admin-shell__header-actions">
             <div className="admin-shell__account-meta">
               <span>Đăng nhập bằng</span>
-              <strong>{user?.email || user?.name || "finance@fiebo.com"}</strong>
+              <strong>
+                {user?.email || user?.name || "finance@fiebo.com"}
+              </strong>
             </div>
-            <button type="button" className="admin-shell__logout-btn" onClick={handleLogout}>
+            <button
+              type="button"
+              className="admin-shell__logout-btn"
+              onClick={handleLogout}
+            >
               <LogOut size={16} />
               <span>Đăng xuất</span>
             </button>

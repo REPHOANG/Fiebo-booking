@@ -6,9 +6,9 @@ namespace Fiebo.Application.DTOs.Field
     public class UpdateVenueRequest
     {
         [Required(ErrorMessage = "Tên cơ sở là bắt buộc.")]
-        [MaxLength(200)]
+        [MaxLength(50)]
         public string Name { get; set; } = null!;
-
+        [MaxLength(250)]
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Giờ mở cửa là bắt buộc.")]
