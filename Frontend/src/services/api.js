@@ -4,7 +4,9 @@ import store from "../store";
 import { logout, AUTH_STORAGE_KEY, REFRESH_STORAGE_KEY, setCredentials } from "../store/authSlice";
 import { refreshToken as refreshTokenApi } from "./authService";
 
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api` || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : 'http://localhost:8080/api';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 
