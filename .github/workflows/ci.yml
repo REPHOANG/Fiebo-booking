@@ -74,6 +74,8 @@ jobs:
           context: ./Frontend
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-frontend:latest
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
