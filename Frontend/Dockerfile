@@ -12,6 +12,8 @@ RUN npm run build
 
 # Giai đoạn Runtime
 FROM nginx:stable-alpine
+# Copy file cấu hình Nginx tùy chỉnh vào
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
