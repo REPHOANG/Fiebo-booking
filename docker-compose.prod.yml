@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  fiebo-mysql:
+    image: mysql:8.0
+    container_name: fiebo_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: hieulun123
+      MYSQL_DATABASE: FieboDb9
+      TZ: Asia/Ho_Chi_Minh
+    command: --default-time-zone='+07:00' --lower_case_table_names=1
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - fiebo-network
+
+  fiebo-redis:
+    image: redis:alpine
+    container_name: fiebo_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fiebo-network
+
+  fiebo-api:
+    image: tranhieunb1/fiebo-backend:latest
+    container_name: fiebo_api
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - fiebo-mysql
+      - fiebo-redis
+    env_file:
+      - ./Back-end/Fiebo/src/Fiebo.API/.env
+    networks:
+      - fiebo-network
+
+  fiebo-frontend:
+    image: tranhieunb1/fiebo-backend:latest
+    container_name: fiebo_frontend
+    restart: always
+    ports:
+      - "8081:80"
+    depends_on:
+      - fiebo-api
+    networks:
+      - fiebo-network
+
+networks:
+  fiebo-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
