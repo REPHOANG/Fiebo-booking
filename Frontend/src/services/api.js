@@ -4,7 +4,7 @@ import store from "../store";
 import { logout, AUTH_STORAGE_KEY, REFRESH_STORAGE_KEY, setCredentials } from "../store/authSlice";
 import { refreshToken as refreshTokenApi } from "./authService";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api` || 'http://localhost:8080/api';
 const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 
@@ -26,7 +26,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // Prevent infinite loop if refresh fails
     if (originalRequest._retry) {
       return Promise.reject(error);
@@ -49,11 +49,11 @@ api.interceptors.response.use(
             if (newTokens.refreshToken) {
               localStorage.setItem(REFRESH_STORAGE_KEY, newTokens.refreshToken);
             }
-            
+
             // Dispatch to update Redux state
-            store.dispatch(setCredentials({ 
-              token: newTokens.accessToken, 
-              refreshToken: newTokens.refreshToken 
+            store.dispatch(setCredentials({
+              token: newTokens.accessToken,
+              refreshToken: newTokens.refreshToken
             }));
 
             // Update authorization header and retry original request
