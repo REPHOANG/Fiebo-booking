@@ -354,14 +354,18 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
 
+                var requestedPairs = request.Details
+                    .Select(d => (d.SlotId, d.FieldId))
+                    .ToList();
+
                 var unavailableSlots = await _unitOfWork.BookingDetails
-                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUnavailableSlots(requestedPairs, request.BookingDate);
 
                 if (unavailableSlots.Any())
                     throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
                 var eventUsedSlots = await _unitOfWork.TicketEvents
-                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUsedSlots(requestedPairs, request.BookingDate);
 
                 if (eventUsedSlots.Any())
                     throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
@@ -629,14 +633,18 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
 
+                var requestedPairs = request.Details
+                    .Select(d => (d.SlotId, d.FieldId))
+                    .ToList();
+
                 var unavailableSlots = await _unitOfWork.BookingDetails
-                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUnavailableSlots(requestedPairs, request.BookingDate);
 
                 if (unavailableSlots.Any())
                     throw new ResourceConflictException("Một số slot đã được đặt.");
 
                 var eventUsedSlots = await _unitOfWork.TicketEvents
-                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUsedSlots(requestedPairs, request.BookingDate);
 
                 if (eventUsedSlots.Any())
                     throw new ResourceConflictException("Một số slot đã được sử dụng cho sự kiện.");

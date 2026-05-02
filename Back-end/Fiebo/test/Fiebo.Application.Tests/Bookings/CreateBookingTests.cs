@@ -75,9 +75,9 @@ namespace Fiebo.Application.Tests.Bookings
             // Default behaviors
             _fieldRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<Field>());
             _timeSlotRepoMock.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<TimeSlot>());
-            _bookingDetailRepoMock.Setup(r => r.GetUnavailableSlots(It.IsAny<List<int>>(), It.IsAny<List<int>>(), It.IsAny<DateOnly>()))
+            _bookingDetailRepoMock.Setup(r => r.GetUnavailableSlots(It.IsAny<List<(int SlotId, int FieldId)>>(), It.IsAny<DateOnly>()))
                 .ReturnsAsync(new List<(int SlotId, int FieldId)>());
-            _ticketEventRepoMock.Setup(r => r.GetUsedSlots(It.IsAny<List<int>>(), It.IsAny<List<int>>(), It.IsAny<DateOnly>()))
+            _ticketEventRepoMock.Setup(r => r.GetUsedSlots(It.IsAny<List<(int SlotId, int FieldId)>>(), It.IsAny<DateOnly>()))
                 .ReturnsAsync(new List<(int SlotId, int FieldId)>());
 
             _bookingService = new BookingService(
@@ -177,7 +177,7 @@ namespace Fiebo.Application.Tests.Bookings
             _fieldRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<Field> { field });
             _timeSlotRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<TimeSlot> { slot });
 
-            _bookingDetailRepoMock.Setup(u => u.GetUnavailableSlots(It.IsAny<List<int>>(), It.IsAny<List<int>>(), It.IsAny<DateOnly>()))
+            _bookingDetailRepoMock.Setup(u => u.GetUnavailableSlots(It.IsAny<List<(int SlotId, int FieldId)>>(), It.IsAny<DateOnly>()))
                 .ReturnsAsync(new List<(int SlotId, int FieldId)> { (999, 1) });
 
             // Act & Assert
@@ -201,7 +201,7 @@ namespace Fiebo.Application.Tests.Bookings
             _fieldRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<Field> { field });
             _timeSlotRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<TimeSlot> { slot });
 
-            _ticketEventRepoMock.Setup(u => u.GetUsedSlots(It.IsAny<List<int>>(), It.IsAny<List<int>>(), It.IsAny<DateOnly>()))
+            _ticketEventRepoMock.Setup(u => u.GetUsedSlots(It.IsAny<List<(int SlotId, int FieldId)>>(), It.IsAny<DateOnly>()))
                 .ReturnsAsync(new List<(int SlotId, int FieldId)> { (10, 1) });
 
             // Act & Assert

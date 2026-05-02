@@ -103,11 +103,13 @@ namespace Fiebo.Persistence.Repositories
         }
 
         public async Task<List<(int SlotId, int FieldId)>> GetUnavailableSlots(
-            List<int> slotIds,
-            List<int> fieldIds,
+            List<(int SlotId, int FieldId)> requestedSlots,
             DateOnly bookingDate)
         {
-            return await _context.BookingDetails
+            var slotIds = requestedSlots.Select(x => x.SlotId).Distinct().ToList();
+            var fieldIds = requestedSlots.Select(x => x.FieldId).Distinct().ToList();
+
+            var queryResults = await _context.BookingDetails
                 .AsNoTracking()
                 .Where(bd =>
                     slotIds.Contains(bd.SlotId) &&
@@ -118,9 +120,14 @@ namespace Fiebo.Persistence.Repositories
                     || bd.Booking.Status == BookingStatus.Holding
                     || bd.Booking.Status == BookingStatus.Completed)
                 )
-                .Select(bd => new ValueTuple<int, int>(bd.SlotId, bd.FieldId))
+                .Select(bd => new { bd.SlotId, bd.FieldId })
                 .Distinct()
                 .ToListAsync();
+
+            return queryResults
+                .Where(qr => requestedSlots.Any(rs => rs.SlotId == qr.SlotId && rs.FieldId == qr.FieldId))
+                .Select(qr => (qr.SlotId, qr.FieldId))
+                .ToList();
         }
     }
 }
