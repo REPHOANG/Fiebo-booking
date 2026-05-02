@@ -17,8 +17,7 @@ namespace Fiebo.Domain.Repositories
         Task<List<TicketEvent>> GetOwnerEventListAsync(string ownerId);
         Task<List<TicketEvent>> GetEventsByVenueIdAsync(int venueId);
         Task<List<(int SlotId, int FieldId)>> GetUsedSlots(
-            List<int> slotIds,
-            List<int> fieldIds,
+            List<(int SlotId, int FieldId)> requestedSlots,
             DateOnly bookingDate);
         Task<PagedResult<TicketEvent>> GetEventsByVenueIdsAsync(List<int> venueIds, int page, int pageSize);
         Task<TicketEvent?> GetEventDetailForStaff(int eventId);
