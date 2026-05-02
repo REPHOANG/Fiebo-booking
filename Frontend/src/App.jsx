@@ -105,10 +105,10 @@ const AppContent = () => {
             // Lưu rằng đã hỏi và user từ chối
             localStorage.setItem("locationPromptAsked", "true");
             localStorage.setItem("userLocationPermission", "denied");
-            console.log("✗ User từ chối vị trí:", error.message);
+            console.log("User từ chối vị trí:", error.message);
           },
           {
-            timeout: 5000, // Timeout 5 giây
+            timeout: 10000, // Timeout 10 giây
             maximumAge: 0
           }
         );
@@ -117,7 +117,7 @@ const AppContent = () => {
       // Đã hỏi rồi, lấy từ localStorage
       const savedLocation = localStorage.getItem("userLocation");
       if (savedLocation) {
-        console.log("✓ Vị trí từ localStorage:", JSON.parse(savedLocation));
+        console.log("Vị trí từ localStorage:", JSON.parse(savedLocation));
       }
     }
   }, []);
