@@ -152,6 +152,11 @@ namespace Fiebo.Persistence.Repositories
             }
         }
 
+        public IExecutionStrategy CreateExecutionStrategy()
+        {
+            return _context.Database.CreateExecutionStrategy();
+        }
+
         public void Dispose()
         {
             _transaction?.Dispose();
