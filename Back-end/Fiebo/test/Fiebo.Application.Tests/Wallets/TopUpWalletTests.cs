@@ -46,6 +46,10 @@ namespace Fiebo.Application.Tests.Wallets
             _unitOfWorkMock.Setup(u => u.TopUpRequests).Returns(_topUpRepoMock.Object);
             _unitOfWorkMock.Setup(u => u.Wallets).Returns(_walletRepoMock.Object);
             _unitOfWorkMock.Setup(u => u.WalletTransactions).Returns(_transactionRepoMock.Object);
+            
+            // Cấu hình để Mock luôn thực thi hàm lambda được truyền vào ExecuteStrategyAsync
+            _unitOfWorkMock.Setup(u => u.ExecuteStrategyAsync(It.IsAny<Func<Task>>()))
+                .Returns((Func<Task> action) => action());
 
             _walletService = new WalletService(
                 _unitOfWorkMock.Object,
