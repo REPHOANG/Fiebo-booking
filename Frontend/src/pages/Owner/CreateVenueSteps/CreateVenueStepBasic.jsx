@@ -207,6 +207,8 @@ export default function CreateVenueStepBasic({
   onCancel,
   /** Ảnh đại diện đã có trên server (tiếp tục từ bản nháp) */
   existingThumbnailUrl = "",
+  deletedThumbnail = false,
+  setDeletedThumbnail,
   /** Đã có venue nháp — bước 1 sẽ cập nhật thay vì tạo mới */
   isEditingExistingDraft = false,
 }) {
@@ -262,98 +264,101 @@ export default function CreateVenueStepBasic({
             <Building2 size={20} /> Thông tin cơ bản
           </h3>
           <div className="cv-form-grid">
-          <div className="cv-form-group cv-full-width">
-            <label>
-              Tên cơ sở <span className="cv-required">*</span>
-            </label>
-            <input type="text" placeholder="VD: Sân Bóng Đá Milan" {...reg("name")} />
-            {errors.name ? <p className="cv-error-text">{errors.name.message}</p> : null}
-          </div>
+            <div className="cv-form-group cv-full-width">
+              <label>
+                Tên cơ sở <span className="cv-required">*</span>
+              </label>
+              <input type="text" placeholder="VD: Sân Bóng Đá Milan" {...reg("name")} />
+              {errors.name ? <p className="cv-error-text">{errors.name.message}</p> : null}
+            </div>
 
-          <div className="cv-form-group cv-full-width">
-            <label>Mô tả</label>
-            <textarea placeholder="Giới thiệu ngắn về cơ sở..." rows={3} {...reg("description")} />
-          </div>
+            <div className="cv-form-group cv-full-width">
+              <label>Mô tả</label>
+              <textarea placeholder="Giới thiệu ngắn về cơ sở..." rows={3} {...reg("description")} />
+            </div>
 
-          <div className="cv-form-group cv-full-width">
-            
-            <span className="cv-doc-gallery-label">
-              Ảnh đại diện cơ sở
-             
-            </span>
-            <ul className="cv-doc-gallery cv-doc-gallery--thumbnail" aria-label="Ảnh đại diện cơ sở">
-              {thumbnailPreviewUrl ? (
-                <li className="cv-doc-gallery-item">
-                  <div className="cv-doc-gallery-tile cv-doc-gallery-tile--thumbnail">
-                    <img
-                      src={thumbnailPreviewUrl}
-                      alt="Xem trước ảnh đại diện cơ sở"
-                      title={thumbnailFile?.name || "Ảnh đại diện cơ sở"}
-                    />
-                    <button
-                      type="button"
-                      className="cv-doc-gallery-remove"
-                      aria-label="Xóa ảnh đại diện"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setThumbnailFile(null);
-                        if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
-                      }}
-                    >
-                      <X size={14} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                </li>
+            <div className="cv-form-group cv-full-width">
+
+              <span className="cv-doc-gallery-label">
+                Ảnh đại diện cơ sở
+
+              </span>
+              <ul className="cv-doc-gallery cv-doc-gallery--thumbnail" aria-label="Ảnh đại diện cơ sở">
+                {(thumbnailPreviewUrl || (existingThumbnailUrl && !deletedThumbnail)) ? (
+                  <li className="cv-doc-gallery-item">
+                    <div className="cv-doc-gallery-tile cv-doc-gallery-tile--thumbnail">
+                      <img
+                        src={thumbnailPreviewUrl || existingThumbnailUrl}
+                        alt="Ảnh đại diện cơ sở"
+                      />
+                      <button
+                        type="button"
+                        className="cv-doc-gallery-remove"
+                        aria-label="Xóa ảnh đại diện"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (thumbnailPreviewUrl) {
+                            setThumbnailFile(null);
+                            if (thumbnailInputRef.current) thumbnailInputRef.current.value = "";
+                          } else {
+                            setDeletedThumbnail(true);
+                          }
+                        }}
+                      >
+                        <X size={14} strokeWidth={2.5} />
+                      </button>
+                      {!thumbnailPreviewUrl && existingThumbnailUrl && (
+                        <span className="cv-doc-gallery-badge">Đã lưu</span>
+                      )}
+                    </div>
+                  </li>
+                ) : (
+                  <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
+                    <label className="cv-doc-gallery-add cv-doc-gallery-add--thumbnail">
+                      <input
+                        ref={thumbnailInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="cv-doc-file-input-sr-only"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          if (file) {
+                            setThumbnailFile(file);
+                            setDeletedThumbnail(false);
+                          }
+                        }}
+                      />
+                      <Plus size={26} strokeWidth={2.2} aria-hidden />
+                      <span className="cv-doc-gallery-add-text">Thêm ảnh</span>
+                    </label>
+                  </li>
+                )}
+              </ul>
+              {!thumbnailPreviewUrl && existingThumbnailUrl && !deletedThumbnail ? (
+                <p className="cv-wizard-hint cv-doc-gallery-hint">
+                  Ảnh đại diện đang dùng (đã lưu trên máy chủ).
+                </p>
               ) : null}
-              {!thumbnailPreviewUrl && existingThumbnailUrl ? (
-                <li className="cv-doc-gallery-item">
-                  <div className="cv-doc-gallery-tile cv-doc-gallery-tile--server cv-doc-gallery-tile--thumbnail">
-                    <img src={existingThumbnailUrl} alt="Ảnh đại diện đang dùng" />
-                    <span className="cv-doc-gallery-badge">Đã lưu</span>
-                  </div>
-                </li>
-              ) : null}
-              {!thumbnailPreviewUrl ? (
-                <li className="cv-doc-gallery-item cv-doc-gallery-item--add">
-                  <label className="cv-doc-gallery-add cv-doc-gallery-add--thumbnail">
-                    <input
-                      ref={thumbnailInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="cv-doc-file-input-sr-only"
-                      onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
-                    />
-                    <Plus size={26} strokeWidth={2.2} aria-hidden />
-                    <span className="cv-doc-gallery-add-text">Thêm ảnh</span>
-                  </label>
-                </li>
-              ) : null}
-            </ul>
-            {!thumbnailPreviewUrl && existingThumbnailUrl ? (
-              <p className="cv-wizard-hint cv-doc-gallery-hint">
-                Ảnh đại diện đang dùng (đã lưu trên máy chủ).
-              </p>
-            ) : null}
-          </div>
+            </div>
 
-          <TimeSegmentField
-            name="openTime"
-            label="Giờ mở cửa"
-            value={openTimeValue}
-            register={reg}
-            setValue={setValue}
-            error={errors.openTime}
-          />
+            <TimeSegmentField
+              name="openTime"
+              label="Giờ mở cửa"
+              value={openTimeValue}
+              register={reg}
+              setValue={setValue}
+              error={errors.openTime}
+            />
 
-          <TimeSegmentField
-            name="closeTime"
-            label="Giờ đóng cửa"
-            value={closeTimeValue}
-            register={reg}
-            setValue={setValue}
-            error={errors.closeTime}
-          />
+            <TimeSegmentField
+              name="closeTime"
+              label="Giờ đóng cửa"
+              value={closeTimeValue}
+              register={reg}
+              setValue={setValue}
+              error={errors.closeTime}
+            />
           </div>
         </div>
 
@@ -362,158 +367,154 @@ export default function CreateVenueStepBasic({
             <MapPin size={20} /> Địa chỉ
           </h3>
           <div className="cv-form-grid">
-          <div className="cv-form-group">
-            <label>
-              Tỉnh / Thành phố <span className="cv-required">*</span>
-            </label>
-            <Controller
-              name="provinceId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  showSearch
-                  className="cv-antd-select"
-                  placeholder="-- Chọn tỉnh/thành --"
-                  optionFilterProp="label"
-                  listHeight={250}
-                  loading={loadingProvinces}
-                  onChange={(val) => {
-                    field.onChange(val);
-                    setValue("wardId", "");
-                  }}
-                  options={provinceOptions.map((p) => ({
-                    value: String(p.id),
-                    label: p.name,
-                  }))}
-                />
-              )}
-            />
-            {errors.provinceId ? <p className="cv-error-text">{errors.provinceId.message}</p> : null}
-          </div>
-
-
-          <div className="cv-form-group">
-            <label>
-              Quận / Huyện <span className="cv-required">*</span>
-            </label>
-            <Controller
-              name="wardId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  showSearch
-                  className="cv-antd-select"
-                  placeholder="-- Chọn quận/huyện --"
-                  optionFilterProp="label"
-                  listHeight={250}
-                  loading={loadingDistricts}
-                  disabled={!selectedProvinceId || loadingDistricts}
-                  options={districtOptions.map((w) => ({
-                    value: String(w.id),
-                    label: w.name,
-                  }))}
-                />
-              )}
-            />
-            {errors.wardId ? <p className="cv-error-text">{errors.wardId.message}</p> : null}
-          </div>
-
-
-          <div className="cv-form-group cv-full-width">
-            <label>
-              Địa chỉ chi tiết <span className="cv-required">*</span>
-            </label>
-            <input type="text" placeholder="Số nhà, đường, tòa nhà..." {...reg("addressDetail")} />
-            {errors.addressDetail ? (
-              <p className="cv-error-text">{errors.addressDetail.message}</p>
-            ) : null}
-          </div>
-
-          <div className="cv-map-section">
-            <h3>
-              <MapPinned size={18} /> Vị trí trên bản đồ
-            </h3>
-            <div className="cv-map-actions">
-            </div>
-            <div className="cv-map-wrapper">
-              <div className="cv-map-search-container" ref={searchContainerRef}>
-                <div className="cv-map-search-input-wrapper">
-                  <Search className="cv-map-search-icon" size={18} />
-                  <input
-                    type="text"
-                    className="cv-map-search-input"
-                    placeholder="Tìm kiếm địa chỉ..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                  />
-                  {isSearching && <div className="cv-map-search-spinner" />}
-                </div>
-                {searchResults.length > 0 && (
-                  <ul className="cv-map-search-results">
-                    {searchResults.map((item, idx) => (
-                      <li
-                        key={`${item.place_id}-${idx}`}
-                        onClick={() => selectLocation(item)}
-                        className="cv-map-search-item"
-                      >
-                        <MapPin size={16} />
-                        <span>{item.display_name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <button
-                type="button"
-                className="cv-map-btn cv-map-btn--overlay cv-map-btn--my-location"
-                onClick={useMyLocation}
-                disabled={isLocationButtonDisabled}
-                aria-busy={isLocating}
-                title="Vị trí của tôi"
-              >
-                {isLocating ? (
-                  <span className="cv-locating-text">Đang định vị...</span>
-                ) : (
-                  <>
-                    <MapPin size={18} />
-                    <span>Dùng vị trí hiện tại</span>
-                  </>
-                )}
-              </button>
-
-              <MapContainer
-                center={pickedPosition}
-                zoom={16}
-                scrollWheelZoom={true}
-                className="cv-map-leaflet"
-              >
-                <MapViewportController center={pickedPosition} shouldAnimate={hasCoords} />
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <MapClickHandler onPick={pickCoords} />
-                {hasCoords ? (
-                  <Marker
-                    position={pickedPosition}
-                    draggable={true}
-                    eventHandlers={{
-                      dragend: (ev) => {
-                        const p = ev?.target?.getLatLng?.();
-                        if (p) pickCoords(p.lat, p.lng);
-                      },
+            <div className="cv-form-group">
+              <label>
+                Tỉnh / Thành phố <span className="cv-required">*</span>
+              </label>
+              <Controller
+                name="provinceId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    showSearch
+                    className="cv-antd-select"
+                    placeholder="-- Chọn tỉnh/thành --"
+                    optionFilterProp="label"
+                    listHeight={250}
+                    loading={loadingProvinces}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      setValue("wardId", "");
                     }}
+                    options={provinceOptions.map((p) => ({
+                      value: String(p.id),
+                      label: p.name,
+                    }))}
                   />
-                ) : null}
-              </MapContainer>
+                )}
+              />
+              {errors.provinceId ? <p className="cv-error-text">{errors.provinceId.message}</p> : null}
             </div>
-            <p className="cv-wizard-hint" style={{ margin: "10px 0 0 0" }}>
-              Bạn có thể <strong>chấm/click lên bản đồ</strong> hoặc <strong>kéo marker</strong> để tự điền
-              vĩ độ/kinh độ.
-            </p>
-          </div>
+
+
+            <div className="cv-form-group">
+              <label>
+                Quận / Huyện <span className="cv-required">*</span>
+              </label>
+              <Controller
+                name="wardId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    showSearch
+                    className="cv-antd-select"
+                    placeholder="-- Chọn quận/huyện --"
+                    optionFilterProp="label"
+                    listHeight={250}
+                    loading={loadingDistricts}
+                    disabled={!selectedProvinceId || loadingDistricts}
+                    options={districtOptions.map((w) => ({
+                      value: String(w.id),
+                      label: w.name,
+                    }))}
+                  />
+                )}
+              />
+              {errors.wardId ? <p className="cv-error-text">{errors.wardId.message}</p> : null}
+            </div>
+
+
+            <div className="cv-form-group cv-full-width">
+              <label>
+                Địa chỉ chi tiết <span className="cv-required">*</span>
+              </label>
+              <input type="text" placeholder="Số nhà, đường, tòa nhà..." {...reg("addressDetail")} />
+              {errors.addressDetail ? (
+                <p className="cv-error-text">{errors.addressDetail.message}</p>
+              ) : null}
+            </div>
+
+            <div className="cv-map-section">
+              <h3>
+                <MapPinned size={18} /> Vị trí trên bản đồ
+              </h3>
+              <div className="cv-map-actions">
+              </div>
+              <div className="cv-map-wrapper">
+                <div className="cv-map-search-container" ref={searchContainerRef}>
+                  <div className="cv-map-search-input-wrapper">
+                    <Search className="cv-map-search-icon" size={18} />
+                    <input
+                      type="text"
+                      className="cv-map-search-input"
+                      placeholder="Tìm kiếm địa chỉ..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {isSearching && <div className="cv-map-search-spinner" />}
+                  </div>
+                  {searchResults.length > 0 && (
+                    <ul className="cv-map-search-results">
+                      {searchResults.map((item, idx) => (
+                        <li
+                          key={`${item.place_id}-${idx}`}
+                          onClick={() => selectLocation(item)}
+                          className="cv-map-search-item"
+                        >
+                          <MapPin size={16} />
+                          <span>{item.display_name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="cv-map-btn cv-map-btn--overlay cv-map-btn--my-location"
+                  onClick={useMyLocation}
+                  disabled={isLocationButtonDisabled}
+                  aria-busy={isLocating}
+                  title="Vị trí của tôi"
+                >
+                  {isLocating ? (
+                    <span className="cv-locating-text">Đang định vị...</span>
+                  ) : (
+                    <>
+                      <MapPin size={18} />
+                      <span>Dùng vị trí hiện tại</span>
+                    </>
+                  )}
+                </button>
+
+                <MapContainer
+                  center={pickedPosition}
+                  zoom={16}
+                  scrollWheelZoom={true}
+                  className="cv-map-leaflet"
+                >
+                  <MapViewportController center={pickedPosition} shouldAnimate={hasCoords} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapClickHandler onPick={pickCoords} />
+                  {hasCoords ? (
+                    <Marker
+                      position={pickedPosition}
+                      draggable={true}
+                      eventHandlers={{
+                        dragend: (ev) => {
+                          const p = ev?.target?.getLatLng?.();
+                          if (p) pickCoords(p.lat, p.lng);
+                        },
+                      }}
+                    />
+                  ) : null}
+                </MapContainer>
+              </div>
+            </div>
           </div>
         </div>
       </fieldset>

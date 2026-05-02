@@ -324,6 +324,21 @@ export const AdminOwnerVenueDetail = () => {
             </DetailPanel>
           </div>
 
+          <div className="avr-map-section-standalone" style={{ marginTop: '16px' }}>
+            {data?.latitude && data?.longitude && (
+              <DetailPanel title="Vị trí trên bản đồ" icon={MapPin}>
+                <div className="avr-map-mini">
+                  <iframe
+                    title="Vị trí cơ sở"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 0.005}%2C${data.latitude - 0.004}%2C${data.longitude + 0.005}%2C${data.latitude + 0.004}&layer=mapnik&marker=${data.latitude}%2C${data.longitude}`}
+                    className="avr-map-iframe"
+                    loading="lazy"
+                  />
+                </div>
+              </DetailPanel>
+            )}
+          </div>
+
           {/* Documents */}
           <div className="avr-docs-block">
             <h4 className="avr-docs-landmark">

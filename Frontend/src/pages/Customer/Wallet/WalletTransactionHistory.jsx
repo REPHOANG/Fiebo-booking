@@ -64,6 +64,17 @@ export default function WalletTransactionHistory({
     return typeMap[type] || type;
   };
 
+  const getTransactionStatusLabel = (status) => {
+    const statusMap = {
+      Completed: "Hoàn thành",
+      Pending: "Đang xử lý",
+      Failed: "Thất bại",
+      Cancelled: "Đã hủy",
+      Success: "Thành công"
+    };
+    return statusMap[status] || status;
+  };
+
   // Nhóm giao dịch theo ngày
   const groupedByDate = transactions.reduce((acc, transaction) => {
     const date = new Date(transaction.createdAt);
@@ -178,6 +189,11 @@ export default function WalletTransactionHistory({
                     <div className="transaction-id">
                       Thời gian: {formatDateToTime(transaction.createdAt)}
                     </div>
+                    {transaction.description && (
+                      <div className="transaction-description">
+                        {transaction.description}
+                      </div>
+                    )}
                   </div>
 
                   <div className="transaction-amount-wrapper">
@@ -187,10 +203,17 @@ export default function WalletTransactionHistory({
                       {transaction.direction === "Credit" ? "+" : "-"}{" "}
                       {formatVND(transaction.amount)}
                     </div>
-                    <div
-                      className={`transaction-badge ${transaction.direction.toLowerCase()}`}
-                    >
-                      {transaction.direction === "Credit" ? "Tiền vào" : "Tiền ra"}
+                    <div className="transaction-status-row">
+                      <div
+                        className={`transaction-badge ${transaction.direction.toLowerCase()}`}
+                      >
+                        {transaction.direction === "Credit" ? "Tiền vào" : "Tiền ra"}
+                      </div>
+                      {transaction.status && (
+                        <div className={`transaction-status status-${transaction.status.toLowerCase()}`}>
+                          {getTransactionStatusLabel(transaction.status)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

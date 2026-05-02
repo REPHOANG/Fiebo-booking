@@ -138,6 +138,17 @@
   white-space: nowrap;
 }
 
+.transaction-description {
+  font-size: 13px;
+  color: #424242;
+  margin-top: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .transaction-amount-wrapper {
   display: flex;
   flex-direction: column;
@@ -182,6 +193,37 @@
   background-color: #ffebee;
   color: #c62828;
   border-color: #ef9a9a;
+}
+
+.transaction-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transaction-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.transaction-status.status-completed,
+.transaction-status.status-success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.transaction-status.status-pending {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.transaction-status.status-failed,
+.transaction-status.status-cancelled {
+  background-color: #ffebee;
+  color: #c62828;
 }
 
 .pagination {

@@ -181,6 +181,7 @@ const CreateVenue = () => {
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState("");
   /** Ảnh đại diện URL từ GET detail (tiếp tục bản nháp) */
   const [existingThumbnailUrl, setExistingThumbnailUrl] = useState("");
+  const [deletedThumbnail, setDeletedThumbnail] = useState(false);
   const thumbnailInputRef = useRef(null);
   const docInputRefs = useRef({});
   const [provinceOptions, setProvinceOptions] = useState([]);
@@ -468,6 +469,7 @@ const CreateVenue = () => {
             openTime: normalizeTimeForApi(data.openTime),
             closeTime: normalizeTimeForApi(data.closeTime),
             thumbnailFile: thumbnailFile || undefined,
+            deletedThumbnail: deletedThumbnail && !thumbnailFile,
           });
           if (thumbnailFile) setExistingThumbnailUrl("");
           setActiveStep(1);
@@ -493,7 +495,7 @@ const CreateVenue = () => {
       form.append("Longitude", String(Number(data.longitude)));
       if (thumbnailFile) form.append("Thumbnail", thumbnailFile);
 
-      
+
       try {
         const result = await createVenue(form);
         const id = result?.venueId ?? result?.VenueId;
@@ -635,7 +637,7 @@ const CreateVenue = () => {
     if (!venueId) return;
     setIsSubmitting(true);
     try {
-      
+
       try {
         await submitVenue(venueId);
         toast.success("Đã gửi duyệt cơ sở");
@@ -759,6 +761,8 @@ const CreateVenue = () => {
             isSubmitting={isSubmitting}
             onCancel={() => navigate(-1)}
             existingThumbnailUrl={existingThumbnailUrl}
+            deletedThumbnail={deletedThumbnail}
+            setDeletedThumbnail={setDeletedThumbnail}
             isEditingExistingDraft={venueId != null}
           />
         ) : null}
