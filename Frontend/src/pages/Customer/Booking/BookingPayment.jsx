@@ -90,6 +90,7 @@ function normalizeBookingDetail(raw) {
     venueName: b.venueName ?? b.VenueName ?? "",
     status: String(b.status ?? b.Status ?? ""),
     expiredAt: b.expiredAt ?? b.ExpiredAt ?? null,
+    expiresInSeconds: b.expiresInSeconds ?? b.ExpiresInSeconds ?? null,
     dateStr,
     bookingItems,
   };
@@ -363,6 +364,22 @@ const BookingPayment = () => {
   useEffect(() => {
     if (!bookingDetail) return;
 
+    // Ưu tiên dùng expiresInSeconds nếu có (giúp đồng bộ chính xác với Server)
+    if (typeof bookingDetail.expiresInSeconds === "number") {
+      setTimeLeft(Math.max(0, bookingDetail.expiresInSeconds));
+      setExpired(bookingDetail.expiresInSeconds <= 0);
+
+      const idTimer = setInterval(() => {
+        setTimeLeft((prev) => {
+          const next = Math.max(0, prev - 1);
+          if (next <= 0) setExpired(true);
+          return next;
+        });
+      }, 1000);
+      return () => clearInterval(idTimer);
+    }
+
+    // Fallback: Dùng expiredAt (có thể bị lệch clock drift)
     const deadlineMs = new Date(bookingDetail.expiredAt).getTime();
     if (!Number.isFinite(deadlineMs)) {
       setTimeLeft(0);
