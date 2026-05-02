@@ -370,7 +370,8 @@ namespace Fiebo.Application.Services
                 if (eventUsedSlots.Any())
                     throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
-                var expiredAt = now.AddMinutes(5);
+                var currentTime = DateTime.Now;
+                var expiredAt = currentTime.AddMinutes(5);
 
                 var booking = new Booking
                 {
@@ -428,9 +429,7 @@ namespace Fiebo.Application.Services
                 foreach (var item in request.Details)
                 {
                     var slot = slotDict[item.SlotId];
-
                     slotsTotalPrice += slot.Price;
-
                     details.Add(new BookingDetail
                     {
                         Booking = booking,
@@ -450,6 +449,7 @@ namespace Fiebo.Application.Services
                     BookingId = booking.Id,
                     TotalPrice = slotsTotalPrice,
                     ExpiredAt = expiredAt,
+                    ExpiresInSeconds = (int)(expiredAt - currentTime).TotalSeconds,
                     BookingStatus = BookingStatus.Pending.ToString()
                 };
             }

@@ -14,12 +14,13 @@ namespace Fiebo.Application.DTOs.Event
 
         public string EventName { get; set; } = string.Empty;
         public DateOnly EventDate { get; set; }
+        public DateTime? ExpiredAt { get; set; }
+        public int? ExpiresInSeconds { get; set; }
         public List<TicketEventSlotResponse> Slots { get; set; } = [];
 
         public int TicketQuantity { get; set; } 
         public decimal PricePerTicket { get; set; }
         public decimal TotalAmount { get; set; } 
-        public DateTime? ExpiredAt { get; set; }
         public string Status { get; set; } = null!;
     }
 }
