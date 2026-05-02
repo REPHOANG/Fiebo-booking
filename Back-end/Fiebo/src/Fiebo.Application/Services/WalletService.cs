@@ -100,28 +100,33 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Số tiền nạp không khớp.");
             }
-            await _unitOfWork.BeginTransactionAsync();
-            try
+
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                wallet.Balance += topUpRequest.Amount;
-                topUpRequest.Status = TopUpStatus.Paid;
-                topUpRequest.PaidAt = DateTime.Now;
-                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    WalletId = wallet.Id,
-                    Amount = topUpRequest.Amount,
-                    Direction = TransactionDirection.Credit,
-                    TransactionType = TransactionType.TopUp,
-                    ReferenceId = topUpRequest.Id
-                });
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
+                    wallet.Balance += topUpRequest.Amount;
+                    topUpRequest.Status = TopUpStatus.Paid;
+                    topUpRequest.PaidAt = DateTime.Now;
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        Amount = topUpRequest.Amount,
+                        Direction = TransactionDirection.Credit,
+                        TransactionType = TransactionType.TopUp,
+                        ReferenceId = topUpRequest.Id
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                }
+                catch
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    throw;
+                }
+            });
+
             await _notificationService.NotifyWalletTopupAsync(wallet.UserId, request.TransferAmount);
             return true;
         }
