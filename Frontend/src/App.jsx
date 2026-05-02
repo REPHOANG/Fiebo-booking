@@ -7,8 +7,6 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "leaflet/dist/leaflet.css";
 import { getProfile } from "./services/authService";
-import LocationPrompt from "./components/common/LocationPrompt/LocationPrompt";
-import "./components/common/LocationPrompt/LocationPrompt.css";
 import AppRoutes from "./routers/router";
 import { AuthModalProvider, AuthModalRouteSync } from "./context/AuthModalContext";
 import { logout, setCredentials, setProfileLoading } from "./store/authSlice";
@@ -35,7 +33,6 @@ const AppContent = () => {
   const [tokenChecked, setTokenChecked] = useState(false);
   const [tokenReady, setTokenReady] = useState(false);
 
-  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const initRanRef = useRef(false);
 
 
@@ -91,29 +88,42 @@ const AppContent = () => {
     if (initRanRef.current) return;
     initRanRef.current = true;
 
-    if (!localStorage.getItem("locationPromptAsked")) {
-      setShowLocationPrompt(true);
+    // Kiểm tra xem đã hỏi truy cập vị trí chưa
+    const locationPromptAsked = localStorage.getItem("locationPromptAsked");
+    
+    // Nếu chưa hỏi, hỏi ngay
+    if (!locationPromptAsked) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            localStorage.setItem("userLocation", JSON.stringify(position.coords));
+            localStorage.setItem("locationPromptAsked", "true");
+            localStorage.setItem("userLocationPermission", "granted");
+            console.log("✓ Lưu vị trí:", position.coords);
+          },
+          (error) => {
+            // Lưu rằng đã hỏi và user từ chối
+            localStorage.setItem("locationPromptAsked", "true");
+            localStorage.setItem("userLocationPermission", "denied");
+            console.log("✗ User từ chối vị trí:", error.message);
+          },
+          {
+            timeout: 5000, // Timeout 5 giây
+            maximumAge: 0
+          }
+        );
+      }
+    } else {
+      // Đã hỏi rồi, lấy từ localStorage
+      const savedLocation = localStorage.getItem("userLocation");
+      if (savedLocation) {
+        console.log("✓ Vị trí từ localStorage:", JSON.parse(savedLocation));
+      }
     }
   }, []);
 
-  const handleLocationConfirm = (allowed) => {
-    setShowLocationPrompt(false);
-    localStorage.setItem("locationPromptAsked", "true");
-    if (allowed && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          localStorage.setItem("userLocation", JSON.stringify(position.coords));
-        },
-        () => {}
-      );
-    }
-  };
-
   return (
     <>
-      {showLocationPrompt && (
-        <LocationPrompt onConfirm={handleLocationConfirm} />
-      )}
       <Router>
         <AuthModalProvider>
           <AuthModalRouteSync />
