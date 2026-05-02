@@ -1,5 +1,4 @@
 using Fiebo.Domain.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +52,6 @@ namespace Fiebo.Domain.Repositories
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
-        IExecutionStrategy CreateExecutionStrategy();
+        Task ExecuteStrategyAsync(Func<Task> action);
     }
 }

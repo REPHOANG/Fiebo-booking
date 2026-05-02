@@ -1,6 +1,7 @@
 using Fiebo.Domain.Entities;
 using Fiebo.Domain.Repositories;
 using Fiebo.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
@@ -152,9 +153,13 @@ namespace Fiebo.Persistence.Repositories
             }
         }
 
-        public IExecutionStrategy CreateExecutionStrategy()
+        public async Task ExecuteStrategyAsync(Func<Task> action)
         {
-            return _context.Database.CreateExecutionStrategy();
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await action();
+            });
         }
 
         public void Dispose()

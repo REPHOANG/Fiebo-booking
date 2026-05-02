@@ -101,9 +101,7 @@ namespace Fiebo.Application.Services
                 throw new BadRequestException("Số tiền nạp không khớp.");
             }
 
-            var strategy = _unitOfWork.CreateExecutionStrategy();
-
-            await strategy.ExecuteAsync(async () =>
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
                 await _unitOfWork.BeginTransactionAsync();
                 try
