@@ -6,6 +6,7 @@ using Fiebo.Domain.Exceptions;
 using Fiebo.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace Fiebo.Application.Services
@@ -42,13 +43,21 @@ namespace Fiebo.Application.Services
             var isReviewed = await _unitOfWork.Reviews.HasReviewForBookingAsync(request.BookingId);
             if (isReviewed)
                 throw new BadRequestException("Không thể đánh giá đơn đã đánh giá.");
+            if (!double.TryParse(request.Rating, NumberStyles.Any, CultureInfo.InvariantCulture, out var rating))
+            {
+                throw new BadRequestException("Rating không hợp lệ.");
+            }
 
+            if (rating < 0 || rating > 5)
+            {
+                throw new BadRequestException("Rating phải từ 0 đến 5.");
+            }
             // 2. Map dữ liệu thành Entity Review
             var review = new Review
             {
                 BookingId = request.BookingId,
                 UserId = userId,
-                Rating = request.Rating,
+                Rating = rating,
                 Comment = request.Comment
             };
 

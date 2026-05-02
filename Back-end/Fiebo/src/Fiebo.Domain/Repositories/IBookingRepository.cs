@@ -20,5 +20,6 @@ namespace Fiebo.Domain.Repositories
         IQueryable<Booking> GetOwnerDashboardQuery(string ownerId, DateOnly fromDate, DateOnly toDate, int? venueId);
         Task<List<int>> GetRatedBookingIdsAsync(List<int> bookingIds);
         Task<PagedResult<Booking>> GetBookingsByStaffIdAsync(List<int> venueIds, OwnerBookingHistoryFilter parameters);
+        Task<List<int>> GetCancelableBookingIdsAsync(List<int> bookingIds);
     }
 }

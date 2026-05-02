@@ -10,7 +10,8 @@ namespace Fiebo.Application.DTOs.Booking
         public string PhoneNumber { get; set; } = null!;
         public DateOnly BookingDate { get; set; }
         public string VenueName { get; set; } = null!;
-        public List<string> FieldNames { get; set; } = new();
+        public string Province { get; set; } = string.Empty;
+        public string Ward { get; set; } = string.Empty;
         public decimal TotalPrice { get; set; }
         public string Status { get; set; } = null!;
         public DateTime CreatedAt { get; set; }

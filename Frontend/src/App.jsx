@@ -64,8 +64,9 @@ const AppContent = () => {
       dispatch(setProfileLoading(false));
       return;
     }
-    dispatch(setProfileLoading(isLoading || isFetching));
-  }, [dispatch, tokenChecked, tokenReady, isLoading, isFetching]);
+    // Only block route rendering on initial load, not background refetch.
+    dispatch(setProfileLoading(isLoading));
+  }, [dispatch, tokenChecked, tokenReady, isLoading]);
 
   useEffect(() => {
     if (isSuccess && data) {

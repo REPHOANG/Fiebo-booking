@@ -87,8 +87,6 @@ namespace Fiebo.Persistence.Repositories
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(v => venueIds.Contains(v.Id))
-                .Include(v => v.Fields)
-                    .ThenInclude(f => f.Images)
                 .Include(v => v.Province)
                 .Include(v => v.Ward)
                 .ToListAsync();
@@ -103,13 +101,9 @@ namespace Fiebo.Persistence.Repositories
                 p.OwnerId == v.OwnerId &&
                 p.Status == OwnerPlanStatus.Active &&
                 p.EndDate >= now))
-                .OrderByDescending(v =>
-                    v.Fields
-                        .SelectMany(f => f.BookingDetails)
-                        .Count(bd => bd.Booking.Status == BookingStatus.Completed)
-                ).Take(top)
-                .Include(v => v.Fields)
-                    .ThenInclude(f => f.Images)
+               .OrderByDescending(v =>
+               v.Bookings.Count(b => b.Status == BookingStatus.Completed))
+               .Take(top)
                 .Include(v => v.Province)
                 .Include(v => v.Ward)
                 .ToListAsync();
