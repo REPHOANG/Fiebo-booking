@@ -482,6 +482,9 @@ namespace Fiebo.Application.Services
                 BookingNote = booking.BookingNote,
                 Status = booking.Status.ToString(),
                 ExpiredAt = booking.ExpiredAt,
+                ExpiresInSeconds = booking.ExpiredAt.HasValue 
+                    ? (int)Math.Max(0, (booking.ExpiredAt.Value - DateTime.Now).TotalSeconds)
+                    : null,
                 VenueId = booking.VenueId,
                 VenueName = booking.Venue.Name,
                 Date = booking.BookingDate,
