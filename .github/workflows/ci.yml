@@ -76,6 +76,7 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/fiebo-frontend:latest
           build-args: |
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
