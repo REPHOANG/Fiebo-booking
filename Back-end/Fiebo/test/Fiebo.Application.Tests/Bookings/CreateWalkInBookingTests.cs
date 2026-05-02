@@ -192,22 +192,45 @@ namespace Fiebo.Application.Tests.Bookings
         public async Task UTCID_07_Should_Throw_BadRequestException_When_Slot_Already_Started()
         {
             // Arrange
-            var now = DateTime.Now;
-            var pastTime = TimeOnly.FromDateTime(now.AddHours(-1));
             var request = CreateValidRequest();
-            request.BookingDate = DateOnly.FromDateTime(now); 
+            var now = DateTime.Now;
+            request.BookingDate = DateOnly.FromDateTime(now);
 
             var venue = new Venue { Id = 1, Name = "Test Venue", OwnerId = "owner-id", Status = VenueStatus.Active };
             _venueRepoMock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(venue);
-            _cacheServiceMock.Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>())).ReturnsAsync("lock-value");
-            
+
+            _cacheServiceMock
+                .Setup(c => c.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .ReturnsAsync("lock-value");
+
             var field = new Field { Id = 1, Name = "Test Field", VenueId = 1, Status = FieldStatus.Active };
-            var slot = new TimeSlot { Id = 1, VenueId = 1, StartTime = pastTime };
-            _fieldRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<Field> { field });
-            _timeSlotRepoMock.Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>())).ReturnsAsync(new List<TimeSlot> { slot });
+
+            var safeStartTime = now.TimeOfDay > TimeSpan.FromMinutes(1)
+                ? TimeOnly.FromTimeSpan(now.TimeOfDay.Subtract(TimeSpan.FromMinutes(1)))
+                : TimeOnly.FromTimeSpan(TimeSpan.Zero);
+
+            var slot = new TimeSlot
+            {
+                Id = 1,
+                VenueId = 1,
+                StartTime = safeStartTime
+            };
+
+            _fieldRepoMock
+                .Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<Field> { field });
+
+            _timeSlotRepoMock
+                .Setup(u => u.GetByIdsAsync(It.IsAny<List<int>>()))
+                .ReturnsAsync(new List<TimeSlot> { slot });
 
             // Act & Assert
-            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _bookingService.CreateWalkInBookingAsync(request, "owner-id", AppRoles.FieldOwner));
+            var ex = await Assert.ThrowsAsync<BadRequestException>(
+                () => _bookingService.CreateWalkInBookingAsync(
+                    request,
+                    "owner-id",
+                    AppRoles.FieldOwner));
+
             Assert.Equal("Slot đã bắt đầu hoặc đã kết thúc.", ex.Message);
         }
 

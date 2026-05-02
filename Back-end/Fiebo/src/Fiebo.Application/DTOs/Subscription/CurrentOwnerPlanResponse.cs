@@ -9,7 +9,7 @@ namespace Fiebo.Application.DTOs.Subscription
         public string PlanName { get; set; } = null!;
         public DateTime EndDate { get; set; }
         public int RemainingDays { get; set; }
-        public OwnerPlanStatus Status { get; set; }
+        public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 }

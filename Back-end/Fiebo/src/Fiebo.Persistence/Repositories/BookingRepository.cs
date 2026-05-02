@@ -103,8 +103,9 @@ namespace Fiebo.Persistence.Repositories
             var query = _context.Bookings
                 .AsNoTracking()
                 .Include(b => b.Venue)
-                .Include(b => b.BookingDetails)
-                    .ThenInclude(bd => bd.Field)
+                .ThenInclude(v => v.Province)
+                .Include(b => b.Venue)
+                .ThenInclude(v => v.Ward)
                 .Where(b => b.Venue.OwnerId == ownerId);
 
             if (parameters.BookingId.HasValue)
@@ -285,6 +286,21 @@ namespace Fiebo.Persistence.Repositories
                 TotalItems = totalItems,
                 Items = items
             };
+        }
+
+        public async Task<List<int>> GetCancelableBookingIdsAsync(List<int> bookingIds)
+        {
+            var now = DateTime.Now;
+
+            return await _context.Bookings
+                .Where(b => bookingIds.Contains(b.Id))
+                .Where(b =>
+                    b.BookingDetails.Any(bd =>
+                        b.BookingDate.ToDateTime(bd.TimeSlot!.StartTime) < now
+                    )
+                )
+                .Select(b => b.Id)
+                .ToListAsync();
         }
     }
 }

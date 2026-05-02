@@ -92,6 +92,7 @@ function normHistoryItem(it) {
     venueId: it?.venueId ?? it?.VenueId,
     totalPrice: it?.totalPrice ?? it?.TotalPrice,
     canReview: Boolean(it?.canReview),
+    canCancel: Boolean(it?.canCancel ?? it?.CanCancel),
   };
 }
 
@@ -1266,9 +1267,7 @@ const BookingList = () => {
                           toán
                         </button>
                       )}
-                      {["booked", "pending"].includes(
-                        (b.status || "").toLowerCase(),
-                      ) && (
+                      {b.canCancel && (
                         <button
                           type="button"
                           className="bl-btn danger bl-btn-sm"
