@@ -426,12 +426,16 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
           <ArrowLeft size={18} /> Quay lại
         </button>
         <div className="ovd-actions">
-          <Link
-            className="ovd-btn"
-            to={isStaff ? `/staff/venues/${id}/time-slot` : `/owner/venues/${id}/time-slot`}
-          >
-            <Calendar size={16} /> {isStaff ? "Xem khung giờ" : "Quản lý khung giờ"}
-          </Link>
+          {
+            !isStaff && (
+              <Link
+                className="ovd-btn"
+                to={`/owner/venues/${id}/time-slot`}
+              >
+                <Calendar size={16} /> Quản lý khung giờ
+              </Link>
+            )
+          }
           <Link
             className="ovd-btn"
             to={isStaff ? `/staff/venues/${id}/services` : `/owner/venue/${id}/services`}

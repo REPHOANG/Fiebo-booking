@@ -129,9 +129,26 @@ const FieldImageGallery = ({ images, fieldName }) => {
 };
 
 /* ================================================================
+   Sub-component – Review image gallery
+   ================================================================ */
+const ReviewImageGallery = ({ images, onImageClick }) => {
+  if (!images || images.length === 0) return null;
+
+  return (
+    <div className="vd-review-images">
+      {images.map((img, idx) => (
+        <div key={idx} className="vd-review-img-wrapper" onClick={() => onImageClick(img)}>
+          <img src={img} alt="Review" className="vd-review-img" loading="lazy" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ================================================================
    Sub-component – Field reviews
    ================================================================ */
-const FieldReviews = ({ reviews }) => {
+const FieldReviews = ({ reviews, onImageClick }) => {
   const [showAll, setShowAll] = useState(false);
   if (!reviews || reviews.length === 0) return null;
 
@@ -156,14 +173,15 @@ const FieldReviews = ({ reviews }) => {
                 <User size={16} />
               </div>
               <div className="vd-review-meta">
-                <span className="vd-review-name">{r.name}</span>
-                <span className="vd-review-time">{r.time}</span>
+                <span className="vd-review-name">{r.name || r.userName || 'Người dùng'}</span>
+                <span className="vd-review-time">{r.time || formatRelativeTime(r.createdAt)}</span>
               </div>
               <div className="vd-review-rating">
                 {renderStars(r.rating)}
               </div>
             </div>
-            <p className="vd-review-comment">{r.comment}</p>
+            {r.comment && <p className="vd-review-comment">{r.comment}</p>}
+            <ReviewImageGallery images={r.images || r.imageUrls} onImageClick={onImageClick} />
           </motion.div>
         ))}
       </div>
@@ -179,7 +197,7 @@ const FieldReviews = ({ reviews }) => {
 /* ================================================================
    Sub-component – Venue reviews (full section shown under fields)
    ================================================================ */
-const VenueReviews = ({ reviews, total, onLoadMore, page }) => {
+const VenueReviews = ({ reviews, total, onLoadMore, page, onImageClick }) => {
   const [showAll, setShowAll] = useState(false);
   if (!reviews || reviews.length === 0) return (
     <div className="vd-reviews-empty">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá.</div>
@@ -207,6 +225,7 @@ const VenueReviews = ({ reviews, total, onLoadMore, page }) => {
               <div className="vd-review-rating">{renderStars(Number(r.rating || 0))}</div>
             </div>
             {r.comment && <p className="vd-review-comment">{r.comment}</p>}
+            <ReviewImageGallery images={r.images || r.imageUrls} onImageClick={onImageClick} />
           </motion.div>
         ))}
       </div>
@@ -256,7 +275,7 @@ const FieldCarouselTile = ({ field, index, onOpen }) => (
   </motion.button>
 );
 
-const FieldDetailModal = ({ field, onClose }) => {
+const FieldDetailModal = ({ field, onClose, onImageClick }) => {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -304,6 +323,10 @@ const FieldDetailModal = ({ field, onClose }) => {
             <span>Chưa có ảnh sân</span>
           </div>
         )}
+        {/* Field-level reviews in modal */}
+        <div style={{ marginTop: 20 }}>
+           <FieldReviews reviews={field.reviews} onImageClick={onImageClick} />
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -333,6 +356,7 @@ const VenueDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showBookingTypeModal, setShowBookingTypeModal] = useState(false);
   const [fieldModal, setFieldModal] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
   const fieldsCarouselRef = useRef(null);
 
   const scrollFieldsCarousel = useCallback((dir) => {
@@ -524,12 +548,44 @@ const VenueDetail = () => {
             {/* Venue-level reviews placed below fields */}
             <div className="vd-reviews-section" style={{ marginTop: 12 }}>
               <h3><MessageSquare size={18} /> Đánh giá</h3>
-              <VenueReviews reviews={reviews} total={reviewTotal} onLoadMore={loadMoreReviews} page={reviewPage} />
+              <VenueReviews 
+                reviews={reviews} 
+                total={reviewTotal} 
+                onLoadMore={loadMoreReviews} 
+                page={reviewPage} 
+                onImageClick={setLightboxImage} 
+              />
             </div>
           </div>
          
         </div>
       </main>
+
+      {/* Lightbox for review images */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            className="vd-lightbox-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxImage(null)}
+          >
+            <button className="vd-lightbox-close" onClick={() => setLightboxImage(null)}>
+              <X size={28} />
+            </button>
+            <motion.img
+              src={lightboxImage}
+              alt="Review Full"
+              className="vd-lightbox-img"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sticky booking button */}
       <div className="vd-booking-bar">
@@ -568,6 +624,7 @@ const VenueDetail = () => {
             key={fieldModal.id ?? fieldModal.fieldId ?? fieldModal.name}
             field={fieldModal}
             onClose={() => setFieldModal(null)}
+            onImageClick={setLightboxImage}
           />
         ) : null}
       </AnimatePresence>

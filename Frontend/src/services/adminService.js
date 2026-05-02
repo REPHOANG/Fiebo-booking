@@ -40,6 +40,8 @@ const normalizeVenueDetail = (payload) => {
     landUseDocument: normalizeVenueDocument(data.landUseDocument),
     thumbnailUrl: data?.thumbnailUrl ?? "",
     status: data?.status ?? "",
+    latitude: data?.latitude ?? null,
+    longitude: data?.longitude ?? null,
   };
 };
 

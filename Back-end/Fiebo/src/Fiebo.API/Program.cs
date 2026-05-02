@@ -26,7 +26,15 @@ using System.Reflection;
 using System.Text;
 
 
+using Microsoft.AspNetCore.HttpOverrides; 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddCors(options =>
 {
@@ -263,6 +271,7 @@ builder.Host.UseSerilog();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseCors("AllowFrontend");
 app.UseMiddleware<Fiebo.API.Middlewares.ExceptionHandlingMiddleware>();
 
