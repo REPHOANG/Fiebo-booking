@@ -93,126 +93,131 @@ namespace Fiebo.Persistence.BackgroundJobs
 
             foreach (var ticketEvent in events)
             {
-                try
+                var strategy = db.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
                 {
                     await using var transaction = await db.Database.BeginTransactionAsync(token);
-
-                    var earliestStart = ticketEvent.Details
-                        .OrderBy(d => d.Slot.StartTime)
-                        .Select(d => d.Slot.StartTime)
-                        .FirstOrDefault();
-
-                    var eventStart = ticketEvent.EventDate.ToDateTime(earliestStart);
-                    var joinedParticipants = ticketEvent.Participants
-                        .Where(p => p.Status == TicketParticipantStatus.Joined)
-                        .ToList();
-                    var joinedPlayerCount = joinedParticipants.Sum(p => p.TicketQuantity);
-
-                    if (eventStart <= now || eventStart > limit || joinedPlayerCount >= ticketEvent.MinPlayer)
+                    try
                     {
-                        await transaction.RollbackAsync(token);
-                        continue;
-                    }
+                        var earliestStart = ticketEvent.Details
+                            .OrderBy(d => d.Slot.StartTime)
+                            .Select(d => d.Slot.StartTime)
+                            .FirstOrDefault();
 
-                    var emailTargets = new List<(string Email, string Fullname, decimal RefundAmount)>();
-
-                    if (joinedParticipants.Count > 0)
-                    {
-                        var joinedUserIds = joinedParticipants
-                            .Select(p => p.UserId)
-                            .Distinct()
+                        var eventStart = ticketEvent.EventDate.ToDateTime(earliestStart);
+                        var joinedParticipants = ticketEvent.Participants
+                            .Where(p => p.Status == TicketParticipantStatus.Joined)
                             .ToList();
+                        var joinedPlayerCount = joinedParticipants.Sum(p => p.TicketQuantity);
 
-                        var walletsByUser = await db.Wallets
-                            .Where(w => joinedUserIds.Contains(w.UserId))
-                            .ToDictionaryAsync(w => w.UserId, token);
-
-                        var usersById = await db.Users
-                            .Where(u => joinedUserIds.Contains(u.Id))
-                            .ToDictionaryAsync(u => u.Id, token);
-
-                        foreach (var participant in joinedParticipants)
+                        if (eventStart <= now || eventStart > limit || joinedPlayerCount >= ticketEvent.MinPlayer)
                         {
-                            if (!walletsByUser.TryGetValue(participant.UserId, out var wallet))
-                            {
-                                throw new InvalidOperationException($"Wallet not found for user {participant.UserId}");
-                            }
+                            await transaction.RollbackAsync(token);
+                            return;
+                        }
 
-                            wallet.Balance += participant.TotalPrice;
+                        var emailTargets = new List<(string Email, string Fullname, decimal RefundAmount)>();
 
-                            db.WalletTransactions.Add(new WalletTransaction
-                            {
-                                WalletId = wallet.Id,
-                                TransactionType = TransactionType.Refund,
-                                Direction = TransactionDirection.Credit,
-                                Amount = participant.TotalPrice,
-                                ReferenceId = ticketEvent.Id,
-                                Description = "Tự động hoàn tiền cho sự kiện bị hủy do không đủ người tham gia"
-                            });
+                        if (joinedParticipants.Count > 0)
+                        {
+                            var joinedUserIds = joinedParticipants
+                                .Select(p => p.UserId)
+                                .Distinct()
+                                .ToList();
 
-                            if (usersById.TryGetValue(participant.UserId, out var user)
-                                && !string.IsNullOrWhiteSpace(user.Email))
+                            var walletsByUser = await db.Wallets
+                                .Where(w => joinedUserIds.Contains(w.UserId))
+                                .ToDictionaryAsync(w => w.UserId, token);
+
+                            var usersById = await db.Users
+                                .Where(u => joinedUserIds.Contains(u.Id))
+                                .ToDictionaryAsync(u => u.Id, token);
+
+                            foreach (var participant in joinedParticipants)
                             {
-                                emailTargets.Add((
-                                    user.Email!,
-                                    participant.Fullname,
-                                    participant.TotalPrice));
+                                if (!walletsByUser.TryGetValue(participant.UserId, out var wallet))
+                                {
+                                    throw new InvalidOperationException($"Wallet not found for user {participant.UserId}");
+                                }
+
+                                wallet.Balance += participant.TotalPrice;
+
+                                db.WalletTransactions.Add(new WalletTransaction
+                                {
+                                    WalletId = wallet.Id,
+                                    TransactionType = TransactionType.Refund,
+                                    Direction = TransactionDirection.Credit,
+                                    Amount = participant.TotalPrice,
+                                    ReferenceId = ticketEvent.Id,
+                                    Description = "Tự động hoàn tiền cho sự kiện bị hủy do không đủ người tham gia"
+                                });
+
+                                if (usersById.TryGetValue(participant.UserId, out var user)
+                                    && !string.IsNullOrWhiteSpace(user.Email))
+                                {
+                                    emailTargets.Add((
+                                        user.Email!,
+                                        participant.Fullname,
+                                        participant.TotalPrice));
+                                }
                             }
                         }
-                    }
 
-                    foreach (var participant in ticketEvent.Participants)
-                    {
-                        if (participant.Status != TicketParticipantStatus.Cancelled)
+                        foreach (var participant in ticketEvent.Participants)
                         {
-                            participant.Status = TicketParticipantStatus.Cancelled;
+                            if (participant.Status != TicketParticipantStatus.Cancelled)
+                            {
+                                participant.Status = TicketParticipantStatus.Cancelled;
+                            }
                         }
-                    }
 
-                    ticketEvent.Status = TicketEventStatus.Cancelled;
+                        ticketEvent.Status = TicketEventStatus.Cancelled;
 
-                    await db.SaveChangesAsync(token);
-                    await transaction.CommitAsync(token);
+                        await db.SaveChangesAsync(token);
+                        await transaction.CommitAsync(token);
 
-                    totalCancelledEvents++;
-                    totalRefundedParticipants += joinedParticipants.Count;
+                        totalCancelledEvents++;
+                        totalRefundedParticipants += joinedParticipants.Count;
 
-                    foreach (var emailTarget in emailTargets)
-                    {
-                        try
+                        foreach (var emailTarget in emailTargets)
                         {
-                            var subject = "Fiebo - Sự kiện đã bị hủy";
-                            var body = $@"
+                            try
+                            {
+                                var subject = "Fiebo - Sự kiện đã bị hủy";
+                                var body = $@"
                                 <p>Xin chào {emailTarget.Fullname},</p>
                                 <p>Sự kiện #{ticketEvent.Id} đã bị hủy vì không đủ số lượng người tham gia tối thiểu.</p>
                                 <p>Số tiền hoàn: <strong>{emailTarget.RefundAmount:N0} VND</strong> đã được cộng vào ví của bạn.</p>
                                 <p>Cảm ơn bạn đã sử dụng Fiebo.</p>";
 
-                            await emailService.SendEmailAsync(emailTarget.Email, subject, body);
+                                await emailService.SendEmailAsync(emailTarget.Email, subject, body);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(
+                                    ex,
+                                    "Failed to send auto-cancellation email for event {EventId} to {Email}",
+                                    ticketEvent.Id,
+                                    emailTarget.Email);
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(
-                                ex,
-                                "Failed to send auto-cancellation email for event {EventId} to {Email}",
-                                ticketEvent.Id,
-                                emailTarget.Email);
-                        }
-                    }
 
-                    _logger.LogInformation(
-                        "Auto-cancelled event {EventId}: joined player(s) {JoinedCount}, min required {MinPlayer}",
-                        ticketEvent.Id,
-                        joinedPlayerCount,
-                        ticketEvent.MinPlayer);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(
-                        ex,
-                        "Failed to auto-cancel event {EventId}",
-                        ticketEvent.Id);
-                }
+                        _logger.LogInformation(
+                            "Auto-cancelled event {EventId}: joined player(s) {JoinedCount}, min required {MinPlayer}",
+                            ticketEvent.Id,
+                            joinedPlayerCount,
+                            ticketEvent.MinPlayer);
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync(token);
+                        _logger.LogError(
+                            ex,
+                            "Failed to auto-cancel event {EventId}",
+                            ticketEvent.Id);
+                        throw; // Rethrow for Strategy to handle retry
+                    }
+                });
             }
 
             if (totalCancelledEvents > 0)

@@ -27,6 +27,8 @@ using System.Text;
 
 
 using Microsoft.AspNetCore.HttpOverrides; 
+
+DotNetEnv.Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

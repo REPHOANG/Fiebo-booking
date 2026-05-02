@@ -71,6 +71,8 @@ namespace Fiebo.Application.Services
 
             try
             {
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
+            {
                 await _unitOfWork.BeginTransactionAsync();
                 try
                 {
@@ -161,20 +163,26 @@ namespace Fiebo.Application.Services
 
                     _logger.LogInformation("Subscription processed. Owner: {OwnerId}, Plan: {PlanId}, TransId: {TransId}", ownerId, plan.Id, subTransaction.Id);
 
-                    return new OwnerPlanResponse
-                    {
-                        OwnerPlanId = currentOwnerPlan.Id,
-                        PlanName = plan.Name,
-                        StartDate = currentOwnerPlan.StartDate,
-                        EndDate = currentOwnerPlan.EndDate,
-                        RemainingBalance = trackedWallet.Balance
-                    };
                 }
                 catch
                 {
                     await _unitOfWork.RollbackTransactionAsync();
                     throw;
                 }
+            });
+
+            // Re-fetch updated plan for response
+            var finalOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
+            var finalWallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
+
+            return new OwnerPlanResponse
+            {
+                OwnerPlanId = finalOwnerPlan!.Id,
+                PlanName = plan.Name,
+                StartDate = finalOwnerPlan.StartDate,
+                EndDate = finalOwnerPlan.EndDate,
+                RemainingBalance = finalWallet!.Balance
+            };
             }
             finally
             {

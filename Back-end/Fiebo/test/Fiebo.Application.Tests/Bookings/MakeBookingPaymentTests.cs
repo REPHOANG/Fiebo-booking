@@ -53,6 +53,18 @@ namespace Fiebo.Application.Tests.Bookings
             _unitOfWorkMock.Setup(u => u.Wallets).Returns(_walletRepoMock.Object);
             _unitOfWorkMock.Setup(u => u.WalletTransactions).Returns(_walletTransactionRepoMock.Object);
 
+            // Mock ExecuteStrategyAsync to execute the action immediately
+            _unitOfWorkMock.Setup(u => u.ExecuteStrategyAsync(It.IsAny<Func<Task>>()))
+                .Returns((Func<Task> action) => action());
+
+            _unitOfWorkMock.Setup(u => u.ExecuteStrategyAsync<It.IsAnyType>(It.IsAny<Func<Task<It.IsAnyType>>>()))
+                .Returns(new InvocationFunc(invocation =>
+                {
+                    var action = invocation.Arguments[0];
+                    var method = action.GetType().GetMethod("Invoke");
+                    return method.Invoke(action, null);
+                }));
+
             _bookingService = new BookingService(
                 _unitOfWorkMock.Object,
                 _otpServiceMock.Object,

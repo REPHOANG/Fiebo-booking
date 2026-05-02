@@ -449,32 +449,34 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Số dư trong ví không đủ để thanh toán");
             }
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-
-                wallet.Balance -= participant.TotalPrice;
-                participant.Status = TicketParticipantStatus.Joined;
-                participant.ExpiredAt = null;
-                _unitOfWork.Wallets.Update(wallet);
-                _unitOfWork.TicketParticipants.Update(participant);
-                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    WalletId = wallet.Id,
-                    TransactionType = TransactionType.EventBooking,
-                    Direction = TransactionDirection.Debit,
-                    Amount = participant.TotalPrice,
-                    ReferenceId = participant.EventId
-                });
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogError(ex, "Error while processing payment for ticket {TicketId} by user {UserId}", ticketId, userId);
-                throw new BadRequestException("Không thể xử lý thanh toán. Vui lòng thử lại.");
-            }
+                    wallet.Balance -= participant.TotalPrice;
+                    participant.Status = TicketParticipantStatus.Joined;
+                    participant.ExpiredAt = null;
+                    _unitOfWork.Wallets.Update(wallet);
+                    _unitOfWork.TicketParticipants.Update(participant);
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        TransactionType = TransactionType.EventBooking,
+                        Direction = TransactionDirection.Debit,
+                        Amount = participant.TotalPrice,
+                        ReferenceId = participant.EventId
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogError(ex, "Error while processing payment for ticket {TicketId} by user {UserId}", ticketId, userId);
+                    throw new BadRequestException("Không thể xử lý thanh toán. Vui lòng thử lại.");
+                }
+            });
         }
 
         public async Task<OwnerTicketEventDetailResponse?> GetEventDetailForOwnerAsync(int eventId, string ownerId)
@@ -661,46 +663,49 @@ namespace Fiebo.Application.Services
             // 6. A2: If no participants, skip refund + notification
             if (refundedCount > 0)
             {
-                await _unitOfWork.BeginTransactionAsync();
-                try
+                await _unitOfWork.ExecuteStrategyAsync(async () =>
                 {
-                    foreach (var participant in joinedParticipants)
+                    await _unitOfWork.BeginTransactionAsync();
+                    try
                     {
-                        // BR-145: 100% refund to each participant's wallet
-                        var wallet = await _unitOfWork.Wallets.GetByUserId(participant.UserId);
-                        if (wallet == null)
+                        foreach (var participant in joinedParticipants)
                         {
-                            _logger.LogWarning("Wallet not found for user {UserId} during event {EventId} cancel refund", participant.UserId, eventId);
-                            continue;
+                            // BR-145: 100% refund to each participant's wallet
+                            var wallet = await _unitOfWork.Wallets.GetByUserId(participant.UserId);
+                            if (wallet == null)
+                            {
+                                _logger.LogWarning("Wallet not found for user {UserId} during event {EventId} cancel refund", participant.UserId, eventId);
+                                continue;
+                            }
+
+                            wallet.Balance += participant.TotalPrice;
+                            _unitOfWork.Wallets.Update(wallet);
+
+                            _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                            {
+                                WalletId = wallet.Id,
+                                TransactionType = TransactionType.Refund,
+                                Direction = TransactionDirection.Credit,
+                                Amount = participant.TotalPrice,
+                                ReferenceId = ticketEvent.Id
+                            });
+
                         }
 
-                        wallet.Balance += participant.TotalPrice;
-                        _unitOfWork.Wallets.Update(wallet);
+                        // 7. Cancel the event
+                        ticketEvent.Status = TicketEventStatus.Cancelled;
+                        _unitOfWork.TicketEvents.Update(ticketEvent);
 
-                        _unitOfWork.WalletTransactions.Add(new WalletTransaction
-                        {
-                            WalletId = wallet.Id,
-                            TransactionType = TransactionType.Refund,
-                            Direction = TransactionDirection.Credit,
-                            Amount = participant.TotalPrice,
-                            ReferenceId = ticketEvent.Id
-                        });
-
+                        await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.CommitTransactionAsync();
                     }
-
-                    // 7. Cancel the event
-                    ticketEvent.Status = TicketEventStatus.Cancelled;
-                    _unitOfWork.TicketEvents.Update(ticketEvent);
-
-                    await _unitOfWork.SaveChangesAsync();
-                    await _unitOfWork.CommitTransactionAsync();
-                }
-                catch (Exception ex)
-                {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    _logger.LogError(ex, "Failed to cancel event {EventId} and process refunds", eventId);
-                    throw;
-                }
+                    catch (Exception ex)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync();
+                        _logger.LogError(ex, "Failed to cancel event {EventId} and process refunds", eventId);
+                        throw;
+                    }
+                });
 
                 // 8. Send push notifications (fire-and-forget background task)
                 _ = Task.Run(async () =>
@@ -750,45 +755,48 @@ namespace Fiebo.Application.Services
             var ticket = await _unitOfWork.TicketParticipants.GetByIdAsync(ticketId) ?? throw new NotFoundException("Không tìm thấy vé tham gia sự kiện.");
             if (ticket.Status != TicketParticipantStatus.Joined)
                 throw new BadRequestException("Chỉ có vé đã thanh toán có thể hủy.");
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                ticket.Status = TicketParticipantStatus.Cancelled;
-                _unitOfWork.TicketParticipants.Update(ticket);
-                var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
-                var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(ticket.EventId)
-                    ?? throw new NotFoundException("Không tìm thấy slot của sự kiện.");
-
-                if (earliestSlot.Slot == null)
-                    throw new BadRequestException("Slot không hợp lệ.");
-                var thisEvent = await _unitOfWork.TicketEvents.GetByIdAsync(ticket.EventId) ?? throw new NotFoundException("Không tìm thấy sự kiện.");
-                var eventDateTime = thisEvent.EventDate
-                    .ToDateTime(earliestSlot.Slot.StartTime);
-
-                var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
-                if (hoursBeforeEvent <= 6)
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
+                    ticket.Status = TicketParticipantStatus.Cancelled;
+                    _unitOfWork.TicketParticipants.Update(ticket);
+                    var wallet = await _unitOfWork.Wallets.GetByUserId(userId) ?? throw new NotFoundException("Không tìm thấy ví.");
+                    var earliestSlot = await _unitOfWork.TicketEventsDetails.GetEarliestDetailAsync(ticket.EventId)
+                        ?? throw new NotFoundException("Không tìm thấy slot của sự kiện.");
+
+                    if (earliestSlot.Slot == null)
+                        throw new BadRequestException("Slot không hợp lệ.");
+                    var thisEvent = await _unitOfWork.TicketEvents.GetByIdAsync(ticket.EventId) ?? throw new NotFoundException("Không tìm thấy sự kiện.");
+                    var eventDateTime = thisEvent.EventDate
+                        .ToDateTime(earliestSlot.Slot.StartTime);
+
+                    var hoursBeforeEvent = (eventDateTime - DateTime.Now).TotalHours;
+                    if (hoursBeforeEvent <= 6)
+                    {
+                        throw new BadRequestException("Đã qua thời gian huỷ vé (trên 6 giờ trước sự kiện).");
+                    }
+                    wallet.Balance += ticket.TotalPrice;
+                    _unitOfWork.Wallets.Update(wallet);
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        TransactionType = TransactionType.Refund,
+                        Direction = TransactionDirection.Credit,
+                        Amount = ticket.TotalPrice,
+                        ReferenceId = ticket.EventId
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
                 }
-                wallet.Balance += ticket.TotalPrice;
-                _unitOfWork.Wallets.Update(wallet);
-                _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                catch (Exception ex)
                 {
-                    WalletId = wallet.Id,
-                    TransactionType = TransactionType.Refund,
-                    Direction = TransactionDirection.Credit,
-                    Amount = ticket.TotalPrice,
-                    ReferenceId = ticket.EventId
-                });
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
-                throw;
-            }
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogError(ex, "Error while customer canceling ticket {TicketId} for event {EventId}", ticketId, ticket.EventId);
+                    throw;
+                }
+            });
         }
 
         public async Task FinalizeEventsAsync(DateTime now)

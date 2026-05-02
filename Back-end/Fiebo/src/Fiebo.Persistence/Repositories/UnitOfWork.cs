@@ -162,6 +162,15 @@ namespace Fiebo.Persistence.Repositories
             });
         }
 
+        public async Task<T> ExecuteStrategyAsync<T>(Func<Task<T>> action)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
+            {
+                return await action();
+            });
+        }
+
         public void Dispose()
         {
             _transaction?.Dispose();
