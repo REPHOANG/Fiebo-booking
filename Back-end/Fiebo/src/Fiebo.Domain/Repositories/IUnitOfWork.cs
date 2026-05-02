@@ -53,5 +53,6 @@ namespace Fiebo.Domain.Repositories
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
         Task ExecuteStrategyAsync(Func<Task> action);
+        Task<T> ExecuteStrategyAsync<T>(Func<Task<T>> action);
     }
 }

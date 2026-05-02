@@ -208,9 +208,11 @@ namespace Fiebo.Application.Services
             }
 
             // Step 6-10: ACID Transaction
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            return await _unitOfWork.ExecuteStrategyAsync<WithdrawResponse>(async () =>
             {
+                await _unitOfWork.BeginTransactionAsync();
+                try
+                {
                 // E1: Balance check (inside transaction for consistency)
                 if (wallet.Balance < request.Amount)
                 {
@@ -308,26 +310,21 @@ namespace Fiebo.Application.Services
                         Status = TransactionStatus.Pending.ToString(),
                         Message = "Yêu cầu rút tiền đã được gửi tới Quản trị viên để xét duyệt. Thời gian xử lý dự kiến từ 24h-48h làm việc."
                     };
-                // }
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                // E4: Race condition — another transaction modified the wallet concurrently
-                await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogWarning("Concurrency conflict on withdrawal for UserId: {UserId}", userId);
-                throw new BadRequestException(
-                    "Giao dịch không thành công do xung đột dữ liệu. Vui lòng thử lại.");
-            }
-            catch (BadRequestException)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
-            catch (Exception)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogWarning("Concurrency conflict on withdrawal for UserId: {UserId}", userId);
+                    throw new BadRequestException("Giao dịch không thành công do xung đột dữ liệu. Vui lòng thử lại.");
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    if (ex is BadRequestException) throw;
+                    _logger.LogError(ex, "Withdrawal failed for UserId: {UserId}", userId);
+                    throw;
+                }
+            });
         }
 
         public async Task<IEnumerable<BankAccountResponse>> GetUserBankAccountsAsync(string userId)

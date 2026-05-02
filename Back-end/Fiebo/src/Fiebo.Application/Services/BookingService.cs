@@ -99,52 +99,55 @@ namespace Fiebo.Application.Services
             }
 
             // Transaction: deduct wallet + update booking status atomically
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                // Load earliest slot start time to calculate ConfirmExpiredAt
-                var bookingWithDetails = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
-                DateTime slotStart;
-                if (bookingWithDetails?.BookingDetails != null && bookingWithDetails.BookingDetails.Any(d => d.TimeSlot != null))
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    slotStart = bookingWithDetails.BookingDetails
-                        .Where(d => d.TimeSlot != null)
-                        .Select(d => booking.BookingDate.ToDateTime(d.TimeSlot!.StartTime))
-                        .OrderBy(t => t)
-                        .First();
+                    // Load earliest slot start time to calculate ConfirmExpiredAt
+                    var bookingWithDetails = await _unitOfWork.Bookings.GetBookingDetailByBookingId(bookingId);
+                    DateTime slotStart;
+                    if (bookingWithDetails?.BookingDetails != null && bookingWithDetails.BookingDetails.Any(d => d.TimeSlot != null))
+                    {
+                        slotStart = bookingWithDetails.BookingDetails
+                            .Where(d => d.TimeSlot != null)
+                            .Select(d => booking.BookingDate.ToDateTime(d.TimeSlot!.StartTime))
+                            .OrderBy(t => t)
+                            .First();
+                    }
+                    else
+                    {
+                        // Fallback: không tìm thấy slot → áp dụng BR3 (12h)
+                        slotStart = DateTime.Now.AddHours(25);
+                    }
+
+                    var confirmExpiredAt = CalculateConfirmExpiredAt(DateTime.Now, slotStart);
+
+                    wallet.Balance -= booking.TotalPrice;
+                    booking.Status = BookingStatus.Pending; // Đã thanh toán, chờ chủ sân confirm
+                    booking.ExpiredAt = null;
+                    booking.ConfirmExpiredAt = confirmExpiredAt;
+                    booking.UpdatedAt = DateTime.Now;
+
+                    _unitOfWork.Wallets.Update(wallet);
+                    _unitOfWork.Bookings.Update(booking);
+                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        TransactionType = TransactionType.Booking,
+                        Direction = TransactionDirection.Debit,
+                        Amount = booking.TotalPrice,
+                        ReferenceId = booking.Id
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
                 }
-                else
+                catch
                 {
-                    // Fallback: không tìm thấy slot → áp dụng BR3 (12h)
-                    slotStart = DateTime.Now.AddHours(25);
+                    await _unitOfWork.RollbackTransactionAsync();
+                    throw;
                 }
-
-                var confirmExpiredAt = CalculateConfirmExpiredAt(DateTime.Now, slotStart);
-
-                wallet.Balance -= booking.TotalPrice;
-                booking.Status = BookingStatus.Pending; // Đã thanh toán, chờ chủ sân confirm
-                booking.ExpiredAt = null;
-                booking.ConfirmExpiredAt = confirmExpiredAt;
-                booking.UpdatedAt = DateTime.Now;
-
-                _unitOfWork.Wallets.Update(wallet);
-                _unitOfWork.Bookings.Update(booking);
-                _unitOfWork.WalletTransactions.Add(new WalletTransaction
-                {
-                    WalletId = wallet.Id,
-                    TransactionType = TransactionType.Booking,
-                    Direction = TransactionDirection.Debit,
-                    Amount = booking.TotalPrice,
-                    ReferenceId = booking.Id
-                });
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
+            });
 
             // Notify owner
             try
@@ -805,55 +808,57 @@ namespace Fiebo.Application.Services
             var refundAmount = booking.TotalPrice * refundPercentage / 100m;
 
             // BR-27: Refund to wallet within a transaction
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                // Update booking status
-                booking.Status = BookingStatus.CustomerCancelled;
-                booking.UpdatedAt = DateTime.Now;
-                _unitOfWork.Bookings.Update(booking);
-                _unitOfWork.CancelBooking.Add(new CancelBooking
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    BookingId = bookingId,
-                    RefundAmount = refundAmount
-                });
-
-                // Refund to wallet (if refundAmount > 0)
-                if (refundAmount > 0)
-                {
-                    var wallet = (await _unitOfWork.Wallets
-                        .FindAsync(w => w.UserId == userId))
-                        .FirstOrDefault();
-
-                    if (wallet is null)
-                        throw new NotFoundException("Không tìm thấy ví.");
-
-                    wallet.Balance += refundAmount;
-                    _unitOfWork.Wallets.Update(wallet);
-                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    // Update booking status
+                    booking.Status = BookingStatus.CustomerCancelled;
+                    booking.UpdatedAt = DateTime.Now;
+                    _unitOfWork.Bookings.Update(booking);
+                    _unitOfWork.CancelBooking.Add(new CancelBooking
                     {
-                        WalletId = wallet.Id,
-                        TransactionType = TransactionType.Refund,
-                        Direction = TransactionDirection.Credit,
-                        Amount = refundAmount,
-                        ReferenceId = booking.Id
+                        BookingId = bookingId,
+                        RefundAmount = refundAmount
                     });
+
+                    // Refund to wallet (if refundAmount > 0)
+                    if (refundAmount > 0)
+                    {
+                        var wallet = (await _unitOfWork.Wallets
+                            .FindAsync(w => w.UserId == userId))
+                            .FirstOrDefault();
+
+                        if (wallet is null)
+                            throw new NotFoundException("Không tìm thấy ví.");
+
+                        wallet.Balance += refundAmount;
+                        _unitOfWork.Wallets.Update(wallet);
+                        _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                        {
+                            WalletId = wallet.Id,
+                            TransactionType = TransactionType.Refund,
+                            Direction = TransactionDirection.Credit,
+                            Amount = refundAmount,
+                            ReferenceId = booking.Id
+                        });
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+
+                    _logger.LogInformation(
+                        "Booking {BookingId} cancelled by user {UserId}. Refund: {RefundPercentage}% = {RefundAmount}",
+                        bookingId, userId, refundPercentage, refundAmount);
                 }
-
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-
-                _logger.LogInformation(
-                    "Booking {BookingId} cancelled by user {UserId}. Refund: {RefundPercentage}% = {RefundAmount}",
-                    bookingId, userId, refundPercentage, refundAmount);
-
-                return true;
-            }
-            catch
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                throw;
-            }
+                catch
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    throw;
+                }
+            });
+            return true;
         }
 
         /// <summary>
@@ -933,55 +938,58 @@ namespace Fiebo.Application.Services
                 .FirstOrDefault()!;
 
             // E2: Refund transaction with rollback on failure
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                // Update booking status + reason
-                trackedBooking.Status = BookingStatus.OwnerCancelled;
-                trackedBooking.UpdatedAt = DateTime.Now;
-                _unitOfWork.Bookings.Update(trackedBooking);
-                _unitOfWork.CancelBooking.Add(new CancelBooking
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    BookingId = bookingId,
-                    CancelReason = cancelReason,
-                    RefundAmount = refundAmount
-                });
-
-                // BR-46: Refund to customer's wallet
-                if (refundAmount > 0)
-                {
-                    var customerWallet = (await _unitOfWork.Wallets
-                        .FindAsync(w => w.UserId == booking.UserId))
-                        .FirstOrDefault();
-
-                    if (customerWallet is null)
-                        throw new NotFoundException("Không tìm thấy ví.");
-
-                    customerWallet.Balance += refundAmount;
-                    _unitOfWork.Wallets.Update(customerWallet);
-
-                    // Create refund transaction record
-                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    // Update booking status + reason
+                    trackedBooking.Status = BookingStatus.OwnerCancelled;
+                    trackedBooking.UpdatedAt = DateTime.Now;
+                    _unitOfWork.Bookings.Update(trackedBooking);
+                    _unitOfWork.CancelBooking.Add(new CancelBooking
                     {
-                        WalletId = customerWallet.Id,
-                        TransactionType = TransactionType.Refund,
-                        Direction = TransactionDirection.Credit,
-                        Amount = refundAmount,
-                        ReferenceId = booking.Id
+                        BookingId = bookingId,
+                        CancelReason = cancelReason,
+                        RefundAmount = refundAmount
                     });
-                }
 
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogError(ex,
-                    "Refund failed for booking {BookingId} cancelled by owner {OwnerId}",
-                    bookingId, ownerId);
-                throw new BadRequestException("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.");
-            }
+                    // BR-46: Refund to customer's wallet
+                    if (refundAmount > 0)
+                    {
+                        var customerWallet = (await _unitOfWork.Wallets
+                            .FindAsync(w => w.UserId == booking.UserId))
+                            .FirstOrDefault();
+
+                        if (customerWallet is null)
+                            throw new NotFoundException("Không tìm thấy ví.");
+
+                        customerWallet.Balance += refundAmount;
+                        _unitOfWork.Wallets.Update(customerWallet);
+
+                        // Create refund transaction record
+                        _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                        {
+                            WalletId = customerWallet.Id,
+                            TransactionType = TransactionType.Refund,
+                            Direction = TransactionDirection.Credit,
+                            Amount = refundAmount,
+                            ReferenceId = booking.Id
+                        });
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogError(ex,
+                        "Refund failed for booking {BookingId} cancelled by owner {OwnerId}",
+                        bookingId, ownerId);
+                    throw new BadRequestException("Đã xảy ra lỗi hệ thống khi xử lý hoàn tiền. Vui lòng thử lại sau.");
+                }
+            });
 
             _logger.LogInformation(
                 "Booking {BookingId} cancelled by owner {OwnerId}. Refund 100% = {RefundAmount}. Reason: {Reason}",
@@ -1160,52 +1168,55 @@ namespace Fiebo.Application.Services
 
             var trackedBooking = (await _unitOfWork.Bookings.FindAsync(b => b.Id == bookingId)).First();
 
-            await _unitOfWork.BeginTransactionAsync();
-            try
+            await _unitOfWork.ExecuteStrategyAsync(async () =>
             {
-                trackedBooking.Status = BookingStatus.Rejected;
-                trackedBooking.ConfirmExpiredAt = null;
-                trackedBooking.UpdatedAt = DateTime.Now;
-                _unitOfWork.Bookings.Update(trackedBooking);
-
-                _unitOfWork.CancelBooking.Add(new CancelBooking
+                await _unitOfWork.BeginTransactionAsync();
+                try
                 {
-                    BookingId = bookingId,
-                    CancelReason = rejectReason,
-                    RefundAmount = refundAmount
-                });
+                    trackedBooking.Status = BookingStatus.Rejected;
+                    trackedBooking.ConfirmExpiredAt = null;
+                    trackedBooking.UpdatedAt = DateTime.Now;
+                    _unitOfWork.Bookings.Update(trackedBooking);
 
-                if (refundAmount > 0 && !string.IsNullOrEmpty(booking.UserId))
-                {
-                    var customerWallet = (await _unitOfWork.Wallets
-                        .FindAsync(w => w.UserId == booking.UserId))
-                        .FirstOrDefault();
-
-                    if (customerWallet is null)
-                        throw new NotFoundException("Không tìm thấy ví khách hàng.");
-
-                    customerWallet.Balance += refundAmount;
-                    _unitOfWork.Wallets.Update(customerWallet);
-
-                    _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                    _unitOfWork.CancelBooking.Add(new CancelBooking
                     {
-                        WalletId = customerWallet.Id,
-                        TransactionType = TransactionType.Refund,
-                        Direction = TransactionDirection.Credit,
-                        Amount = refundAmount,
-                        ReferenceId = bookingId
+                        BookingId = bookingId,
+                        CancelReason = rejectReason,
+                        RefundAmount = refundAmount
                     });
-                }
 
-                await _unitOfWork.SaveChangesAsync();
-                await _unitOfWork.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogError(ex, "Refund failed for rejected booking {BookingId}", bookingId);
-                throw new BadRequestException("Đã xảy ra lỗi khi xử lý hoàn tiền. Vui lòng thử lại.");
-            }
+                    if (refundAmount > 0 && !string.IsNullOrEmpty(booking.UserId))
+                    {
+                        var customerWallet = (await _unitOfWork.Wallets
+                            .FindAsync(w => w.UserId == booking.UserId))
+                            .FirstOrDefault();
+
+                        if (customerWallet is null)
+                            throw new NotFoundException("Không tìm thấy ví khách hàng.");
+
+                        customerWallet.Balance += refundAmount;
+                        _unitOfWork.Wallets.Update(customerWallet);
+
+                        _unitOfWork.WalletTransactions.Add(new WalletTransaction
+                        {
+                            WalletId = customerWallet.Id,
+                            TransactionType = TransactionType.Refund,
+                            Direction = TransactionDirection.Credit,
+                            Amount = refundAmount,
+                            ReferenceId = bookingId
+                        });
+                    }
+
+                    await _unitOfWork.SaveChangesAsync();
+                    await _unitOfWork.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    _logger.LogError(ex, "Refund failed for rejected booking {BookingId}", bookingId);
+                    throw new BadRequestException("Đã xảy ra lỗi khi xử lý hoàn tiền. Vui lòng thử lại.");
+                }
+            });
 
             try
             {
