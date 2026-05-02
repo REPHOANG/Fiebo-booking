@@ -64,15 +64,40 @@ const LocateControl = ({ onLocate }) => {
       return;
     }
     setLocating(true);
+
+    // Kiểm tra localStorage trước
+    const savedLocation = localStorage.getItem("userLocation");
+    const permission = localStorage.getItem("userLocationPermission");
+
+    if (savedLocation && permission === "granted") {
+      // Dùng vị trí từ localStorage
+      const { latitude: lat, longitude: lng } = JSON.parse(savedLocation);
+      map.flyTo([lat, lng], 14, { duration: 1.2 });
+      if (onLocate) onLocate({ lat, lng });
+      setLocating(false);
+      return;
+    }
+
+    if (permission === "denied") {
+      Swal.fire(
+        "Thông báo",
+        "Bạn đã từ chối cấp phép vị trí. Vui lòng bật trong cài đặt trình duyệt.",
+        "info"
+      );
+      setLocating(false);
+      return;
+    }
+
+    // Nếu không có trong localStorage, gọi geolocation
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
+        localStorage.setItem("userLocation", JSON.stringify(pos.coords));
         map.flyTo([lat, lng], 14, { duration: 1.2 });
         if (onLocate) onLocate({ lat, lng });
         setLocating(false);
       },
       () => {
-        Swal.fire("Lỗi", "Không lấy được vị trí. Hãy cho phép truy cập vị trí.", "error");
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
@@ -131,20 +156,20 @@ const formatTime = (timeSpan) => {
   return `${parts[0]}:${parts[1]}`;
 };
 
-const StarRating = ({ rating, max = 5 }) => {
-  const pct = Math.min(100, Math.max(0, (rating / max) * 100));
-  const stars = Array.from({ length: max });
-  return (
-    <span className="star-rating" aria-label={`${rating} / ${max} sao`}>
-      <span className="star-rating-empty">
-        {stars.map((_, i) => <Star key={i} size={13} />)}
-      </span>
-      <span className="star-rating-filled" style={{ width: `${pct}%` }}>
-        {stars.map((_, i) => <Star key={i} size={13} />)}
-      </span>
-    </span>
-  );
-};
+// const StarRating = ({ rating, max = 5 }) => {
+//   const pct = Math.min(100, Math.max(0, (rating / max) * 100));
+//   const stars = Array.from({ length: max });
+//   return (
+//     <span className="star-rating" aria-label={`${rating} / ${max} sao`}>
+//       <span className="star-rating-empty">
+//         {stars.map((_, i) => <Star key={i} size={13} />)}
+//       </span>
+//       <span className="star-rating-filled" style={{ width: `${pct}%` }}>
+//         {stars.map((_, i) => <Star key={i} size={13} />)}
+//       </span>
+//     </span>
+//   );
+// };
 
 /** Query `time` cho API search venue (TimeOnly). */
 const formatTimeForApi = (t) => {
@@ -701,6 +726,23 @@ const Venues = () => {
     if (!navigator.geolocation) {
       window.alert(
         "Trình duyệt không hỗ trợ định vị. Không thể lọc theo khoảng cách.",
+      );
+      return;
+    }
+
+    // Kiểm tra localStorage trước
+    const savedLocation = localStorage.getItem("userLocation");
+    const permission = localStorage.getItem("userLocationPermission");
+
+    if (savedLocation && permission === "granted") {
+      const { latitude: lat, longitude: lng } = JSON.parse(savedLocation);
+      finish(lat, lng);
+      return;
+    }
+
+    if (permission === "denied") {
+      window.alert(
+        "Bạn đã từ chối cấp phép vị trí. Vui lòng bật trong cài đặt trình duyệt.",
       );
       return;
     }

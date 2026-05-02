@@ -8,7 +8,6 @@ import {
   Building2,
   Ban,
   CheckCircle,
-  CircleAlert,
   CreditCard,
   Hash,
   Landmark,

@@ -143,47 +143,7 @@ const Header = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* 🔔 Notification */}
-                <div className="icon-wrapper">
-                  <button
-                    className="icon-btn premium-icon"
-                    onClick={() => {
-                      setNotificationOpen(!notificationOpen);
-                      setUserMenuOpen(false);
-                    }}
-                  >
-                    <BellIcon size={20} />
-                    {notificationCount > 0 && (
-                      <span className="notification-badge">
-                        {notificationCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {notificationOpen && (
-                      <motion.div
-                        className="dropdown notification-dropdown"
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <p className="dropdown-title">Thông báo</p>
-                        <div className="notification-item">
-                          Bạn có lịch đặt sân lúc 18:00 hôm nay
-                        </div>
-                        <div className="notification-item">
-                          Sân ABC xác nhận đặt sân
-                        </div>
-                        <Link to="/notifications" className="view-all">
-                          Xem tất cả
-                        </Link>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                  
               </div>
             ) : (
               <button

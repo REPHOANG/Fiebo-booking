@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Heart, Share2, TrendingUp } from "lucide-react";
+import { Clock, Heart, Share2, TrendingUp, Star } from "lucide-react";
 import BookingTypeModal from "../../../components/common/BookingTypeModal/BookingTypeModal";
 import { useState } from "react";
 
@@ -47,6 +47,9 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
           </p>
           <p className="ch-venue-hours">
             <Clock size={13} /> {venue.hours}
+          </p>
+          <p className="ch-venue-rating">
+            <Star size={13} fill="currentColor" /> {venue.rating} ({venue.reviews || 0} đánh giá)
           </p>
           <p className="ch-venue-bookings">
             <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt
