@@ -319,6 +319,9 @@ const Venues = () => {
     // Store coordinates in the URL search params only (do not overwrite localStorage).
     try {
       setUserGeo({ userLat: lat, userLng: lng });
+      // Selecting a map location implies distance-based filtering — clear any area filters
+      setAppliedProvinceId("");
+      setAppliedWardId("");
       setSearchParams((prev) => {
         const p = new URLSearchParams(prev);
         p.set("lat", String(lat));
@@ -524,27 +527,36 @@ const Venues = () => {
           : undefined;
 
       try {
-        const data = await searchVenues({
+        // Prefer distance-based filtering over area filters. Never send both
+        // `radiusKm` and `provinceId`/`wardId` at the same time to the API.
+        const useDistance =
+          appliedRadiusKm != null &&
+          Number.isFinite(appliedRadiusKm) &&
+          appliedRadiusKm > 0 &&
+          userGeo.userLat != null &&
+          userGeo.userLng != null &&
+          Number.isFinite(userGeo.userLat) &&
+          Number.isFinite(userGeo.userLng);
+
+        const params = {
           location,
           date: dateParam,
           time: timeParam,
           sportTypeId: Number.isFinite(sportTypeId) ? sportTypeId : undefined,
           page: pageToLoad,
           pageSize: PAGE_SIZE,
-          ...(userGeo.userLat != null &&
-            userGeo.userLng != null &&
-            Number.isFinite(userGeo.userLat) &&
-            Number.isFinite(userGeo.userLng)
-            ? { userLat: userGeo.userLat, userLng: userGeo.userLng }
-            : {}),
-          ...(appliedRadiusKm != null &&
-            Number.isFinite(appliedRadiusKm) &&
-            appliedRadiusKm > 0
-            ? { radiusKm: appliedRadiusKm }
-            : {}),
-          ...(appliedProvinceId ? { provinceId: appliedProvinceId } : {}),
-          ...(appliedWardId ? { wardId: appliedWardId } : {}),
-        });
+        };
+
+        if (useDistance) {
+          params.userLat = userGeo.userLat;
+          params.userLng = userGeo.userLng;
+          params.radiusKm = appliedRadiusKm;
+        } else {
+          if (appliedProvinceId) params.provinceId = appliedProvinceId;
+          if (appliedWardId) params.wardId = appliedWardId;
+        }
+
+        const data = await searchVenues(params);
 
         if (seq !== fetchSeqRef.current) return;
 
@@ -681,10 +693,18 @@ const Venues = () => {
 
   const applyPendingSearchText = () => {
     const text = getPendingSearchText();
-    setSearchTerm(text || "");
-    // Hiển thị tên tỉnh/quận trên ô tìm kiếm dù không gửi làm search text
-    const display = pendingKeyword || [province, district].filter(Boolean).join(" ").trim();
-    if (display) setInputValue(display);
+    // If the user has typed something in the main search input, preserve it
+    // (do not overwrite by filter panel values). Otherwise, apply the
+    // pending area text (if any) as the search term.
+    if (!inputValue || !String(inputValue).trim()) {
+      if (text) setSearchTerm(text);
+      else setSearchTerm("");
+    }
+    // Do NOT copy selected province/district into the main search input.
+    // Only display an explicit `pendingKeyword` (if provided by the user).
+    if (pendingKeyword && String(pendingKeyword).trim()) {
+      setInputValue(pendingKeyword);
+    }
   };
 
   const applyAreaFilter = () => {
@@ -693,6 +713,17 @@ const Venues = () => {
     setAppliedBookingTime(pendingBookingTime);
     setAppliedProvinceId(selectedProvinceId);
     setAppliedWardId(selectedDistrictId);
+    // Clear any user geo / distance params so area filter is exclusive
+    setUserGeo({ userLat: null, userLng: null });
+    setMapPickedLocation(null);
+    try {
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("lat");
+        p.delete("lng");
+        return p;
+      }, { replace: true });
+    } catch { }
     commitSportToUrl();
     applyPendingSearchText();
     setShowFilterPanel(false);
@@ -715,6 +746,9 @@ const Venues = () => {
     const finish = (lat, lng) => {
       setUserGeo({ userLat: lat, userLng: lng });
       setAppliedRadiusKm(r);
+      // Ensure we don't keep area filters when applying distance filter
+      setAppliedProvinceId("");
+      setAppliedWardId("");
       commitSportToUrl();
       applyPendingSearchText();
       setShowFilterPanel(false);
@@ -980,6 +1014,9 @@ const Venues = () => {
                           onPick={(latlng) => {
                             setMapPickedLocation({ lat: latlng.lat, lng: latlng.lng, label: null });
                             setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
+                            // picking on the map => distance mode; ensure area filters cleared
+                            setAppliedProvinceId("");
+                            setAppliedWardId("");
                             setFilterMode("khoang-cach");
                             setMapSearchQuery("");
                             // Write coordinates to URL params only; do not overwrite localStorage
@@ -1026,6 +1063,9 @@ const Venues = () => {
                           onLocate={(latlng) => {
                             setMapPickedLocation({ lat: latlng.lat, lng: latlng.lng, label: null });
                             setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
+                            // locating => distance mode; clear any applied area filters
+                            setAppliedProvinceId("");
+                            setAppliedWardId("");
                             setFilterMode("khoang-cach");
                             setMapSearchQuery("");
                             try {
