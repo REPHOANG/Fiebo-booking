@@ -65,14 +65,21 @@ export default function WalletTransactionHistory({
   };
 
   const getTransactionStatusLabel = (status) => {
+    if (status === undefined || status === null || status === "") return "";
+    const key = String(status).toLowerCase();
     const statusMap = {
-      Completed: "Hoàn thành",
-      Pending: "Đang xử lý",
-      Failed: "Thất bại",
-      Cancelled: "Đã hủy",
-      Success: "Thành công"
+      completed: "Hoàn thành",
+      success: "Thành công",
+      succeeded: "Thành công",
+      pending: "Đang xử lý",
+      processing: "Đang xử lý",
+      failed: "Thất bại",
+      cancelled: "Đã hủy",
+      canceled: "Đã hủy",
+      refunded: "Đã hoàn tiền",
+      refund: "Đã hoàn tiền",
     };
-    return statusMap[status] || status;
+    return statusMap[key] || String(status);
   };
 
   // Nhóm giao dịch theo ngày

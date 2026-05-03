@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, Heart, Share2, SlidersHorizontal, Star } from "lucide-react";
+import { CalendarDays, SlidersHorizontal, Star } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getEventList } from "../../services/eventService";
 import "./Events.css";
@@ -142,14 +142,6 @@ const Events = () => {
                       {b}
                     </span>
                   ))}
-                </div>
-                <div className="ev-actions">
-                  <button type="button" className="ev-icon-btn" onClick={(e) => e.stopPropagation()} aria-label="Favorite">
-                    <Heart size={18} />
-                  </button>
-                  <button type="button" className="ev-icon-btn" onClick={(e) => e.stopPropagation()} aria-label="Share">
-                    <Share2 size={18} />
-                  </button>
                 </div>
               </div>
 

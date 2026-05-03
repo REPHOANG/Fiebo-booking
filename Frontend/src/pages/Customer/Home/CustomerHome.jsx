@@ -2,8 +2,7 @@ import { useState } from "react";
 import { MapPin, TrendingUp, Navigation } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SearchBar from "../../../components/common/SearchBar/SearchBar";
-import { useDispatch, useSelector } from "react-redux";
-import { logout, AUTH_STORAGE_KEY } from "../../../store/authSlice";
+import { useSelector } from "react-redux";
 import {
   getNearbyFields,
   getTopBookingFields,
@@ -12,7 +11,6 @@ import "./CustomerHome.css";
 import { useQuery } from "@tanstack/react-query";
 import { mapVenue } from "../../../utils/helperFunction";
 import { VenueCard } from "./VenueCard";
-import LoadingPage from "../../../components/ui/Loading/LoadingPage";
 import { VenueCardSkeleton } from "../../../components/ui/Loading/VenueCardSkeleton";
 import ErrorPage from "../../../components/ui/Error/ErrorPage";
 
@@ -29,7 +27,6 @@ const getStoredLocation = () => {
 
 const CustomerHome = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,14 +69,6 @@ const CustomerHome = () => {
   const handleSearch = () => {
     const q = searchQuery.trim();
     navigate(q ? `/venues?search=${encodeURIComponent(q)}` : "/venues");
-  };
-
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.removeItem("token");
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    sessionStorage.removeItem("token");
-    navigate("/");
   };
 
   if (nearbyError || popularError) {
