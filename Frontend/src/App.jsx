@@ -88,31 +88,54 @@ const AppContent = () => {
   useEffect(() => {
     if (initRanRef.current) return;
     initRanRef.current = true;
-
     // Kiểm tra xem đã hỏi truy cập vị trí chưa
     const locationPromptAsked = localStorage.getItem("locationPromptAsked");
-    
-    // Nếu chưa hỏi, hỏi ngay
+
+    // Nếu chưa hỏi, hỏi ngay (với cơ chế thử lại khi thất bại)
     if (!locationPromptAsked) {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            localStorage.setItem("userLocation", JSON.stringify(position.coords));
-            localStorage.setItem("locationPromptAsked", "true");
-            localStorage.setItem("userLocationPermission", "granted");
-            console.log("✓ Lưu vị trí:", position.coords);
-          },
-          (error) => {
-            // Lưu rằng đã hỏi và user từ chối
-            localStorage.setItem("locationPromptAsked", "true");
-            localStorage.setItem("userLocationPermission", "denied");
-            console.log("User từ chối vị trí:", error.message);
-          },
-          {
-            timeout: 10000, // Timeout 10 giây
-            maximumAge: 0
-          }
-        );
+        const maxRetries = 2; // số lần thử lại nếu thất bại (ngoài lần thử đầu)
+
+        const attemptGetLocation = (retriesLeft) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              localStorage.setItem("userLocation", JSON.stringify(position.coords));
+              localStorage.setItem("locationPromptAsked", "true");
+              localStorage.setItem("userLocationPermission", "granted");
+              console.log("✓ Lưu vị trí:", position.coords);
+            },
+            (error) => {
+              // Nếu user từ chối cấp quyền, dừng thử lại
+              if (error?.code === 1) {
+                localStorage.setItem("locationPromptAsked", "true");
+                localStorage.setItem("userLocationPermission", "denied");
+                console.log("User từ chối vị trí:", error.message);
+                return;
+              }
+
+              if (retriesLeft > 0) {
+                console.warn(`Lấy vị trí thất bại, thử lại (${retriesLeft} lần còn lại):`, error.message);
+                setTimeout(() => attemptGetLocation(retriesLeft - 1), 1000);
+              } else {
+                // Hết lượt thử — đánh dấu đã hỏi nhưng không lấy được vị trí
+                localStorage.setItem("locationPromptAsked", "true");
+                localStorage.setItem("userLocationPermission", "unavailable");
+                console.log("Không lấy được vị trí sau nhiều lần thử:", error.message);
+              }
+            },
+            {
+              timeout: 10000, // Timeout 10 giây
+              maximumAge: 0
+            }
+          );
+        };
+
+        attemptGetLocation(maxRetries);
+      } else {
+        // Không hỗ trợ geolocation
+        localStorage.setItem("locationPromptAsked", "true");
+        localStorage.setItem("userLocationPermission", "unavailable");
+        console.log("Trình duyệt không hỗ trợ Geolocation.");
       }
     } else {
       // Đã hỏi rồi, lấy từ localStorage

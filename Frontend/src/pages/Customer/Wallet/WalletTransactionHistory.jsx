@@ -72,6 +72,8 @@ export default function WalletTransactionHistory({
   };
 
   const getTransactionStatusLabel = (status) => {
+    if (status === undefined || status === null || status === "") return "";
+    const key = String(status).toLowerCase();
     const statusMap = {
       1: "Thành công",
       2: "Đang xử lý",
@@ -86,7 +88,7 @@ export default function WalletTransactionHistory({
       Rejected: "Từ chối",
       Processing: "Đang xử lý",
     };
-    return statusMap[status] || status;
+    return statusMap[key] || String(status);
   };
 
   // Nhóm giao dịch theo ngày

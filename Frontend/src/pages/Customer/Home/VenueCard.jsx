@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Heart, Share2, TrendingUp, Star } from "lucide-react";
+import { Clock, TrendingUp, Star } from "lucide-react";
 import BookingTypeModal from "../../../components/common/BookingTypeModal/BookingTypeModal";
 import { useState } from "react";
 
@@ -25,14 +25,6 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
               {badge}
             </span>
           ))}
-        </div>
-        <div className="ch-card-actions">
-          <button className="ch-card-action-btn">
-            <Heart size={18} />
-          </button>
-          <button className="ch-card-action-btn">
-            <Share2 size={18} />
-          </button>
         </div>
       </div>
       <div className="ch-card-info">

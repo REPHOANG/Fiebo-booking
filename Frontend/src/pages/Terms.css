@@ -1,0 +1,201 @@
+.terms-page {
+  padding: 40px 16px;
+  background: var(--page-bg, #f7fafc);
+  min-height: calc(100vh - var(--header-height, 90px));
+}
+
+.terms-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(14, 15, 20, 0.06);
+}
+
+.terms-container h1 {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.terms-container h2 {
+  font-size: 16px;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  color: #052849;
+}
+
+.terms-container p {
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .terms-container {
+    padding: 18px;
+  }
+  .terms-container h1 {
+    font-size: 22px;
+  }
+}
+
+/* Refund table styles */
+.table-responsive {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.refund-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 15px;
+  background: #fff;
+}
+.refund-table th,
+.refund-table td {
+  border: 1px solid #e6eef6;
+  padding: 10px 12px;
+  text-align: left;
+}
+.refund-table th {
+  background: #f7fafc;
+  font-weight: 700;
+}
+.refund-table td:nth-child(2) {
+  text-align: center;
+  width: 160px;
+}
+
+@media (max-width: 480px) {
+  .refund-table th,
+  .refund-table td {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+/* Bullet list indentation and formatting */
+.terms-container ul {
+  margin: 8px 0 16px 0;
+  padding-left: 1.25rem; /* indent bullets */
+  list-style-type: disc;
+  list-style-position: outside;
+}
+.terms-container ul ul {
+  padding-left: 1.25rem; /* nested lists further indented */
+  list-style-type: circle;
+}
+.terms-container li {
+  margin: 6px 0;
+  color: #4a5568;
+}
+.terms-container p > ul,
+.terms-container p > ol {
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .terms-container ul {
+    padding-left: 1rem;
+  }
+}
+
+/* Layout for sidebar + content */
+.terms-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: start;
+  padding: 0 16px;
+}
+
+.terms-sidebar {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--header-height, 90px) + 16px);
+  height: calc(100vh - (var(--header-height, 90px) + 32px));
+  overflow: auto;
+}
+
+.sidebar-inner {
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(14, 15, 20, 0.04);
+}
+
+.sidebar-search {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e6eef6;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidebar-list li {
+  margin-bottom: 8px;
+}
+.sidebar-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #334155;
+  font-weight: 600;
+}
+.sidebar-list li.active button {
+  background: #f0fdf4;
+  color: #166534;
+}
+.sidebar-list button:hover {
+  background: #f8fafc;
+}
+
+/* On small screens the sidebar becomes a horizontal selector above content */
+@media (max-width: 900px) {
+  .terms-layout {
+    grid-template-columns: 1fr;
+  }
+  .terms-sidebar {
+    position: relative;
+    height: auto;
+    top: 0;
+    margin-bottom: 12px;
+  }
+  .sidebar-inner {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .sidebar-search {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+  }
+  .sidebar-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    flex: 0 0 auto;
+  }
+  .sidebar-list li {
+    margin: 0;
+  }
+  .sidebar-list button {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
