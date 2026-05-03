@@ -41,7 +41,7 @@ export const VenueCard = ({ venue, isAuthenticated }) => {
             <Clock size={13} /> {venue.hours}
           </p>
           <p className="ch-venue-rating">
-            <Star size={13} fill="currentColor" /> {venue.rating} ({venue.reviews || 0} đánh giá)
+            <Star size={13} fill="currentColor" /> {venue.rating}
           </p>
           <p className="ch-venue-bookings">
             <TrendingUp size={13} /> {venue.bookings.toLocaleString()} lượt đặt

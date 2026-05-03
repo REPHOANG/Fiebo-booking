@@ -11,7 +11,7 @@ namespace Fiebo.Application.DTOs.Review
     {
         public int BookingId { get; set; }
 
-        public double Rating { get; set; }
+        public string Rating { get; set; } = string.Empty;
 
         public string? Comment { get; set; }
         public List<IFormFile>? Images { get; set; }
