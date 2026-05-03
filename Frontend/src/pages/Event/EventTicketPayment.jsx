@@ -9,7 +9,8 @@ import "../Customer/Booking/BookingPayment.css";
 const formatPrice = (price) => (Number(price) > 0 ? `${Number(price).toLocaleString("vi-VN")} đ` : "0 đ");
 
 /** Thời gian còn lại (giây) đến khi hết hạn thanh toán. Null = không có thông tin. */
-const secondsLeftFromExpiredAt = (expiredAt) => {
+const secondsLeftFromExpiredAt = (expiredAt, expiresInSeconds) => {
+  if (typeof expiresInSeconds === "number") return expiresInSeconds;
   if (expiredAt == null || expiredAt === "") return null;
   const ts = new Date(expiredAt).getTime();
   if (!Number.isFinite(ts)) return null;
@@ -99,13 +100,14 @@ const EventTicketPayment = () => {
 
   // Đếm ngược trực tiếp theo expiredAt từ API.
   useEffect(() => {
-    const initial = secondsLeftFromExpiredAt(expiredAt);
+    const eis = ticket?.expiresInSeconds ?? ticket?.ExpiresInSeconds;
+    const initial = secondsLeftFromExpiredAt(expiredAt, eis);
     if (initial == null) {
       setTimeLeft(null);
       return;
     }
     setTimeLeft(Math.max(0, initial));
-  }, [expiredAt]);
+  }, [expiredAt, ticket]);
 
   useEffect(() => {
     if (timeLeft == null) return;

@@ -354,19 +354,24 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
 
+                var requestedPairs = request.Details
+                    .Select(d => (d.SlotId, d.FieldId))
+                    .ToList();
+
                 var unavailableSlots = await _unitOfWork.BookingDetails
-                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUnavailableSlots(requestedPairs, request.BookingDate);
 
                 if (unavailableSlots.Any())
                     throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
                 var eventUsedSlots = await _unitOfWork.TicketEvents
-                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUsedSlots(requestedPairs, request.BookingDate);
 
                 if (eventUsedSlots.Any())
                     throw new ResourceConflictException("Sân hiện tại hiện không có slot trống.");
 
-                var expiredAt = now.AddMinutes(5);
+                var currentTime = DateTime.Now;
+                var expiredAt = currentTime.AddMinutes(5);
 
                 var booking = new Booking
                 {
@@ -424,9 +429,7 @@ namespace Fiebo.Application.Services
                 foreach (var item in request.Details)
                 {
                     var slot = slotDict[item.SlotId];
-
                     slotsTotalPrice += slot.Price;
-
                     details.Add(new BookingDetail
                     {
                         Booking = booking,
@@ -446,6 +449,7 @@ namespace Fiebo.Application.Services
                     BookingId = booking.Id,
                     TotalPrice = slotsTotalPrice,
                     ExpiredAt = expiredAt,
+                    ExpiresInSeconds = (int)(expiredAt - currentTime).TotalSeconds,
                     BookingStatus = BookingStatus.Pending.ToString()
                 };
             }
@@ -478,6 +482,9 @@ namespace Fiebo.Application.Services
                 BookingNote = booking.BookingNote,
                 Status = booking.Status.ToString(),
                 ExpiredAt = booking.ExpiredAt,
+                ExpiresInSeconds = booking.ExpiredAt.HasValue 
+                    ? (int)Math.Max(0, (booking.ExpiredAt.Value - DateTime.Now).TotalSeconds)
+                    : null,
                 VenueId = booking.VenueId,
                 VenueName = booking.Venue.Name,
                 Date = booking.BookingDate,
@@ -629,14 +636,18 @@ namespace Fiebo.Application.Services
                         throw new BadRequestException("Slot đã bắt đầu hoặc đã kết thúc.");
                 }
 
+                var requestedPairs = request.Details
+                    .Select(d => (d.SlotId, d.FieldId))
+                    .ToList();
+
                 var unavailableSlots = await _unitOfWork.BookingDetails
-                    .GetUnavailableSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUnavailableSlots(requestedPairs, request.BookingDate);
 
                 if (unavailableSlots.Any())
                     throw new ResourceConflictException("Một số slot đã được đặt.");
 
                 var eventUsedSlots = await _unitOfWork.TicketEvents
-                    .GetUsedSlots(slotIds, fieldIds, request.BookingDate);
+                    .GetUsedSlots(requestedPairs, request.BookingDate);
 
                 if (eventUsedSlots.Any())
                     throw new ResourceConflictException("Một số slot đã được sử dụng cho sự kiện.");

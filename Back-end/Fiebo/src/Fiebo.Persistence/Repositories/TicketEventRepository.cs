@@ -111,11 +111,13 @@ namespace Fiebo.Persistence.Repositories
         }
 
         public async Task<List<(int SlotId, int FieldId)>> GetUsedSlots(
-            List<int> slotIds,
-            List<int> fieldIds,
+            List<(int SlotId, int FieldId)> requestedSlots,
             DateOnly bookingDate)
         {
-            return await _context.TicketEventDetails
+            var slotIds = requestedSlots.Select(x => x.SlotId).Distinct().ToList();
+            var fieldIds = requestedSlots.Select(x => x.FieldId).Distinct().ToList();
+
+            var queryResults = await _context.TicketEventDetails
                 .AsNoTracking()
                 .Where(d =>
                     slotIds.Contains(d.SlotId) &&
@@ -123,9 +125,14 @@ namespace Fiebo.Persistence.Repositories
                     d.Event.EventDate == bookingDate &&
                     d.Event.Status == TicketEventStatus.Pending
                 )
-                .Select(d => new ValueTuple<int, int>(d.SlotId, d.FieldId))
+                .Select(d => new { d.SlotId, d.FieldId })
                 .Distinct()
                 .ToListAsync();
+
+            return queryResults
+                .Where(qr => requestedSlots.Any(rs => rs.SlotId == qr.SlotId && rs.FieldId == qr.FieldId))
+                .Select(qr => (qr.SlotId, qr.FieldId))
+                .ToList();
         }
 
         public async Task<PagedResult<TicketEvent>> GetEventsByVenueIdsAsync(

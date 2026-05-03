@@ -21,8 +21,7 @@ namespace Fiebo.Domain.Repositories
 
         Task<bool> HasUpcomingBookingsForVenueAsync(int venueId);
         Task<List<(int SlotId, int FieldId)>> GetUnavailableSlots(
-            List<int> slotIds,
-            List<int> fieldIds,
+            List<(int SlotId, int FieldId)> requestedSlots,
             DateOnly bookingDate);
     }
 }

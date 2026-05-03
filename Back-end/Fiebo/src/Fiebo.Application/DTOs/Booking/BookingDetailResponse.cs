@@ -20,6 +20,7 @@ namespace Fiebo.Application.DTOs.Booking
         public string Status { get; set; }
 
         public DateTime? ExpiredAt { get; set; }
+        public int? ExpiresInSeconds { get; set; }
 
         public int VenueId { get; set; }
 

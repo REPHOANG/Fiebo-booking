@@ -314,6 +314,9 @@ namespace Fiebo.Application.Services
                 TotalAmount = participant.TotalPrice,
                 Status = participant.Status.ToString(),
                 ExpiredAt = participant.ExpiredAt,
+                ExpiresInSeconds = participant.ExpiredAt.HasValue 
+                    ? (int)Math.Max(0, (participant.ExpiredAt.Value - DateTime.Now).TotalSeconds)
+                    : null,
                 Slots = slots
             };
         }
