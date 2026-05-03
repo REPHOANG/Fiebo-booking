@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -26,10 +25,6 @@ import {
   Send, 
   Sparkles, 
   Diamond, 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown,
-  Settings,
   DollarSign,
   Calendar,
   Package
@@ -180,7 +175,7 @@ const AdminSubscriptionPlans = () => {
   const [editPlan, setEditPlan] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const { data: plans = [], isLoading, isError, error } = useQuery({
+  const { data: plans = [], isLoading } = useQuery({
     queryKey: ["adminSubscriptionPlans"],
     queryFn: getAdminSubscriptionPlans,
     staleTime: 5 * 60 * 1000,
@@ -229,9 +224,6 @@ const AdminSubscriptionPlans = () => {
   const formLoading = createMutation.isPending || updateMutation.isPending;
 
   const totalPlans = plans.length;
-  const avgPrice = totalPlans > 0 ? plans.reduce((acc, p) => acc + p.price, 0) / totalPlans : 0;
-  const maxPrice = totalPlans > 0 ? Math.max(...plans.map(p => p.price)) : 0;
-  const maxDuration = totalPlans > 0 ? Math.max(...plans.map(p => p.durationDays)) : 0;
 
   return (
     <div className="subs-container">

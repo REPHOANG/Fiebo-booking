@@ -3,19 +3,13 @@ import { getAllReportsAdmin, respondToReport } from "../../../services/adminServ
 import { 
   Search, 
   Filter, 
-  Download, 
   Eye, 
   MessageSquare, 
   History, 
-  AlertCircle, 
   ChevronLeft, 
   ChevronRight,
-  TrendingUp,
-  BarChart3,
-  MapPin,
   Clock,
-  CheckCircle2,
-  AlertTriangle
+  CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import "../adminPages.css";
@@ -30,7 +24,7 @@ const STATUS_MAP = {
 const AdminReports = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
