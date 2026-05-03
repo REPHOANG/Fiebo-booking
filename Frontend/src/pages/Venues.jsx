@@ -354,6 +354,8 @@ const Venues = () => {
   const [appliedBookingTime, setAppliedBookingTime] = useState("");
   const [appliedProvinceId, setAppliedProvinceId] = useState("");
   const [appliedWardId, setAppliedWardId] = useState("");
+  const [applyingFilter, setApplyingFilter] = useState(false);
+  const filterApplyTimerRef = useRef(null);
   const sportDraftMismatch =
     String(pendingSportTypeId || "") !==
     (sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "");
@@ -634,9 +636,14 @@ const Venues = () => {
   }, [initialSearch]);
 
   // cleanup timer on unmount
+  // cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (filterApplyTimerRef.current) {
+        clearTimeout(filterApplyTimerRef.current);
+        filterApplyTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -759,8 +766,18 @@ const Venues = () => {
   };
 
   const applyFilterPanel = () => {
-    if (filterMode === "khoang-cach") applyDistanceFilter();
-    else applyAreaFilter();
+    // debounce a short delay before applying filters to avoid rapid consecutive
+    // requests overwriting each other. During the wait, disable the button.
+    if (filterApplyTimerRef.current) {
+      clearTimeout(filterApplyTimerRef.current);
+    }
+    setApplyingFilter(true);
+    filterApplyTimerRef.current = setTimeout(() => {
+      setApplyingFilter(false);
+      filterApplyTimerRef.current = null;
+      if (filterMode === "khoang-cach") applyDistanceFilter();
+      else applyAreaFilter();
+    }, 3000);
   };
 
 
@@ -1237,10 +1254,20 @@ const Venues = () => {
                       </div>
 
                       <div className="filter-actions">
-                        <button type="button" className="filter-btn-primary" onClick={applyFilterPanel}>
-                          Áp dụng bộ lọc
+                        <button
+                          type="button"
+                          className={`filter-btn-primary${applyingFilter ? " is-loading" : ""}`}
+                          onClick={applyFilterPanel}
+                          disabled={applyingFilter}
+                        >
+                          {applyingFilter ? "Đang áp dụng..." : "Áp dụng bộ lọc"}
                         </button>
-                        <button type="button" className="filter-btn-ghost" onClick={clearFilters}>
+                        <button
+                          type="button"
+                          className="filter-btn-ghost"
+                          onClick={clearFilters}
+                          disabled={applyingFilter}
+                        >
                           Xóa tất cả
                         </button>
                       </div>
