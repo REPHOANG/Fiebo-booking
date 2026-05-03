@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { DatePicker, TimePicker } from "antd";
+import dayjs from "dayjs";
+import "antd/dist/reset.css";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -183,7 +186,6 @@ const formatTimeForApi = (t) => {
 const Venues = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialSearch = searchParams.get("search") || "";
   const sportParam = searchParams.get("sport");
   /** `null` = chưa tải API; sau đó là mảng (có thể rỗng). */
   const [sportTypeCatalog, setSportTypeCatalog] = useState(null);
@@ -218,10 +220,18 @@ const Venues = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(initialSearch);
-  const [inputValue, setInputValue] = useState(initialSearch);
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("search") || "");
+  const [inputValue, setInputValue] = useState(() => searchParams.get("search") || "");
+  
+  useEffect(() => {
+    const s = searchParams.get("search");
+    if (s != null) {
+      setSearchTerm(s);
+      setInputValue(s);
+    }
+  }, [searchParams]);
   const [, setTotalItems] = useState(0);
-  /** Read initial location: prefer URL search params (`lat`/`lng`), fallback to localStorage. */
+  /** Read initial location: prefer URL search params (`lat`/`lng`). */
   const [userGeo, setUserGeo] = useState(() => {
     try {
       const latParam = searchParams.get("lat");
@@ -230,15 +240,6 @@ const Venues = () => {
         const lat = parseFloat(latParam);
         const lng = parseFloat(lngParam);
         if (Number.isFinite(lat) && Number.isFinite(lng)) return { userLat: lat, userLng: lng };
-      }
-    } catch { }
-    try {
-      const stored = localStorage.getItem("userLocation");
-      if (stored) {
-        const coords = JSON.parse(stored);
-        const lat = coords?.latitude ?? null;
-        const lng = coords?.longitude ?? null;
-        if (lat != null && lng != null) return { userLat: lat, userLng: lng };
       }
     } catch { }
     return { userLat: null, userLng: null };
@@ -253,14 +254,6 @@ const Venues = () => {
         const lat = parseFloat(latParam);
         const lng = parseFloat(lngParam);
         if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng, label: null };
-      }
-    } catch { }
-    try {
-      const stored = localStorage.getItem("userLocation");
-      if (stored) {
-        const c = JSON.parse(stored);
-        if (c?.latitude != null && c?.longitude != null)
-          return { lat: Number(c.latitude), lng: Number(c.longitude) };
       }
     } catch { }
     return null;
@@ -312,25 +305,12 @@ const Venues = () => {
     // Show the picked location on the map (transient)
     setMapPickedLocation({ lat, lng, label: shortLabel });
     setFlyToTarget({ lat, lng });
-    setFilterMode("khoang-cach");
     setMapSearchQuery(shortLabel);
     setMapSearchOpen(false);
-
-    // Store coordinates in the URL search params only (do not overwrite localStorage).
-    try {
-      setUserGeo({ userLat: lat, userLng: lng });
-      // Selecting a map location implies distance-based filtering — clear any area filters
-      setAppliedProvinceId("");
-      setAppliedWardId("");
-      setSearchParams((prev) => {
-        const p = new URLSearchParams(prev);
-        p.set("lat", String(lat));
-        p.set("lng", String(lng));
-        return p;
-      }, { replace: true });
-    } catch { }
+    // Store coordinates in state only (no URL update)
+    setUserGeo({ userLat: lat, userLng: lng });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setSearchParams]);
+  }, []);
 
   // Add filter panel state
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -349,7 +329,9 @@ const Venues = () => {
   const [pendingBookingDate, setPendingBookingDate] = useState("");
   const [pendingBookingTime, setPendingBookingTime] = useState("");
   /** `""` = tất cả môn; id string khi chọn trong bộ lọc (đồng bộ URL `sport` khi Áp dụng). */
-  const [pendingSportTypeId, setPendingSportTypeId] = useState("");
+  const initialSportId = sportTypeIdFromSearchParam(sportParam, FALLBACK_SPORT_CATALOG);
+  const initialSportIdStr = initialSportId != null ? String(initialSportId) : "";
+  const [pendingSportTypeId, setPendingSportTypeId] = useState(initialSportIdStr);
   const pendingKeyword = "";
   /** Bán kính đã áp dụng → gửi `radiusKm` + tọa độ (giống Swagger). */
   const [appliedRadiusKm, setAppliedRadiusKm] = useState(null);
@@ -358,7 +340,7 @@ const Venues = () => {
   const [appliedProvinceId, setAppliedProvinceId] = useState("");
   const [appliedWardId, setAppliedWardId] = useState("");
   const [applyingFilter, setApplyingFilter] = useState(false);
-  const filterApplyTimerRef = useRef(null);
+  const [appliedSportTypeId, setAppliedSportTypeId] = useState(initialSportIdStr);
   const sportDraftMismatch =
     String(pendingSportTypeId || "") !==
     (sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "");
@@ -391,9 +373,9 @@ const Venues = () => {
   }, [districtOptions, districtQuery]);
 
   useEffect(() => {
-    setPendingSportTypeId(
-      sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "",
-    );
+    const val = sportTypeIdFromUrl != null ? String(sportTypeIdFromUrl) : "";
+    setPendingSportTypeId(val);
+    setAppliedSportTypeId(val);
   }, [sportTypeIdFromUrl]);
 
   useEffect(() => {
@@ -449,21 +431,7 @@ const Venues = () => {
     };
   }, [selectedProvinceId]);
 
-  const commitSportToUrl = useCallback(() => {
-    setSearchParams(
-      (prev) => {
-        const p = new URLSearchParams(prev);
-        const raw = String(pendingSportTypeId ?? "").trim();
-        if (raw !== "") {
-          p.set("sport", raw);
-        } else {
-          p.delete("sport");
-        }
-        return p;
-      },
-      { replace: true },
-    );
-  }, [pendingSportTypeId, setSearchParams]);
+  // Note: commitSportToUrl removed - state-only approach
 
   const observer = useRef();
   const provinceBoxRef = useRef(null);
@@ -477,7 +445,7 @@ const Venues = () => {
     () =>
       [
         searchTerm,
-        sportTypeIdFromUrl ?? "",
+        appliedSportTypeId ?? "",
         userGeo.userLat ?? "",
         userGeo.userLng ?? "",
         appliedBookingDate,
@@ -488,7 +456,7 @@ const Venues = () => {
       ].join("|"),
     [
       searchTerm,
-      sportTypeIdFromUrl,
+      appliedSportTypeId,
       userGeo.userLat,
       userGeo.userLng,
       appliedBookingDate,
@@ -519,25 +487,15 @@ const Venues = () => {
       setLoading(true);
       const location = searchTerm?.trim() || undefined;
       const sportTypeId =
-        sportTypeIdFromUrl != null ? Number(sportTypeIdFromUrl) : undefined;
+        appliedSportTypeId != null && String(appliedSportTypeId).trim() !== ""
+          ? Number(appliedSportTypeId)
+          : undefined;
       const dateParam = appliedBookingDate?.trim() || undefined;
       const timeParam =
         dateParam && appliedBookingTime?.trim()
           ? formatTimeForApi(appliedBookingTime)
           : undefined;
-
       try {
-        // Prefer distance-based filtering over area filters. Never send both
-        // `radiusKm` and `provinceId`/`wardId` at the same time to the API.
-        const useDistance =
-          appliedRadiusKm != null &&
-          Number.isFinite(appliedRadiusKm) &&
-          appliedRadiusKm > 0 &&
-          userGeo.userLat != null &&
-          userGeo.userLng != null &&
-          Number.isFinite(userGeo.userLat) &&
-          Number.isFinite(userGeo.userLng);
-
         const params = {
           location,
           date: dateParam,
@@ -547,9 +505,43 @@ const Venues = () => {
           pageSize: PAGE_SIZE,
         };
 
-        if (useDistance) {
-          params.userLat = userGeo.userLat;
-          params.userLng = userGeo.userLng;
+        // Xác định tọa độ: Ưu tiên chọn trên map (userGeo), nếu không có thì lấy từ localStorage
+        let finalLat = null;
+        let finalLng = null;
+
+        if (
+          userGeo.userLat != null &&
+          userGeo.userLng != null &&
+          Number.isFinite(userGeo.userLat) &&
+          Number.isFinite(userGeo.userLng)
+        ) {
+          finalLat = userGeo.userLat;
+          finalLng = userGeo.userLng;
+        } else {
+          const savedLoc = localStorage.getItem("userLocation");
+          if (savedLoc) {
+            try {
+              const parsed = JSON.parse(savedLoc);
+              if (parsed && parsed.latitude && parsed.longitude) {
+                finalLat = parsed.latitude;
+                finalLng = parsed.longitude;
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (finalLat != null && finalLng != null) {
+          params.userLat = finalLat;
+          params.userLng = finalLng;
+        }
+
+        // Chế độ lọc độc quyền: hoặc theo Khoảng cách, hoặc theo Khu vực
+        const useDistanceFilter =
+          appliedRadiusKm != null &&
+          Number.isFinite(appliedRadiusKm) &&
+          appliedRadiusKm > 0;
+
+        if (useDistanceFilter) {
           params.radiusKm = appliedRadiusKm;
         } else {
           if (appliedProvinceId) params.provinceId = appliedProvinceId;
@@ -585,7 +577,7 @@ const Venues = () => {
     },
     [
       searchTerm,
-      sportTypeIdFromUrl,
+      appliedSportTypeId,
       userGeo.userLat,
       userGeo.userLng,
       appliedBookingDate,
@@ -596,25 +588,21 @@ const Venues = () => {
     ],
   );
 
-  /**
-   * Một luồng tải: đổi bộ lọc → reset trang 1 + tải lại; chỉ gọi load trang > 1 khi bộ lọc không đổi
-   * (tránh race của hai useEffect cũ: đổi lọc vẫn còn page cũ thì gọi nhầm trang 2).
-   */
+  // Xử lý khi bộ lọc thay đổi: Reset về trang 1 và tải dữ liệu mới
   useEffect(() => {
-    const isFirst = prevFiltersKeyRef.current === undefined;
-    const filterChanged =
-      !isFirst && prevFiltersKeyRef.current !== filtersKey;
-
-    if (isFirst || filterChanged) {
-      if (filterChanged) setPage(1);
-      prevFiltersKeyRef.current = filtersKey;
-      loadPage(1, true);
-      return;
+    loadPage(1, true);
+    if (page !== 1) {
+      setPage(1);
     }
-    if (page > 1) {
+    prevFiltersKeyRef.current = filtersKey;
+  }, [filtersKey, loadPage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Xử lý khi chuyển trang (pagination): Chỉ tải thêm nếu bộ lọc không đổi
+  useEffect(() => {
+    if (page > 1 && prevFiltersKeyRef.current === filtersKey) {
       loadPage(page, false);
     }
-  }, [filtersKey, page, loadPage]);
+  }, [page, filtersKey, loadPage]);
 
   const lastVenueRef = useCallback(
     (node) => {
@@ -630,34 +618,27 @@ const Venues = () => {
     [loading, hasMore]
   );
 
-  // Debounced search
-  const searchTimer = useRef(null);
+  // Search input — only update internal input value. Actual search is
+  // triggered explicitly by the search button (`handleSearchClick`).
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setInputValue(val);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      setSearchTerm(val);
-    }, 400);
   };
 
-  // Keep input and searchTerm in sync when URL initialSearch changes
-  useEffect(() => {
-    setInputValue(initialSearch);
-    setSearchTerm(initialSearch);
-  }, [initialSearch]);
+  // Immediate search when user clicks the search button (visible only when
+  // the advanced filter panel is closed).
+  const handleSearchClick = () => {
+    setSearchTerm(inputValue || "");
+  };
 
-  // cleanup timer on unmount
-  // cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-      if (filterApplyTimerRef.current) {
-        clearTimeout(filterApplyTimerRef.current);
-        filterApplyTimerRef.current = null;
-      }
-    };
-  }, []);
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSearchClick();
+    }
+  };
+
+
+  // no timer cleanup required (debounce removed)
 
   useEffect(() => {
     const onPointerDown = (e) => {
@@ -679,8 +660,8 @@ const Venues = () => {
   const getLocation = (venue) => {
     const ward = venue.ward ?? venue.Ward;
     const province = venue.province ?? venue.Province;
-    const parts = [ward, province].filter(Boolean);
     const detail = venue.addressDetail ?? venue.AddressDetail;
+    const parts = [detail, ward, province].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : detail || "Không rõ vị trí";
   };
 
@@ -691,14 +672,19 @@ const Venues = () => {
     return [province, district].filter(Boolean).join(" ").trim();
   };
 
-  const applyPendingSearchText = () => {
+  const applyPendingSearchText = (forceUseInput = false) => {
     const text = getPendingSearchText();
-    // If the user has typed something in the main search input, preserve it
-    // (do not overwrite by filter panel values). Otherwise, apply the
-    // pending area text (if any) as the search term.
-    if (!inputValue || !String(inputValue).trim()) {
-      if (text) setSearchTerm(text);
-      else setSearchTerm("");
+    // Option B: when forceUseInput=true, always use the main inputValue as
+    // the search term (so Apply will include whatever the user typed).
+    if (forceUseInput) {
+      setSearchTerm(inputValue || "");
+    } else {
+      // Otherwise preserve the existing inputValue if present; only use
+      // the panel's derived text when main input is empty.
+      if (!inputValue || !String(inputValue).trim()) {
+        if (text) setSearchTerm(text);
+        else setSearchTerm("");
+      }
     }
     // Do NOT copy selected province/district into the main search input.
     // Only display an explicit `pendingKeyword` (if provided by the user).
@@ -713,19 +699,9 @@ const Venues = () => {
     setAppliedBookingTime(pendingBookingTime);
     setAppliedProvinceId(selectedProvinceId);
     setAppliedWardId(selectedDistrictId);
-    // Clear any user geo / distance params so area filter is exclusive
-    setUserGeo({ userLat: null, userLng: null });
-    setMapPickedLocation(null);
-    try {
-      setSearchParams((prev) => {
-        const p = new URLSearchParams(prev);
-        p.delete("lat");
-        p.delete("lng");
-        return p;
-      }, { replace: true });
-    } catch { }
-    commitSportToUrl();
-    applyPendingSearchText();
+    setAppliedSportTypeId(pendingSportTypeId);
+    // Include current main search input when applying filters (Option B)
+    applyPendingSearchText(true);
     setShowFilterPanel(false);
   };
 
@@ -733,10 +709,11 @@ const Venues = () => {
     const raw = String(distanceKm ?? "").trim();
     setAppliedBookingDate(pendingBookingDate);
     setAppliedBookingTime(pendingBookingTime);
+    setAppliedSportTypeId(pendingSportTypeId);
     if (!raw) {
       setAppliedRadiusKm(null);
-      commitSportToUrl();
-      applyPendingSearchText();
+      // Include current main search input when applying filters (Option B)
+      applyPendingSearchText(true);
       setShowFilterPanel(false);
       return;
     }
@@ -746,11 +723,12 @@ const Venues = () => {
     const finish = (lat, lng) => {
       setUserGeo({ userLat: lat, userLng: lng });
       setAppliedRadiusKm(r);
+      setAppliedSportTypeId(pendingSportTypeId);
       // Ensure we don't keep area filters when applying distance filter
       setAppliedProvinceId("");
       setAppliedWardId("");
-      commitSportToUrl();
-      applyPendingSearchText();
+      // Include current main search input when applying filters (Option B)
+      applyPendingSearchText(true);
       setShowFilterPanel(false);
     };
 
@@ -800,18 +778,16 @@ const Venues = () => {
   };
 
   const applyFilterPanel = () => {
-    // debounce a short delay before applying filters to avoid rapid consecutive
-    // requests overwriting each other. During the wait, disable the button.
-    if (filterApplyTimerRef.current) {
-      clearTimeout(filterApplyTimerRef.current);
-    }
+    // Apply filters immediately (no debounce)
     setApplyingFilter(true);
-    filterApplyTimerRef.current = setTimeout(() => {
-      setApplyingFilter(false);
-      filterApplyTimerRef.current = null;
+    try {
       if (filterMode === "khoang-cach") applyDistanceFilter();
       else applyAreaFilter();
-    }, 3000);
+    } finally {
+      // turn off loading state immediately; long-running async steps (eg geolocation)
+      // manage their own UI/alerts inside the functions
+      setApplyingFilter(false);
+    }
   };
 
 
@@ -834,25 +810,12 @@ const Venues = () => {
     setAppliedBookingTime("");
     setAppliedProvinceId("");
     setAppliedWardId("");
+    setAppliedSportTypeId("");
     setSearchTerm("");
     setInputValue("");
     setMapSearchQuery("");
     setMapSearchResults([]);
     setMapSearchOpen(false);
-
-    // Remove temporary search params (sport + lat/lng)
-    try {
-      setSearchParams(
-        (prev) => {
-          const p = new URLSearchParams(prev);
-          p.delete("sport");
-          p.delete("lat");
-          p.delete("lng");
-          return p;
-        },
-        { replace: true },
-      );
-    } catch { }
 
     // Restore saved location from localStorage (if present), otherwise clear geo state
     try {
@@ -910,9 +873,10 @@ const Venues = () => {
                 type="text"
                 enterKeyHint="search"
                 autoComplete="off"
-                placeholder="Tìm theo tên sân..."
+                placeholder="Tìm theo tên sân, địa chỉ"
                 value={inputValue}
                 onChange={handleSearchChange}
+                onKeyDown={handleKeyDown}
               />
               {inputValue && (
                 <button
@@ -925,6 +889,17 @@ const Venues = () => {
                   aria-label="Xóa ô tìm kiếm"
                 >
                   <X size={16} />
+                </button>
+              )}
+              {!showFilterPanel && (
+                <button
+                  type="button"
+                  className="venues-search-go"
+                  onClick={handleSearchClick}
+                  disabled={applyingFilter}
+                  aria-label="Tìm"
+                >
+                  <Search size={16} />
                 </button>
               )}
             </label>
@@ -1014,20 +989,7 @@ const Venues = () => {
                           onPick={(latlng) => {
                             setMapPickedLocation({ lat: latlng.lat, lng: latlng.lng, label: null });
                             setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
-                            // picking on the map => distance mode; ensure area filters cleared
-                            setAppliedProvinceId("");
-                            setAppliedWardId("");
-                            setFilterMode("khoang-cach");
                             setMapSearchQuery("");
-                            // Write coordinates to URL params only; do not overwrite localStorage
-                            try {
-                              setSearchParams((prev) => {
-                                const p = new URLSearchParams(prev);
-                                p.set("lat", String(latlng.lat));
-                                p.set("lng", String(latlng.lng));
-                                return p;
-                              }, { replace: true });
-                            } catch { }
                           }}
                         />
                         {mapPickedLocation && (
@@ -1063,19 +1025,7 @@ const Venues = () => {
                           onLocate={(latlng) => {
                             setMapPickedLocation({ lat: latlng.lat, lng: latlng.lng, label: null });
                             setUserGeo({ userLat: latlng.lat, userLng: latlng.lng });
-                            // locating => distance mode; clear any applied area filters
-                            setAppliedProvinceId("");
-                            setAppliedWardId("");
-                            setFilterMode("khoang-cach");
                             setMapSearchQuery("");
-                            try {
-                              setSearchParams((prev) => {
-                                const p = new URLSearchParams(prev);
-                                p.set("lat", String(latlng.lat));
-                                p.set("lng", String(latlng.lng));
-                                return p;
-                              }, { replace: true });
-                            } catch { }
                           }}
                         />
                       </MapContainer>
@@ -1269,26 +1219,43 @@ const Venues = () => {
                           <label htmlFor="venues-booking-date">
                             <Calendar size={14} aria-hidden /> Ngày đặt
                           </label>
-                          <input
+                          <DatePicker
                             id="venues-booking-date"
-                            type="date"
-                            value={pendingBookingDate}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setPendingBookingDate(v);
-                              if (!v) setPendingBookingTime("");
+                            value={pendingBookingDate ? dayjs(pendingBookingDate, "YYYY-MM-DD") : null}
+                            format="DD/MM/YYYY"
+                            allowClear
+                            onChange={(date) => {
+                              if (!date) {
+                                setPendingBookingDate("");
+                                setPendingBookingTime("");
+                                return;
+                              }
+                              // `date` is a dayjs object — convert to YYYY-MM-DD for API
+                              const d = date.toDate();
+                              const y = d.getFullYear();
+                              const m = String(d.getMonth() + 1).padStart(2, "0");
+                              const day = String(d.getDate()).padStart(2, "0");
+                              setPendingBookingDate(`${y}-${m}-${day}`);
                             }}
                           />
                         </div>
                         <div className="input-group">
                           <label htmlFor="venues-booking-time">Giờ đặt (cùng ngày)</label>
-                          <input
+                          <TimePicker
                             id="venues-booking-time"
-                            type="time"
-                            value={pendingBookingTime}
-                            onChange={(e) => setPendingBookingTime(e.target.value)}
+                            value={pendingBookingTime ? dayjs(pendingBookingTime, "HH:mm") : null}
+                            format="HH:mm"
+                            allowClear
+                            minuteStep={30}
+                            onChange={(t) => {
+                              if (!t) {
+                                setPendingBookingTime("");
+                                return;
+                              }
+                              setPendingBookingTime(t.format("HH:mm"));
+                            }}
                             disabled={!pendingBookingDate}
-                            title={!pendingBookingDate ? "Chọn ngày trước" : undefined}
+                            use12Hours={false}
                           />
                         </div>
                       </div>

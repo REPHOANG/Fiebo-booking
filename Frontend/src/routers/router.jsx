@@ -30,6 +30,7 @@ import { OPEN_AUTH_STATE_KEY } from "../context/AuthModalContext";
 import Profile from "../pages/Profile";
 import Venues from "../pages/Venues";
 import MapExplore from "../pages/MapExplore";
+import Terms from "../pages/Terms";
 import OwnerProfile from "../pages/Owner/Account/OwnerProfile";
 import OwnerSubscriptionOverview from "../pages/Owner/Account/OwnerSubscriptionOverview";
 import OwnerSubscriptionPlans from "../pages/Owner/Account/OwnerSubscriptionPlans";
@@ -190,6 +191,7 @@ const routes = [
       { path: "venue/:id/booking", element: <BookingConfirmation /> },
       { path: "booking/:bookingId/payment", element: <BookingPayment /> },
       { path: "/map", element: <MapExplore /> },
+      { path: "terms", element: <Terms /> },
       {
         path: "booking/:bookingId/payment/success",
         element: <BookingPaymentSuccess />,

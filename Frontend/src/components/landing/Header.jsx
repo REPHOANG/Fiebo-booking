@@ -3,7 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
 import { useQueryClient } from "@tanstack/react-query";
-import { BellIcon, ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Logohomepage from "../../assets/images/logo-fiebo.png";
 import "./Header.css";
@@ -21,11 +21,10 @@ const Header = () => {
   const isOwner =
     (user?.role || user?.roles || "").toString().toLowerCase() === "fieldowner";
 
-  const notificationCount = 3; // sau này lấy từ API
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const userMenuRef = useRef(null);
-  const { openLogin, openRegister } = useAuthModal();
+  const { openLogin } = useAuthModal();
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -74,6 +73,12 @@ const Header = () => {
                 onMouseLeave={() => setVenuesMegaActive(false)}
                 onFocusCapture={() => setVenuesMegaActive(true)}
                 onBlurCapture={handleMegaMenuBlur}
+                onClick={(e) => {
+                  // Only close if it's an actual link
+                  if (e.target.closest('a')) {
+                    setVenuesMegaActive(false);
+                  }
+                }}
               >
                 <NavLink to="/venues" className="mega-link">
                   Sân
@@ -82,6 +87,7 @@ const Header = () => {
               </div>
               <NavLink to="/events">Sự kiện</NavLink>
               <NavLink to="/map">Bản đồ</NavLink>
+              <NavLink to="/terms">Điều khoản</NavLink>
             </nav>
           </div>
 

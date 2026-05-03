@@ -280,8 +280,10 @@ namespace Fiebo.Persistence.Repositories
                             ts.StartTime <= time &&
                             ts.EndTime > time &&
                             !ts.BookingDetails.Any(bd =>
+                                bd.FieldId == f.Id &&
                                 bd.Booking.BookingDate == date &&
-                                (bd.Booking.Status == BookingStatus.Pending ||
+                                (bd.Booking.Status == BookingStatus.Holding ||
+                                 bd.Booking.Status == BookingStatus.Pending ||
                                  bd.Booking.Status == BookingStatus.Booked ||
                                  bd.Booking.Status == BookingStatus.Completed)))));
             }
@@ -293,8 +295,10 @@ namespace Fiebo.Persistence.Repositories
                     f.Venue!.TimeSlots.Any(ts =>
                         ts.DayOfWeek == dayOfWeek &&
                         !ts.BookingDetails.Any(bd =>
+                            bd.FieldId == f.Id &&
                             bd.Booking.BookingDate == date &&
-                            (bd.Booking.Status == BookingStatus.Pending ||
+                            (bd.Booking.Status == BookingStatus.Holding ||
+                             bd.Booking.Status == BookingStatus.Pending ||
                              bd.Booking.Status == BookingStatus.Booked ||
                              bd.Booking.Status == BookingStatus.Completed)))));
         }
