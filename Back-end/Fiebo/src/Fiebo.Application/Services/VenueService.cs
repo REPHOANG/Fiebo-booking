@@ -748,6 +748,16 @@ namespace Fiebo.Application.Services
             if (!isFullDay && request.CloseTime <= request.OpenTime)
                 throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
+            if (!double.TryParse(request.Latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude))
+            {
+                throw new BadRequestException("Latitude không hợp lệ");
+            }
+
+            if (!double.TryParse(request.Longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
+            {
+                throw new BadRequestException("Longitude không hợp lệ");
+            }
+
             venue.Name = request.Name;
             venue.Description = request.Description;
             venue.OpenTime = request.OpenTime;
@@ -755,8 +765,8 @@ namespace Fiebo.Application.Services
             venue.AddressDetail = request.AddressDetail;
             venue.ProvinceId = request.ProvinceId;
             venue.WardId = request.WardId;
-            venue.Latitude = request.Latitude;
-            venue.Longitude = request.Longitude;
+            venue.Latitude = latitude;
+            venue.Longitude = longitude;
 
             if (request.DeletedThumbnail)
             {
