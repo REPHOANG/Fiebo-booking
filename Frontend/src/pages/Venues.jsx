@@ -293,7 +293,7 @@ const Venues = () => {
       } finally {
         setMapSearchLoading(false);
       }
-    }, 450);
+    }, 1500);
     return () => clearTimeout(mapSearchTimerRef.current);
   }, [mapSearchQuery]);
 

@@ -301,6 +301,7 @@ const OwnerRecreateVenue = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [isLocationCooldown, setIsLocationCooldown] = useState(false);
   const searchContainerRef = useRef(null);
+  const searchTimerRef = useRef(null);
   const locationRequestRef = useRef(0);
   const locationClickLockRef = useRef(false);
   const locationCooldownTimeoutRef = useRef(null);
@@ -454,24 +455,36 @@ const OwnerRecreateVenue = () => {
     };
   }, []);
 
+  useEffect(() => () => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+  }, []);
+
   const handleSearch = async (val) => {
     setSearchQuery(val);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
     if (!val || val.trim().length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
     setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`,
-      );
-      const data = await response.json();
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      setIsSearching(false);
-    }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`,
+        );
+        const data = await response.json();
+        setSearchResults(data || []);
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 1500);
   };
 
   const selectLocation = (item) => {
