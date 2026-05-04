@@ -43,12 +43,11 @@ const translateStatus = (status) => {
 };
 
 const OWNER_CANCEL_REASONS = [
-  "Không thể sắp xếp được sân",
   "Sân bảo trì / sửa chữa",
-  "Điều kiện thời tiết không tổ chức được",
-  "Trùng lịch / đặt nhầm",
   "Sự cố kỹ thuật tại cơ sở",
-  "Yêu cầu từ ban quản lý / cơ quan",
+  "Thời tiết không đảm bảo thi đấu",
+  "Trùng lịch do hệ thống hoặc nhân viên",
+  "Yêu cầu từ ban quản lý / cơ quan chức năng",
   "Khác",
 ];
 
@@ -229,6 +228,7 @@ const OwnerBookingDetail = ({
                 <button
                   type="button"
                   className="obd-cancel-btn"
+                  onClick={() => setCancelModalOpen(true)}
                   disabled={cancelling}
                 >
                   Hủy đặt sân

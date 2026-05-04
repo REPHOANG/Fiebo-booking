@@ -302,12 +302,8 @@ const Register = ({
             />
             <label htmlFor="terms">
               Tôi đồng ý với{" "}
-              <Link to="/terms" className="terms-link">
+              <Link to="/terms" onClick={() => {onClose()}} className="terms-link">
                 Điều khoản dịch vụ
-              </Link>{" "}
-              và{" "}
-              <Link to="/privacy" className="terms-link">
-                Chính sách bảo mật
               </Link>
             </label>
           </div>

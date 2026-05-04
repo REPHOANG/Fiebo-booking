@@ -22,7 +22,7 @@ namespace Fiebo.Persistence.Repositories
         {
             return await _context.OwnerPlans
                 .Include(x => x.Plan)
-                .Where(x => x.OwnerId == ownerId && x.Status == OwnerPlanStatus.Active)
+                .Where(x => x.OwnerId == ownerId)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
         }

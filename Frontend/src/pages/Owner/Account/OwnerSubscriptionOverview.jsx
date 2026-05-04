@@ -34,12 +34,31 @@ const formatDateTime = (v) => {
 const statusLabelMap = {
   1: "Đang hoạt động",
   0: "Đã hết hạn",
+  [-1]: "Không hoạt động",
+  active: "Đang hoạt động",
+  expired: "Đã hết hạn",
+  inactive: "Không hoạt động",
+};
+
+const normalizeStatus = (status) =>
+  typeof status === "string" ? status.trim().toLowerCase() : status;
+
+const getStatusLabel = (status) => {
+  const normalized = normalizeStatus(status);
+  return statusLabelMap[normalized] ?? statusLabelMap[Number(status)] ?? "Không xác định";
 };
 
 const getStatusChipClass = (status) => {
-  const normalized = Number(status);
-  if (normalized === 1) return "op-status-chip op-status-chip--active";
-  if (normalized === 0) return "op-status-chip op-status-chip--expired";
+  const normalized = normalizeStatus(status);
+  if (normalized === "active" || Number(status) === 1) {
+    return "op-status-chip op-status-chip--active";
+  }
+  if (normalized === "expired" || Number(status) === 0) {
+    return "op-status-chip op-status-chip--expired";
+  }
+  if (normalized === "inactive" || Number(status) === -1) {
+    return "op-status-chip op-status-chip--inactive";
+  }
   return "op-status-chip op-status-chip--unknown";
 };
 
@@ -90,13 +109,13 @@ const OwnerSubscriptionOverview = () => {
                   <div className="op-sub-header-metric">
                     <span>Trạng thái</span>
                     <strong>
-                      {currentPlan
-                        ? (
-                          <span className={getStatusChipClass(currentPlan.status)}>
-                            {statusLabelMap[currentPlan.status] ?? "Không xác định"}
-                          </span>
-                        )
-                        : "-"}
+                      {currentPlan ? (
+                        <span className={getStatusChipClass(currentPlan.status)}>
+                          {getStatusLabel(currentPlan.status)}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </strong>
                   </div>
                   

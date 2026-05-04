@@ -18,5 +18,6 @@ namespace Fiebo.Application.DTOs.Booking
         public int VenueId { get; set; }
         public string Ward { get; set; }
         public bool CanReview { get; set; }
+        public bool CanCancel { get; set; }
     }
 }

@@ -33,7 +33,7 @@ const mapCurrentPlan = (p) => ({
   planName: p?.planName ?? p?.PlanName ?? "",
   endDate: p?.endDate ?? p?.EndDate ?? null,
   remainingDays: Number(p?.remainingDays ?? p?.RemainingDays ?? 0),
-  status: Number(p?.status ?? p?.Status ?? 0),
+  status: p?.status ?? p?.Status ?? null,
   createdAt: p?.createdAt ?? p?.CreatedAt ?? null,
 });
 

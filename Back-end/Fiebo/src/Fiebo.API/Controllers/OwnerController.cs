@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fiebo.API.Controllers
 {
-    [Authorize(Policy = "ActiveOwnerPlan")]
+    [Authorize(Roles = AppRoles.FieldOwner)]
     [Route("api/[controller]")]
     [ApiController]
     public class OwnerController : ControllerBase
@@ -34,7 +34,6 @@ namespace Fiebo.API.Controllers
                 Data = result
             });
         }
-
         [HttpPost("staff")]
         public async Task<IActionResult> CreateStaff([FromBody] OwnerCreateStaffRequest request)
         {

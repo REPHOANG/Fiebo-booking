@@ -160,6 +160,44 @@
   color: #0f172a;
 }
 
+/* Search (Go) button shown next to the input when filter panel is closed */
+.venues-search-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #06b6d4 0%, #0284c7 100%);
+  color: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.venues-search-go:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(2,132,199,0.18);
+}
+
+.venues-search-go:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.venues-search-go svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* push search button to the far right of the input row */
+.venues-search-go {
+  margin-left: auto;
+}
+
 /* Advanced panel */
 .venues-filter-panel {
   border-top: 1px solid rgba(15, 23, 42, 0.07);

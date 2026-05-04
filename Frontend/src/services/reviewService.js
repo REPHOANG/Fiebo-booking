@@ -4,7 +4,7 @@ export const giveRatingApi = async ({ bookingId, rating, comment, images }) => {
   const formData = new FormData();
 
   formData.append("bookingId", bookingId);
-  formData.append("rating", rating.toString().replace(".", ","));
+  formData.append("rating", rating.toFixed(1));
   formData.append("comment", comment);
 
   if (images && images.length > 0) {

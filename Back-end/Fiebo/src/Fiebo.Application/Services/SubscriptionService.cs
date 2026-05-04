@@ -62,7 +62,7 @@ namespace Fiebo.Application.Services
             // 3. Acquire Distributed Lock to prevent duplicate fast clicks
             var lockKey = $"plan:subscribe:{ownerId}";
             var lockValue = await _cacheService.AcquireLockAsync(lockKey, LockExpiry);
-            
+
             if (lockValue == null)
             {
                 _logger.LogWarning("Duplicate plan subscribe request for owner {ownerId}", ownerId);
@@ -71,118 +71,118 @@ namespace Fiebo.Application.Services
 
             try
             {
-            await _unitOfWork.ExecuteStrategyAsync(async () =>
-            {
-                await _unitOfWork.BeginTransactionAsync();
-                try
+                await _unitOfWork.ExecuteStrategyAsync(async () =>
                 {
-                    // 4. Re-fetch wallet for atomic update
-                    var trackedWallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
-                    if (trackedWallet == null || trackedWallet.Balance < plan.Price)
+                    await _unitOfWork.BeginTransactionAsync();
+                    try
                     {
-                        throw new BadRequestException("Số dư ví không đủ để đăng ký gói.");
-                    }
-
-                    // Deduct balance
-                    trackedWallet.Balance -= plan.Price;
-                    _unitOfWork.Wallets.Update(trackedWallet);
-
-                    // 5. Handle BR-02 / BR-03 Duration Logic
-                    var currentOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
-
-                    DateTime startDate;
-                    DateTime endDate;
-
-                    if (currentOwnerPlan != null && currentOwnerPlan.Status == OwnerPlanStatus.Active && currentOwnerPlan.EndDate > DateTime.Now)
-                    {
-                        // Active Renewal: Extend from existing EndDate
-                        startDate = currentOwnerPlan.StartDate; // Keep original start date for continuity
-                        endDate = currentOwnerPlan.EndDate.AddDays(plan.DurationDays);
-                        
-                        currentOwnerPlan.EndDate = endDate;
-                        currentOwnerPlan.PlanId = plan.Id; // Update to latest plan type
-                        _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
-                    }
-                    else
-                    {
-                        // New or Expired: Start today
-                        startDate = DateTime.Now;
-                        endDate = startDate.AddDays(plan.DurationDays);
-
-                        if (currentOwnerPlan == null)
+                        // 4. Re-fetch wallet for atomic update
+                        var trackedWallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
+                        if (trackedWallet == null || trackedWallet.Balance < plan.Price)
                         {
-                            currentOwnerPlan = new OwnerPlan
-                            {
-                                OwnerId = ownerId,
-                                PlanId = plan.Id,
-                                StartDate = startDate,
-                                EndDate = endDate,
-                                Status = OwnerPlanStatus.Active
-                            };
-                            _unitOfWork.OwnerPlans.Add(currentOwnerPlan);
+                            throw new BadRequestException("Số dư ví không đủ để đăng ký gói.");
+                        }
+
+                        // Deduct balance
+                        trackedWallet.Balance -= plan.Price;
+                        _unitOfWork.Wallets.Update(trackedWallet);
+
+                        // 5. Handle BR-02 / BR-03 Duration Logic
+                        var currentOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
+
+                        DateTime startDate;
+                        DateTime endDate;
+
+                        if (currentOwnerPlan != null && (currentOwnerPlan.Status == OwnerPlanStatus.Active || currentOwnerPlan.Status == OwnerPlanStatus.Expired) && currentOwnerPlan.EndDate > DateTime.Now)
+                        {
+                            // Active Renewal: Extend from existing EndDate
+                            startDate = currentOwnerPlan.StartDate; // Keep original start date for continuity
+                            endDate = currentOwnerPlan.EndDate.AddDays(plan.DurationDays);
+                            currentOwnerPlan.Status = OwnerPlanStatus.Active;
+                            currentOwnerPlan.EndDate = endDate;
+                            currentOwnerPlan.PlanId = plan.Id; // Update to latest plan type
+                            _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
                         }
                         else
                         {
-                            currentOwnerPlan.PlanId = plan.Id;
-                            currentOwnerPlan.StartDate = startDate;
-                            currentOwnerPlan.EndDate = endDate;
-                            currentOwnerPlan.Status = OwnerPlanStatus.Active;
-                            _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
+                            // New or Expired: Start today
+                            startDate = DateTime.Now;
+                            endDate = startDate.AddDays(plan.DurationDays);
+
+                            if (currentOwnerPlan == null)
+                            {
+                                currentOwnerPlan = new OwnerPlan
+                                {
+                                    OwnerId = ownerId,
+                                    PlanId = plan.Id,
+                                    StartDate = startDate,
+                                    EndDate = endDate,
+                                    Status = OwnerPlanStatus.Active
+                                };
+                                _unitOfWork.OwnerPlans.Add(currentOwnerPlan);
+                            }
+                            else
+                            {
+                                currentOwnerPlan.PlanId = plan.Id;
+                                currentOwnerPlan.StartDate = startDate;
+                                currentOwnerPlan.EndDate = endDate;
+                                currentOwnerPlan.Status = OwnerPlanStatus.Active;
+                                _unitOfWork.OwnerPlans.Update(currentOwnerPlan);
+                            }
                         }
+
+                        // 6. Record SubscriptionTransaction (History)
+                        // We need OwnerPlanId, so we save changes if currentOwnerPlan is new
+                        await _unitOfWork.SaveChangesAsync();
+
+                        var subTransaction = new SubscriptionTransaction
+                        {
+                            OwnerPlanId = currentOwnerPlan.Id,
+                            PlanId = plan.Id,
+                            Amount = plan.Price,
+                            PaidAt = DateTime.Now
+                        };
+                        _unitOfWork.SubscriptionTransactions.Add(subTransaction);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        // 7. Record WalletTransaction
+                        var walletTransaction = new WalletTransaction
+                        {
+                            WalletId = trackedWallet.Id,
+                            TransactionType = TransactionType.Subscription,
+                            Direction = TransactionDirection.Debit,
+                            Amount = plan.Price,
+                            CreatedAt = DateTime.Now,
+                            ReferenceId = subTransaction.Id // Points to SubscriptionTransaction
+                        };
+
+                        _unitOfWork.WalletTransactions.Add(walletTransaction);
+
+                        await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.CommitTransactionAsync();
+
+                        _logger.LogInformation("Subscription processed. Owner: {OwnerId}, Plan: {PlanId}, TransId: {TransId}", ownerId, plan.Id, subTransaction.Id);
+
                     }
-
-                    // 6. Record SubscriptionTransaction (History)
-                    // We need OwnerPlanId, so we save changes if currentOwnerPlan is new
-                    await _unitOfWork.SaveChangesAsync();
-
-                    var subTransaction = new SubscriptionTransaction
+                    catch
                     {
-                        OwnerPlanId = currentOwnerPlan.Id,
-                        PlanId = plan.Id,
-                        Amount = plan.Price,
-                        PaidAt = DateTime.Now
-                    };
-                    _unitOfWork.SubscriptionTransactions.Add(subTransaction);
-                    await _unitOfWork.SaveChangesAsync();
+                        await _unitOfWork.RollbackTransactionAsync();
+                        throw;
+                    }
+                });
 
-                    // 7. Record WalletTransaction
-                    var walletTransaction = new WalletTransaction
-                    {
-                        WalletId = trackedWallet.Id,
-                        TransactionType = TransactionType.Subscription,
-                        Direction = TransactionDirection.Debit,
-                        Amount = plan.Price,
-                        CreatedAt = DateTime.Now,
-                        ReferenceId = subTransaction.Id // Points to SubscriptionTransaction
-                    };
+                // Re-fetch updated plan for response
+                var finalOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
+                var finalWallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
 
-                    _unitOfWork.WalletTransactions.Add(walletTransaction);
-
-                    await _unitOfWork.SaveChangesAsync();
-                    await _unitOfWork.CommitTransactionAsync();
-
-                    _logger.LogInformation("Subscription processed. Owner: {OwnerId}, Plan: {PlanId}, TransId: {TransId}", ownerId, plan.Id, subTransaction.Id);
-
-                }
-                catch
+                return new OwnerPlanResponse
                 {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    throw;
-                }
-            });
-
-            // Re-fetch updated plan for response
-            var finalOwnerPlan = await _unitOfWork.OwnerPlans.GetByOwnerIdAsync(ownerId);
-            var finalWallet = await _unitOfWork.Wallets.GetByUserId(ownerId);
-
-            return new OwnerPlanResponse
-            {
-                OwnerPlanId = finalOwnerPlan!.Id,
-                PlanName = plan.Name,
-                StartDate = finalOwnerPlan.StartDate,
-                EndDate = finalOwnerPlan.EndDate,
-                RemainingBalance = finalWallet!.Balance
-            };
+                    OwnerPlanId = finalOwnerPlan!.Id,
+                    PlanName = plan.Name,
+                    StartDate = finalOwnerPlan.StartDate,
+                    EndDate = finalOwnerPlan.EndDate,
+                    RemainingBalance = finalWallet!.Balance
+                };
             }
             finally
             {
@@ -204,7 +204,7 @@ namespace Fiebo.Application.Services
                 PlanName = currentPlan.Plan.Name,
                 EndDate = currentPlan.EndDate,
                 RemainingDays = CalculateRemainingDays(currentPlan.EndDate),
-                Status = currentPlan.Status,
+                Status = currentPlan.Status.ToString(),
                 CreatedAt = currentPlan.CreatedAt
             };
         }

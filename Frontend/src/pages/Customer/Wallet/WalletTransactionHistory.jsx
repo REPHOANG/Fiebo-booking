@@ -55,24 +55,40 @@ export default function WalletTransactionHistory({
   // Map loại giao dịch
   const getTransactionTypeLabel = (type) => {
     const typeMap = {
+      0: "Nạp tiền",
+      1: "Đặt sân",
+      2: "Hoàn tiền",
+      3: "Rút tiền",
+      4: "Sự kiện",
+      5: "Gói thành viên",
       Booking: "Đặt sân",
       EventBooking: "Sự kiện",
       Refund: "Hoàn tiền",
       TopUp: "Nạp tiền",
-      WithDraw: "Rút tiền",
+      Withdraw: "Rút tiền",
+      Subscription: "Gói thành viên",
     };
     return typeMap[type] || type;
   };
 
   const getTransactionStatusLabel = (status) => {
+    if (status === undefined || status === null || status === "") return "";
+    const key = String(status).toLowerCase();
     const statusMap = {
+      1: "Thành công",
+      2: "Đang xử lý",
+      3: "Thất bại",
+      4: "Từ chối",
+      5: "Đang xử lý",
       Completed: "Hoàn thành",
       Pending: "Đang xử lý",
       Failed: "Thất bại",
       Cancelled: "Đã hủy",
-      Success: "Thành công"
+      Success: "Thành công",
+      Rejected: "Từ chối",
+      Processing: "Đang xử lý",
     };
-    return statusMap[status] || status;
+    return statusMap[key] || String(status);
   };
 
   // Nhóm giao dịch theo ngày

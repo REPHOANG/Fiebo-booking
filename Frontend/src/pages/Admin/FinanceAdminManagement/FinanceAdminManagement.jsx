@@ -9,7 +9,6 @@ import {
 } from "@mui/material";
 import { 
   Plus, 
-  Pencil, 
   ChevronLeft,
   ChevronRight,
   UserPlus,
@@ -42,7 +41,7 @@ const getInitials = (name) =>
 
 const FinanceAdminManagement = () => {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
+  const [search] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
@@ -115,8 +114,6 @@ const FinanceAdminManagement = () => {
   const totalItems = filteredAccounts.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const currentItems = filteredAccounts.slice((page - 1) * pageSize, page * pageSize);
-  const activeCount = filteredAccounts.filter(a => (statusOverrides[a.id] || a.status) === 'active').length;
-
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, totalItems);
 

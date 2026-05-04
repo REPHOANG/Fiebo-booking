@@ -23,7 +23,6 @@ import {
   MapPinned,
   Loader2,
   ChevronDown,
-  CircleAlert,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import {

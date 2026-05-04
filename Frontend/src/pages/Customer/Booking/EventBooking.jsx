@@ -5,11 +5,11 @@ import "./EventBooking.css";
 
 
 
-const EventBooking = () => {
+const EventBooking = ({ sessions = [] }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const venueId = useMemo(() => id, [id]);
-
+  
   const [rangeLabel, setRangeLabel] = useState("17/03 - 23/03");
 
   const openSession = (sessionId) => {
@@ -36,7 +36,7 @@ const EventBooking = () => {
       </div>
 
       <div className="eb-grid">
-        {mockSessions.map((s) => (
+        {sessions?.map((s) => (
           <button
             key={s.id}
             className="eb-card"

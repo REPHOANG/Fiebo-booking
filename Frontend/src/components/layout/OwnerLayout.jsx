@@ -23,8 +23,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { logout, AUTH_STORAGE_KEY } from "../../store/authSlice";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getOwnerSubscriptionOverview } from "../../services/subscriptionService";
+import { useQueryClient } from "@tanstack/react-query";
 import { isFieldOwnerUser, resolveOwnerSubscriptionState } from "../../utils/ownerSubscription";
 import "./OwnerLayout.css";
 
@@ -44,40 +43,48 @@ const OwnerLayout = () => {
 
   const activePath = location?.pathname || "";
   const isOwnerUser = isFieldOwnerUser(user);
-  const { data: subscriptionOverview, isSuccess: subscriptionLoaded } = useQuery({
-    queryKey: ["owner-layout-subscription-overview"],
-    queryFn: getOwnerSubscriptionOverview,
-    enabled: isOwnerUser,
-    staleTime: 5 * 60 * 1000,
-    retry: 0,
-  });
 
   const ownerPlanState = useMemo(() => {
-    if (subscriptionLoaded) {
-      const currentPlan = subscriptionOverview?.currentPlan ?? null;
-      const planEnd = currentPlan?.endDate ? new Date(currentPlan.endDate) : null;
-      const hasActivePlan = Boolean(
-        currentPlan
-        && Number(currentPlan.status) === 1
-        && planEnd
-        && !Number.isNaN(planEnd.getTime())
-        && planEnd.getTime() > Date.now(),
-      );
-
-      return {
-        checked: true,
-        active: hasActivePlan,
-        reason: hasActivePlan
-          ? ""
-          : "Bạn chưa đăng ký gói hoặc gói hiện tại đã hết hạn. Vui lòng mua gói để mở khóa các tính năng chủ sân.",
-      };
+    if (!isOwnerUser) {
+      return resolveOwnerSubscriptionState(user);
     }
 
-    return resolveOwnerSubscriptionState(user);
-  }, [subscriptionLoaded, subscriptionOverview, user]);
+    const statusRaw = user?.hasSubscription ?? user?.HasSubscription ?? null;
+    const normalizedStatus =
+      typeof statusRaw === "string" ? statusRaw.trim().toLowerCase() : statusRaw;
 
-  const isOwnerPlanInactive = ownerPlanState.checked && !ownerPlanState.active;
+    let status = "expired";
+    if (normalizedStatus === "inactive" || Number(statusRaw) === -1) status = "inactive";
+    else if (normalizedStatus === "expired" || normalizedStatus === false || Number(statusRaw) === 0) {
+      status = "expired";
+    } else if (normalizedStatus === "active" || normalizedStatus === true || Number(statusRaw) === 1) {
+      status = "active";
+    }
+
+    if (statusRaw == null) {
+      return resolveOwnerSubscriptionState(user);
+    }
+
+    return {
+      checked: true,
+      status,
+      active: status === "active",
+      reason:
+        status === "inactive"
+          ? "Tài khoản của bạn đang bị tạm ngưng. Vui lòng liên hệ hỗ trợ để mở lại."
+          : status === "expired"
+            ? "Gói hiện tại đã hết hạn. Một số tính năng sẽ bị khóa cho đến khi bạn gia hạn."
+            : "",
+    };
+  }, [isOwnerUser, user]);
+
+  const planStatus = ownerPlanState.status || (ownerPlanState.active ? "active" : "expired");
+  const isOwnerPlanInactive = ownerPlanState.checked && planStatus === "inactive";
+  const isOwnerPlanExpired = ownerPlanState.checked && planStatus === "expired";
   const shouldLockSidebar = isOwnerPlanInactive;
+  const shouldHideSidebar = isOwnerPlanInactive;
+  const shouldDisableCreateVenue = isOwnerPlanExpired;
+  const shouldDisableCreateEvent = isOwnerPlanExpired;
   const isOnSubscriptionPlans = activePath.startsWith("/owner/subscription/plans");
   const isOnSubscriptionOverview = activePath.startsWith("/owner/subscription/overview");
   const isOnOwnerProfile = activePath.startsWith("/owner/profile");
@@ -216,7 +223,8 @@ const OwnerLayout = () => {
 
   return (
     <div className={`owner-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
-      <aside className={`owner-sidebar ${menuOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""} ${shouldLockSidebar ? "locked" : ""}`}>
+      {!shouldHideSidebar ? (
+        <aside className={`owner-sidebar ${menuOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""} ${shouldLockSidebar ? "locked" : ""}`}>
 
         <div className="owner-sidebar-top">
           <div className="owner-sidebar-brand">
@@ -350,10 +358,18 @@ const OwnerLayout = () => {
               </NavLink> */}
               <NavLink
                 to="/owner/create-venue"
-                onClick={handleCreateVenueSidebar}
+                onClick={(e) => {
+                  if (shouldDisableCreateVenue) {
+                    e.preventDefault();
+                    return;
+                  }
+                  handleCreateVenueSidebar(e);
+                }}
                 className={({ isActive }) =>
-                  `owner-sidebar-sublink ${isActive ? "active" : ""}`
+                  `owner-sidebar-sublink ${isActive ? "active" : ""} ${shouldDisableCreateVenue ? "is-disabled" : ""}`
                 }
+                aria-disabled={shouldDisableCreateVenue}
+                tabIndex={shouldDisableCreateVenue ? -1 : undefined}
               >
                 <PlusSquare size={15} />
                 <span className="owner-sidebar-text">Tạo cơ sở</span>
@@ -413,10 +429,18 @@ const OwnerLayout = () => {
             <div className={`owner-nav-sub ${eventsOpen ? "open" : "closed"}`}>
               <NavLink
                 to="/owner/events/create"
-                onClick={handleSidebarNavigate}
+                onClick={(e) => {
+                  if (shouldDisableCreateEvent) {
+                    e.preventDefault();
+                    return;
+                  }
+                  handleSidebarNavigate();
+                }}
                 className={({ isActive }) =>
-                  `owner-sidebar-sublink ${isActive ? "active" : ""}`
+                  `owner-sidebar-sublink ${isActive ? "active" : ""} ${shouldDisableCreateEvent ? "is-disabled" : ""}`
                 }
+                aria-disabled={shouldDisableCreateEvent}
+                tabIndex={shouldDisableCreateEvent ? -1 : undefined}
               >
                 <PlusSquare size={15} />
                 <span className="owner-sidebar-text">Tạo sự kiện</span>
@@ -443,7 +467,8 @@ const OwnerLayout = () => {
           </button>
         </div>
       </aside>
-      {menuOpen ? (
+      ) : null}
+      {menuOpen && !shouldHideSidebar ? (
         <button
           type="button"
           className="owner-sidebar-overlay"
@@ -454,14 +479,16 @@ const OwnerLayout = () => {
 
       <main className="owner-content">
         <div className="owner-topbar">
-          <button
-            type="button"
-            className="owner-topbar-menu"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? <X size={16} /> : <Menu size={16} />}
-          </button>
+          {!shouldHideSidebar ? (
+            <button
+              type="button"
+              className="owner-topbar-menu"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? <X size={16} /> : <Menu size={16} />}
+            </button>
+          ) : null}
           <div className="owner-topbar-breadcrumb" aria-label="Breadcrumb">
             {breadcrumbItems.map((item, idx) => (
               <React.Fragment key={`${item}-${idx}`}>

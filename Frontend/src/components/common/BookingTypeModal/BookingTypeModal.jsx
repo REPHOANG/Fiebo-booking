@@ -3,9 +3,18 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowRight } from "lucide-react";
 import "./BookingTypeModal.css";
-import { lockBodyScroll, unlockBodyScroll } from "../../../utils/bodyScrollLock";
+import {
+  lockBodyScroll,
+  unlockBodyScroll,
+} from "../../../utils/bodyScrollLock";
 
-const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEvent }) => {
+const BookingTypeModal = ({
+  open,
+  onClose,
+  venueId,
+  onSelectRegular,
+  onSelectEvent,
+}) => {
   const navigate = useNavigate();
 
   const panelRef = useRef(null);
@@ -17,7 +26,8 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
 
     // focus panel to prevent browser auto-scroll to focused elements
     try {
-      if (panelRef.current && panelRef.current.focus) panelRef.current.focus({ preventScroll: true });
+      if (panelRef.current && panelRef.current.focus)
+        panelRef.current.focus({ preventScroll: true });
     } catch (e) {}
 
     return () => {
@@ -71,7 +81,13 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
         <h3 className="btm-title">Chọn hình thức đặt</h3>
 
         <div className="btm-options">
-          <div className="btm-option btm-regular">
+          <div
+            onClick={handleRegular}
+            style={{
+              cursor: "pointer",
+            }}
+            className="btm-option btm-regular"
+          >
             <div className="btm-option-body">
               <strong>Đặt lịch ngày trực quan</strong>
               <p className="btm-desc">
@@ -80,7 +96,6 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
             </div>
             <button
               className="btm-go"
-              onClick={handleRegular}
               aria-label="Chọn đặt thường"
               type="button"
             >
@@ -88,19 +103,25 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
             </button>
           </div>
 
-          <div className="btm-option btm-event">
+          <div
+            style={{
+              cursor: "pointer",
+            }}
+            onClick={handleEvent}
+            className="btm-option btm-event"
+          >
             <div className="btm-option-body">
               <div className="btm-event-row">
                 <strong>Đặt lịch sự kiện</strong>
                 <span className="btm-new">New</span>
               </div>
               <p className="btm-desc">
-                Sự kiện giúp bạn chơi chung với người có cùng niềm đam mê, trình độ.
+                Sự kiện giúp bạn chơi chung với người có cùng niềm đam mê, trình
+                độ.
               </p>
             </div>
             <button
               className="btm-go"
-              onClick={handleEvent}
               aria-label="Chọn đặt sự kiện"
               type="button"
             >
@@ -110,7 +131,7 @@ const BookingTypeModal = ({ open, onClose, venueId, onSelectRegular, onSelectEve
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
