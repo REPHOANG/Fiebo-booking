@@ -485,6 +485,10 @@ const Venues = () => {
     async (pageToLoad, reset = false) => {
       const seq = ++fetchSeqRef.current;
       setLoading(true);
+      if (reset) {
+        setVenues([]);
+        setHasMore(true);
+      }
       const location = searchTerm?.trim() || undefined;
       const sportTypeId =
         appliedSportTypeId != null && String(appliedSportTypeId).trim() !== ""
