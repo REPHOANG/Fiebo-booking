@@ -588,21 +588,23 @@ const Venues = () => {
     ],
   );
 
-  // Xử lý khi bộ lọc thay đổi: Reset về trang 1 và tải dữ liệu mới
-  useEffect(() => {
-    loadPage(1, true);
-    if (page !== 1) {
-      setPage(1);
-    }
-    prevFiltersKeyRef.current = filtersKey;
-  }, [filtersKey, loadPage]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Xử lý khi chuyển trang (pagination): Chỉ tải thêm nếu bộ lọc không đổi
   useEffect(() => {
     if (page > 1 && prevFiltersKeyRef.current === filtersKey) {
       loadPage(page, false);
     }
   }, [page, filtersKey, loadPage]);
+
+  // Xử lý khi bộ lọc thay đổi: Reset về trang 1 và tải dữ liệu mới
+  useEffect(() => {
+    if (prevFiltersKeyRef.current !== filtersKey) {
+      loadPage(1, true);
+      if (page !== 1) {
+        setPage(1);
+      }
+      prevFiltersKeyRef.current = filtersKey;
+    }
+  }, [filtersKey, loadPage, page]);
 
   const lastVenueRef = useCallback(
     (node) => {
