@@ -152,6 +152,50 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
 };
 
 /**
+ * Update venue when it is in DRAFT status (allows location update).
+ * PUT `/api/owner/venue/{venueId}/draft` with multipart form.
+ */
+export const updateOwnerVenueDraft = async (venueId, payload) => {
+  const form = new FormData();
+  form.append('Name', String(payload?.name ?? '').trim());
+  if (payload?.description != null) {
+    form.append('Description', String(payload.description).trim());
+  }
+  form.append('OpenTime', payload?.openTime ?? '');
+  form.append('CloseTime', payload?.closeTime ?? '');
+  
+  if (payload?.addressDetail != null) {
+    form.append('AddressDetail', String(payload.addressDetail).trim());
+  }
+  if (payload?.provinceId != null) {
+    form.append('ProvinceId', String(payload.provinceId));
+  }
+  if (payload?.wardId != null) {
+    form.append('WardId', String(payload.wardId));
+  }
+  if (payload?.latitude != null) {
+    form.append('Latitude', String(payload.latitude));
+  }
+  if (payload?.longitude != null) {
+    form.append('Longitude', String(payload.longitude));
+  }
+
+  if (payload?.deletedThumbnail) {
+    form.append('DeletedThumbnail', 'true');
+  }
+
+  if (payload?.thumbnailFile) {
+    form.append('ThumbnailImage', payload.thumbnailFile);
+  }
+
+  const response = await api.put(`/api/owner/venue/${venueId}/draft`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
+  });
+  return unwrap(response) ?? response;
+};
+
+/**
  * Re-submit venue for review (single multipart request).
  * PUT `/api/owner/venues/{venueId}/re-submit`
  */

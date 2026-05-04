@@ -354,19 +354,21 @@ public async Task<IActionResult> GetOwnerFieldsByVenue([FromRoute] int venueId)
             });
         }
 
-        //[Authorize(Policy = "ActiveOwnerPlan")]
-        //[HttpPatch("/api/owner/venue/{id}/draft")]
-        //public async Task<IActionResult> CreateVenue([FromRoute] int id, [FromForm] CreateVenueRequest request)
-        //{
-        //    var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        //    var result = await _venueService.EditVenueDraft(request, ownerId);
-        //    return Ok(new ApiResponse<CreateVenueResponse>
-        //    {
-        //        StatusCode = StatusCodes.Status200OK,
-        //        Message = "Tạo sân thành công",
-        //        Data = result
-        //    });
-        //}
+        [Authorize(Policy = "ActiveOwnerPlan")]
+        [HttpPut("/api/owner/venue/{id}/draft")]
+        public async Task<IActionResult> EditVenueDraft([FromRoute] int id, [FromForm] EditVenueDraftRequest request)
+        {
+            var ownerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(ownerId))
+                throw new UnauthorizedAccessException("Cannot identify current owner.");
+
+            await _venueService.EditVenueDraftAsync(id, request, ownerId);
+            return Ok(new ApiResponse<object>
+            {
+                StatusCode = StatusCodes.Status200OK,
+                Message = "Cập nhật bản nháp thành công"
+            });
+        }
 
         /// <summary>
         /// Upload venue document images when create venue

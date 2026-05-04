@@ -12,6 +12,7 @@ import {
   getVenueDraft,
   submitVenue,
   updateOwnerVenueInfo,
+  updateOwnerVenueDraft,
   updateOwnerDocument,
 } from "../../../services/venueService";
 import { getDistrictsByProvince, getProvinces } from "../../../services/addressService";
@@ -458,7 +459,7 @@ const CreateVenue = () => {
 
       if (existingId) {
         try {
-          await updateOwnerVenueInfo(existingId, {
+          await updateOwnerVenueDraft(existingId, {
             name: data.name,
             description: data.description,
             addressDetail: data.addressDetail,
