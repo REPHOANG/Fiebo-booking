@@ -721,6 +721,51 @@ namespace Fiebo.Application.Services
     await _unitOfWork.SaveChangesAsync();
 }
 
+        public async Task EditVenueDraftAsync(int venueId, EditVenueDraftRequest request, string ownerId)
+        {
+            var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
+            if (venue == null)
+                throw new NotFoundException("Không tìm thấy cơ sở.");
+
+            if (venue.OwnerId != ownerId)
+                throw new ForbiddenException("Bạn không có quyền cập nhật cơ sở này.");
+
+            if (venue.Status != VenueStatus.Draft)
+                throw new BadRequestException("Chỉ có thể chỉnh sửa vị trí khi cơ sở đang ở trạng thái nháp.");
+
+            bool isFullDay = request.OpenTime == TimeOnly.MinValue && request.CloseTime == TimeOnly.MinValue;
+
+            if (!isFullDay && request.CloseTime <= request.OpenTime)
+                throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
+
+            venue.Name = request.Name;
+            venue.Description = request.Description;
+            venue.OpenTime = request.OpenTime;
+            venue.CloseTime = request.CloseTime;
+            venue.AddressDetail = request.AddressDetail;
+            venue.ProvinceId = request.ProvinceId;
+            venue.WardId = request.WardId;
+            venue.Latitude = request.Latitude;
+            venue.Longitude = request.Longitude;
+
+            if (request.DeletedThumbnail)
+            {
+                venue.ThumbnailUrl = null;
+            }
+            if (request.ThumbnailImage is { Length: > 0 })
+            {
+                var fileList = new List<IFormFile> { request.ThumbnailImage };
+                ImageValidator.ValidateFiles(fileList, 1, 1);
+                var uploadResult = await _cloudinaryService.UploadImageAsync(request.ThumbnailImage);
+                venue.ThumbnailUrl = uploadResult.Url;
+            }
+
+            venue.UpdatedAt = DateTime.Now;
+
+            _unitOfWork.Venues.Update(venue);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         public async Task<int> AddVenueServiceAsync(int venueId, string ownerId, AddVenueServiceRequest request)
         {
             var venue = await _unitOfWork.Venues.GetByIdAsync(venueId);
