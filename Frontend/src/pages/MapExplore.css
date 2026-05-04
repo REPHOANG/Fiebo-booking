@@ -166,7 +166,7 @@
   z-index: 900;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: start;
   gap: 10px;
   pointer-events: none;
 }

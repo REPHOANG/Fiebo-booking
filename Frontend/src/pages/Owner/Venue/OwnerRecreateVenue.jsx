@@ -23,7 +23,6 @@ import {
   MapPinned,
   Loader2,
   ChevronDown,
-  CircleAlert,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import {
@@ -38,10 +37,7 @@ import "leaflet/dist/leaflet.css";
 
 import {
   getVenueDraft,
-  updateOwnerVenueInfo,
-  updateOwnerDocument,
-  addVenueDocuments,
-  submitVenue,
+  reSubmitVenue,
 } from "../../../services/venueService";
 import {
   getDistrictsByProvince,
@@ -297,7 +293,6 @@ const OwnerRecreateVenue = () => {
   const [bizFilePreviews, setBizFilePreviews] = useState([]);
   const [existingBizImages, setExistingBizImages] = useState([]);
   const [deletedBizImageIds, setDeletedBizImageIds] = useState([]);
-  const [bizDocId, setBizDocId] = useState(null);
 
   // Map search and location states
   const [searchQuery, setSearchQuery] = useState("");
@@ -373,7 +368,6 @@ const OwnerRecreateVenue = () => {
             draft.businessDocument ||
             draft.BusinessDocument;
           if (biz) {
-            setBizDocId(biz.documentId || biz.DocumentId || null);
             setValue(
               "bizIssueDate",
               (biz.issueDate || biz.IssueDate || "").slice(0, 10),
@@ -567,8 +561,7 @@ const OwnerRecreateVenue = () => {
     });
 
     try {
-      // 1. Update Basic Info + Address
-      await updateOwnerVenueInfo(id, {
+      await reSubmitVenue(id, {
         name: data.name,
         description: data.description,
         openTime: `${data.openTime}:00`,
@@ -579,31 +572,12 @@ const OwnerRecreateVenue = () => {
         latitude: data.latitude,
         longitude: data.longitude,
         thumbnailFile: thumbnailFile || undefined,
-        deletedThumbnail: deletedThumbnail && !thumbnailFile,
+        thumbnailDeleted: deletedThumbnail && !thumbnailFile,
+        documentIssueDate: data.bizIssueDate,
+        documentExpiryDate: data.bizExpiryDate,
+        documentDeletedImageIds: deletedBizImageIds,
+        documentNewImages: bizFiles,
       });
-
-      // 2. Update Documents
-      if (bizDocId) {
-        const form = new FormData();
-        form.append("IssueDate", data.bizIssueDate);
-        form.append("ExpiryDate", data.bizExpiryDate);
-        bizFiles.forEach((file) => form.append("NewImages", file));
-        deletedBizImageIds.forEach((id) => form.append("DeletedImageIds", id));
-
-        await updateOwnerDocument(bizDocId, form);
-      } else {
-        const form = new FormData();
-        form.append("BusinessDocument.IssueDate", data.bizIssueDate);
-        form.append("BusinessDocument.ExpiryDate", data.bizExpiryDate);
-        bizFiles.forEach((file) =>
-          form.append("BusinessDocument.Images", file),
-        );
-
-        await addVenueDocuments(id, form);
-      }
-
-      // 3. Submit for review
-      await submitVenue(id);
 
       Swal.close();
       await Swal.fire({

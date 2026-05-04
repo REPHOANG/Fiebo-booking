@@ -35,11 +35,7 @@ const accountSchema = yup.object({
 const resetSchema = yup.object({
   newPassword: yup
     .string()
-    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
-    .matches(/[A-Z]/, 'Mật khẩu phải có ít nhất một chữ hoa')
-    .matches(/[a-z]/, 'Mật khẩu phải có ít nhất một chữ thường')
-    .matches(/[0-9]/, 'Mật khẩu phải có ít nhất một chữ số')
-    .matches(/[\W_]/, 'Mật khẩu phải có ít nhất một ký tự đặc biệt (!@#$%^&*)')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
     .required('Vui lòng nhập mật khẩu mới'),
   confirmPassword: yup
     .string()

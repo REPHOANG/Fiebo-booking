@@ -228,7 +228,7 @@ const OwnerLayout = () => {
 
         <div className="owner-sidebar-top">
           <div className="owner-sidebar-brand">
-            <span className="owner-logo">{sidebarCollapsed ? "FO" : "Fiebo Owner"}</span>
+            <span className="owner-logo">{sidebarCollapsed ? "" : "Chủ sân"}</span>
             <button
               type="button"
               className="owner-sidebar-collapse-btn"

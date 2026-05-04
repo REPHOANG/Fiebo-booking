@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, CircleCheck, FilePenLine, Hourglass, Ban } from "lucide-react";
+import { Search, CircleCheck, FilePenLine, Hourglass, Ban, Eye, Power } from "lucide-react";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
@@ -48,10 +48,10 @@ function bucketVenuesByApproval(list) {
   const cancelled = [];
   for (const v of list) {
     const s = normalizeVenueStatus(pick(v, "status", "Status"));
-    if (s === "active") approved.push(v);
+    if (s === "active" || s === "inactive") approved.push(v);
     else if (s === "draft") draft.push(v);
     else if (s === "rejected") cancelled.push(v);
-    else pending.push(v);
+    else if (s === "pending") pending.push(v);
   }
   return { approved, draft, pending, cancelled };
 }
@@ -140,17 +140,39 @@ const OwnerVenues = () => {
           ? "ov-tab-pending"
           : "ov-tab-cancelled";
 
-  const handleDeactivate = async (venueId, name) => {
-    const ok = window.confirm(
-      `Vô hiệu hóa cơ sở "${name}"? Khách sẽ không đặt sân tại đây nữa.`
-    );
-    if (!ok) return;
+  const handleToggleActive = async (venueId, name, isInactive) => {
+    const result = await Swal.fire({
+      icon: isInactive ? "question" : "warning",
+      title: isInactive ? "Mở lại cơ sở?" : "Vô hiệu hóa cơ sở?",
+      text: isInactive
+        ? `Bạn muốn mở lại cơ sở "${name}"?`
+        : `Vô hiệu hóa cơ sở "${name}"? Khách sẽ không đặt sân tại đây nữa.`,
+      showCancelButton: true,
+      confirmButtonText: isInactive ? "Mở lại" : "Vô hiệu hóa",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: isInactive ? "#045e36" : "#dc2626",
+      cancelButtonColor: "#64748b",
+    });
+    if (!result.isConfirmed) return;
     try {
       await deactivateOwnerVenue(venueId);
-      toast.success("Đã vô hiệu hóa cơ sở.");
-      await loadVenues();
+      const nextStatus = isInactive ? "active" : "inactive";
+      setVenues((prev) =>
+        prev.map((venue) => {
+          const vid = pick(venue, "venueId", "VenueId", "id", "Id");
+          if (String(vid) !== String(venueId)) return venue;
+          const updated = { ...venue };
+          if ("status" in updated) updated.status = nextStatus;
+          if ("Status" in updated) updated.Status = nextStatus;
+          return updated;
+        }),
+      );
     } catch (e) {
-      toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
+      toast.error(
+        e?.response?.data?.message ??
+          e?.message ??
+          (isInactive ? "Không mở lại được." : "Không vô hiệu hóa được."),
+      );
     }
   };
 
@@ -163,7 +185,8 @@ const OwnerVenues = () => {
     const status = pick(v, "status", "Status");
     const totalFields = pick(v, "totalFields", "TotalFields") ?? 0;
     const statusLower = normalizeVenueStatus(status);
-    const canDeactivate = statusLower === "active" || statusLower === "draft";
+    const canToggleActive = statusLower === "active" || statusLower === "draft" || statusLower === "inactive";
+    const isInactive = statusLower === "inactive";
 
     return (
       <div key={id} className="ov-card">
@@ -187,32 +210,39 @@ const OwnerVenues = () => {
               <span className="ov-status" data-status={statusLower}>
                 {translateVenueStatus(status)}
               </span>
-            </div>
-            <div className="ov-card-actions">
+              <div className="ov-card-actions">
               <Link
                 to={statusLower === "draft" ? `/owner/create-venue?venueId=${id}` : `/owner/venues/${id}`}
-                className="ov-btn ov-btn--secondary"
+                className="ov-icon-btn ov-icon-btn--secondary"
+                title={statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
+                aria-label={statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
               >
-                {statusLower === "draft" ? "Tiếp tục tạo" : "Xem chi tiết"}
+                <Eye size={18} aria-hidden />
               </Link>
               {statusLower === "rejected" ? (
                 <Link
                   to={`/owner/venues/${id}/recreate`}
-                  className="ov-btn ov-btn--primary"
+                  className="ov-icon-btn ov-icon-btn--primary"
+                  title="Chỉnh sửa"
+                  aria-label="Chỉnh sửa"
                 >
-                  Chỉnh sửa
+                  <FilePenLine size={18} aria-hidden />
                 </Link>
               ) : null}
-              {canDeactivate ? (
+              {canToggleActive ? (
                 <button
                   type="button"
-                  className="ov-btn ov-btn--danger"
-                  onClick={() => handleDeactivate(id, name)}
+                  className={`ov-icon-btn ov-icon-btn--toggle${isInactive ? "" : " is-on"}`}
+                  title={isInactive ? "Mở lại" : "Vô hiệu hóa"}
+                  aria-label={isInactive ? "Mở lại" : "Vô hiệu hóa"}
+                  onClick={() => handleToggleActive(id, name, isInactive)}
                 >
-                  Vô hiệu hóa
+                  <Power size={18} aria-hidden />
                 </button>
               ) : null}
             </div>
+            </div>
+            
           </div>
         </div>
       </div>

@@ -1318,7 +1318,7 @@ const Venues = () => {
                   </div>
                   <div className="venue-info">
                     <h3 title={venueName}>{venueName}</h3>
-                    <p className="location">
+                    <p className="location" style={{margin:0}}>
                       <MapPin size={15} />
                       <span title={getLocation(venue)}>{getLocation(venue)}</span>
                     </p>

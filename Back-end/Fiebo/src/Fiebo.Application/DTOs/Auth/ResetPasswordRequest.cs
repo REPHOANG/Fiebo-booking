@@ -12,11 +12,7 @@ namespace Fiebo.Application.DTOs.Auth
         [Required(ErrorMessage = "Reset token is required")]
         public required string ResetToken { get; set; }
         [Required(ErrorMessage = "NewPassword is required")]
-        [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
-        [RegularExpression(
-            @"^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$",
-            ErrorMessage = "Password must include at least one uppercase letter, one number, and one special character"
-        )]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         public required string NewPassword { get; set; }
     }
 }

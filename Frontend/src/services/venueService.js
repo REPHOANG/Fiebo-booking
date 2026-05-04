@@ -152,6 +152,66 @@ export const updateOwnerVenueInfo = async (venueId, payload) => {
 };
 
 /**
+ * Re-submit venue for review (single multipart request).
+ * PUT `/api/owner/venues/{venueId}/re-submit`
+ */
+export const reSubmitVenue = async (venueId, payload) => {
+  const form = new FormData();
+  form.append('Name', String(payload?.name ?? '').trim());
+  if (payload?.description != null) {
+    form.append('Description', String(payload.description).trim());
+  }
+  form.append('OpenTime', payload?.openTime ?? '');
+  form.append('CloseTime', payload?.closeTime ?? '');
+
+  if (payload?.provinceId != null) {
+    form.append('ProvinceId', String(payload.provinceId));
+  }
+  if (payload?.wardId != null) {
+    form.append('WardId', String(payload.wardId));
+  }
+  if (payload?.addressDetail != null) {
+    form.append('AddressDetail', String(payload.addressDetail).trim());
+  }
+  if (payload?.longitude != null) {
+    form.append('Longitude', String(payload.longitude));
+  }
+  if (payload?.latitude != null) {
+    form.append('Latitude', String(payload.latitude));
+  }
+
+  if (payload?.thumbnailDeleted) {
+    form.append('ThumbnailDeleted', 'true');
+  }
+  if (payload?.thumbnailFile) {
+    form.append('ThumbnailImage', payload.thumbnailFile);
+  }
+
+  if (payload?.documentIssueDate) {
+    form.append('Document.IssueDate', payload.documentIssueDate);
+  }
+  if (payload?.documentExpiryDate) {
+    form.append('Document.ExpiryDate', payload.documentExpiryDate);
+  }
+  if (Array.isArray(payload?.documentDeletedImageIds)) {
+    payload.documentDeletedImageIds.forEach((id) => {
+      form.append('Document.DeletedImageIds', String(id));
+    });
+  }
+  if (Array.isArray(payload?.documentNewImages)) {
+    payload.documentNewImages.forEach((file) => {
+      form.append('Document.NewImages', file);
+    });
+  }
+
+  const response = await api.put(`/api/owner/venues/${venueId}/re-submit`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 180000,
+  });
+  return unwrap(response) ?? response;
+};
+
+/**
  * GET `/api/owner/venue/{id}/schedule` — lịch sân theo ngày (query `date` yyyy-MM-dd).
  * @param {number|string} venueId
  * @param {string} date - yyyy-MM-dd
@@ -235,3 +295,4 @@ export const getVenueMap = async (sportTypeId) => {
 
   return res.data.data; // luôn trả về array
 };
+
