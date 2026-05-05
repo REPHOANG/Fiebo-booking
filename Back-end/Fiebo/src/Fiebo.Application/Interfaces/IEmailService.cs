@@ -9,5 +9,6 @@ namespace Fiebo.Application.Interfaces
     public interface IEmailService
     {
         Task SendEmailAsync(string to, string subject, string body);
+        Task SendEmailsAsync(IEnumerable<(string To, string Subject, string Body)> emails);
     }
 }

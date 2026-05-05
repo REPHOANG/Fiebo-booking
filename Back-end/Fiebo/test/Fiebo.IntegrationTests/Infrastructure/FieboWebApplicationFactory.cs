@@ -1,8 +1,19 @@
+using Fiebo.API.Authorization;
+using Fiebo.API.Middlewares;
+using Fiebo.API.Wrappers;
+using Fiebo.Domain.Constants;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Net.Http.Json;
 
 namespace Fiebo.IntegrationTests.Infrastructure
@@ -26,24 +37,81 @@ namespace Fiebo.IntegrationTests.Infrastructure
     /// </summary>
     public abstract class FieboWebApplicationFactory : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        protected override IHost CreateHost(IHostBuilder builder)
         {
-            builder.UseEnvironment("Testing");
-
-            builder.ConfigureTestServices(services =>
-            {
-                // ── Swap JWT for the fake test auth scheme ────────────────
-                services.AddAuthentication(options =>
+            var hostBuilder = new HostBuilder()
+                .ConfigureWebHost(webHost =>
                 {
-                    options.DefaultAuthenticateScheme = FakeAuthHandler.SchemeName;
-                    options.DefaultChallengeScheme    = FakeAuthHandler.SchemeName;
-                })
-                .AddScheme<AuthenticationSchemeOptions, FakeAuthHandler>(
-                    FakeAuthHandler.SchemeName, _ => { });
+                    webHost.UseEnvironment("Testing");
+                    webHost.UseTestServer();
 
-                // ── Let each subclass register its own mocks ─────────────
-                RegisterMocks(services);
-            });
+                    webHost.ConfigureServices(services =>
+                    {
+                        services.AddRouting();
+                        services.AddControllers()
+                            .AddApplicationPart(typeof(Program).Assembly);
+
+                        services.Configure<ApiBehaviorOptions>(options =>
+                        {
+                            options.InvalidModelStateResponseFactory = actionContext =>
+                            {
+                                var errors = actionContext.ModelState
+                                    .Where(e => e.Value?.Errors.Count > 0)
+                                    .SelectMany(kvp => kvp.Value!.Errors)
+                                    .Select(e => e.ErrorMessage)
+                                    .ToList();
+
+                                var errorMessage = string.Join(" ", errors);
+
+                                var response = new ApiResponse<object>
+                                {
+                                    StatusCode = StatusCodes.Status400BadRequest,
+                                    Message = errorMessage
+                                };
+
+                                return new BadRequestObjectResult(response);
+                            };
+                        });
+
+                        services.AddAuthentication(options =>
+                        {
+                            options.DefaultAuthenticateScheme = FakeAuthHandler.SchemeName;
+                            options.DefaultChallengeScheme = FakeAuthHandler.SchemeName;
+                        })
+                        .AddScheme<AuthenticationSchemeOptions, FakeAuthHandler>(
+                            FakeAuthHandler.SchemeName, _ => { });
+
+                        services.AddAuthorizationBuilder()
+                            .AddPolicy("ActiveOwnerPlan", policy =>
+                            {
+                                policy.RequireAuthenticatedUser();
+                                policy.RequireRole(AppRoles.FieldOwner);
+                                policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: false));
+                            })
+                            .AddPolicy("ActiveOwnerOrStaffPlan", policy =>
+                            {
+                                policy.RequireAuthenticatedUser();
+                                policy.RequireRole(AppRoles.FieldOwner, AppRoles.FieldStaff);
+                                policy.AddRequirements(new ActiveOwnerPlanRequirement(allowStaff: true));
+                            });
+
+                        services.AddScoped<IAuthorizationHandler, TestActiveOwnerPlanHandler>();
+                        services.AddSingleton<IAuthorizationMiddlewareResultHandler, OwnerPlanAuthorizationResultHandler>();
+
+                        RegisterMocks(services);
+                    });
+
+                    webHost.Configure(app =>
+                    {
+                        app.UseRouting();
+                        app.UseMiddleware<ExceptionHandlingMiddleware>();
+                        app.UseAuthentication();
+                        app.UseAuthorization();
+                        app.UseEndpoints(endpoints => endpoints.MapControllers());
+                    });
+                });
+
+            return hostBuilder.Start();
         }
 
         /// <summary>
