@@ -486,7 +486,6 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
                   setVenueRaw((prev) =>
                     prev ? { ...prev, status: nextStatus, Status: nextStatus } : prev,
                   );
-                  toast.success(isReactivating ? "Đã mở lại cơ sở." : "Đã vô hiệu hóa cơ sở.");
                 } catch (e) {
                   toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
                 } finally {

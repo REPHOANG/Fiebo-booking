@@ -1270,7 +1270,7 @@ const OwnerTimeSlot = ({ isStaff = false }) => {
 
       <div className="ots-hero">
         <div className="ots-hero-text">
-          <h2>Quản lý time slot theo loại sân</h2>
+          <h2>Quản lý khung giờ theo loại sân</h2>
           <div className="ots-hours">
             <Clock size={18} strokeWidth={2} />
             <span>

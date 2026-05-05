@@ -363,7 +363,7 @@ const OwnerAddField = ({ isStaff = false }) => {
           {!isStaff && (
             <Link className="ovd-btn ovd-btn--secondary" to={`/owner/venues/${id}/time-slot`}>
               <Calendar size={16} />
-              Quản lý time slot
+              Quản lý khung giờ
             </Link>
           )}
           <Link className="ovd-btn ovd-btn--secondary" to={isStaff ? `/staff/venues/${id}` : `/owner/venues/${id}`}>

@@ -380,8 +380,7 @@ const ForgotPassword = ({ onOpenLogin, isPopup = false }) => {
                 </button>
               </div>
               {resetErrors.newPassword
-                ? <p className="field-error">{resetErrors.newPassword.message}</p>
-                : <p className="hint">Tối thiểu 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt</p>
+                && <p className="field-error">{resetErrors.newPassword.message}</p>
               }
             </div>
             
