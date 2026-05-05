@@ -13,12 +13,18 @@ namespace Fiebo.API.Services
         private readonly SseService _sseService;
         private readonly IEmailService _emailService;
         private readonly IIdentityService _identityService;
+        private readonly ILogger<SseNotificationService> _logger;
 
-        public SseNotificationService(SseService sseService, IEmailService emailService, IIdentityService identityService)
+        public SseNotificationService(
+            SseService sseService, 
+            IEmailService emailService, 
+            IIdentityService identityService,
+            ILogger<SseNotificationService> logger)
         {
             _sseService = sseService;
             _emailService = emailService;
             _identityService = identityService;
+            _logger = logger;
         }
 
         public async Task NotifyWalletTopupAsync(string userId, decimal amount)
@@ -78,46 +84,79 @@ namespace Fiebo.API.Services
 
         public async Task NotifyEventCancelledByOwnerAsync(string userId, int eventId, string eventName, string? cancelNote, decimal refundAmount)
         {
-            var payload = JsonSerializer.Serialize(new
-            {
-                type = "event_cancelled_by_owner",
-                eventId,
-                eventName,
-                cancelNote,
-                refundAmount
-            });
+            await NotifyMultipleEventCancelledByOwnerAsync(new List<(string userId, decimal refundAmount)> { (userId, refundAmount) }, eventId, eventName, cancelNote);
+        }
 
-            await _sseService.SendToUserAsync(userId, payload);
+        public async Task NotifyMultipleEventCancelledByOwnerAsync(List<(string userId, decimal refundAmount)> participants, int eventId, string eventName, string? cancelNote)
+        {
+            var emailTasks = new List<(string To, string Subject, string Body)>();
 
-            // Send Email Notification
-            try
+            foreach (var participant in participants)
             {
-                var user = await _identityService.GetUserProfileAsync(userId);
-                if (user != null && !string.IsNullOrEmpty(user.Email))
+                // 1. SSE Notification
+                try
                 {
-                    string subject = $"Fiebo - Thông báo hủy sự kiện: {eventName}";
-                    string body = $@"
-                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
-                            <h2 style='color: #d9534f; text-align: center;'>Sự kiện đã bị hủy</h2>
-                            <p>Xin chào <strong>{user.FullName ?? "Quý khách"}</strong>,</p>
-                            <p>Chúng tôi rất tiếc phải thông báo rằng sự kiện <strong>{eventName}</strong> (Mã: #{eventId}) mà bạn đã đăng ký tham gia đã bị hủy bởi chủ sân.</p>
-                            <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;'>
-                                {(string.IsNullOrEmpty(cancelNote) ? "" : $"<p><strong>Lưu ý từ chủ sân:</strong> {cancelNote}</p>")}
-                                <p><strong>Số tiền hoàn lại:</strong> <span style='color: #28a745; font-weight: bold;'>{refundAmount:N0} VND</span></p>
-                            </div>
-                            <p>Số tiền trên đã được hoàn trả lại vào ví <strong>Fiebo Wallet</strong> của bạn.</p>
-                            <p>Cảm ơn bạn đã luôn đồng hành cùng Fiebo.</p>
-                            <hr style='margin: 30px 0;' />
-                            <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
-                        </div>";
+                    var payload = JsonSerializer.Serialize(new
+                    {
+                        type = "event_cancelled_by_owner",
+                        eventId,
+                        eventName,
+                        cancelNote,
+                        refundAmount = participant.refundAmount
+                    });
+                    await _sseService.SendToUserAsync(participant.userId, payload);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send SSE notification to user {UserId} for event {EventId}", participant.userId, eventId);
+                }
 
-                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                // 2. Prepare Email Data
+                try
+                {
+                    var user = await _identityService.GetUserProfileAsync(participant.userId);
+                    if (user != null && !string.IsNullOrEmpty(user.Email))
+                    {
+                        string subject = $"Fiebo - Thông báo hủy sự kiện: {eventName}";
+                        string body = $@"
+                            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;'>
+                                <h2 style='color: #d9534f; text-align: center;'>Sự kiện đã bị hủy</h2>
+                                <p>Xin chào <strong>{user.FullName ?? "Quý khách"}</strong>,</p>
+                                <p>Chúng tôi rất tiếc phải thông báo rằng sự kiện <strong>{eventName}</strong> (Mã: #{eventId}) mà bạn đã đăng ký tham gia đã bị hủy bởi chủ sân.</p>
+                                <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;'>
+                                    {(string.IsNullOrEmpty(cancelNote) ? "" : $"<p><strong>Lưu ý từ chủ sân:</strong> {cancelNote}</p>")}
+                                    <p><strong>Số tiền hoàn lại:</strong> <span style='color: #28a745; font-weight: bold;'>{participant.refundAmount:N0} VND</span></p>
+                                </div>
+                                <p>Số tiền trên đã được hoàn trả lại vào ví <strong>Fiebo Wallet</strong> của bạn.</p>
+                                <p>Cảm ơn bạn đã luôn đồng hành cùng Fiebo.</p>
+                                <hr style='margin: 30px 0;' />
+                                <p style='font-size: 12px; color: #888; text-align: center;'>© {DateTime.Now.Year} Fiebo. All rights reserved.</p>
+                            </div>";
+                        emailTasks.Add((user.Email, subject, body));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Cannot prepare email: User profile or email not found for UserId {UserId}", participant.userId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error preparing email data for user {UserId}", participant.userId);
                 }
             }
-            catch (Exception ex)
+
+            // 3. Send Bulk Emails
+            if (emailTasks.Any())
             {
-                // Log error but don't fail the SSE notification
-                Console.WriteLine($"Failed to send event cancellation email to user {userId}: {ex.Message}");
+                try
+                {
+                    _logger.LogInformation("Sending {Count} cancellation emails for Event {EventId} using bulk method.", emailTasks.Count, eventId);
+                    await _emailService.SendEmailsAsync(emailTasks);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send bulk cancellation emails for event {EventId}", eventId);
+                }
             }
         }
         

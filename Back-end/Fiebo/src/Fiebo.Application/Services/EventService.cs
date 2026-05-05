@@ -713,25 +713,22 @@ namespace Fiebo.Application.Services
                 // 8. Send push notifications (fire-and-forget background task)
                 _ = Task.Run(async () =>
                 {
-                    using var scope = _serviceProvider.CreateScope();
-                    var backgroundNotificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-                    var backgroundLogger = scope.ServiceProvider.GetRequiredService<ILogger<EventService>>();
-
-                    foreach (var participant in joinedParticipants)
+                    try
                     {
-                        try
-                        {
-                            await backgroundNotificationService.NotifyEventCancelledByOwnerAsync(
-                                participant.UserId,
-                                eventId,
-                                ticketEvent.Name,
-                                cancelNote,
-                                participant.TotalPrice);
-                        }
-                        catch (Exception ex)
-                        {
-                            backgroundLogger.LogWarning(ex, "Failed to send cancellation notification to user {UserId} in background task", participant.UserId);
-                        }
+                        using var scope = _serviceProvider.CreateScope();
+                        var backgroundNotificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                        
+                        var participantsData = joinedParticipants.Select(p => (p.UserId, p.TotalPrice)).ToList();
+                        
+                        await backgroundNotificationService.NotifyMultipleEventCancelledByOwnerAsync(
+                            participantsData,
+                            eventId,
+                            ticketEvent.Name,
+                            cancelNote);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to process bulk notifications for event {EventId}", eventId);
                     }
                 });
             }
