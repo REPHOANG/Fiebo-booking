@@ -61,69 +61,7 @@ export const AdminVenueRegistrations = () => {
     <div className="venue-registrations-container">
       <div className="registrations-card">
         <div className="card-header">
-          <h2 className="card-title">Danh sách hồ sơ</h2>
-          <div className="header-actions">
-            <div className="search-wrapper">
-              <Search size={18} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Tìm tên cơ sở..." 
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-            
-            <div className="filter-group">
-              <button 
-                className={`filter-trigger ${isFilterOpen ? "active" : ""}`}
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-              >
-                <Filter size={16} />
-                Bộ lọc nâng cao
-              </button>
-
-              {isFilterOpen && (
-                <>
-                  <div className="filter-overlay" onClick={() => setIsFilterOpen(false)} />
-                  <div className="filter-dropdown">
-                    <div className="dropdown-label">TRẠNG THÁI</div>
-                    <div 
-                      className={`filter-option ${statusFilter === "" ? "active" : ""}`}
-                      onClick={() => { setStatusFilter(""); setIsFilterOpen(false); setPage(1); }}
-                    >
-                      <span className="dot all"></span> Tất cả
-                    </div>
-                    <div 
-                      className={`filter-option ${statusFilter === "Pending" ? "active" : ""}`}
-                      onClick={() => { setStatusFilter("Pending"); setIsFilterOpen(false); setPage(1); }}
-                    >
-                      <span className="dot pending"></span> Chờ xử lý
-                    </div>
-                    <div 
-                      className={`filter-option ${statusFilter === "Approved" ? "active" : ""}`}
-                      onClick={() => { setStatusFilter("Approved"); setIsFilterOpen(false); setPage(1); }}
-                    >
-                      <span className="dot success"></span> Đã duyệt
-                    </div>
-                    <div 
-                      className={`filter-option ${statusFilter === "Rejected" ? "active" : ""}`}
-                      onClick={() => { setStatusFilter("Rejected"); setIsFilterOpen(false); setPage(1); }}
-                    >
-                      <span className="dot service"></span> Đã từ chối
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <button className="btn-action">
-              <Download size={16} />
-              Xuất Excel
-            </button>
-          </div>
+          <h2 className="card-title">Danh sách hồ sơ đăng ký cơ sở</h2>
         </div>
 
         <div className="table-responsive">

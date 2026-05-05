@@ -662,7 +662,7 @@ const OwnerEditVenue = () => {
             ) : null}
             <div className="ovd-create-grid">
               <label className="ovd-label ovd-full">
-                Tên cơ sở <span className="ovd-required">*</span>
+                <p>Tên cơ sở <span className="ovd-required">*</span></p>
                 <input
                   className={`ovd-input ${errors.name ? "is-invalid" : ""}`}
                   {...register("name")}
