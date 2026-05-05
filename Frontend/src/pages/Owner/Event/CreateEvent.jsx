@@ -19,31 +19,44 @@ const createEventFormSchema = yup.object({
     .max(100, "Tên sự kiện tối đa 100 ký tự"),
   pricePerPerson: yup
     .number()
-    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .transform((v, o) =>
+      o === "" || o == null || Number.isNaN(v) ? undefined : v,
+    )
     .typeError("Nhập phí hợp lệ")
     .required("Nhập phí tham gia")
     .min(10000, "Phí tham gia tối thiểu là 10.000 VNĐ")
     .max(500000, "Phí tham gia tối đa là 500.000 VNĐ"),
   minPlayer: yup
     .number()
-    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .transform((v, o) =>
+      o === "" || o == null || Number.isNaN(v) ? undefined : v,
+    )
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối thiểu phải lớn hơn 0")
     .max(999, "Số người tối thiểu không được vượt quá 999")
     .required("Nhập số người tối thiểu"),
   maxPlayer: yup
     .number()
-    .transform((v, o) => (o === "" || o == null || Number.isNaN(v) ? undefined : v))
+    .transform((v, o) =>
+      o === "" || o == null || Number.isNaN(v) ? undefined : v,
+    )
     .typeError("Nhập số hợp lệ")
     .min(1, "Số người tối đa không hợp lệ")
     .max(999, "Số người tối đa không được vượt quá 999")
     .required("Nhập số người tối đa")
-    .test("max-ge-min", "Số người tối đa phải ≥ số tối thiểu", function maxTest(max) {
-      const min = this.parent.minPlayer;
-      if (min == null || max == null) return true;
-      return max >= min;
-    }),
-  description: yup.string().max(200, "Mô tả không được vượt quá 200 ký tự").optional(),
+    .test(
+      "max-ge-min",
+      "Số người tối đa phải ≥ số tối thiểu",
+      function maxTest(max) {
+        const min = this.parent.minPlayer;
+        if (min == null || max == null) return true;
+        return max >= min;
+      },
+    ),
+  description: yup
+    .string()
+    .max(200, "Mô tả không được vượt quá 200 ký tự")
+    .optional(),
 });
 
 /** Chuẩn hóa thời gian từ API (e.g. "18:00:00" hoặc "18:00") thành "HH:mm" */
@@ -83,11 +96,20 @@ function isSlotStartInPast(eventDateStr, startTime) {
 /** Set các key "fieldName_startTime" đang bị chiếm bởi sự kiện (từ danh sách event theo venue+ngày) */
 function getEventOccupiedKeys(eventList, venueName, dateStr) {
   const keys = new Set();
-  const venueNorm = String(venueName || "").trim().toLowerCase();
+  const venueNorm = String(venueName || "")
+    .trim()
+    .toLowerCase();
   const dateNorm = String(dateStr || "").slice(0, 10);
   for (const e of eventList || []) {
-    if (dateNorm && String(e?.eventDate || "").slice(0, 10) !== dateNorm) continue;
-    if (venueNorm && String(e?.venueName || "").trim().toLowerCase() !== venueNorm) continue;
+    if (dateNorm && String(e?.eventDate || "").slice(0, 10) !== dateNorm)
+      continue;
+    if (
+      venueNorm &&
+      String(e?.venueName || "")
+        .trim()
+        .toLowerCase() !== venueNorm
+    )
+      continue;
     for (const s of e?.slots || []) {
       const name = String(s?.fieldName || "").trim();
       const start = normalizeTime(s?.startTime);
@@ -118,7 +140,9 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
     for (const field of fields) {
       const fieldId = field.fieldId ?? field.id;
       const fieldName = field.fieldName ?? field.name ?? "Sân";
-      const unavailableSet = new Set((field.unavailableSlots || []).map((u) => u.slotId));
+      const unavailableSet = new Set(
+        (field.unavailableSlots || []).map((u) => u.slotId),
+      );
       const list = [];
       for (const slot of slots) {
         const slotId = slot.slotId ?? slot.id;
@@ -128,7 +152,8 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
         let status = "available";
         if (unavailableSet.has(slotId)) status = "booked";
         else if (eventOccupiedKeys.has(timeKey)) status = "event";
-        else if (dateKey && isSlotStartInPast(dateKey, startTime)) status = "past";
+        else if (dateKey && isSlotStartInPast(dateKey, startTime))
+          status = "past";
         list.push({
           fieldId,
           slotId,
@@ -141,7 +166,9 @@ function getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDateStr) {
       groups.push({ fieldId, fieldName, sportTypeName, slots: list });
     }
   }
-  return groups.sort((a, b) => (a.fieldName || "").localeCompare(b.fieldName || ""));
+  return groups.sort((a, b) =>
+    (a.fieldName || "").localeCompare(b.fieldName || ""),
+  );
 }
 
 const CreateEvent = () => {
@@ -188,26 +215,24 @@ const CreateEvent = () => {
   const selectedVenueName = useMemo(() => {
     const id = Number(venueId);
     if (!id) return "";
-    const match = venues.find((v) => Number(pick(v, "venueId", "VenueId", "id")) === id);
+    const match = venues.find(
+      (v) => Number(pick(v, "venueId", "VenueId", "id")) === id,
+    );
     return pick(match, "name", "Name", "venueName", "VenueName") ?? "";
   }, [venueId, venues]);
 
   /** Slot bị chiếm bởi sự kiện khác (key = fieldName_startTime) */
   const eventOccupiedKeys = useMemo(
-    () =>
-      getEventOccupiedKeys(eventListForDate, selectedVenueName, eventDate),
+    () => getEventOccupiedKeys(eventListForDate, selectedVenueName, eventDate),
     [eventListForDate, selectedVenueName, eventDate],
   );
 
   /** Tất cả slot theo sân, mỗi slot có status: available | booked | event | past */
-  const slotsByFieldWithStatus = useMemo(
-    () => {
-      // Force recalculation every tick so "past" status updates in realtime.
-      void pastSlotsTick;
-      return getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate);
-    },
-    [schedule, eventOccupiedKeys, eventDate, pastSlotsTick],
-  );
+  const slotsByFieldWithStatus = useMemo(() => {
+    // Force recalculation every tick so "past" status updates in realtime.
+    void pastSlotsTick;
+    return getSlotsByFieldWithStatus(schedule, eventOccupiedKeys, eventDate);
+  }, [schedule, eventOccupiedKeys, eventDate, pastSlotsTick]);
 
   /** Chỉ các slot available (để submit) */
   const availableSlots = useMemo(() => {
@@ -243,7 +268,11 @@ const CreateEvent = () => {
       const list = await getOwnerVenueSelectOptions();
       setVenues(Array.isArray(list) ? list : []);
     } catch (e) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách cơ sở.");
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không tải được danh sách cơ sở.",
+      );
       setVenues([]);
     } finally {
       setLoadingVenues(false);
@@ -290,7 +319,9 @@ const CreateEvent = () => {
       setSchedule(s ?? null);
       if (!s?.sportTypes?.length) setError("Cơ sở này chưa có sân nào.");
     } catch (e) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được lịch.");
+      setError(
+        e?.response?.data?.message || e?.message || "Không tải được lịch.",
+      );
     } finally {
       setLoadingSchedule(false);
     }
@@ -310,7 +341,9 @@ const CreateEvent = () => {
       .catch(() => {
         if (mounted) setEventListForDate([]);
       });
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [schedule, selectedVenueName, eventDate]);
 
   /** Cập nhật khóa slot "đã qua" theo thời gian thực khi chọn đúng ngày hôm nay */
@@ -357,7 +390,9 @@ const CreateEvent = () => {
   };
 
   const isSelected = (item) =>
-    selectedDetails.some((d) => d.fieldId === item.fieldId && d.slotId === item.slotId);
+    selectedDetails.some(
+      (d) => d.fieldId === item.fieldId && d.slotId === item.slotId,
+    );
 
   const onCreateSubmit = async (values) => {
     const id = Number(values.venueId);
@@ -380,7 +415,10 @@ const CreateEvent = () => {
         venueId: Number(values.venueId),
         eventDate: values.eventDate.slice(0, 10),
         name: eventName,
-        details: selectedDetails.map((d) => ({ fieldId: d.fieldId, slotId: d.slotId })),
+        details: selectedDetails.map((d) => ({
+          fieldId: d.fieldId,
+          slotId: d.slotId,
+        })),
         pricePerPerson: values.pricePerPerson,
         minPlayer: values.minPlayer,
         maxPlayer: values.maxPlayer,
@@ -409,7 +447,11 @@ const CreateEvent = () => {
       </div>
 
       <div className="owner-home-content">
-        <form className="create-event-form" onSubmit={handleSubmit(onCreateSubmit)} noValidate>
+        <form
+          className="create-event-form"
+          onSubmit={handleSubmit(onCreateSubmit)}
+          noValidate
+        >
           {error && (
             <div className="ce-error" role="alert">
               {error}
@@ -420,7 +462,7 @@ const CreateEvent = () => {
             <h3>Cơ sở &amp; ngày</h3>
             <div className="ce-row">
               <label>
-                Cơ sở 
+                Cơ sở
                 <Controller
                   name="venueId"
                   control={control}
@@ -434,11 +476,15 @@ const CreateEvent = () => {
                       }}
                       disabled={loadingVenues || venues.length === 0}
                     >
-                      <option value="">{loadingVenues ? "Đang tải..." : "Chọn cơ sở"}</option>
+                      <option value="">
+                        {loadingVenues ? "Đang tải..." : "Chọn cơ sở"}
+                      </option>
                       {venues.map((v) => {
                         const vid = pick(v, "venueId", "VenueId", "id");
                         if (!vid) return null;
-                        const name = pick(v, "name", "Name", "venueName", "VenueName") ?? `Cơ sở #${vid}`;
+                        const name =
+                          pick(v, "name", "Name", "venueName", "VenueName") ??
+                          `Cơ sở #${vid}`;
                         return (
                           <option key={vid} value={String(vid)}>
                             {name}
@@ -448,7 +494,11 @@ const CreateEvent = () => {
                     </select>
                   )}
                 />
-                {errors.venueId && <span className="ce-field-error">{errors.venueId.message}</span>}
+                {errors.venueId && (
+                  <span className="ce-field-error">
+                    {errors.venueId.message}
+                  </span>
+                )}
               </label>
             </div>
             <div className="ce-row">
@@ -460,7 +510,11 @@ const CreateEvent = () => {
                   className={errors.eventDate ? "ce-input-error" : ""}
                   {...register("eventDate")}
                 />
-                {errors.eventDate && <span className="ce-field-error">{errors.eventDate.message}</span>}
+                {errors.eventDate && (
+                  <span className="ce-field-error">
+                    {errors.eventDate.message}
+                  </span>
+                )}
               </label>
               <button
                 type="button"
@@ -500,20 +554,27 @@ const CreateEvent = () => {
                 <span className="ce-legend-item booked">Đã đặt</span>
                 <span className="ce-legend-item event">Sự kiện</span>
               </div>
-              <div className={`ce-slots-by-field${slotSelectionError ? " ce-slots-by-field-error" : ""}`}>
+              <div
+                className={`ce-slots-by-field${slotSelectionError ? " ce-slots-by-field-error" : ""}`}
+              >
                 {filteredSlotsByField.map((group) => (
                   <div key={group.fieldId} className="ce-field-block">
                     <div className="ce-field-head">
                       <div className="ce-field-left">
                         {group.sportTypeName ? (
-                          <div className="ce-field-sport">{group.sportTypeName}</div>
+                          <div className="ce-field-sport">
+                            {group.sportTypeName}
+                          </div>
                         ) : null}
                         <h4 className="ce-field-title">{group.fieldName}</h4>
                       </div>
                       <div className="ce-field-right">
                         <span className="ce-field-meta">
-                          {group.slots.filter((s) => s.status === "available").length} trống /{" "}
-                          {group.slots.length} tổng
+                          {
+                            group.slots.filter((s) => s.status === "available")
+                              .length
+                          }{" "}
+                          trống / {group.slots.length} tổng
                         </span>
                         <button
                           type="button"
@@ -527,7 +588,9 @@ const CreateEvent = () => {
                             );
                           }}
                         >
-                          {expandedFieldIds.includes(group.fieldId) ? "Thu nhỏ" : "Phóng to"}
+                          {expandedFieldIds.includes(group.fieldId)
+                            ? "Thu nhỏ"
+                            : "Phóng to"}
                         </button>
                       </div>
                     </div>
@@ -548,24 +611,33 @@ const CreateEvent = () => {
                                 item.status === "past"
                                   ? "Khung giờ đã qua, không thể tạo sự kiện"
                                   : item.status === "booked"
-                                  ? "Đã có người đặt sân"
-                                  : item.status === "event"
-                                  ? "Đã nằm trong sự kiện khác"
-                                  : undefined
+                                    ? "Đã có người đặt sân"
+                                    : item.status === "event"
+                                      ? "Đã nằm trong sự kiện khác"
+                                      : undefined
                               }
                             >
                               <span className="ce-compact-time">
-                                {normalizeTime(item.startTime)} - {normalizeTime(item.endTime)}
+                                {normalizeTime(item.startTime)} -{" "}
+                                {normalizeTime(item.endTime)}
                               </span>
-                              {item.status === "past" && <span className="ce-compact-tag">Đã qua</span>}
-                              {item.status === "booked" && <span className="ce-compact-tag">Đã đặt</span>}
-                              {item.status === "event" && <span className="ce-compact-tag">Sự kiện</span>}
+                              {item.status === "past" && (
+                                <span className="ce-compact-tag">Đã qua</span>
+                              )}
+                              {item.status === "booked" && (
+                                <span className="ce-compact-tag">Đã đặt</span>
+                              )}
+                              {item.status === "event" && (
+                                <span className="ce-compact-tag">Sự kiện</span>
+                              )}
                             </button>
                           );
                         })}
                       </div>
                     ) : (
-                      <p className="ce-collapsed-note">Bấm "Phóng to" để xem và chọn khung giờ.</p>
+                      <p className="ce-collapsed-note">
+                        Bấm "Phóng to" để xem và chọn khung giờ.
+                      </p>
                     )}
                   </div>
                 ))}
@@ -587,7 +659,9 @@ const CreateEvent = () => {
                   {...register("eventName")}
                 />
                 {errors.eventName && (
-                  <span className="ce-field-error">{errors.eventName.message}</span>
+                  <span className="ce-field-error">
+                    {errors.eventName.message}
+                  </span>
                 )}
               </label>
             </div>
@@ -603,7 +677,9 @@ const CreateEvent = () => {
                   {...register("pricePerPerson")}
                 />
                 {errors.pricePerPerson && (
-                  <span className="ce-field-error">{errors.pricePerPerson.message}</span>
+                  <span className="ce-field-error">
+                    {errors.pricePerPerson.message}
+                  </span>
                 )}
               </label>
             </div>
@@ -617,10 +693,15 @@ const CreateEvent = () => {
                   className={errors.minPlayer ? "ce-input-error" : ""}
                   {...register("minPlayer")}
                   onInput={(e) => {
-                    if (e.target.value.length > 3) e.target.value = e.target.value.slice(0, 3);
+                    if (e.target.value.length > 3)
+                      e.target.value = e.target.value.slice(0, 3);
                   }}
                 />
-                {errors.minPlayer && <span className="ce-field-error">{errors.minPlayer.message}</span>}
+                {errors.minPlayer && (
+                  <span className="ce-field-error">
+                    {errors.minPlayer.message}
+                  </span>
+                )}
               </label>
               <label>
                 Số người tối đa
@@ -631,10 +712,15 @@ const CreateEvent = () => {
                   className={errors.maxPlayer ? "ce-input-error" : ""}
                   {...register("maxPlayer")}
                   onInput={(e) => {
-                    if (e.target.value.length > 3) e.target.value = e.target.value.slice(0, 3);
+                    if (e.target.value.length > 3)
+                      e.target.value = e.target.value.slice(0, 3);
                   }}
                 />
-                {errors.maxPlayer && <span className="ce-field-error">{errors.maxPlayer.message}</span>}
+                {errors.maxPlayer && (
+                  <span className="ce-field-error">
+                    {errors.maxPlayer.message}
+                  </span>
+                )}
               </label>
             </div>
             <label className="ce-full">
@@ -646,8 +732,21 @@ const CreateEvent = () => {
                 rows={3}
                 maxLength={200}
               />
-              {errors.description && <span className="ce-field-error">{errors.description.message}</span>}
+              {errors.description && (
+                <span className="ce-field-error">
+                  {errors.description.message}
+                </span>
+              )}
             </label>
+            <i
+              style={{
+                color: "red",
+                fontSize: "0.9em",
+              }}
+            >
+              Lưu ý: Nếu sự kiện không đủ người tham gia trước khi bắt đầu 6
+              tiếng, sự kiện sẽ tự động huỷ và hoàn tiền cho người tham gia.
+            </i>
           </div>
 
           <div className="ce-actions">

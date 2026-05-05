@@ -11,7 +11,6 @@ import {
   createVenue,
   getVenueDraft,
   submitVenue,
-  updateOwnerVenueInfo,
   updateOwnerVenueDraft,
   updateOwnerDocument,
 } from "../../../services/venueService";

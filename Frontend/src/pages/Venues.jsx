@@ -293,7 +293,7 @@ const Venues = () => {
       } finally {
         setMapSearchLoading(false);
       }
-    }, 450);
+    }, 1500);
     return () => clearTimeout(mapSearchTimerRef.current);
   }, [mapSearchQuery]);
 
@@ -485,6 +485,10 @@ const Venues = () => {
     async (pageToLoad, reset = false) => {
       const seq = ++fetchSeqRef.current;
       setLoading(true);
+      if (reset) {
+        setVenues([]);
+        setHasMore(true);
+      }
       const location = searchTerm?.trim() || undefined;
       const sportTypeId =
         appliedSportTypeId != null && String(appliedSportTypeId).trim() !== ""
@@ -1320,7 +1324,7 @@ const Venues = () => {
                   </div>
                   <div className="venue-info">
                     <h3 title={venueName}>{venueName}</h3>
-                    <p className="location">
+                    <p className="location" style={{margin:0}}>
                       <MapPin size={15} />
                       <span title={getLocation(venue)}>{getLocation(venue)}</span>
                     </p>

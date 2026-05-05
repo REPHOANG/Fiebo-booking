@@ -370,7 +370,7 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
   // We load from owner endpoint first (which includes `Status`) to ensure this is accurate.
   const statusLower = String(venue?.status || venue?.Status || "").toLowerCase().trim();
   const canEditVenue = ["active", "draft"].includes(statusLower);
-  const canDeactivateVenue = statusLower === "active" || statusLower === "draft";
+  const canToggleVenue = ["active", "draft", "inactive"].includes(statusLower);
   const canOfflineBook = ["active", "inactive"].includes(statusLower);
   const isInactive = statusLower === "inactive";
   const isPendingOrRejected = statusLower === "pending" || statusLower === "rejected";
@@ -457,25 +457,35 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
           {!isStaff && !isPendingOrRejected && (
             <button
               type="button"
-              className="ovd-btn ovd-btn--danger"
-              disabled={deactivating || !canDeactivateVenue}
+              role="switch"
+              aria-checked={!isInactive}
+              className={`ovd-switch${isInactive ? "" : " is-on"}`}
+              disabled={deactivating || !canToggleVenue}
               onClick={async () => {
+                const isReactivating = isInactive;
                 const { isConfirmed } = await Swal.fire({
-                  title: "Vô hiệu hóa cơ sở?",
-                  text: `Cơ sở "${venue?.name ?? `#${id}`}" sẽ bị vô hiệu hóa. Khách sẽ không đặt sân tại đây nữa.`,
-                  icon: "warning",
+                  title: isReactivating ? "Mở lại cơ sở?" : "Vô hiệu hóa cơ sở?",
+                  text: isReactivating
+                    ? `Bạn muốn mở lại cơ sở "${venue?.name ?? `#${id}`}"?`
+                    : `Cơ sở "${venue?.name ?? `#${id}`}" sẽ bị vô hiệu hóa. Khách sẽ không đặt sân tại đây nữa.`,
+                  icon: isReactivating ? "question" : "warning",
                   showCancelButton: true,
-                  confirmButtonColor: "#dc2626",
+                  confirmButtonColor: isReactivating ? "#16a34a" : "#dc2626",
                   cancelButtonColor: "#6b7280",
-                  confirmButtonText: "Vô hiệu hóa",
+                  confirmButtonText: isReactivating ? "Mở lại" : "Vô hiệu hóa",
                   cancelButtonText: "Hủy",
                 });
                 if (!isConfirmed) return;
                 setDeactivating(true);
                 try {
                   await deactivateOwnerVenue(id);
-                  toast.success("Đã vô hiệu hóa cơ sở.");
-                  navigate("/owner/venues");
+                  const nextStatus = isReactivating ? "active" : "inactive";
+                  setVenue((prev) =>
+                    prev ? { ...prev, status: nextStatus, Status: nextStatus } : prev,
+                  );
+                  setVenueRaw((prev) =>
+                    prev ? { ...prev, status: nextStatus, Status: nextStatus } : prev,
+                  );
                 } catch (e) {
                   toast.error(e?.response?.data?.message ?? e?.message ?? "Không vô hiệu hóa được.");
                 } finally {
@@ -485,18 +495,21 @@ const OwnerVenueDetail = ({ isStaff = false }) => {
               title={
                 isInactive
                   ? "Cơ sở đã vô hiệu hóa"
-                  : !canDeactivateVenue
+                  : !canToggleVenue
                     ? "Cơ sở không ở trạng thái cho phép vô hiệu hóa."
                     : undefined
               }
             >
-              {isInactive
-                ? "Đã vô hiệu hóa"
-                : !canDeactivateVenue
-                  ? "Không thể vô hiệu hóa"
-                  : deactivating
-                    ? "Đang vô hiệu hóa..."
-                    : "Vô hiệu hóa"}
+              <span className="ovd-switch-track">
+                <span className="ovd-switch-thumb" />
+              </span>
+              <span className="ovd-switch-label">
+                {deactivating
+                  ? "Đang xử lý..."
+                  : isInactive
+                    ? "Đang tắt"
+                    : "Đang bật"}
+              </span>
             </button>
           )}
         </div>

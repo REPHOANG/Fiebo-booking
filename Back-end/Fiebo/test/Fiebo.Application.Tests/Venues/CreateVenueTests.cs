@@ -74,8 +74,8 @@ namespace Fiebo.Application.Tests.Venues
                 AddressDetail = "123 Street",
                 ProvinceId = 1,
                 WardId = 1,
-                Latitude = 21.0285,
-                Longitude = 105.8542,
+                Latitude = "21.0285",
+                Longitude = "105.8542",
                 Thumbnail = null
             };
         }

@@ -12,6 +12,7 @@ using Fiebo.Domain.Repositories;
 using Fiebo.Domain.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Reflection.Metadata;
 
 namespace Fiebo.Application.Services
@@ -492,6 +493,15 @@ namespace Fiebo.Application.Services
             {
                 throw new BadRequestException("Phường/Xã không hợp lệ hoặc không thuộc tỉnh/thành phố đã chọn");
             }
+            if (!double.TryParse(request.Latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude))
+            {
+                throw new BadRequestException("Latitude không hợp lệ");
+            }
+
+            if (!double.TryParse(request.Longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
+            {
+                throw new BadRequestException("Longitude không hợp lệ");
+            }
 
             var file = request.Thumbnail;
             var fileList = file != null ? new List<IFormFile> { file } : [];
@@ -506,8 +516,8 @@ namespace Fiebo.Application.Services
                 AddressDetail = request.AddressDetail,
                 ProvinceId = request.ProvinceId,
                 WardId = request.WardId,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
+                Latitude = latitude,
+                Longitude = longitude,
                 OwnerId = ownerId,
                 ThumbnailUrl = file != null ? (await _cloudinaryService.UploadImageAsync(file)).Url : null,
                 Status = VenueStatus.Draft
@@ -738,6 +748,16 @@ namespace Fiebo.Application.Services
             if (!isFullDay && request.CloseTime <= request.OpenTime)
                 throw new BadRequestException("Giờ đóng cửa phải sau giờ mở cửa. Vui lòng thiết lập lại thời gian hoạt động.");
 
+            if (!double.TryParse(request.Latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude))
+            {
+                throw new BadRequestException("Latitude không hợp lệ");
+            }
+
+            if (!double.TryParse(request.Longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
+            {
+                throw new BadRequestException("Longitude không hợp lệ");
+            }
+
             venue.Name = request.Name;
             venue.Description = request.Description;
             venue.OpenTime = request.OpenTime;
@@ -745,8 +765,8 @@ namespace Fiebo.Application.Services
             venue.AddressDetail = request.AddressDetail;
             venue.ProvinceId = request.ProvinceId;
             venue.WardId = request.WardId;
-            venue.Latitude = request.Latitude;
-            venue.Longitude = request.Longitude;
+            venue.Latitude = latitude;
+            venue.Longitude = longitude;
 
             if (request.DeletedThumbnail)
             {
@@ -1027,6 +1047,15 @@ namespace Fiebo.Application.Services
                     throw new BadRequestException(
                         "Không thể rút ngắn giờ hoạt động. Hiện có các khung giờ hoặc đặt chỗ đang hoạt động nằm ngoài khung giờ mới. Vui lòng xử lý trước.");
             }
+            if (!double.TryParse(request.Latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var latitude))
+            {
+                throw new BadRequestException("Latitude không hợp lệ");
+            }
+
+            if (!double.TryParse(request.Longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var longitude))
+            {
+                throw new BadRequestException("Longitude không hợp lệ");
+            }
 
             venue.Name = request.Name;
             venue.Description = request.Description;
@@ -1034,8 +1063,8 @@ namespace Fiebo.Application.Services
             venue.CloseTime = request.CloseTime;
             venue.ProvinceId = request.ProvinceId;
             venue.WardId = request.WardId;
-            venue.Longitude = request.Longitude;
-            venue.Latitude = request.Latitude;
+            venue.Longitude = longitude;
+            venue.Latitude = latitude;
             if (request.ThumbnailDeleted)
             {
                 venue.ThumbnailUrl = null;

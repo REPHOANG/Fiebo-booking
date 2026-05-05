@@ -35,11 +35,7 @@ const accountSchema = yup.object({
 const resetSchema = yup.object({
   newPassword: yup
     .string()
-    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
-    .matches(/[A-Z]/, 'Mật khẩu phải có ít nhất một chữ hoa')
-    .matches(/[a-z]/, 'Mật khẩu phải có ít nhất một chữ thường')
-    .matches(/[0-9]/, 'Mật khẩu phải có ít nhất một chữ số')
-    .matches(/[\W_]/, 'Mật khẩu phải có ít nhất một ký tự đặc biệt (!@#$%^&*)')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
     .required('Vui lòng nhập mật khẩu mới'),
   confirmPassword: yup
     .string()
@@ -384,8 +380,7 @@ const ForgotPassword = ({ onOpenLogin, isPopup = false }) => {
                 </button>
               </div>
               {resetErrors.newPassword
-                ? <p className="field-error">{resetErrors.newPassword.message}</p>
-                : <p className="hint">Tối thiểu 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt</p>
+                && <p className="field-error">{resetErrors.newPassword.message}</p>
               }
             </div>
             

@@ -216,6 +216,7 @@ export default function CreateVenueStepBasic({
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchContainerRef = useRef(null);
+  const searchTimerRef = useRef(null);
 
   // Close search results when clicking outside
   useEffect(() => {
@@ -228,24 +229,36 @@ export default function CreateVenueStepBasic({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => () => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+  }, []);
+
   const handleSearch = async (val) => {
     setSearchQuery(val);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
     if (!val || val.trim().length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
     setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1`
-      );
-      const data = await response.json();
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      setIsSearching(false);
-    }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5&countrycodes=vn&addressdetails=1&accept-language=vi`
+        );
+        const data = await response.json();
+        setSearchResults(data || []);
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 1500);
   };
 
   const selectLocation = (item) => {

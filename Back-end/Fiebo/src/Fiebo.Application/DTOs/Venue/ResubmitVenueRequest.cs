@@ -28,9 +28,9 @@ namespace Fiebo.Application.DTOs.Venue
         [Required(ErrorMessage = "Địa chỉ là bắt buộc.")]
         public required string AddressDetail { get; set; }
         [Required(ErrorMessage = "Vị trí là bắt buộc.")]
-        public double Longitude { get; set; }
+        public string Longitude { get; set; } = string.Empty;
         [Required(ErrorMessage = "Vị trí là bắt buộc.")]
-        public double Latitude { get; set; }
+        public string Latitude { get; set; } = string.Empty;
         [Required]
         public bool ThumbnailDeleted { get; set; }
         public IFormFile? ThumbnailImage { get; set; }

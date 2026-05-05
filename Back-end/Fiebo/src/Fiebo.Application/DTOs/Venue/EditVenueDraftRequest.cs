@@ -27,9 +27,9 @@ namespace Fiebo.Application.DTOs.Venue
 
         public int WardId { get; set; }
 
-        public double Latitude { get; set; }
+        public string Latitude { get; set; } = string.Empty;
 
-        public double Longitude { get; set; }
+        public string Longitude { get; set; } = string.Empty;
 
         public IFormFile? ThumbnailImage { get; set; }
     }

@@ -8,6 +8,7 @@ import { getVenueDetail, getVenueSchedule } from "../../../services/fieldService
 import { setDraft } from '../../../store/bookingDraftSlice';
 import { setBookedSlotsFromServer } from '../../../store/bookedSlotsSlice';
 import { useAuthModal } from "../../../context/AuthModalContext";
+import { hasRole } from "../../../utils/roleUtils";
 import "./BookingSchedule.css";
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -199,7 +200,8 @@ const BookingSchedule = () => {
   const prefillDate = searchParams.get('date') || '';
   const prefillTimeRaw = searchParams.get('time') || '';
   const prefillTime = prefillTimeRaw ? prefillTimeRaw.slice(0, 5) : '';
-
+  const user = useSelector((state) => state.auth?.user);
+  const isFieldOwner = hasRole(user, "fieldowner");
   const [venue, setVenue] = useState(null);
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -824,7 +826,17 @@ const BookingSchedule = () => {
         });
         return;
       }
-
+      if (isFieldOwner) {
+        navigate(`/owner/events/${evId}`, {
+        state: {
+          bookingScheduleReturn: {
+            venueId: id,
+            date: selectedDate,
+          },
+        },
+      });
+      return;
+      }
       navigate(`/event/${evId}`, {
         state: {
           bookingScheduleReturn: {
